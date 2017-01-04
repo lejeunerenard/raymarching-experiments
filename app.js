@@ -1,6 +1,7 @@
 const glslify = require('glslify')
 
 import createShader from 'gl-shader'
+import createTexture from 'gl-texture2d'
 
 import ShaderVREffect from 'shader-vr-effect'
 import ShaderVROrbitControls from 'shader-vr-orbit-controls'
@@ -17,8 +18,8 @@ import defined from 'defined'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 120
-let captureTime = 20
-const secondsLong = 7
+let captureTime = 0
+const secondsLong = 15
 
 const capturing = false
 
@@ -97,8 +98,15 @@ export default class App {
     // Turn off depth test
     gl.disable(gl.DEPTH_TEST)
 
+    let img = document.createElement('img')
+    img.src = 'stone.jpg'
+
     // Create fragment shader
     this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
+    img.onload = () => {
+      this.texture = createTexture(gl, img)
+      this.texture.wrap = [gl.MIRRORED_REPEAT, gl.REPEAT]
+    }
 
     this.shader.attributes.position.location = 0
   }
@@ -146,6 +154,7 @@ export default class App {
     shader.bind()
 
     shader.uniforms.time = t / 1000
+    shader.uniforms.texture = this.texture
     controls.update(shader)
 
     manager.render(shader, t)

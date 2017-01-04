@@ -14,11 +14,12 @@ uniform float time;
 uniform vec3 cOffset;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
+uniform sampler2D texture;
 
 const float epsilon = 0.003;
 const int maxSteps = 512;
 const float maxDistance = 20.;
-const vec4 background = vec4(vec3(.6), 1.);
+const vec4 background = vec4(vec3(1.), 1.);
 
 const vec3 lightPos = vec3(0, 0, 5.);
 
@@ -79,11 +80,27 @@ float obj1 (in vec3 p) {
   );
 }
 
-float map (in vec3 p) {
+vec2 dMin (vec2 d1, vec2 d2) {
+  return (d1.x < d2.x) ? d1 : d2;
+}
+mat4 rotationMatrix(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+}
+
+vec2 map (in vec3 p) {
   float t = time;
 
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * pp).xyz;
+  vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 2. * PI * sin(time) / 2.) * pp).xyz;
 
   q.xy = repeatAng(q.xy, 5.0);
   opReflect(q, un.xyyy);
@@ -91,21 +108,25 @@ float map (in vec3 p) {
   q.zx = repeatAng(q.zx, 5.0);
   opReflect(q, un.yyxy);
 
-  float org = sdBox(q, vec3(.15));
-
   vec3 scale = sin(vec3(1., 2., 3.) * time);
   vec3 obj1P = scale * vec3(.5, .5, 0.) + q;
-  float d = min(sdSphere(obj1P, .25), org);
+  vec2 d = vec2(min(sdSphere(obj1P, .25), 1000.), 0.);
 
   const vec3 bSize = vec3(.25);
 
-  for (int i = 0; i < 8; i++) {
-    d = min(sdBox(q + sin(time + float(i)*vec3(1., 2., 3.)), bSize), d);
-  }
+  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + vec3(1., 2., 3.)), bSize), 1.), d);
+  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 2. * vec3(1., 2., 3.)), bSize), 2.), d);
+  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 3. * vec3(3., 5., 7.)), bSize), 3.), d);
+  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 4. * vec3(11., 13., 17.)), bSize), 4.), d);
+  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 5. * vec3(3., 5., 3.)), bSize), 5.), d);
 
-  for (int i = 0; i < 8; i++) {
-    d = min(sdSphere(q + sin(time + float(i)*vec3(5., 7., 11.)), float(i) / 16.), d);
-  }
+  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + vec3(5., 7., 11.)), 4. / 16.), 6.), d);
+  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 2. * vec3(5., 7., 11.)), 2. / 16.), 7.), d);
+  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 3. * vec3(5., 7., 11.)), 3. / 16.), 8.), d);
+  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 4. * vec3(5., 7., 11.)), 4. / 16.), 9.), d);
+  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 5. * vec3(5., 7., 11.)), 5. / 16.), 10.), d);
+  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 6. * vec3(5., 7., 11.)), 6. / 16.), 11.), d);
+
   return d;
 }
 
@@ -114,9 +135,9 @@ vec2 march (in vec3 rayOrigin, in vec3 rayDirection) {
   float maxI = 0.;
 
   for (int i = 0; i < maxSteps; i++) {
-    float d = map(rayOrigin + rayDirection * t);
-    if (d < epsilon) return vec2(t + d, i);
-    t += d;
+    vec2 d = map(rayOrigin + rayDirection * t);
+    if (d.x < epsilon) return vec2(t + d.x, d.y);
+    t += d.x;
     if (t > maxDistance) break;
   }
   return vec2(-1., maxI);
@@ -124,10 +145,10 @@ vec2 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
 vec3 getNormal( in vec3 p, in float eps ) {
     vec2 e = vec2(1.0,-1.0)*0.05773*eps;
-    return normalize( e.xyy*map( p + e.xyy ) + 
-            e.yyx*map( p + e.yyx ) + 
-            e.yxy*map( p + e.yxy ) + 
-            e.xxx*map( p + e.xxx ) );
+    return normalize( e.xyy*map( p + e.xyy ).x + 
+            e.yyx*map( p + e.yyx ).x + 
+            e.yxy*map( p + e.yxy ).x + 
+            e.xxx*map( p + e.xxx ).x );
 }
 
 float diffuse (in vec3 nor, in vec3 lightPos) {
@@ -139,10 +160,10 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
     float t = mint;
     for( int i=0; i<16; i++ )
     {
-    float h = map(ro + rd*t);
-        res = min( res, 4.0*h/t );
-        t += clamp( h, 0.02, 0.10 );
-        if( h<0.001 || t>tmax ) break;
+    vec2 h = map(ro + rd*t);
+        res = min( res, 4.0*h.x/t );
+        t += clamp( h.x, 0.02, 0.10 );
+        if( h.x<0.001 || t>tmax ) break;
     }
     return clamp( res, 0.0, 1.0 );
 }
@@ -152,8 +173,8 @@ float calcAO( in vec3 pos, in vec3 nor  ) {
   for( int i=0; i<5; i++  ) {
     float hr = 0.01 + 0.12*float(i)/4.0;
     vec3 aopos =  nor * hr + pos;
-    float dd = map(aopos);
-    occ += -(dd-hr)*sca;
+    vec2 dd = map(aopos);
+    occ += -(dd.x-hr)*sca;
     sca *= 0.95;
   }
   return clamp( 1.0 - 3.0*occ, 0.0, 1.0  );    
@@ -167,12 +188,24 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = vec4(1.);
+      vec3 a = vec3(.25, .75, .75);
+      vec3 b = vec3(.12, .25, .25);
+      vec3 c = vec3(1., .9, .5);
+      vec3 d = vec3(0., .33, .67);
+      if (t.y > 6.){
+        color = texture2D(texture, nor.xy);
+      } else {
+        color = vec4(1.);
+      }
+      color.rgb = max(color.rgb, vec3(.4));
+      color.rgb *= a + b * cos(2. * PI * ( c * sin(time / 100.) * t.y / 11. + d ));
+      color.a = 1.;
+
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
 
-      dif *= softshadow(pos, lightPos, 0.02, 1.5);
+      dif *= min(0.3 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
       lin += 1.1*dif*vec3(1.);
       lin += 0.20*amb*vec3(0.50,0.70,1.00)*occ;
@@ -197,7 +230,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       color = vec4(vec3(t.y / float(maxSteps)), 1.);
       #endif
     } else {
-      color *= sqrt(1.45 - .5 * dot(rayDirection, vec3(0., 0., -1.)) * 2.5);
+      color *= sqrt(1.75 - .5 * dot(rayDirection, vec3(0., 0., -1.)) * 2.5);
       color = mix(vec4(1.), color, 1. - clamp(t.y / float(maxSteps), 0., 1.));
       color.a = 1.;
     }
