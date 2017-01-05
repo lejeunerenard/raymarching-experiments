@@ -9,7 +9,9 @@
     "gl-context": "^0.1.1",
     "gl-shader": "^4.2.1",
     "gl-texture2d": "^2.1.0",
+    "glsl-hsv2rgb": "^1.0.0",
     "glsl-inverse": "^1.0.0",
+    "glsl-noise": "0.0.0",
     "glslify": "^6.0.1",
     "raf": "^3.3.0",
     "webvr-polyfill": "^0.9.24"

@@ -19,7 +19,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 120
 let captureTime = 0
-const secondsLong = 15
+const secondsLong = 30
 
 const capturing = false
 

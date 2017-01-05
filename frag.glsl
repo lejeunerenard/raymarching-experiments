@@ -6,8 +6,6 @@
 
 precision highp float;
 
-#pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
-
 varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
@@ -16,10 +14,20 @@ uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D texture;
 
+#pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
+
+#pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
+
+float lumPeriod (vec3 p, int i) {
+  return .2 * (snoise3(p * vec3(1., .3, 1.)) + 2. * float(i) + 1.);
+}
+
+#pragma glslify: iridescant = require(./iridescent, lumPeriod=lumPeriod)
+
 const float epsilon = 0.003;
 const int maxSteps = 512;
 const float maxDistance = 20.;
-const vec4 background = vec4(vec3(1.), 1.);
+const vec4 background = vec4(vec3(.9), 1.);
 
 const vec3 lightPos = vec3(0, 0, 5.);
 
@@ -96,6 +104,18 @@ mat4 rotationMatrix(vec3 axis, float angle)
                 0.0,                                0.0,                                0.0,                                1.0);
 }
 
+vec3 cycle (vec3 p, vec3 mul, vec3 offset) {
+  const vec3 center = vec3(-.7, -.9, .3);
+  const vec3 range = vec3(.75, 0.5, 0.15);
+  return p + center + range * sin(2. * PI * time * mul + offset);
+}
+vec3 cycle (vec3 p, vec3 mul) {
+  return cycle(p, mul, vec3(0.));
+}
+vec3 cycle (vec3 p) {
+  return cycle(p, vec3(.1), vec3(0.));
+}
+
 vec2 map (in vec3 p) {
   float t = time;
 
@@ -109,23 +129,14 @@ vec2 map (in vec3 p) {
   opReflect(q, un.yyxy);
 
   vec3 scale = sin(vec3(1., 2., 3.) * time);
-  vec3 obj1P = scale * vec3(.5, .5, 0.) + q;
+  vec3 obj1P = scale * vec3(.5, .5, -.1) + q;
   vec2 d = vec2(min(sdSphere(obj1P, .25), 1000.), 0.);
 
   const vec3 bSize = vec3(.25);
 
-  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + vec3(1., 2., 3.)), bSize), 1.), d);
-  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 2. * vec3(1., 2., 3.)), bSize), 2.), d);
-  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 3. * vec3(3., 5., 7.)), bSize), 3.), d);
-  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 4. * vec3(11., 13., 17.)), bSize), 4.), d);
-  d = dMin(vec2(sdBox(q - vec3(.5) - .5 * sin(time + 5. * vec3(3., 5., 3.)), bSize), 5.), d);
-
-  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + vec3(5., 7., 11.)), 4. / 16.), 6.), d);
-  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 2. * vec3(5., 7., 11.)), 2. / 16.), 7.), d);
-  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 3. * vec3(5., 7., 11.)), 3. / 16.), 8.), d);
-  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 4. * vec3(5., 7., 11.)), 4. / 16.), 9.), d);
-  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 5. * vec3(5., 7., 11.)), 5. / 16.), 10.), d);
-  d = dMin(vec2(sdSphere(q + vec3(.2) + sin(time + 6. * vec3(5., 7., 11.)), 6. / 16.), 11.), d);
+  d = dMin(vec2(sdBox(cycle(q, vec3(.5, .333, .2)), .6 * bSize), 1.), d);
+  d = dMin(vec2(sdBox(cycle(q, vec3(0.142857, 0.090909, .2), vec3(PI)), bSize), 2.), d);
+  d = dMin(vec2(sdBox(cycle(q), bSize), 3.), d);
 
   return d;
 }
@@ -188,17 +199,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      vec3 a = vec3(.25, .75, .75);
-      vec3 b = vec3(.12, .25, .25);
-      vec3 c = vec3(1., .9, .5);
-      vec3 d = vec3(0., .33, .67);
+      vec3 a = vec3(.75, .5, .0);
+      vec3 b = vec3(.25, .5, .0);
+      vec3 c = vec3(9., .4, .5);
+      vec3 d = vec3(.85, .33, .67);
       if (t.y > 6.){
         color = texture2D(texture, nor.xy);
       } else {
         color = vec4(1.);
       }
-      color.rgb = max(color.rgb, vec3(.4));
-      color.rgb *= a + b * cos(2. * PI * ( c * sin(time / 100.) * t.y / 11. + d ));
+      color.rgb = vec3(.4 * mod(t.y, 3.));
+      color.rgb = color.rgb * (.9 + iridescant(pos, ref, sin(time * .1 - t.y)));
+
+      color.rgb += .4 * dot(nor, rayDirection);
       color.a = 1.;
 
       float occ = calcAO(pos, nor);
@@ -209,7 +222,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       vec3 lin = vec3(0.);
       lin += 1.1*dif*vec3(1.);
       lin += 0.20*amb*vec3(0.50,0.70,1.00)*occ;
-      lin += 0.20*(t.y / float(maxSteps))*vec3(0.30,0.90,1.00);
       color.xyz *= lin;
       color.a = 1.;
 
@@ -240,7 +252,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
 // Original
 
 void main() {
-    const float d = 3.;
+    const float d = 4.;
 
     vec3 ro = vec3(0.,0.,d) + cOffset;
 
