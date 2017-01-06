@@ -17,9 +17,9 @@ import defined from 'defined'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
-const fr = 120
+const fr = 240
 let captureTime = 0
-const secondsLong = 30
+const secondsLong = 20
 
 const capturing = false
 
@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kelido-slow',
+    name: 'kelido-engine',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,

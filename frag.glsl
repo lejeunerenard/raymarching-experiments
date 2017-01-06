@@ -25,9 +25,9 @@ float lumPeriod (vec3 p, int i) {
 #pragma glslify: iridescant = require(./iridescent, lumPeriod=lumPeriod)
 
 const float epsilon = 0.003;
-const int maxSteps = 512;
+const int maxSteps = 256;
 const float maxDistance = 20.;
-const vec4 background = vec4(vec3(.9), 1.);
+const vec4 background = vec4(vec3(.15), 1.);
 
 const vec3 lightPos = vec3(0, 0, 5.);
 
@@ -122,10 +122,10 @@ vec2 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
   vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 2. * PI * sin(time) / 2.) * pp).xyz;
 
-  q.xy = repeatAng(q.xy, 5.0);
+  q.xy = repeatAng(q.xy, 6.);
   opReflect(q, un.xyyy);
 
-  q.zx = repeatAng(q.zx, 5.0);
+  q.zx = repeatAng(q.xz, 3. * (1.01 + sin(time)));
   opReflect(q, un.yyxy);
 
   vec3 scale = sin(vec3(1., 2., 3.) * time);
@@ -137,6 +137,8 @@ vec2 map (in vec3 p) {
   d = dMin(vec2(sdBox(cycle(q, vec3(.5, .333, .2)), .6 * bSize), 1.), d);
   d = dMin(vec2(sdBox(cycle(q, vec3(0.142857, 0.090909, .2), vec3(PI)), bSize), 2.), d);
   d = dMin(vec2(sdBox(cycle(q), bSize), 3.), d);
+  d = dMin(vec2(sdBox(cycle(q, vec3(0.076923, 0.4, 0.428571), vec3(1.1 * PI)), bSize), 4.), d);
+  d = dMin(vec2(sdBox(cycle(q, vec3(1., 2., 1.), vec3(PI * 3.)), bSize * .4), 5.), d);
 
   return d;
 }
@@ -149,6 +151,7 @@ vec2 march (in vec3 rayOrigin, in vec3 rayDirection) {
     vec2 d = map(rayOrigin + rayDirection * t);
     if (d.x < epsilon) return vec2(t + d.x, d.y);
     t += d.x;
+    maxI = float(i);
     if (t > maxDistance) break;
   }
   return vec2(-1., maxI);
@@ -203,13 +206,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       vec3 b = vec3(.25, .5, .0);
       vec3 c = vec3(9., .4, .5);
       vec3 d = vec3(.85, .33, .67);
-      if (t.y > 6.){
-        color = texture2D(texture, nor.xy);
-      } else {
-        color = vec4(1.);
-      }
-      color.rgb = vec3(.4 * mod(t.y, 3.));
-      color.rgb = color.rgb * (.9 + iridescant(pos, ref, sin(time * .1 - t.y)));
+      color = vec4(1.);
+      color.r *= dot(nor, ref);
+      color.g *= max(nor.x, t.y) / 6.;
 
       color.rgb += .4 * dot(nor, rayDirection);
       color.a = 1.;
@@ -243,7 +242,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       #endif
     } else {
       color *= sqrt(1.75 - .5 * dot(rayDirection, vec3(0., 0., -1.)) * 2.5);
-      color = mix(vec4(1.), color, 1. - clamp(t.y / float(maxSteps), 0., 1.));
+      color = mix(vec4(pos * .7, 1.), color, 1. - clamp(t.y / float(maxSteps), 0., 1.));
       color.a = 1.;
     }
     return color;
