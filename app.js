@@ -17,7 +17,7 @@ import defined from 'defined'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
-const fr = 240
+const fr = 120
 let captureTime = 0
 const secondsLong = 20
 
@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kelido-engine',
+    name: 'kelido-crystal',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -84,6 +84,7 @@ export default class App {
   }
 
   enableEvents () {
+    return
     this.resizeBound = this.resizeBound || this.resize.bind(this)
     window.addEventListener('resize', this.resizeBound, true)
     window.addEventListener('vrdisplaypresentchange', this.resizeBound, true)
@@ -99,13 +100,12 @@ export default class App {
     gl.disable(gl.DEPTH_TEST)
 
     let img = document.createElement('img')
-    img.src = 'stone.jpg'
+    img.src = 'env.jpg'
 
     // Create fragment shader
     this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
     img.onload = () => {
       this.texture = createTexture(gl, img)
-      this.texture.wrap = [gl.MIRRORED_REPEAT, gl.REPEAT]
     }
 
     this.shader.attributes.position.location = 0
@@ -153,7 +153,7 @@ export default class App {
 
     shader.bind()
 
-    shader.uniforms.time = t / 1000
+    shader.uniforms.time = t / 1000 / 4
     shader.uniforms.texture = this.texture
     controls.update(shader)
 
