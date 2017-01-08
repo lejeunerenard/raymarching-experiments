@@ -27,7 +27,7 @@ float lumPeriod (vec3 p, int i) {
 const float epsilon = 0.003;
 const int maxSteps = 256;
 const float maxDistance = 20.;
-const vec4 background = vec4(vec3(.15), 1.);
+const vec3 background = vec3(.15);
 
 const vec3 lightPos = vec3(0, 0, 5.);
 
@@ -122,15 +122,15 @@ vec2 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
   vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 2. * PI * sin(time) / 2.) * pp).xyz;
 
+  // Space Transforms
   q.xy = repeatAng(q.xy, 6.);
   opReflect(q, un.xyyy);
 
   q.zx = repeatAng(q.xz, 3. * (1.01 + sin(time)));
   opReflect(q, un.yyxy);
 
-  vec3 scale = sin(vec3(1., 2., 3.) * time);
-  vec3 obj1P = scale * vec3(.5, .5, -.1) + q;
-  vec2 d = vec2(min(sdSphere(obj1P, .25), 1000.), 0.);
+  vec3 oscP = vec3(.5, .5, -.1) * sin(vec3(1., 2., 3.) * time) + q;
+  vec2 d = vec2(min(sdSphere(oscP, .25), 1000.), 0.);
 
   const vec3 bSize = vec3(.25);
 
@@ -159,15 +159,18 @@ vec2 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
 vec3 getNormal( in vec3 p, in float eps ) {
     vec2 e = vec2(1.0,-1.0)*0.05773*eps;
-    return normalize( e.xyy*map( p + e.xyy ).x + 
-            e.yyx*map( p + e.yyx ).x + 
-            e.yxy*map( p + e.yxy ).x + 
-            e.xxx*map( p + e.xxx ).x );
+    return normalize(
+      e.xyy * map( p + e.xyy ).x + 
+      e.yyx * map( p + e.yyx ).x + 
+      e.yxy * map( p + e.yxy ).x + 
+      e.xxx * map( p + e.xxx ).x );
 }
 
+// Material Functions
 float diffuse (in vec3 nor, in vec3 lightPos) {
   return clamp(dot(nor, lightPos) / length(lightPos), 0., 1.);
 }
+
 // Source: https://www.shadertoy.com/view/Xds3zN
 float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
   float res = 1.0;
@@ -181,6 +184,7 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
     }
     return clamp( res, 0.0, 1.0 );
 }
+
 float calcAO( in vec3 pos, in vec3 nor  ) {
   float occ = 0.0;
   float sca = 1.0;
@@ -195,23 +199,18 @@ float calcAO( in vec3 pos, in vec3 nor  ) {
 }
 
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
-    vec4 color = background;
+    vec3 color = background;
     vec3 pos = rayOrigin + rayDirection * t.x;
     if (t.x>0.) {
       vec3 nor = getNormal(pos, 0.001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      vec3 a = vec3(.75, .5, .0);
-      vec3 b = vec3(.25, .5, .0);
-      vec3 c = vec3(9., .4, .5);
-      vec3 d = vec3(.85, .33, .67);
-      color = vec4(1.);
+      color = vec3(1.);
       color.r *= dot(nor, ref);
       color.g *= max(nor.x, t.y) / 6.;
 
-      color.rgb += .4 * dot(nor, rayDirection);
-      color.a = 1.;
+      color += .4 * dot(nor, rayDirection);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -221,31 +220,30 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       vec3 lin = vec3(0.);
       lin += 1.1*dif*vec3(1.);
       lin += 0.20*amb*vec3(0.50,0.70,1.00)*occ;
-      color.xyz *= lin;
-      color.a = 1.;
+      color *= lin;
 
       // Fog
       color = mix(background, color, (maxDistance-t.x) / maxDistance);
 
       // Color Map
-      color  = mix(vec4(0., .7, 1., 1.), color, clamp(exp(length(color)) * .325, 0., 1.));
-      color  = mix(vec4(1., .3, 0., 1.), color, 1. - length(color) *.05);
+      color = mix(vec3(0., .7, 1.), color, clamp(exp(length(vec4(color, 1.))) * .325, 0., 1.));
+      color = mix(vec3(1., .3, 0.), color, 1. - length(vec4(color, 1.)) *.05);
 
       #ifdef debugMapMaxed
       if (t.y / float(maxSteps) > 0.9) {
-        color = vec4(1., 0., 1., 1.);
+        color = vec3(1., 0., 1., 1.);
       }
       #endif
 
       #ifdef debugMapCalls
-      color = vec4(vec3(t.y / float(maxSteps)), 1.);
+      color = vec3(vec3(t.y / float(maxSteps)), 1.);
       #endif
     } else {
-      color *= sqrt(1.75 - .5 * dot(rayDirection, vec3(0., 0., -1.)) * 2.5);
-      color = mix(vec4(pos * .7, 1.), color, 1. - clamp(t.y / float(maxSteps), 0., 1.));
-      color.a = 1.;
+      color *= sqrt(1.75 - 1.25 * dot(rayDirection, vec3(0., 0., -1.)));
+      color = mix(vec3(pos * .7), color, 1. - clamp(t.y / float(maxSteps), 0., 1.));
     }
-    return color;
+
+    return vec4(color, 1.);
 }
 
 // Original
