@@ -17,9 +17,9 @@ import defined from 'defined'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
-const fr = 120
+const fr = 60
 let captureTime = 0
-const secondsLong = 20
+const secondsLong = 45
 
 const capturing = false
 
@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kelido-crystal',
+    name: 'trip-glitch',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -153,7 +153,7 @@ export default class App {
 
     shader.bind()
 
-    shader.uniforms.time = t / 1000 / 4
+    shader.uniforms.time = t / 1000 / 6
     shader.uniforms.texture = this.texture
     controls.update(shader)
 

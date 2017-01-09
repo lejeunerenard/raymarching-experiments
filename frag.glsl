@@ -24,12 +24,12 @@ float lumPeriod (vec3 p, int i) {
 
 #pragma glslify: iridescant = require(./iridescent, lumPeriod=lumPeriod)
 
-const float epsilon = 0.001;
+float epsilon = 0.001;
 const int maxSteps = 40;
-const float maxDistance = 15.;
-const vec3 background = vec3(.15);
+float maxDistance = 30.;
+vec3 background = vec3(.15);
 
-const vec3 lightPos = vec3(0, 0, 5.);
+vec3 lightPos = vec3(0, 0, 5.);
 
 float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
@@ -54,25 +54,43 @@ mat4 rotationMatrix(vec3 axis, float angle)
                 0.0,                                0.0,                                0.0,                                1.0);
 }
 
-const float tOff = 168.;
-float rtime1 = (time + tOff) * .12;
-float rtime2 = (time + tOff) * .27;
-float rtime3 = (time + tOff) * .13;
-mat3 rot =
-  mat3(cos(rtime1),0,sin(rtime1),0,1,0,-sin(rtime1),0,cos(rtime1)) *
-  mat3(cos(rtime2),sin(rtime2),.0,-sin(rtime2),cos(rtime2),.0,0,0,1) *
-  mat3(1,0,0,0,cos(rtime3),sin(rtime3),0,-sin(rtime3),cos(rtime3));
 
 void rotFold (inout vec3 p) {
+  float tOff = 180.;
+  float rtime1 = (time + tOff) * .12;
+  float rtime2 = (time + tOff + 5.) * .43;
+  float rtime3 = (time + tOff) * .71;
+  mat3 rot =
+    mat3(cos(rtime1),0,sin(rtime1),0,1,0,-sin(rtime1),0,cos(rtime1)) *
+    mat3(cos(rtime2),sin(rtime2),.0,-sin(rtime2),cos(rtime2),.0,0,0,1) *
+    mat3(1,0,0,0,cos(rtime3),sin(rtime3),0,-sin(rtime3),cos(rtime3));
+
   float e=.4;
-  for (int i=0; i < 9; i++) {
-    p = abs(p*rot) - e;
-    p.y -= p.x*.1;
+  for (int i=0; i < 10; i++) {
+    p = abs(p * rot) - e;
+    p.y -= abs(p.x)*.1;
     p.x -= p.z*.1;
-    e = e * .8 + e *e * .1;
+    e = e * .8 + e * e * .25;
   }
   p = abs(p * rot) - e;
   p = abs(p * rot) - e;
+}
+void ballFold(inout vec3 v, inout float dz) {
+  float r2 = dot(v, v);
+  const float fixedRadius = 1.;
+  const float fixedRadius2 = fixedRadius * fixedRadius;
+  const float minRadius = 0.5;
+  const float minRadius2 = minRadius * minRadius;
+
+  if (r2 < minRadius2) {
+    float temp = fixedRadius2 / minRadius2;
+    v *= temp;
+    dz *= temp;
+  } else if ( r2 < fixedRadius2 ) {
+    float temp = fixedRadius2 / r2;
+    v *= temp;
+    dz *= temp;
+  }
 }
 
 vec2 map (in vec3 p) {
@@ -81,8 +99,10 @@ vec2 map (in vec3 p) {
 
   // Space Transforms
   rotFold(q);
+  float dz = 1.;
+  ballFold(q, dz);
 
-  vec2 d = vec2(sdBox(q, vec3(.05)), 1.);
+  vec2 d = vec2(sdBox(q, vec3(.5)), 1.);
 
   return d;
 }
@@ -148,6 +168,14 @@ vec3 matCap (vec3 ref) {
   return texture2D(texture, vN).rgb;
 }
 
+void colorMap (inout vec3 color) {
+  float l = length(vec4(color, 1.));
+  // Light
+  color = mix(#FF0000, color, 1. - l * .0625);
+  // Dark
+  color = mix(#00FF00, color, clamp(exp(l) * .325, 0., 1.));
+}
+
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
     vec3 color = background;
     vec3 pos = rayOrigin + rayDirection * t.x;
@@ -157,6 +185,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
 
       // Basic Diffusion
       color = vec3(1.);
+      if (t.y == 2.) {
+        color = vec3(1., 0., 0.);
+      }
+      color.b *= length(1. / pos);
       // color.r *= dot(nor, ref);
       // color.g *= max(nor.x, t.y) / 6.;
 
@@ -164,21 +196,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
 
-      //dif *= min(0.3 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+      dif *= min(0.3 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
-      lin += 1.1*dif*vec3(1.);
+      lin += 1.*dif;
       lin += 0.20*amb*vec3(0.50,0.70,1.00)*occ;
       color *= lin;
 
       // Fog
       color = mix(background, color, (maxDistance-t.x) / maxDistance);
 
-      color *= (dot(rayDirection,nor)*.5+.5) * 3.;
-      color += matCap(ref);
+      // color *= (dot(rayDirection,nor)*.5+.5) * 3.;
+      // color += matCap(ref);
 
-      // Color Map
-      color = mix(vec3(0., .7, 1.), color, clamp(exp(length(vec4(color, 1.))) * .325, 0., 1.));
-      color = mix(vec3(1., .3, 0.), color, 1. - length(vec4(color, 1.)) *.05);
+      // colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.y / float(maxSteps) > 0.9) {
@@ -202,7 +232,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec2 t ) {
 // Original
 
 void main() {
-    const float d = 7.;
+    const float d = 8.;
 
     vec3 ro = vec3(0.,0.,d) + cOffset;
 
