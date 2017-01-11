@@ -19,7 +19,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 45
+const secondsLong = 30
 
 const capturing = false
 
@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'trip-glitch',
+    name: 'kaleidoscope-ifs-mask',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
