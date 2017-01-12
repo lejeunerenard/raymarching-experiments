@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kaleidoscope-ifs-mask',
+    name: 'kaleidoscope-ifs-octahedron-folds',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -84,7 +84,6 @@ export default class App {
   }
 
   enableEvents () {
-    return
     this.resizeBound = this.resizeBound || this.resize.bind(this)
     window.addEventListener('resize', this.resizeBound, true)
     window.addEventListener('vrdisplaypresentchange', this.resizeBound, true)

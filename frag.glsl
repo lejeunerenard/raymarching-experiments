@@ -17,9 +17,9 @@ uniform sampler2D texture;
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
 
 float epsilon = 0.01;
-const int maxSteps = 128;
+const int maxSteps = 256;
 float maxDistance = 19.;
-vec3 background = vec3(1.);
+vec3 background = #00B298;
 
 vec3 lightPos = vec3(0, 0, 5.);
 
@@ -48,10 +48,26 @@ void fold (inout vec2 p) {
     p.x = x1;
   }
 }
+void foldInv (inout vec2 p) {
+  if (p.x - p.y < 0.) {
+    float x1 = p.y;
+    p.y = p.x;
+    p.x = x1;
+  }
+}
 
-float sierpinski3( in vec3 p ) {
+mat3 rotation3 (float time, float tOff) {
+  float rtime1 = PI + PI * .23 * sin((time + tOff) * .12);
+  float rtime2 = PI + PI * .23 * sin((time + tOff + 1.) * .93);
+  float rtime3 = PI + PI * .23 * sin((time + tOff) * .71);
+  return
+    mat3(cos(rtime1),0,sin(rtime1),0,1,0,-sin(rtime1),0,cos(rtime1)) *
+    mat3(cos(rtime2),sin(rtime2),.0,-sin(rtime2),cos(rtime2),.0,0,0,1) *
+    mat3(1,0,0,0,cos(rtime3),sin(rtime3),0,-sin(rtime3),cos(rtime3));
+}
+
+float kifs( inout vec3 p ) {
   float r = dot(p, p);
-  const float bailout = 10000.;
   const float scale = 2.1;
 
   int maxI = 0;
@@ -59,31 +75,31 @@ float sierpinski3( in vec3 p ) {
 
   const int Iterations = 12;
 
-  float tOff = 4.3;
-  float rtime1 = PI + PI * .23 * sin((time + tOff) * .12);
-  float rtime2 = PI + PI * .23 * sin((time + tOff + 1.) * .93);
-  float rtime3 = PI + PI * .23 * sin((time + tOff) * .71);
-  mat3 rot =
-    mat3(cos(rtime1),0,sin(rtime1),0,1,0,-sin(rtime1),0,cos(rtime1)) *
-    mat3(cos(rtime2),sin(rtime2),.0,-sin(rtime2),cos(rtime2),.0,0,0,1) *
-    mat3(1,0,0,0,cos(rtime3),sin(rtime3),0,-sin(rtime3),cos(rtime3));
+  mat3 rot = rotation3(time, 40.3);
+  mat3 rot2 = rotation3(2. * time + 100., 14.3);
 
   for (int i = 0; i < Iterations; i++) {
+
+    p *= rot2;
+
     p = -abs(-p);
 
     // Folding
     fold(p.xy);
     fold(p.xz);
-    fold(p.yz);
+    foldInv(p.xy);
+    foldInv(p.xz);
+
+    p -= vec3(0., 1., 1.);
 
     p *= rot;
 
     // Stretch
     p *= scale;
-    p -= Offset * (scale - 1.);
+    p -= Offset * vec3(1., 0., 0.) * (scale - 1.);
   }
 
-  return (length(p) - 1.) * pow(scale, - float(Iterations));
+  return (length(p)) * pow(scale, - float(Iterations));
 }
 
 vec2 map (in vec3 p) {
@@ -91,7 +107,7 @@ vec2 map (in vec3 p) {
   vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 2. * PI * sin(time) / 4.) * pp).xyz;
   //vec3 q = vec3(orientation * pp).xyz;
 
-  return vec2(sierpinski3(q), 1.);
+  return vec2(kifs(q), 1.);
 }
 
 vec3 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -157,9 +173,9 @@ vec3 matCap (vec3 ref) {
 void colorMap (inout vec3 color) {
   float l = length(vec4(color, 1.));
   // Light
-  color = mix(#90B8FF, color, 1. - l * .0625);
+  color = mix(#FFD026, color, 1. - l * .0625);
   // Dark
-  color = mix(#7782E8, color, clamp(exp(l) * .325, 0., 1.));
+  color = mix(#B21BB2, color, .9 * clamp(exp(l) * .325, 0., 1.));
 }
 
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec3 t ) {
@@ -170,7 +186,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec3 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = vec3(.2, .2, .3);
+      color = mix(#FFD026, #FFFFFF, .8);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -179,14 +195,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec3 t ) {
       dif *= min(0.3 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
       lin += dif;
-      lin += 0.2*amb*vec3(0.50,0.70,1.00)*occ;
+      lin += 0.4*amb*vec3(0.50,0.70,1.00)*occ;
       color *= lin;
+
+      color += (dot(rayDirection,nor)*.5+.5) * .4;
 
       // Fog
       color = mix(background, color, (maxDistance-t.x) / maxDistance);
-
-      color *= (dot(rayDirection,nor)*.5+.5) * 2.;
-      // color += matCap(ref);
 
       colorMap(color);
 
@@ -200,10 +215,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec3 t ) {
       color = vec3(t.z / float(maxSteps));
       #endif
     } else {
+      color = mix(background, vec3(1.), dot(rayDirection.yz, vec2(0., -1.)));
       // Radial Gradient
-      color *= sqrt(1.75 - 1.25 * dot(rayDirection, vec3(0., 0., -1.)));
+      // color *= sqrt(1.75 - 1.25 * dot(rayDirection, vec3(0., 0., -1.)));
       // Glow
-      // color = mix(vec3(pos * .7), color, 1. - clamp(t.y / float(maxSteps), 0., 1.));
+      // color = mix(vec3(1.), color, 1. - .9 * clamp(t.z / float(maxSteps), 0., 1.));
     }
 
     return vec4(color, 1.);
@@ -212,7 +228,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec3 t ) {
 // Original
 
 void main() {
-    const float d = 5.;
+    const float d = 3.;
 
     vec3 ro = vec3(0.,0.,d) + cOffset;
 
