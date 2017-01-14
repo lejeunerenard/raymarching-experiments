@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "budo app.js:bundle.js --live -- --standalone RayMarch",
-    "build": "browserify app.js -- --standalone RayMarch | uglifyjs -cm > bundle.js",
+    "build": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
     "test": "eslint '**/*.js'"
   },
   "keywords": [],
