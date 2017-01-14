@@ -18,7 +18,7 @@ import defined from 'defined'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
-let captureTime = 0
+let captureTime = 3 * 5
 const secondsLong = 30
 
 const capturing = false
@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kaleidoscope-ifs-octahedron-folds',
+    name: 'kifs-lava-king',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -152,7 +152,7 @@ export default class App {
 
     shader.bind()
 
-    shader.uniforms.time = t / 1000 / 6
+    shader.uniforms.time = t / 1000 / 60
     shader.uniforms.texture = this.texture
     controls.update(shader)
 
