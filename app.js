@@ -18,7 +18,7 @@ import defined from 'defined'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
-let captureTime = 3 * 5
+let captureTime = Math.PI / 2
 const secondsLong = 30
 
 const capturing = false
@@ -28,7 +28,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-lava-king',
+    name: 'kifs-sea-cave',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -84,6 +84,7 @@ export default class App {
   }
 
   enableEvents () {
+    if (capturing) return
     this.resizeBound = this.resizeBound || this.resize.bind(this)
     window.addEventListener('resize', this.resizeBound, true)
     window.addEventListener('vrdisplaypresentchange', this.resizeBound, true)
@@ -152,7 +153,7 @@ export default class App {
 
     shader.bind()
 
-    shader.uniforms.time = t / 1000 / 60
+    shader.uniforms.time = t / 1000
     shader.uniforms.texture = this.texture
     controls.update(shader)
 
