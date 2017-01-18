@@ -50,11 +50,8 @@ mat3 rotation3 (float time, float tOff) {
 }
 
 void bfold (inout vec2 p) {
-  if (p.x - p.y < 0.) {
-    float x1 = p.y;
-    p.y = p.x;
-    p.x = x1;
-  }
+  const vec2 n = vec2(1., -1.);
+  p -= min(0., dot(p, n)) * n;
 }
 
 vec2 kifs( inout vec3 p ) {
