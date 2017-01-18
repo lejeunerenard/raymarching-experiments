@@ -14,6 +14,11 @@ uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D texture;
 
+// KIFS
+uniform mat4 kifsM;
+uniform float scale;
+uniform vec3 offset;
+
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
 
 // Greatest precision = 0.000001;
@@ -39,49 +44,31 @@ mat4 rotationMatrix(vec3 axis, float angle) {
 #pragma glslify: fold = require(./folds)
 #pragma glslify: foldInv = require(./foldInv)
 
-mat3 rotation3 (float time, float tOff) {
-  float rtime1 = PI + 1. * PI * .23 * sin((time + tOff) * .12);
-  float rtime2 = PI + 1. * PI * .13 * sin((time + tOff + 1.) * .93);
-  float rtime3 = PI + 1. * PI * .23 * sin((time + tOff) * .71);
-  return
-    mat3(cos(rtime1),0,sin(rtime1),0,1,0,-sin(rtime1),0,cos(rtime1)) *
-    mat3(cos(rtime2),sin(rtime2),.0,-sin(rtime2),cos(rtime2),.0,0,0,1) *
-    mat3(1,0,0,0,cos(rtime3),sin(rtime3),0,-sin(rtime3),cos(rtime3));
-}
-
 void bfold (inout vec2 p) {
   const vec2 n = vec2(1., -1.);
   p -= min(0., dot(p, n)) * n;
 }
 
 vec2 kifs( inout vec3 p ) {
-  const float scale = 2.;
-
   int maxI = 0;
-  const vec3 Offset = vec3(2., 3.1, .0);
 
   const int Iterations = 14;
 
   float trap = maxDistance;
-  mat4 rot = rotationMatrix(vec3(0., 1., 0.), PI / 4.);
 
-  float r = dot(p, p);
   for (int i = 0; i < Iterations; i++) {
-    vec4 pp = vec4(p, 1.) * rot;
-    p = pp.xyz;
-
     p = abs(p);
+
     // Folding
     bfold(p.xy);
     bfold(p.xz);
     bfold(p.yz);
 
-    // Stretch
-    p *= scale;
-    p.xy -= Offset.xy * (scale - 1.);
+    // Rot2 & Stretch
+    p.xyz = (vec4(p, 1.) * kifsM).xyz;
 
-    if(p.z > .5 * Offset.z * (scale -1.)) {
-      p.z -= Offset.z * (scale - 1.);
+    if(p.z > .5 * offset.z * (scale -1.)) {
+      p.z -= offset.z * (scale - 1.);
     }
 
     trap = min(trap, length(p));

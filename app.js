@@ -9,11 +9,12 @@ import WebVRManager from 'shader-webvr-manager'
 
 import fit from 'canvas-fit'
 import makeContext from 'gl-context'
-import { isAndroid } from './utils'
+import { isAndroid, rot4 } from './utils'
 import CCapture from 'ccapture.js'
 
 import assign from 'object-assign'
 import defined from 'defined'
+import { vec3, mat4 } from 'gl-matrix'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
@@ -112,6 +113,28 @@ export default class App {
     }
 
     this.shader.attributes.position.location = 0
+
+    const angle2 = Math.PI / 16
+    const axis = vec3.fromValues(1, 0, 1)
+    this.rot2nd = rot4(axis, angle2)
+
+    const scale = 3
+    const offset = vec3.fromValues(1, 1, 1)
+    this.shader.uniforms.scale = scale
+    this.shader.uniforms.offset = offset
+
+    this.scaleNOffset = mat4.fromValues(
+      scale, 0,     0,     -offset[0] * (scale - 1),
+      0,     scale, 0,     -offset[1] * (scale - 1),
+      0,     0,     scale, 0,
+      0,     0,     0,     1)
+
+    this.shader.uniforms.kifsM = this.kifsM()
+  }
+
+  kifsM () {
+    this._kifsM = this._kifsM || mat4.create()
+    return mat4.multiply(this._kifsM, this.rot2nd, this.scaleNOffset)
   }
 
   // Get the HMD, and if we're dealing with something that specifies
