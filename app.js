@@ -104,6 +104,9 @@ export default class App {
 
     // Create fragment shader
     this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
+
+    this.shader.bind()
+
     img.onload = () => {
       this.texture = createTexture(gl, img)
     }
@@ -150,8 +153,6 @@ export default class App {
 
   render (t) {
     let { shader, manager, controls } = this
-
-    shader.bind()
 
     shader.uniforms.time = t / 1000
     shader.uniforms.texture = this.texture
