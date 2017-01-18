@@ -9,9 +9,8 @@ export function isAndroid () {
 }
 
 export function rot4 (axis, angle) {
-  const angle2 = Math.PI / 16
-  const s = Math.sin(angle2);
-  const c = Math.cos(angle2);
+  const s = Math.sin(angle)
+  const c = Math.cos(angle)
   const oc = 1.0 - c;
   vec3.normalize(axis, axis)
 
@@ -19,5 +18,5 @@ export function rot4 (axis, angle) {
     oc * axis[0] * axis[0] + c,            oc * axis[0] * axis[1] - axis[2] * s,  oc * axis[2] * axis[0] + axis[1] * s,  0.0,
     oc * axis[0] * axis[1] + axis[2] * s,  oc * axis[1] * axis[1] + c,            oc * axis[1] * axis[2] - axis[0] * s,  0.0,
     oc * axis[2] * axis[0] - axis[1] * s,  oc * axis[1] * axis[2] + axis[0] * s,  oc * axis[2] * axis[2] + c,            0.0,
-    0.0,                                   0.0,                                   0.0,                                   1.0);
+    0.0,                                   0.0,                                   0.0,                                   1.0)
 }

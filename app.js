@@ -14,13 +14,15 @@ import CCapture from 'ccapture.js'
 
 import assign from 'object-assign'
 import defined from 'defined'
+import lerp from 'lerp'
+import cubic from 'eases/cubic-in-out'
 import { vec3, mat4 } from 'gl-matrix'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
-let captureTime = Math.PI / 2
-const secondsLong = 30
+let captureTime = 0
+const secondsLong = 60
 
 const capturing = false
 
@@ -29,7 +31,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-sea-cave',
+    name: 'kifs-pink-loofah',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -114,10 +116,6 @@ export default class App {
 
     this.shader.attributes.position.location = 0
 
-    const angle2 = Math.PI / 16
-    const axis = vec3.fromValues(1, 0, 1)
-    this.rot2nd = rot4(axis, angle2)
-
     const scale = 3
     const offset = vec3.fromValues(1, 1, 1)
     this.shader.uniforms.scale = scale
@@ -129,10 +127,25 @@ export default class App {
       0,     0,     scale, 0,
       0,     0,     0,     1)
 
-    this.shader.uniforms.kifsM = this.kifsM()
   }
 
-  kifsM () {
+  kifsM (t = 0) {
+    const angle2 = Math.PI / 16
+    const axis = vec3.fromValues(1, 0, 1)
+    this.rot2nd = rot4(axis, angle2)
+
+    // Y-centric
+    const period = Math.PI / 40
+    const a = Math.abs(((period * 4 * t / 1000) % 4) - 2) / 2
+    const angle2n2 = lerp(-0.2, Math.PI / 6.5, cubic(a))
+    this.rot2nd2 = rot4(vec3.fromValues(0, 1, 0), angle2n2)
+
+    // Z-centric
+    // const angle2n2 = lerp(-0.2, Math.PI / 6.5, (1 + Math.cos(t / 1000)) / 2)
+    // this.rot2nd2 = rot4(vec3.fromValues(0, 0, 1), angle2n2)
+
+    mat4.multiply(this.rot2nd, this.rot2nd, this.rot2nd2)
+
     this._kifsM = this._kifsM || mat4.create()
     return mat4.multiply(this._kifsM, this.rot2nd, this.scaleNOffset)
   }
@@ -171,7 +184,8 @@ export default class App {
     this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
   }
 
-  update () {
+  update (t) {
+    this.shader.uniforms.kifsM = this.kifsM(t)
   }
 
   render (t) {

@@ -6,6 +6,7 @@
   "dependencies": {
     "a-big-triangle": "^1.0.2",
     "canvas-fit": "^1.5.0",
+    "eases": "^1.0.8",
     "gl-context": "^0.1.1",
     "gl-matrix": "^2.3.2",
     "gl-shader": "^4.2.1",
@@ -14,6 +15,7 @@
     "glsl-inverse": "^1.0.0",
     "glsl-noise": "0.0.0",
     "glslify": "^6.0.1",
+    "lerp": "^1.0.3",
     "raf": "^3.3.0",
     "webvr-polyfill": "^0.9.24"
   },
