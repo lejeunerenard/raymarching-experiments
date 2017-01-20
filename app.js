@@ -17,6 +17,7 @@ import defined from 'defined'
 import lerp from 'lerp'
 import cubic from 'eases/cubic-in-out'
 import { vec3, mat4 } from 'gl-matrix'
+import presets from './presets.json'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
@@ -60,8 +61,10 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    this.offset = vec3.fromValues(2.1, 2.7, 1.88)
-    this.d = 6
+    const preset = presets[0]
+    this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
+    this.d = preset.d
+    this.scale = preset.scale
 
     this.glInit(gl)
 
@@ -122,8 +125,7 @@ export default class App {
   }
 
   kifsM (t = 0) {
-    let { offset } = this
-    const scale = 3
+    let { offset, scale } = this
     this.shader.uniforms.scale = scale
     this.shader.uniforms.offset = offset
 
