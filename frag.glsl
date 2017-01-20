@@ -68,7 +68,7 @@ void sphereFold (inout vec3 p, inout float dz) {
 
 // Repeat around the origin by a fixed angle.
 // For easier use, num of repetitions is use to specify the angle.
-float pModPolar(inout vec2 p, float repetitions) {
+float pModPolarC(inout vec2 p, float repetitions) {
   float angle = 2.*PI/repetitions;
   float a = atan(p.y, p.x) + angle/2.;
   float r = length(p);
@@ -79,6 +79,13 @@ float pModPolar(inout vec2 p, float repetitions) {
   // (cell index would be e.g. -5 and 5 in the two halves of the cell):
   if (abs(c) >= (repetitions/2.)) c = abs(c);
   return c;
+}
+void pModPolar(inout vec2 p, float repetitions) {
+  float angle = 2.*PI/repetitions;
+  float a = atan(p.y, p.x) + angle/2.;
+  float r = length(p);
+  a = mod(a,angle) - angle/2.;
+  p = vec2(cos(a), sin(a))*r;
 }
 
 vec2 kifs( inout vec3 p ) {
@@ -91,15 +98,19 @@ vec2 kifs( inout vec3 p ) {
   p.xy = abs(p.yx);
   float dz = 1.;
 
-  pModPolar(p.xy, 4.);
+  pModPolar(p.xy, 6.);
 
   for (int i = 0; i < Iterations; i++) {
     p = abs(p);
 
     // Folding
     fold(p.xy);
-    sphereFold(p, dz);
+    bfold(p.xz);
     bfold(p.yz);
+
+    p.z -= 1.;
+    p = abs(p);
+    p.z += 1.;
 
     // Rot2 & Stretch
     p.xyz = (vec4(p, 1.) * kifsM).xyz;

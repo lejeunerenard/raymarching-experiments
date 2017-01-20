@@ -60,8 +60,8 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    this.offset = vec3.fromValues(1.9, 1, .9)
-    this.d = 4
+    this.offset = vec3.fromValues(2.1, 2.7, 1.88)
+    this.d = 6
 
     this.glInit(gl)
 
