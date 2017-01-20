@@ -27,7 +27,7 @@ uniform vec3 offset;
 float epsilon = .001;
 const int maxSteps = 512;
 float maxDistance = 20.;
-const vec3 background = #ffffff;
+const vec3 background = #222222;
 
 const vec3 lightPos = vec3(3., 1., 5.);
 
@@ -50,22 +50,55 @@ void bfold (inout vec2 p) {
   const vec2 n = vec2(1., -1.);
   p -= min(0., dot(p, n)) * n;
 }
+void sphereFold (inout vec3 p, inout float dz) {
+  const float fixedRadius2 = 1.;
+  const float minRadius2 = .25;
+
+  float r2 = dot(p, p);
+  if (r2 < minRadius2) {
+    float temp = (fixedRadius2 / minRadius2);
+    p *= temp;
+    dz *= temp;
+  } else if (r2 < fixedRadius2) {
+    float temp = (fixedRadius2 / r2);
+    p *= temp;
+    dz *= temp;
+  }
+} 
+
+// Repeat around the origin by a fixed angle.
+// For easier use, num of repetitions is use to specify the angle.
+float pModPolar(inout vec2 p, float repetitions) {
+  float angle = 2.*PI/repetitions;
+  float a = atan(p.y, p.x) + angle/2.;
+  float r = length(p);
+  float c = floor(a/angle);
+  a = mod(a,angle) - angle/2.;
+  p = vec2(cos(a), sin(a))*r;
+  // For an odd number of repetitions, fix cell index of the cell in -x direction
+  // (cell index would be e.g. -5 and 5 in the two halves of the cell):
+  if (abs(c) >= (repetitions/2.)) c = abs(c);
+  return c;
+}
 
 vec2 kifs( inout vec3 p ) {
   int maxI = 0;
 
-  const int Iterations = 14;
+  const int Iterations = 10;
 
   float trap = maxDistance;
 
   p.xy = abs(p.yx);
+  float dz = 1.;
+
+  pModPolar(p.xy, 4.);
 
   for (int i = 0; i < Iterations; i++) {
     p = abs(p);
 
     // Folding
     fold(p.xy);
-    bfold(p.xz);
+    sphereFold(p, dz);
     bfold(p.yz);
 
     // Rot2 & Stretch
@@ -78,12 +111,12 @@ vec2 kifs( inout vec3 p ) {
     trap = min(trap, length(p));
   }
 
-  return vec2((length(p) - .2) * pow(scale, - float(Iterations)), trap);
+  return vec2((length(p) - 2.) * pow(scale, - float(Iterations)) / abs(dz), trap);
 }
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 2. * PI * sin(.2 * time) / 4.) * pp).xyz;
+  vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 0.2 * PI * time) * pp).xyz;
   // vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), PI / 4.) * pp).xyz;
 
   vec2 fractal = kifs(q);
@@ -130,11 +163,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
     vec3 color = background;
     vec3 pos = rayOrigin + rayDirection * t.x;
     if (t.x>0.) {
-      vec3 nor = getNormal(pos, 0.01 * t.x);
+      vec3 nor = getNormal(pos, .01 * t.x);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = #55EEFF;
+      color = #2D77C1;
+      color = mix(#2D77C1, #44CEA1, clamp(length(pos) / 2., 0., 1.));
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -186,7 +220,7 @@ void main() {
 
     vec3 ro = vec3(0.,0.,d) + cOffset;
 
-    // mat4 cameraMatrix = rotationMatrix(vec3(0., 1., 0.), PI / 4.);
+    mat4 cameraMatrix = rotationMatrix(vec3(0., 1., 0.), 0.);
 
     #ifdef SS
     // Antialias by averaging all adjacent values
@@ -200,7 +234,7 @@ void main() {
                   float(x) / R.y + fragCoord.x,
                   float(y) / R.y + fragCoord.y),
                   projectionMatrix);
-            rd = normalize(vec4(rd, 1.) * rotationMatrix(turnAxis, turn)).xyz;
+            rd = normalize(vec4(rd, 1.) * cameraMatrix * rotationMatrix(turnAxis, turn)).xyz;
             t = march(ro, rd);
             color += shade(ro, rd, t);
         }
@@ -209,7 +243,7 @@ void main() {
 
     #else
     vec3 rd = getRayDirection(fragCoord, projectionMatrix);
-    rd = normalize((vec4(rd, 1.) * rotationMatrix(turnAxis, turn)).xyz);
+    rd = normalize((vec4(rd, 1.) * cameraMatrix * rotationMatrix(turnAxis, turn)).xyz);
     vec4 t = march(ro, rd);
     gl_FragColor = shade(ro, rd, t);
     #endif

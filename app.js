@@ -22,7 +22,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 120
 let captureTime = 0
-const secondsLong = 20
+const secondsLong = 10
 
 const capturing = false
 
@@ -31,7 +31,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-snowflake',
+    name: 'kifs-buddhist-bell',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -60,8 +60,8 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    this.offset = vec3.fromValues(2.1, 3.1, .9)
-    this.d = 8.6
+    this.offset = vec3.fromValues(1.9, 1, .9)
+    this.d = 4
 
     this.glInit(gl)
 
@@ -189,7 +189,7 @@ export default class App {
 
   update (t) {
     this.shader.uniforms.kifsM = this.kifsM(t)
-    this.shader.uniforms.d = Math.max(0, this.d - t / 1000)
+    this.shader.uniforms.d = this.d // Math.max(0, this.d - t / 1000)
   }
 
   render (t) {
