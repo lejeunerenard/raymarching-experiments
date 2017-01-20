@@ -20,9 +20,9 @@ import { vec3, mat4 } from 'gl-matrix'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
-const fr = 60
+const fr = 120
 let captureTime = 0
-const secondsLong = 60
+const secondsLong = 20
 
 const capturing = false
 
@@ -31,8 +31,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-pink-loofah',
-    autoSaveTime: 10,
+    name: 'kifs-snowflake',
+    autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
@@ -60,6 +60,9 @@ export default class App {
 
     let gl = makeContext(canvas)
 
+    this.offset = vec3.fromValues(2.1, 3.1, .9)
+    this.d = 8.6
+
     this.glInit(gl)
 
     let effect = new ShaderVREffect(gl)
@@ -80,7 +83,7 @@ export default class App {
       manager,
       vrDisplay,
       currentRAF: null,
-      running: false
+      running: false,
     })
 
     this.setupStage()
@@ -116,8 +119,11 @@ export default class App {
 
     this.shader.attributes.position.location = 0
 
+  }
+
+  kifsM (t = 0) {
+    let { offset } = this
     const scale = 3
-    const offset = vec3.fromValues(1, 1, 1)
     this.shader.uniforms.scale = scale
     this.shader.uniforms.offset = offset
 
@@ -127,9 +133,6 @@ export default class App {
       0,     0,     scale, 0,
       0,     0,     0,     1)
 
-  }
-
-  kifsM (t = 0) {
     const angle2 = Math.PI / 16
     const axis = vec3.fromValues(1, 0, 1)
     this.rot2nd = rot4(axis, angle2)
@@ -137,7 +140,7 @@ export default class App {
     // Y-centric
     const period = Math.PI / 40
     const a = Math.abs(((period * 4 * t / 1000) % 4) - 2) / 2
-    const angle2n2 = lerp(-0.2, Math.PI / 6.5, cubic(a))
+    const angle2n2 = 0
     this.rot2nd2 = rot4(vec3.fromValues(0, 1, 0), angle2n2)
 
     // Z-centric
@@ -186,6 +189,7 @@ export default class App {
 
   update (t) {
     this.shader.uniforms.kifsM = this.kifsM(t)
+    this.shader.uniforms.d = Math.max(0, this.d - t / 1000)
   }
 
   render (t) {

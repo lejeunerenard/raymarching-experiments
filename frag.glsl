@@ -13,6 +13,7 @@ uniform vec3 cOffset;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D texture;
+uniform float d;
 
 // KIFS
 uniform mat4 kifsM;
@@ -20,6 +21,7 @@ uniform float scale;
 uniform vec3 offset;
 
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
+#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 
 // Greatest precision = 0.000001;
 float epsilon = .001;
@@ -56,11 +58,13 @@ vec2 kifs( inout vec3 p ) {
 
   float trap = maxDistance;
 
+  p.xy = abs(p.yx);
+
   for (int i = 0; i < Iterations; i++) {
     p = abs(p);
 
     // Folding
-    bfold(p.xy);
+    fold(p.xy);
     bfold(p.xz);
     bfold(p.yz);
 
@@ -130,7 +134,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = #F67280;
+      color = #55EEFF;
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -143,10 +147,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       // color = mix(background, color, (maxDistance-t.x) / maxDistance);
 
       // Inner Glow
-      vec3 glowColor = #F8B195 * 5.0;
+      vec3 glowColor = #FFFFFF * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
       fGlow = pow(fGlow, 3.0);
-      color += glowColor * 15.0 * fGlow;
+      color += glowColor * 10.0 * fGlow;
 
       color *= exp(-t.x * .1);
 
@@ -179,7 +183,6 @@ void main() {
 
     vec3 turnAxis = normalize(vec3(0., 1., 0.));
     float turn = 0.;
-    float d = 2.6;
 
     vec3 ro = vec3(0.,0.,d) + cOffset;
 
@@ -210,4 +213,6 @@ void main() {
     vec4 t = march(ro, rd);
     gl_FragColor = shade(ro, rd, t);
     #endif
+
+    gl_FragColor += .0125 * snoise2(fragCoord.xy * resolution * .1);
 }

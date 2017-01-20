@@ -17,10 +17,17 @@ html, body {
     <script>
       WebVRConfig = {}
     </script>
+    <script src="dat.gui.min.js"></script>
     <script src="node_modules/webvr-polyfill/build/webvr-polyfill.js"></script>
     <script src="bundle.js"></script>
     <script>
 var app = new RayMarch()
+var gui = new dat.GUI()
+var offsetF = gui.addFolder('Offset')
+offsetF.add(app.offset, '0', -5, 5)
+offsetF.add(app.offset, '1', -5, 5)
+offsetF.add(app.offset, '2', -5, 5)
+gui.add(app, 'd', 0, 8)
 app.run()
     </script>
   </body>
