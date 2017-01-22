@@ -87,26 +87,32 @@ void pModPolar(inout vec2 p, float repetitions) {
   a = mod(a,angle) - angle/2.;
   p = vec2(cos(a), sin(a))*r;
 }
+vec3 opTwist( vec3 p, float angle ) {
+    float c = cos(angle);
+    float s = sin(angle);
+    mat2  m = mat2(c,-s,s,c);
+    return vec3(m*p.xz,p.y);
+}
 
 vec2 kifs( inout vec3 p ) {
   int maxI = 0;
 
-  const int Iterations = 10;
+  const int Iterations = 20;
 
   float trap = maxDistance;
 
-  p.xy = abs(p.yx);
   float dz = 1.;
 
-  pModPolar(p.xy, 6.);
+  p = opTwist(p, p.y * 2. * sin(.4 * PI * time));
+  // pModPolar(p.yz, 4.);
 
   for (int i = 0; i < Iterations; i++) {
     p = abs(p);
 
     // Folding
     fold(p.xy);
-    bfold(p.xz);
-    bfold(p.yz);
+    fold(p.xz);
+    fold(p.yz);
 
     p.z -= 1.;
     p = abs(p);
@@ -122,7 +128,7 @@ vec2 kifs( inout vec3 p ) {
     trap = min(trap, length(p));
   }
 
-  return vec2((length(p) - 2.) * pow(scale, - float(Iterations)) / abs(dz), trap);
+  return vec2(.25 * (length(p) - .2) * pow(scale, - float(Iterations)) / abs(dz), trap);
 }
 
 vec3 map (in vec3 p) {
@@ -178,15 +184,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = #2D77C1;
-      color = mix(#2D77C1, #44CEA1, clamp(length(pos) / 2., 0., 1.));
+      color = mix(#F80596, #F86805, clamp(length(pos) / 3., 0., 1.));
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
 
-      dif *= min(0.4 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
-      color *= vec3(dif) + (0.4*amb*occ)*vec3(0.50,0.70,1.00);
+      dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+      color *= vec3(dif) + (0.8*amb*occ)*vec3(0.50,0.70,1.00);
+      color *= 1.3;
 
       // Fog
       // color = mix(background, color, (maxDistance-t.x) / maxDistance);
@@ -195,7 +201,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       vec3 glowColor = #FFFFFF * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
       fGlow = pow(fGlow, 3.0);
-      color += glowColor * 10.0 * fGlow;
+      color += glowColor * 7.5 * fGlow;
 
       color *= exp(-t.x * .1);
 

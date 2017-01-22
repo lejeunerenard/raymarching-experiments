@@ -32,7 +32,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-buddhist-bell',
+    name: 'kifs-twisted-sponge-timed',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -61,7 +61,7 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    const preset = presets[0]
+    const preset = presets[3]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
