@@ -61,10 +61,11 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    const preset = presets[3]
+    const preset = presets[8]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
+    this.rot2angle = defined(preset.angle2, Math.PI / 4)
 
     this.glInit(gl)
 
@@ -132,10 +133,10 @@ export default class App {
     this.scaleNOffset = mat4.fromValues(
       scale, 0,     0,     -offset[0] * (scale - 1),
       0,     scale, 0,     -offset[1] * (scale - 1),
-      0,     0,     scale, 0,
+      0,     0,     scale, -offset[2] * (scale - 1),
       0,     0,     0,     1)
 
-    const angle2 = Math.PI / 16
+    const angle2 = this.rot2angle || Math.PI / 8
     const axis = vec3.fromValues(1, 0, 1)
     this.rot2nd = rot4(axis, angle2)
 

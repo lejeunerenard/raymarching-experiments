@@ -14,6 +14,7 @@
     "glsl-hsv2rgb": "^1.0.0",
     "glsl-inverse": "^1.0.0",
     "glsl-noise": "0.0.0",
+    "glsl-sdf-ops": "0.0.3",
     "glslify": "^6.0.1",
     "lerp": "^1.0.3",
     "raf": "^3.3.0",
@@ -30,6 +31,7 @@
     "eslint-plugin-promise": "^3.4.0",
     "eslint-plugin-standard": "^2.0.1",
     "glslify-hex": "^2.1.1",
+    "glslify-import": "^3.0.0",
     "uglify-js": "^2.7.5"
   },
   "scripts": {
@@ -56,7 +58,8 @@
   },
   "glslify": {
     "transform": [
-      "glslify-hex"
+      "glslify-hex",
+      "glslify-import"
     ]
   }
 }

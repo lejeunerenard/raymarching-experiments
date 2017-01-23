@@ -20,121 +20,54 @@ uniform mat4 kifsM;
 uniform float scale;
 uniform vec3 offset;
 
-#pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
-#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
-
 // Greatest precision = 0.000001;
-float epsilon = .001;
-const int maxSteps = 512;
-float maxDistance = 20.;
-const vec3 background = #222222;
+#define epsilon .001
+#define maxSteps 512
+#define maxDistance 20.
+#define background #222222
 
 const vec3 lightPos = vec3(3., 1., 5.);
 
-mat4 rotationMatrix(vec3 axis, float angle) {
-    axis = normalize(axis);
-    float s = sin(angle);
-    float c = cos(angle);
-    float oc = 1.0 - c;
+// Utils
+#pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
+#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
+#pragma glslify: rot4 = require(./rotation-matrix4.glsl)
 
-    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
-                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
-                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
-                0.0,                                0.0,                                0.0,                                1.0);
-}
-
+// Folds
 #pragma glslify: fold = require(./folds)
 #pragma glslify: foldInv = require(./foldInv)
-
-void bfold (inout vec2 p) {
-  const vec2 n = vec2(1., -1.);
-  p -= min(0., dot(p, n)) * n;
-}
-void sphereFold (inout vec3 p, inout float dz) {
-  const float fixedRadius2 = 1.;
-  const float minRadius2 = .25;
-
-  float r2 = dot(p, p);
-  if (r2 < minRadius2) {
-    float temp = (fixedRadius2 / minRadius2);
-    p *= temp;
-    dz *= temp;
-  } else if (r2 < fixedRadius2) {
-    float temp = (fixedRadius2 / r2);
-    p *= temp;
-    dz *= temp;
-  }
-} 
-
-// Repeat around the origin by a fixed angle.
-// For easier use, num of repetitions is use to specify the angle.
-float pModPolarC(inout vec2 p, float repetitions) {
-  float angle = 2.*PI/repetitions;
-  float a = atan(p.y, p.x) + angle/2.;
-  float r = length(p);
-  float c = floor(a/angle);
-  a = mod(a,angle) - angle/2.;
-  p = vec2(cos(a), sin(a))*r;
-  // For an odd number of repetitions, fix cell index of the cell in -x direction
-  // (cell index would be e.g. -5 and 5 in the two halves of the cell):
-  if (abs(c) >= (repetitions/2.)) c = abs(c);
-  return c;
-}
-void pModPolar(inout vec2 p, float repetitions) {
-  float angle = 2.*PI/repetitions;
-  float a = atan(p.y, p.x) + angle/2.;
-  float r = length(p);
-  a = mod(a,angle) - angle/2.;
-  p = vec2(cos(a), sin(a))*r;
-}
-vec3 opTwist( vec3 p, float angle ) {
-    float c = cos(angle);
-    float s = sin(angle);
-    mat2  m = mat2(c,-s,s,c);
-    return vec3(m*p.xz,p.y);
-}
+#pragma glslify: sphereFold = require(./sphere-fold)
+#pragma glslify: twist = require(./twist)
+#define Iterations 20
 
 vec2 kifs( inout vec3 p ) {
-  int maxI = 0;
-
-  const int Iterations = 20;
-
   float trap = maxDistance;
-
-  float dz = 1.;
-
-  p = opTwist(p, p.y * 2. * sin(.4 * PI * time));
-  // pModPolar(p.yz, 4.);
 
   for (int i = 0; i < Iterations; i++) {
     p = abs(p);
 
     // Folding
-    fold(p.xy);
-    fold(p.xz);
+    foldInv(p.xy);
+    foldInv(p.xz);
     fold(p.yz);
-
-    p.z -= 1.;
-    p = abs(p);
-    p.z += 1.;
 
     // Rot2 & Stretch
     p.xyz = (vec4(p, 1.) * kifsM).xyz;
 
-    if(p.z > .5 * offset.z * (scale -1.)) {
-      p.z -= offset.z * (scale - 1.);
-    }
+    // if(p.z > .5 * offset.z * (scale -1.)) {
+    //   p.z -= offset.z * (scale - 1.);
+    // }
 
     trap = min(trap, length(p));
   }
 
-  return vec2(.25 * (length(p) - .2) * pow(scale, - float(Iterations)) / abs(dz), trap);
+  return vec2((length(p) - .2) * pow(scale, - float(Iterations)), trap);
 }
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), 0.2 * PI * time) * pp).xyz;
-  // vec3 q = vec3(orientation * rotationMatrix(vec3(0., 1. ,0.), PI / 4.) * pp).xyz;
+  vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), 0.2 * PI * time) * pp).xyz;
+  // vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), PI / 4.) * pp).xyz;
 
   vec2 fractal = kifs(q);
   return vec3(fractal.x, 1., fractal.y);
@@ -184,7 +117,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = mix(#F80596, #F86805, clamp(length(pos) / 3., 0., 1.));
+      color = mix(#F80596, #F86805, clamp(t.y, 0., 1.));
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -237,7 +170,7 @@ void main() {
 
     vec3 ro = vec3(0.,0.,d) + cOffset;
 
-    mat4 cameraMatrix = rotationMatrix(vec3(0., 1., 0.), 0.);
+    mat4 cameraMatrix = rot4(vec3(0., 1., 0.), 0.);
 
     #ifdef SS
     // Antialias by averaging all adjacent values
@@ -251,7 +184,7 @@ void main() {
                   float(x) / R.y + fragCoord.x,
                   float(y) / R.y + fragCoord.y),
                   projectionMatrix);
-            rd = normalize(vec4(rd, 1.) * cameraMatrix * rotationMatrix(turnAxis, turn)).xyz;
+            rd = normalize(vec4(rd, 1.) * cameraMatrix * rot4(turnAxis, turn)).xyz;
             t = march(ro, rd);
             color += shade(ro, rd, t);
         }
@@ -260,7 +193,7 @@ void main() {
 
     #else
     vec3 rd = getRayDirection(fragCoord, projectionMatrix);
-    rd = normalize((vec4(rd, 1.) * cameraMatrix * rotationMatrix(turnAxis, turn)).xyz);
+    rd = normalize((vec4(rd, 1.) * cameraMatrix * rot4(turnAxis, turn)).xyz);
     vec4 t = march(ro, rd);
     gl_FragColor = shade(ro, rd, t);
     #endif

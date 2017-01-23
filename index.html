@@ -23,12 +23,16 @@ html, body {
     <script>
 var app = new RayMarch()
 var gui = new dat.GUI()
+gui.remember(app)
+
 var offsetF = gui.addFolder('Offset')
 offsetF.add(app.offset, '0', -5, 5)
 offsetF.add(app.offset, '1', -5, 5)
 offsetF.add(app.offset, '2', -5, 5)
+
 gui.add(app, 'd', 0, 8)
 gui.add(app, 'scale', 0.01, 6).step(0.01)
+gui.add(app, 'rot2angle', 0.001, 2 * Math.PI).step(0.1)
 app.run()
     </script>
   </body>
