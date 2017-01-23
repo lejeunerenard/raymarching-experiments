@@ -21,9 +21,9 @@ import presets from './presets.json'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
-const fr = 120
+const fr = 60
 let captureTime = 0
-const secondsLong = 10
+const secondsLong = 16
 
 const capturing = false
 
@@ -32,8 +32,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-twisted-sponge-timed',
-    autoSaveTime: 5,
+    name: 'kifs-inner-sierpinski-take2',
+    autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
@@ -61,7 +61,7 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    const preset = presets[8]
+    const preset = presets[9]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
@@ -181,7 +181,7 @@ export default class App {
   }
 
   tick (t) {
-    t = currentTime + 1000 / fr
+    t = currentTime + 1000 / fr / 2
     currentTime = t
 
     this.update(t)
@@ -191,6 +191,8 @@ export default class App {
   }
 
   update (t) {
+    const range = .1 - 3.3
+    this.offset[1] = .1 + range * (1 + Math.sin(Math.PI / 2. * t / 1000)) / 2
     this.shader.uniforms.kifsM = this.kifsM(t)
     this.shader.uniforms.d = this.d // Math.max(0, this.d - t / 1000)
   }

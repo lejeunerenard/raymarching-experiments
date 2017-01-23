@@ -85,5 +85,16 @@
       "y": 3.4,
       "z": 2.1
     }
+  },
+  {
+    "name": "sierpinski laborythn",
+    "scale": 1.95,
+    "d": 0.2,
+    "angle2": 3.1,
+    "offset": {
+      "x": -0.3,
+      "y": 0.1,
+      "z": 3.4
+    }
   }
 ]

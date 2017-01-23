@@ -38,6 +38,10 @@ const vec3 lightPos = vec3(3., 1., 5.);
 #pragma glslify: foldInv = require(./foldInv)
 #pragma glslify: sphereFold = require(./sphere-fold)
 #pragma glslify: twist = require(./twist)
+void foldNd (inout vec3 z, vec3 n1) {
+  z-=2.0 * min(0.0, dot(z, n1)) * n1;
+}
+
 #define Iterations 20
 
 vec2 kifs( inout vec3 p ) {
@@ -49,7 +53,7 @@ vec2 kifs( inout vec3 p ) {
     // Folding
     foldInv(p.xy);
     foldInv(p.xz);
-    fold(p.yz);
+    foldNd(p, vec3(2., 1., 3.));
 
     // Rot2 & Stretch
     p.xyz = (vec4(p, 1.) * kifsM).xyz;
@@ -66,7 +70,7 @@ vec2 kifs( inout vec3 p ) {
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), 0.2 * PI * time) * pp).xyz;
+  vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), 0.125 * PI * time) * pp).xyz;
   // vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), PI / 4.) * pp).xyz;
 
   vec2 fractal = kifs(q);
@@ -117,18 +121,21 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = mix(#F80596, #F86805, clamp(t.y, 0., 1.));
+      color = mix(#FFFD33, #40FF4B, clamp(length(pos) / 7., 0., 1.));
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
+      float spec = pow(max( dot(-rayDirection,nor),0.0 ),8.);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       color *= vec3(dif) + (0.8*amb*occ)*vec3(0.50,0.70,1.00);
+      color += .15 * 4.0*1.5*spec*occ*color.g;
+      color += .15 * 2.0*1.0*pow(spec,8.0)*occ*color.r;
       color *= 1.3;
 
       // Fog
-      // color = mix(background, color, (maxDistance-t.x) / maxDistance);
+      color = mix(background, color, (maxDistance-t.x) / maxDistance);
 
       // Inner Glow
       vec3 glowColor = #FFFFFF * 5.0;
