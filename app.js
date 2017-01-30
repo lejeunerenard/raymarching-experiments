@@ -23,16 +23,16 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 16
+const secondsLong = 30
 
-const capturing = false
+const capturing = true
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-inner-sierpinski-take2',
+    name: 'kifs-crown-test2',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -181,7 +181,7 @@ export default class App {
   }
 
   tick (t) {
-    t = currentTime + 1000 / fr / 2
+    t = currentTime + 1000 / fr / 10
     currentTime = t
 
     this.update(t)
@@ -192,7 +192,7 @@ export default class App {
 
   update (t) {
     const range = .1 - 3.3
-    this.offset[1] = .1 + range * (1 + Math.sin(Math.PI / 2. * t / 1000)) / 2
+    // this.offset[1] = .1 + range * (1 + Math.sin(Math.PI / 2. * t / 1000)) / 2
     this.shader.uniforms.kifsM = this.kifsM(t)
     this.shader.uniforms.d = this.d // Math.max(0, this.d - t / 1000)
   }

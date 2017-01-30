@@ -21,12 +21,12 @@ uniform float scale;
 uniform vec3 offset;
 
 // Greatest precision = 0.000001;
-#define epsilon .001
+#define epsilon .005
 #define maxSteps 512
 #define maxDistance 20.
-#define background #222222
+#define background #bbbbbb
 
-const vec3 lightPos = vec3(3., 1., 5.);
+const vec3 lightPos = vec3(0., 0., 5.);
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -42,36 +42,39 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-#define Iterations 20
+#define Iterations 14
 
 vec2 kifs( inout vec3 p ) {
   float trap = maxDistance;
+  float dz = 1.;
+
+  mat4 rot1 = rot4(vec3(0.1, 1., 3.), PI * .3333);
+  p.xz = abs(p.xz);
 
   for (int i = 0; i < Iterations; i++) {
-    p = abs(p);
+    p = (vec4(p, 1.) * rot1).xyz;
 
     // Folding
-    foldInv(p.xy);
-    foldInv(p.xz);
-    foldNd(p, vec3(2., 1., 3.));
+    fold(p.xy);
+    fold(p.yz);
+    fold(p.zx);
+
+    p = abs(p);
 
     // Rot2 & Stretch
     p.xyz = (vec4(p, 1.) * kifsM).xyz;
 
-    // if(p.z > .5 * offset.z * (scale -1.)) {
-    //   p.z -= offset.z * (scale - 1.);
-    // }
-
     trap = min(trap, length(p));
   }
 
-  return vec2((length(p) - .2) * pow(scale, - float(Iterations)), trap);
+  return vec2((length(p) - .2) * pow(scale, - float(Iterations)) / dz, trap);
 }
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), 0.125 * PI * time) * pp).xyz;
-  // vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), PI / 4.) * pp).xyz;
+  vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), .5 * PI * time) * pp).xyz;
+
+  q.y += .5;
 
   vec2 fractal = kifs(q);
   return vec3(fractal.x, 1., fractal.y);
@@ -95,6 +98,14 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 }
 
 #pragma glslify: getNormal = require(./get-normal, map=map)
+#
+vec3 getNormal2 (in vec3 p, in float eps) {
+  vec2 e = vec2(1.,-1.) * .015 * eps;
+  return normalize(vec3(
+    map(p + e.xyy).x - map(p - e.xyy).x,
+    map(p + e.yxy).x - map(p - e.yxy).x,
+    map(p + e.yyx).x - map(p - e.yyx).x));
+}
 
 // Material Functions
 float diffuse (in vec3 nor, in vec3 lightPos) {
@@ -113,15 +124,52 @@ void colorMap (inout vec3 color) {
   color = mix(#7782E8, color, clamp(exp(l) * .325, 0., 1.));
 }
 
-vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
+float isMaterialSmooth( float m, float goal ) {
+  const float eps = .1;
+  return 1. - smoothstep(0., eps, abs(m - goal));
+}
+
+vec3 stripsGeneral (in float t) {
+  const int num = 2;
+  vec3 colors[num];
+  colors[0] = #FF0000;
+  colors[1] = #1485CC;
+
+  const float period = 2.;
+  t = mod(t + snoise2(vec2(t, t)), period);
+
+  // Gradient
+  const float fraction = period / float(num);
+  const float delta = fraction;
+
+  vec3 c = vec3(1.);
+  for (int i = 0; i < num; i++) {
+    c = mix(c, colors[i], smoothstep(float(i) * fraction - delta * .5, float(i) * fraction + delta * .5, t));
+  }
+
+  return c;
+}
+
+vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
+  vec3 color = vec3(1.);
+
+  const vec3 color1 = #FF0000;
+  const vec3 color2 = #1485CC;
+
+  color = mix(color, mix(color1, color2, length(p) * .25), isMaterialSmooth(m, 1.));
+
+  return color;
+}
+
+vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 color = background;
     vec3 pos = rayOrigin + rayDirection * t.x;
     if (t.x>0.) {
-      vec3 nor = getNormal(pos, .01 * t.x);
+      vec3 nor = getNormal(pos, .001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = mix(#FFFD33, #40FF4B, clamp(length(pos) / 7., 0., 1.));
+      color = baseColor(pos, nor, rayDirection, t.y);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -129,23 +177,23 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       float spec = pow(max( dot(-rayDirection,nor),0.0 ),8.);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
-      color *= vec3(dif) + (0.8*amb*occ)*vec3(0.50,0.70,1.00);
-      color += .15 * 4.0*1.5*spec*occ*color.g;
-      color += .15 * 2.0*1.0*pow(spec,8.0)*occ*color.r;
-      color *= 1.3;
+      color *= vec3(dif) + (0.5 * amb * occ) * #88bbff;
+      color += .45 * spec*occ*color.g;
+      color += .15 * pow(spec,4.)*occ*color.r;
+      color *= 1.2;
 
       // Fog
-      color = mix(background, color, (maxDistance-t.x) / maxDistance);
+      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
 
       // Inner Glow
       vec3 glowColor = #FFFFFF * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
-      fGlow = pow(fGlow, 3.0);
-      color += glowColor * 7.5 * fGlow;
+      fGlow = pow(fGlow, 3.5);
+      color += glowColor * 3.5 * fGlow;
 
-      color *= exp(-t.x * .1);
+      color *= exp(-t.x * .001);
 
-      colorMap(color);
+      //colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
@@ -158,9 +206,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t ) {
       #endif
     } else {
       // Radial Gradient
-      color *= sqrt(1.75 + 1.25 * rayDirection.z);
+      color *= mix(vec3(1.), background, length(uv) / 2.);
+
       // Glow
-      // color = mix(vec3(1.), color, 1. - .3 * clamp(t.z / float(maxSteps), 0., 1.));
+      color = mix(vec3(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
     }
 
     return vec4(color, 1.);
@@ -179,6 +228,8 @@ void main() {
 
     mat4 cameraMatrix = rot4(vec3(0., 1., 0.), 0.);
 
+    vec2 uv = fragCoord.xy;
+
     #ifdef SS
     // Antialias by averaging all adjacent values
     vec4 color = vec4(0.);
@@ -188,22 +239,22 @@ void main() {
     for (int x = - SS / 2; x < SS / 2; x++) {
         for (int y = - SS / 2; y < SS / 2; y++) {
             vec3 rd = getRayDirection(vec2(
-                  float(x) / R.y + fragCoord.x,
-                  float(y) / R.y + fragCoord.y),
+                  float(x) / R.y + uv.x,
+                  float(y) / R.y + uv.y),
                   projectionMatrix);
             rd = normalize(vec4(rd, 1.) * cameraMatrix * rot4(turnAxis, turn)).xyz;
             t = march(ro, rd);
-            color += shade(ro, rd, t);
+            color += shade(ro, rd, t, uv);
         }
     }
     gl_FragColor = color / float(SS * SS);
 
     #else
-    vec3 rd = getRayDirection(fragCoord, projectionMatrix);
+    vec3 rd = getRayDirection(uv, projectionMatrix);
     rd = normalize((vec4(rd, 1.) * cameraMatrix * rot4(turnAxis, turn)).xyz);
     vec4 t = march(ro, rd);
-    gl_FragColor = shade(ro, rd, t);
+    gl_FragColor = shade(ro, rd, t, uv);
     #endif
 
-    gl_FragColor += .0125 * snoise2(fragCoord.xy * resolution * .1);
+    gl_FragColor += .0125 * snoise2(uv.xy * resolution * .1);
 }
