@@ -22,9 +22,9 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 #define epsilon .0001
-#define maxSteps 1536
-#define maxDistance 200.
-#define background #994FFF
+#define maxSteps 512
+#define maxDistance 2000.
+#define background #FFFFFF
 
 const vec3 lightPos = vec3(0., 0., 5.);
 
@@ -44,15 +44,16 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-#pragma glslify: aexion = require(./aexion, Iterations=10, maxDistance=maxDistance)
+float minRadius = 0.6;
+// float s = -2.75 + 0.3 * sin(time);
+
+#pragma glslify: mandelbox = require(./mandelbox, trap=10, maxDistance=maxDistance, s=scale, minRadius=minRadius, rotM=kifsM)
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * rot4(vec3(0., 1. ,0.), .5 * PI * time) * pp).xyz;
+  vec3 q = vec3(orientation * pp).xyz;
 
-  q.y += .5;
-
-  vec2 fractal = aexion(q);
+  vec2 fractal = mandelbox(q);
   return vec3(fractal.x, 1., fractal.y);
 }
 
@@ -130,7 +131,7 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
   const vec3 color1 = #5EFF14;
-  const vec3 color2 = #FFCF14;
+  const vec3 color2 = #994FFF;
 
   color = mix(color, mix(color1, color2, length(p) * .25), isMaterialSmooth(m, 1.));
 
@@ -154,9 +155,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       color *= vec3(dif) + (0.5 * amb * occ) * #88bbff;
-      color += .45 * spec*occ*color.g;
-      color += .15 * pow(spec,4.)*occ*color.r;
-      color *= 1.2;
+      // color += .45 * spec*occ*color.g;
+      // color += .15 * pow(spec,4.)*occ*color.r;
+      // color *= 1.2;
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
@@ -200,7 +201,7 @@ void main() {
     vec3 turnAxis = normalize(vec3(0., 1., 0.));
     float turn = 0.;
 
-    float dD = d + .5 + .5 * sin(PI * (1. + time));
+    float dD = d;
     vec3 ro = vec3(0.,0.,dD) + cOffset;
 
     mat4 cameraMatrix = rot4(vec3(0., 1., 0.), 0.);

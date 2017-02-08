@@ -61,9 +61,18 @@ export default class App {
 
     let gl = makeContext(canvas)
 
-    const preset = presets[9]
+    const preset = {
+      offset: {
+        x: 0,
+        y: 0,
+        z: 0
+      },
+      d: 8.3,
+      scale: -1.86,
+      rot2angle: 0
+    } // presets[9]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
-    this.d = 1.7 // preset.d
+    this.d = preset.d
     this.scale = preset.scale
     this.rot2angle = defined(preset.angle2, Math.PI / 4)
 
@@ -131,19 +140,24 @@ export default class App {
     this.shader.uniforms.offset = offset
 
     this.scaleNOffset = mat4.fromValues(
-      scale, 0,     0,     -offset[0] * (scale - 1),
-      0,     scale, 0,     -offset[1] * (scale - 1),
-      0,     0,     scale, -offset[2] * (scale - 1),
+      1, 0,     0,     -offset[0],
+      0,     1, 0,     -offset[1],
+      0,     0,     1, -offset[2],
       0,     0,     0,     1)
+    // this.scaleNOffset = mat4.fromValues(
+    //   scale, 0,     0,     -offset[0] * (scale - 1),
+    //   0,     scale, 0,     -offset[1] * (scale - 1),
+    //   0,     0,     scale, -offset[2] * (scale - 1),
+    //   0,     0,     0,     1)
 
-    const angle2 = this.rot2angle || Math.PI / 8
+    const angle2 = 0 // this.rot2angle || Math.PI / 8
     const axis = vec3.fromValues(1, 0, 1)
     this.rot2nd = rot4(axis, angle2)
 
     // Y-centric
     const period = Math.PI / 40
     const a = Math.abs(((period * 4 * t / 1000) % 4) - 2) / 2
-    const angle2n2 = 0
+    const angle2n2 = t / 1000
     this.rot2nd2 = rot4(vec3.fromValues(0, 1, 0), angle2n2)
 
     // Z-centric
