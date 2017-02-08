@@ -16,8 +16,11 @@ void ballFold(inout vec3 v, inout float dz) {
   }
 }
 
+#ifndef foldLimit
+  #define foldLimit 1.
+#endif
+
 void boxFold (inout vec3 z) {
-  const float foldLimit = 1.;
   z = clamp(z, -foldLimit, foldLimit) * 2. - z;
 }
 
@@ -40,7 +43,8 @@ vec2 mandelbox (in vec3 z) {
     p.xyz = clamp(p.xyz, -1., 1.) * 2. - p.xyz;
     float r2 = dot(p.xyz, p.xyz);
     p.xyzw *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
-    p *= rotM;
+    p *= rotM * max(mod(float(i), 4.), 1.) * rotM;
+
     p.xyzw = p*scalevec + p0;
     minD = min(minD, (length(p.xyz) - C1) / p.w);
   }

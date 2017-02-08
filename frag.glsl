@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -22,11 +22,11 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 #define epsilon .0001
-#define maxSteps 512
-#define maxDistance 2000.
-#define background #FFFFFF
+#define maxSteps 1024
+#define maxDistance 200.
+#define background #999999
 
-const vec3 lightPos = vec3(0., 0., 5.);
+const vec3 lightPos = vec3(2., 2., 5.);
 
 const vec3 un = vec3(1., -1., 0.);
 
@@ -47,7 +47,7 @@ void foldNd (inout vec3 z, vec3 n1) {
 float minRadius = 0.6;
 // float s = -2.75 + 0.3 * sin(time);
 
-#pragma glslify: mandelbox = require(./mandelbox, trap=10, maxDistance=maxDistance, s=scale, minRadius=minRadius, rotM=kifsM)
+#pragma glslify: mandelbox = require(./mandelbox, trap=12, maxDistance=maxDistance, foldLimit=.5, s=scale, minRadius=minRadius, rotM=kifsM)
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
@@ -130,10 +130,10 @@ vec3 stripsGeneral (in float t) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  const vec3 color1 = #5EFF14;
-  const vec3 color2 = #994FFF;
+  const vec3 color1 = #00d2ff;
+  const vec3 color2 = #928DAB;
 
-  color = mix(color, mix(color1, color2, length(p) * .25), isMaterialSmooth(m, 1.));
+  color = mix(color, mix(color1, color2, length(p) * .3), isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -155,8 +155,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       color *= vec3(dif) + (0.5 * amb * occ) * #88bbff;
-      // color += .45 * spec*occ*color.g;
-      // color += .15 * pow(spec,4.)*occ*color.r;
+      color += .45 * spec*occ*color.g;
+      color += .15 * pow(spec,4.)*occ*color.r;
       // color *= 1.2;
 
       // Fog
@@ -192,19 +192,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     return vec4(color, 1.);
 }
 
+#pragma glslify: lookAtM = require(glsl-look-at)
 void main() {
-    // float cameraTime = time * .35 + PI / 2.;
-    // float d = 2.5 + clamp(2.5 * sin(cameraTime), -2., 2.);
-    // float turn = - PI / 2. * clamp(-2. + 3. * sin(cameraTime + PI), 0., 1.);
-    // vec3 turnAxis = normalize(vec3(0., 1., 1.));
-
-    vec3 turnAxis = normalize(vec3(0., 1., 0.));
-    float turn = 0.;
-
     float dD = d;
-    vec3 ro = vec3(0.,0.,dD) + cOffset;
+    vec3 ro = normalize(vec3(1.,1.,1.)) * dD + cOffset;
 
-    mat4 cameraMatrix = rot4(vec3(0., 1., 0.), 0.);
+    mat3 cameraMatrix = lookAtM(vec3(0., 0., 0.), ro, 0.);
 
     vec2 uv = fragCoord.xy;
 
@@ -220,7 +213,7 @@ void main() {
                   float(x) / R.y + uv.x,
                   float(y) / R.y + uv.y),
                   projectionMatrix);
-            rd = normalize(vec4(rd, 1.) * cameraMatrix * rot4(turnAxis, turn)).xyz;
+            rd = cameraMatrix * rd;
             t = march(ro, rd);
             color += shade(ro, rd, t, uv);
         }
@@ -229,7 +222,7 @@ void main() {
 
     #else
     vec3 rd = getRayDirection(uv, projectionMatrix);
-    rd = normalize((vec4(rd, 1.) * cameraMatrix * rot4(turnAxis, turn)).xyz);
+    rd = cameraMatrix * rd;
     vec4 t = march(ro, rd);
     gl_FragColor = shade(ro, rd, t, uv);
     #endif

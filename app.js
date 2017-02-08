@@ -23,7 +23,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 10 * 4
+const secondsLong = 15
 
 const capturing = false
 
@@ -32,8 +32,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'Aexion-tetra-test4',
-    autoSaveTime: 5,
+    name: 'mandelbox-rotation-twist',
+    autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
@@ -67,8 +67,8 @@ export default class App {
         y: 0,
         z: 0
       },
-      d: 8.3,
-      scale: -1.86,
+      d: 6.7,
+      scale: -1.6,
       rot2angle: 0
     } // presets[9]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
@@ -157,8 +157,8 @@ export default class App {
     // Y-centric
     const period = Math.PI / 40
     const a = Math.abs(((period * 4 * t / 1000) % 4) - 2) / 2
-    const angle2n2 = t / 1000
-    this.rot2nd2 = rot4(vec3.fromValues(0, 1, 0), angle2n2)
+    const angle2n2 = 2 * Math.PI * t / 1000 / 30
+    this.rot2nd2 = rot4(vec3.fromValues(1, 1, 1), angle2n2)
 
     // Z-centric
     // const angle2n2 = lerp(-0.2, Math.PI / 6.5, (1 + Math.cos(t / 1000)) / 2)
@@ -195,7 +195,7 @@ export default class App {
   }
 
   tick (t) {
-    t = capturing ? currentTime + 1000 / fr / 10: t / 10 
+    t = capturing ? currentTime + 1000 / fr : t
     currentTime = t
 
     this.update(t)
