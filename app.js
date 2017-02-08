@@ -23,17 +23,17 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 30
+const secondsLong = 10 * 4
 
-const capturing = true
+const capturing = false
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-crown-test2',
-    autoSaveTime: 10,
+    name: 'Aexion-tetra-test4',
+    autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
@@ -63,7 +63,7 @@ export default class App {
 
     const preset = presets[9]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
-    this.d = preset.d
+    this.d = 1.7 // preset.d
     this.scale = preset.scale
     this.rot2angle = defined(preset.angle2, Math.PI / 4)
 
@@ -181,7 +181,7 @@ export default class App {
   }
 
   tick (t) {
-    t = currentTime + 1000 / fr / 10
+    t = capturing ? currentTime + 1000 / fr / 10: t / 10 
     currentTime = t
 
     this.update(t)

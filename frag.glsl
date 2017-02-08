@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -21,12 +21,14 @@ uniform float scale;
 uniform vec3 offset;
 
 // Greatest precision = 0.000001;
-#define epsilon .005
-#define maxSteps 512
-#define maxDistance 20.
-#define background #bbbbbb
+#define epsilon .0001
+#define maxSteps 1536
+#define maxDistance 200.
+#define background #994FFF
 
 const vec3 lightPos = vec3(0., 0., 5.);
+
+const vec3 un = vec3(1., -1., 0.);
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -42,32 +44,39 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-#define Iterations 14
+#define Iterations 15
 
 vec2 kifs( inout vec3 p ) {
   float trap = maxDistance;
-  float dz = 1.;
 
-  mat4 rot1 = rot4(vec3(0.1, 1., 3.), PI * .3333);
-  p.xz = abs(p.xz);
+  const float delta = 4.;
+  vec4 CT = vec4(
+    abs(dot(p, un.xxx) - delta),
+    abs(dot(p, un.yyx) - delta),
+    abs(dot(p, un.yxy) - delta),
+    abs(dot(p, un.xyy) - delta)
+  );
+  vec4 V = vec4(0.);
+  float V2 = 0.;
+  float dr = 2.;
 
   for (int i = 0; i < Iterations; i++) {
-    p = (vec4(p, 1.) * rot1).xyz;
+    V = clamp(V, -1., 1.) * 2. - V;
+    V2 = dot(V,V);
 
-    // Folding
-    fold(p.xy);
-    fold(p.yz);
-    fold(p.zx);
+    float c = clamp(max(.25 / V2, .25), 0., 1.) * 4.;
+    V *= c;
+    dr /= c;
 
-    p = abs(p);
-
-    // Rot2 & Stretch
-    p.xyz = (vec4(p, 1.) * kifsM).xyz;
+    V = V * 2. + CT;
+    dr *= .5;
 
     trap = min(trap, length(p));
+
+    if (V2 > 3600.) break;
   }
 
-  return vec2((length(p) - .2) * pow(scale, - float(Iterations)) / dz, trap);
+  return vec2(sqrt(V2) * dr, trap);
 }
 
 vec3 map (in vec3 p) {
@@ -153,8 +162,8 @@ vec3 stripsGeneral (in float t) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  const vec3 color1 = #FF0000;
-  const vec3 color2 = #1485CC;
+  const vec3 color1 = #5EFF14;
+  const vec3 color2 = #FFCF14;
 
   color = mix(color, mix(color1, color2, length(p) * .25), isMaterialSmooth(m, 1.));
 
@@ -209,7 +218,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      color = mix(vec3(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
+      // color = mix(vec3(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
     }
 
     return vec4(color, 1.);
@@ -224,7 +233,8 @@ void main() {
     vec3 turnAxis = normalize(vec3(0., 1., 0.));
     float turn = 0.;
 
-    vec3 ro = vec3(0.,0.,d) + cOffset;
+    float dD = d + .5 + .5 * sin(PI * (1. + time));
+    vec3 ro = vec3(0.,0.,dD) + cOffset;
 
     mat4 cameraMatrix = rot4(vec3(0., 1., 0.), 0.);
 
