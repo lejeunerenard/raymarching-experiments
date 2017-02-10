@@ -23,16 +23,16 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 15
+const secondsLong = 30
 
-const capturing = false
+const capturing = true
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'mandelbox-rotation-twist',
+    name: 'mandelbox-surface',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -63,12 +63,12 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 0,
-        y: 0,
+        x: -0.016,
+        y: -0.007,
         z: 0
       },
-      d: 6.7,
-      scale: -1.6,
+      d: 1.6,
+      scale: -1.37,
       rot2angle: 0
     } // presets[9]
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
@@ -150,14 +150,14 @@ export default class App {
     //   0,     0,     scale, -offset[2] * (scale - 1),
     //   0,     0,     0,     1)
 
-    const angle2 = 0 // this.rot2angle || Math.PI / 8
+    const angle2 = this.rot2angle || Math.PI / 8
     const axis = vec3.fromValues(1, 0, 1)
     this.rot2nd = rot4(axis, angle2)
 
     // Y-centric
     const period = Math.PI / 40
     const a = Math.abs(((period * 4 * t / 1000) % 4) - 2) / 2
-    const angle2n2 = 2 * Math.PI * t / 1000 / 30
+    const angle2n2 = 0 // 2 * Math.PI * t / 1000 / 30
     this.rot2nd2 = rot4(vec3.fromValues(1, 1, 1), angle2n2)
 
     // Z-centric
@@ -205,8 +205,9 @@ export default class App {
   }
 
   update (t) {
-    const range = .1 - 3.3
-    // this.offset[1] = .1 + range * (1 + Math.sin(Math.PI / 2. * t / 1000)) / 2
+    // this.offset[0] = 0.025 * Math.sin(Math.PI / 2. * t / 1000 / 10)
+    // this.offset[1] = 0.024 * Math.sin(Math.PI / 7. * t / 1000 / 10 + Math.PI / 2)
+    this.rot2angle = Math.PI / 2 + Math.PI / 8 * Math.sin(Math.PI * t / 1000 / 10)
     this.shader.uniforms.kifsM = this.kifsM(t)
     this.shader.uniforms.d = this.d // Math.max(0, this.d - t / 1000)
   }

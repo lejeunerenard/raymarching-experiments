@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -21,10 +21,10 @@ uniform float scale;
 uniform vec3 offset;
 
 // Greatest precision = 0.000001;
-#define epsilon .0001
-#define maxSteps 1024
-#define maxDistance 200.
-#define background #999999
+#define epsilon .0005
+#define maxSteps 256
+#define maxDistance 20.
+#define background #333333
 
 const vec3 lightPos = vec3(2., 2., 5.);
 
@@ -44,10 +44,9 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-float minRadius = 0.6;
-// float s = -2.75 + 0.3 * sin(time);
+float minRadius = 0.1;
 
-#pragma glslify: mandelbox = require(./mandelbox, trap=12, maxDistance=maxDistance, foldLimit=.5, s=scale, minRadius=minRadius, rotM=kifsM)
+#pragma glslify: mandelbox = require(./mandelbox, trap=12, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=minRadius, rotM=kifsM)
 
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
@@ -133,7 +132,8 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   const vec3 color1 = #00d2ff;
   const vec3 color2 = #928DAB;
 
-  color = mix(color, mix(color1, color2, length(p) * .3), isMaterialSmooth(m, 1.));
+  //color = mix(color, mix(color1, color2, length(p) * .3), isMaterialSmooth(m, 1.));
+  color = #dddddd;
 
   return color;
 }
@@ -151,26 +151,28 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
-      float spec = pow(max( dot(-rayDirection,nor),0.0 ),8.);
+      float spec = pow(max( dot(-rayDirection,nor),0.0 ), 16.);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
-      color *= vec3(dif) + (0.5 * amb * occ) * #88bbff;
-      color += .45 * spec*occ*color.g;
-      color += .15 * pow(spec,4.)*occ*color.r;
-      // color *= 1.2;
+      color *= vec3(dif) + (0.75 * amb * occ) * #88bbff;
+      color += .7 * spec*occ*color.g;
+      color += .5 * pow(spec,4.)*occ*color.r;
+      color *= 3.;
+
+      color += .5 * matCap(ref);
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
 
       // Inner Glow
-      vec3 glowColor = #FFFFFF * 5.0;
+      vec3 glowColor = #FF3356 * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
       fGlow = pow(fGlow, 3.5);
       color += glowColor * 3.5 * fGlow;
 
-      color *= exp(-t.x * .001);
+      color *= exp(-t.x * .1);
 
-      //colorMap(color);
+      colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
@@ -195,7 +197,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 #pragma glslify: lookAtM = require(glsl-look-at)
 void main() {
     float dD = d;
-    vec3 ro = normalize(vec3(1.,1.,1.)) * dD + cOffset;
+    vec3 ro = normalize(vec3(1.1,-0.85,-1.)) * dD + cOffset;
 
     mat3 cameraMatrix = lookAtM(vec3(0., 0., 0.), ro, 0.);
 
