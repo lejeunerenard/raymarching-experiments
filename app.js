@@ -23,7 +23,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 30
+const secondsLong = 40
 
 const capturing = true
 
@@ -32,7 +32,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'mandelbox-surface',
+    name: 'mandelbox-pandoras-box',
     autoSaveTime: 10,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -63,18 +63,18 @@ export default class App {
 
     const preset = {
       offset: {
-        x: -0.016,
-        y: -0.007,
+        x: 0,
+        y: 0,
         z: 0
       },
-      d: 1.6,
-      scale: -1.37,
-      rot2angle: 0
-    } // presets[9]
+      d: 4.91,
+      scale: -1.57,
+      rot2angle: 0.014
+    }
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
-    this.rot2angle = defined(preset.angle2, Math.PI / 4)
+    this.rot2angle = preset.rot2angle
 
     this.glInit(gl)
 
@@ -205,9 +205,9 @@ export default class App {
   }
 
   update (t) {
-    // this.offset[0] = 0.025 * Math.sin(Math.PI / 2. * t / 1000 / 10)
+    this.scale = -1.57 + .2 * Math.sin(Math.PI / 20 * t / 1000)
     // this.offset[1] = 0.024 * Math.sin(Math.PI / 7. * t / 1000 / 10 + Math.PI / 2)
-    this.rot2angle = Math.PI / 2 + Math.PI / 8 * Math.sin(Math.PI * t / 1000 / 10)
+    // this.rot2angle = Math.PI / 2 + Math.PI / 8 * Math.sin(Math.PI * t / 1000 / 10)
     this.shader.uniforms.kifsM = this.kifsM(t)
     this.shader.uniforms.d = this.d // Math.max(0, this.d - t / 1000)
   }

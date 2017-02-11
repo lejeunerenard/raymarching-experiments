@@ -24,8 +24,7 @@ vec2 mandelbox (in vec3 z) {
   float minD = maxDistance * 2.;
 
   for (int i = 0; i < trap; i++) {
-    p.xy = clamp(p.xy, -foldLimit, foldLimit) * 2. - p.xy;
-    foldNd(p.xyz, vec3(1., 0.1, 0.));
+    p.xyz = clamp(p.xyz, -foldLimit, foldLimit) * 2. - p.xyz;
 
     float r2 = dot(p.xyz, p.xyz);
     p.xyzw *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
