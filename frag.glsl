@@ -21,8 +21,8 @@ uniform float scale;
 uniform vec3 offset;
 
 // Greatest precision = 0.000001;
-#define epsilon .0001
-#define maxSteps 512
+#define epsilon .0005
+#define maxSteps 1024
 #define maxDistance 20.
 #define background #333333
 
@@ -45,18 +45,40 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-float minRadius = 0.1;
-
-#pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=minRadius, rotM=kifsM)
+#pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 
 float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
   return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
 }
 
+#define Iterations 17
+vec2 kifs( inout vec3 p ) {
+  float r = dot(p, p);
+
+  float minD = maxDistance * 2.;
+
+  for (int i = 0; i < Iterations; i++) {
+    p = -abs(-p);
+
+    // Folding
+    fold(p.xy);
+    fold(p.xz);
+    foldInv(p.xy);
+    foldInv(p.xz);
+
+    // Stretch
+    p = (vec4(p, 1.) * kifsM).xyz;
+
+    minD = min(length(p), minD);
+  }
+
+  return vec2((length(p) - 1.) * pow(scale, - float(Iterations)), minD);
+}
+
 vec3 map (in vec3 p) {
   vec4 pp = vec4(p, 1);
-  vec3 q = vec3(orientation * rot4(vec3(0., 1., 0.), PI * time * .05) * pp).xyz;
+  vec3 q = p;
 
   // Sphere
   // return vec3(length(q) - 1., 1., 0.);
@@ -64,7 +86,7 @@ vec3 map (in vec3 p) {
   // Square
   // return vec3(sdBox(q, vec3(.5)), 1., 0.);
 
-  vec2 fractal = mandelbox(q);
+  vec2 fractal = kifs(q);
   return vec3(fractal.x, 1., fractal.y);
 }
 
@@ -141,7 +163,7 @@ vec3 stripsGeneral (in float t) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  color = #999999;
+  color = #ffffff;
 
   return color;
 }
@@ -165,36 +187,27 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
       float spec = pow(clamp( dot(ref, lightPos), 0., 1. ), 32.);
-      float fre = pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 2.);
+      const float ReflectionFresnel = 0.99;
+      float fre = ReflectionFresnel * pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 2.) + (1. - ReflectionFresnel);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
       lin += 1. * vec3(dif);
-      lin += 0.4 * amb * occ * #88bbff;
-      lin += .25 * fre * occ;
-      lin += 2. * spec * dif * color.g;
+      lin += 0.4 * amb * occ * #ffbb66;
+      // lin += .25 * fre * occ * dif;
+      // lin += 2. * spec * dif * color.g;
       color *= .75 * lin;
-
-      const vec3 wavelengths0 = vec3(1.0, 0.8, 0.6);
-      const vec3 wavelengths1 = vec3(0.4, 0.2, 0.0);
-      // color += .5 * fre * attenuation(3. * fre, wavelengths0, nor, rayDirection);
-      color += .05 * attenuation(snoise3(3. * fre * pos), wavelengths1, nor, rayDirection);
-
-      // Glint
-      // color += (1. + dot(rayDirection, nor)) * .5 * smoothstep(.7, 1., snoise3(100. * pos));
-
-      // color += .5 * matCap(ref);
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
 
       // Inner Glow
-      vec3 glowColor = #FF3356 * 5.0;
-      float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
-      fGlow = pow(fGlow, 3.5);
+      // vec3 glowColor = #FF3356 * 5.0;
+      // float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
+      // fGlow = pow(fGlow, 3.5);
       // color += glowColor * 3.5 * fGlow;
 
-      // color *= exp(-t.x * .1);
+      color *= exp(-t.x * .1);
 
       // colorMap(color);
 
@@ -220,8 +233,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
 #pragma glslify: lookAtM = require(glsl-look-at)
 void main() {
-    float dD = d;
-    vec3 ro = normalize(vec3(0.,0,1.)) * dD + cOffset;
+    float dD = .748 + .5 * (1. + cos(PI * .5 + .1 * time));
+    // float dD = d;
+    mat4 rotY = rot4(un.zxz, -.05 * time);
+    mat4 rotX = rot4(un.xzz, -.02 * sin(time));
+    vec3 ro = (orientation * rotX * rotY * vec4(normalize(vec3(-5.,0.,0.)) * dD, 1.)).xyz + cOffset;
 
     mat3 cameraMatrix = lookAtM(vec3(0., 0., 0.), ro, 0.);
 
