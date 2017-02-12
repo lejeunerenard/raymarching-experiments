@@ -10,10 +10,11 @@ varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
 uniform vec3 cOffset;
+uniform vec3 cameraRo;
+uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D texture;
-uniform float d;
 
 // KIFS
 uniform mat4 kifsM;
@@ -233,13 +234,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
 #pragma glslify: lookAtM = require(glsl-look-at)
 void main() {
-    float dD = .748 + .5 * (1. + cos(PI * .5 + .1 * time));
-    // float dD = d;
-    mat4 rotY = rot4(un.zxz, -.05 * time);
-    mat4 rotX = rot4(un.xzz, -.02 * sin(time));
-    vec3 ro = (orientation * rotX * rotY * vec4(normalize(vec3(-5.,0.,0.)) * dD, 1.)).xyz + cOffset;
-
-    mat3 cameraMatrix = lookAtM(vec3(0., 0., 0.), ro, 0.);
+    vec3 ro = (orientation * vec4(cameraRo, 1.)).xyz + cOffset;
 
     vec2 uv = fragCoord.xy;
 
@@ -255,7 +250,7 @@ void main() {
                   float(x) / R.y + uv.x,
                   float(y) / R.y + uv.y),
                   projectionMatrix);
-            rd = cameraMatrix * rd;
+            rd = (vec4(rd, 1.) * cameraMatrix).xyz;
             t = march(ro, rd);
             color += shade(ro, rd, t, uv);
         }
@@ -264,7 +259,7 @@ void main() {
 
     #else
     vec3 rd = getRayDirection(uv, projectionMatrix);
-    rd = cameraMatrix * rd;
+    rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     vec4 t = march(ro, rd);
     gl_FragColor = shade(ro, rd, t, uv);
     #endif

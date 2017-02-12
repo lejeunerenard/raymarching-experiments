@@ -64,17 +64,19 @@ export default class App {
     const preset = {
       offset: {
         x: 1,
-        y: 0.111,
+        y: 0,
         z: 0
       },
       d: 1.32,
-      scale: 2.01,
-      rot2angle: .199
+      scale: 2.0,
+      rot2angle: 2 * Math.PI
     }
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
     this.rot2angle = preset.rot2angle
+
+    this.cameraRo = vec3.fromValues(-1, 0, 0)
 
     this.glInit(gl)
 
@@ -199,12 +201,33 @@ export default class App {
     this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
   }
 
+  getCamera (t) {
+    t /= 1000
+    let d = .748 + .5 * (1. + Math.cos(Math.PI * .5 + .1 * t));
+    let cameraRo = vec3.fromValues(-d , 0, 0);
+    let cameraMatrix = this.cameraMatrix || mat4.create()
+
+    // RO
+    vec3.scale(cameraRo, cameraRo, this.d)
+    let rotY = mat4.create()
+    mat4.rotate(rotY, rotY, -.05 * t, vec3.fromValues(0, 1, 0))
+
+    let rotX = mat4.create()
+    mat4.rotate(rotX, rotX, -.02 * Math.sin(t), vec3.fromValues(1, 0, 0))
+    vec3.transformMat4(cameraRo,cameraRo,rotY)
+    vec3.transformMat4(cameraRo,cameraRo,rotX)
+
+    // LookAt
+    mat4.lookAt(cameraMatrix, cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+
+    this.cameraMatrix = cameraMatrix
+    return [cameraRo, cameraMatrix]
+  }
+
   update (t) {
-    // this.scale = -1.57 + .2 * Math.sin(Math.PI / 20 * t / 1000)
-    // this.offset[1] = 0.024 * Math.sin(Math.PI / 7. * t / 1000 / 10 + Math.PI / 2)
-    // this.rot2angle = Math.PI / 2 + Math.PI / 8 * Math.sin(Math.PI * t / 1000 / 10)
+    [this.shader.uniforms.cameraRo, this.shader.uniforms.cameraMatrix] = this.getCamera(t)
+
     this.shader.uniforms.kifsM = this.kifsM(t)
-    this.shader.uniforms.d = this.d // Math.max(0, this.d - t / 1000)
   }
 
   render (t) {
