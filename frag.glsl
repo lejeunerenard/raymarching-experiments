@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -46,35 +46,13 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
+#define Iterations 10
 #pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
+#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
 float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
   return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
-}
-
-#define Iterations 17
-vec2 kifs( inout vec3 p ) {
-  float r = dot(p, p);
-
-  float minD = maxDistance * 2.;
-
-  for (int i = 0; i < Iterations; i++) {
-    p = -abs(-p);
-
-    // Folding
-    fold(p.xy);
-    fold(p.xz);
-    foldInv(p.xy);
-    foldInv(p.xz);
-
-    // Stretch
-    p = (vec4(p, 1.) * kifsM).xyz;
-
-    minD = min(length(p), minD);
-  }
-
-  return vec2((length(p) - 1.) * pow(scale, - float(Iterations)), minD);
 }
 
 vec3 map (in vec3 p) {
@@ -87,7 +65,7 @@ vec3 map (in vec3 p) {
   // Square
   // return vec3(sdBox(q, vec3(.5)), 1., 0.);
 
-  vec2 fractal = kifs(q);
+  vec2 fractal = octahedron(q);
   return vec3(fractal.x, 1., fractal.y);
 }
 
@@ -234,7 +212,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
 #pragma glslify: lookAtM = require(glsl-look-at)
 void main() {
-    vec3 ro = (orientation * vec4(cameraRo, 1.)).xyz + cOffset;
+    vec3 ro = (vec4(cameraRo, 1.) * orientation).xyz + cOffset;
 
     vec2 uv = fragCoord.xy;
 

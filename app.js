@@ -8,14 +8,13 @@ import ShaderVROrbitControls from 'shader-vr-orbit-controls'
 import WebVRManager from 'shader-webvr-manager'
 
 import fit from 'canvas-fit'
+import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
 import { isAndroid, rot4 } from './utils'
 import CCapture from 'ccapture.js'
 
 import assign from 'object-assign'
 import defined from 'defined'
-import lerp from 'lerp'
-import cubic from 'eases/cubic-in-out'
 import { vec3, mat4 } from 'gl-matrix'
 import presets from './presets.json'
 
@@ -23,7 +22,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 20
+const secondsLong = 35
 
 const capturing = false
 
@@ -32,7 +31,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-tetra-cantors-temple',
+    name: 'kifs-tetra-tweening',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -76,7 +75,56 @@ export default class App {
     this.scale = preset.scale
     this.rot2angle = preset.rot2angle
 
-    this.cameraRo = vec3.fromValues(-1, 0, 0)
+    this.cameraRo = vec3.fromValues(-1 * this.d, 0, 0)
+
+    // Camera animation
+    let cameraRoToBack = new TWEEN.Tween(this.cameraRo)
+    cameraRoToBack
+      .to([0, 0, 1 * this.d], 10000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    let cameraRoToTop = new TWEEN.Tween(this.cameraRo)
+    cameraRoToTop 
+      .to([-.01, 1 * this.d, .01], 10000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    let cameraRoToFront = new TWEEN.Tween(this.cameraRo)
+    cameraRoToFront
+      .to([-1 * this.d, 0, 0], 10000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    let cameraRoToCenter = new TWEEN.Tween(this.cameraRo)
+    cameraRoToCenter
+      .to([-.1, 0, 0], 5000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    cameraRoToBack
+      .chain(cameraRoToTop)
+    cameraRoToTop.chain(cameraRoToFront)
+    cameraRoToFront.chain(cameraRoToCenter)
+
+    cameraRoToBack.start()
+
+    // Animation Fractal
+    let rot2angleLessTween = new TWEEN.Tween(this)
+    rot2angleLessTween
+      .to({ rot2angle: 1.7 * Math.PI }, 15000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    let rot2angleMoreTween = new TWEEN.Tween(this)
+    rot2angleMoreTween
+      .to({ rot2angle: 2.12 * Math.PI }, 15000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    let rot2angleResetTween = new TWEEN.Tween(this)
+    rot2angleResetTween
+      .to({ rot2angle: 2.1 * Math.PI }, 5000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    rot2angleLessTween.chain(rot2angleMoreTween)
+    rot2angleMoreTween.chain(rot2angleResetTween)
+
+    rot2angleLessTween.start()
 
     this.glInit(gl)
 
@@ -157,10 +205,6 @@ export default class App {
     const angle2n2 = 0 // 2 * Math.PI * t / 1000 / 30
     this.rot2nd2 = rot4(vec3.fromValues(1, 1, 1), angle2n2)
 
-    // Z-centric
-    // const angle2n2 = lerp(-0.2, Math.PI / 6.5, (1 + Math.cos(t / 1000)) / 2)
-    // this.rot2nd2 = rot4(vec3.fromValues(0, 0, 1), angle2n2)
-
     mat4.multiply(this.rot2nd, this.rot2nd, this.rot2nd2)
 
     this._kifsM = this._kifsM || mat4.create()
@@ -203,29 +247,21 @@ export default class App {
 
   getCamera (t) {
     t /= 1000
-    let d = .748 + .5 * (1. + Math.cos(Math.PI * .5 + .1 * t));
-    let cameraRo = vec3.fromValues(-d , 0, 0);
     let cameraMatrix = this.cameraMatrix || mat4.create()
 
-    // RO
-    vec3.scale(cameraRo, cameraRo, this.d)
-    let rotY = mat4.create()
-    mat4.rotate(rotY, rotY, -.05 * t, vec3.fromValues(0, 1, 0))
-
-    let rotX = mat4.create()
-    mat4.rotate(rotX, rotX, -.02 * Math.sin(t), vec3.fromValues(1, 0, 0))
-    vec3.transformMat4(cameraRo,cameraRo,rotY)
-    vec3.transformMat4(cameraRo,cameraRo,rotX)
-
     // LookAt
-    mat4.lookAt(cameraMatrix, cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+    mat4.lookAt(cameraMatrix, this.cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
 
     this.cameraMatrix = cameraMatrix
-    return [cameraRo, cameraMatrix]
+    return [this.cameraRo, cameraMatrix]
   }
 
   update (t) {
-    [this.shader.uniforms.cameraRo, this.shader.uniforms.cameraMatrix] = this.getCamera(t)
+    TWEEN.update(t)
+
+    let updates = this.getCamera(t)
+    this.shader.uniforms.cameraRo = updates[0]
+    this.shader.uniforms.cameraMatrix = updates[1]
 
     this.shader.uniforms.kifsM = this.kifsM(t)
   }
