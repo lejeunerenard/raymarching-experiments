@@ -11,10 +11,6 @@ vec4 scalevec = vec4(s, s, s, abs(s)) / minRadius2;
 float C1 = abs(s - 1.);
 float C2 = pow(abs(s), float(1 - trap));
 
-void foldNd (inout vec3 z, vec3 n1) {
-  z-=2.0 * min(0.0, dot(z, n1)) * n1;
-}
-
 vec2 mandelbox (in vec3 z) {
   vec3 offset = z;
   float dr = 1.;

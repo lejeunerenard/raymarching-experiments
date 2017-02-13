@@ -6,8 +6,6 @@
 #pragma glslify: foldInv = require(./foldInv)
 
 vec2 kifs( inout vec3 p ) {
-  float r = dot(p, p);
-
   float minD = 10000.;
 
   for (int i = 0; i < Iterations; i++) {

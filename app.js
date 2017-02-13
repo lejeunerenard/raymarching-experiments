@@ -22,7 +22,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 35
+const secondsLong = 40
 
 const capturing = false
 
@@ -31,7 +31,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-tetra-tweening',
+    name: 'kifs-icosa-tour-final',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -47,6 +47,8 @@ let winSetInterval = window.setInterval
 let winclearInterval = window.clearInterval
 let winRequestAnimationFrame = window.requestAnimationFrame
 let winProfNow = window.performance.now
+
+const PHI = (1+Math.sqrt(5))/2;
 
 // Initialize shell
 export default class App {
@@ -64,67 +66,58 @@ export default class App {
       offset: {
         x: 1,
         y: 0,
-        z: 0
+        z: PHI
       },
-      d: 1.32,
-      scale: 2.0,
-      rot2angle: 2 * Math.PI
+      d: 3,
+      scale: 2,
+      rot2angle: 0
     }
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
     this.rot2angle = preset.rot2angle
 
-    this.cameraRo = vec3.fromValues(-1 * this.d, 0, 0)
+    this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Camera animation
-    let cameraRoToBack = new TWEEN.Tween(this.cameraRo)
-    cameraRoToBack
-      .to([0, 0, 1 * this.d], 10000)
+    let tween1 = new TWEEN.Tween(this.cameraRo)
+    tween1
+      .to([0, 0, 1.75], 15000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let tween2 = new TWEEN.Tween(this.cameraRo)
+    tween2
+      .to([0, 0, 2.5], 5000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let tween3 = new TWEEN.Tween(this.cameraRo)
+    tween3
+      .delay(5 * 1000)
+      .to([0, 0, this.d], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    let cameraRoToTop = new TWEEN.Tween(this.cameraRo)
-    cameraRoToTop 
-      .to([-.01, 1 * this.d, .01], 10000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    tween1.chain(tween2)
+    tween2.chain(tween3)
 
-    let cameraRoToFront = new TWEEN.Tween(this.cameraRo)
-    cameraRoToFront
-      .to([-1 * this.d, 0, 0], 10000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    let cameraRoToCenter = new TWEEN.Tween(this.cameraRo)
-    cameraRoToCenter
-      .to([-.1, 0, 0], 5000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    cameraRoToBack
-      .chain(cameraRoToTop)
-    cameraRoToTop.chain(cameraRoToFront)
-    cameraRoToFront.chain(cameraRoToCenter)
-
-    cameraRoToBack.start()
+    tween1.start(0)
 
     // Animation Fractal
-    let rot2angleLessTween = new TWEEN.Tween(this)
-    rot2angleLessTween
-      .to({ rot2angle: 1.7 * Math.PI }, 15000)
+    let rotTween1 = new TWEEN.Tween(this)
+    rotTween1
+      .to({ rot2angle: -1 / 4 * Math.PI }, 10000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+      .delay(5000)
+    let rotTween2 = new TWEEN.Tween(this)
+    rotTween2
+      .to({ rot2angle: 1 / 3 * Math.PI }, 10000)
+      .easing(TWEEN.Easing.Cubic.InOut)
+    let rotTween3 = new TWEEN.Tween(this)
+    rotTween3
+      .to({ rot2angle: 0 }, 5000)
+      .easing(TWEEN.Easing.Cubic.InOut)
 
-    let rot2angleMoreTween = new TWEEN.Tween(this)
-    rot2angleMoreTween
-      .to({ rot2angle: 2.12 * Math.PI }, 15000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
 
-    let rot2angleResetTween = new TWEEN.Tween(this)
-    rot2angleResetTween
-      .to({ rot2angle: 2.1 * Math.PI }, 5000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    rot2angleLessTween.chain(rot2angleMoreTween)
-    rot2angleMoreTween.chain(rot2angleResetTween)
-
-    rot2angleLessTween.start()
+    rotTween1.start(0)
 
     this.glInit(gl)
 
@@ -195,7 +188,7 @@ export default class App {
       0,     0,     scale, -offset[2] * (scale - 1),
       0,     0,     0,     1)
 
-    const angle2 = this.rot2angle || Math.PI / 8
+    const angle2 = this.rot2angle
     const axis = vec3.fromValues(1, 0, 1)
     this.rot2nd = rot4(axis, angle2)
 
@@ -259,9 +252,11 @@ export default class App {
   update (t) {
     TWEEN.update(t)
 
+    this.controls.update(this.shader)
+
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
-    this.shader.uniforms.cameraMatrix = updates[1]
+    this.shader.uniforms.cameraMatrix = (updates[1])
 
     this.shader.uniforms.kifsM = this.kifsM(t)
   }
@@ -271,7 +266,6 @@ export default class App {
 
     shader.uniforms.time = t / 1000
     shader.uniforms.texture = this.texture
-    controls.update(shader)
 
     manager.render(shader, t)
     capturing && capturer.capture(this.canvas)
