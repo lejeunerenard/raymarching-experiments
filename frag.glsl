@@ -22,10 +22,10 @@ uniform float scale;
 uniform vec3 offset;
 
 // Greatest precision = 0.000001;
-#define epsilon .004
+uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 20.
-#define background #5668CC
+#define background #dddddd
 
 const vec3 lightPos = vec3(-.6, 0., .6);
 
@@ -46,7 +46,7 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-#define Iterations 20
+#define Iterations 25
 #pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 #pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsM)
@@ -145,14 +145,17 @@ vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
   return 0.5 + 0.5 * cos(((THICKNESS_SCALE * filmThickness)/(wavelengths + 1.0)) * dot(normal, rd));    
 }
 
+#pragma glslify: hsv = require(glsl-hsv2rgb)
+
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  color = #CBC5FF;
-  color *= attenuation(.05, vec3(1., 3., 5.), nor, rd);
-  color = mix(color, #89CC56, pow(clamp(1. + dot(rd, nor), 0., 1.), 4.));
+  color = #34FFE0;
+  color = mix(color, #FF4DAC, (1. + dot(rd, nor)) / 2.);
+  color += .45 * hsv(vec3(length(p) + dot(rd, nor), .75, 1.));
+  color *= .8;
 
-  return color;
+  return clamp(color, 0., 1.);
 }
 
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {

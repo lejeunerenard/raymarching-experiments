@@ -22,16 +22,17 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 40
+const secondsLong = 38
 
 const capturing = false
+const LOOKAT = false
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-icosa-tour-final',
+    name: 'kifs-icosa-spelunking',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -72,52 +73,111 @@ export default class App {
       scale: 2,
       rot2angle: 0
     }
+
+    // Ray Marching Parameters
+    this.epsilon = preset.epsilon || 0.005
+
+    // Fractal parameters
     this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
     this.d = preset.d
     this.scale = preset.scale
-    this.rot2angle = preset.rot2angle
+    this.rot2angle = preset.rot2angle || [0, 0, 0]
+    this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.cameraRo = vec3.fromValues(0, 0, this.d)
+    // Epsilon Animation
+    let eps1 = new TWEEN.Tween(this)
+    eps1
+      .to({ epsilon: 0.0001 }, 7000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let eps2 = new TWEEN.Tween(this)
+    eps2
+      .to({ epsilon: 0.00006 }, 6000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let eps3 = new TWEEN.Tween(this)
+    eps3
+      .to({ epsilon: 0.000009 }, 5000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let eps4 = new TWEEN.Tween(this)
+    eps4
+      .delay(2000)
+      .to({ epsilon: 0.005 }, 10000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // Camera animation
+    eps1.chain(eps2)
+    eps2.chain(eps3)
+    eps3.chain(eps4)
+
+    eps1.start(0)
+
+    this.cameraRo = vec3.fromValues(0, 0, this.d) // vec3.fromValues(.64, .32, 1.45) // 
+
+    // Camera location animation
     let tween1 = new TWEEN.Tween(this.cameraRo)
     tween1
-      .to([0, 0, 1.75], 15000)
+      .to([.45, .25, 1.6], 7000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let tween2 = new TWEEN.Tween(this.cameraRo)
     tween2
-      .to([0, 0, 2.5], 5000)
+      .delay(1000)
+      .to([.62, .31, 1.47], 5500)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let tween3 = new TWEEN.Tween(this.cameraRo)
     tween3
-      .delay(5 * 1000)
-      .to([0, 0, this.d], 5 * 1000)
+      .to([.641, .323, 1.446], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let tween4 = new TWEEN.Tween(this.cameraRo)
+    tween4
+      .delay(1000)
+      .to([0, 0, this.d], 11 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     tween1.chain(tween2)
     tween2.chain(tween3)
+    tween3.chain(tween4)
 
     tween1.start(0)
 
+    // Camera rotation animation
+    let camRotTween1 = new TWEEN.Tween(this.cameraAngles)
+    camRotTween1
+      .delay(7000)
+      .to([Math.PI / 7, -Math.PI / 8, 0], 2000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let camRotTween2 = new TWEEN.Tween(this.cameraAngles)
+    camRotTween2
+      .delay(2000)
+      .to([-2 * Math.PI + 5.535, - 2 * Math.PI + 5.806, -2 * Math.PI + 5.041], 5500)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let camRotTween3 = new TWEEN.Tween(this.cameraAngles)
+    camRotTween3
+      .delay(1000)
+      .to([0, 0, 0], 9 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    camRotTween1.chain(camRotTween2)
+    camRotTween2.chain(camRotTween3)
+
+    camRotTween1.start(0)
+
     // Animation Fractal
-    let rotTween1 = new TWEEN.Tween(this)
+    let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to({ rot2angle: -1 / 4 * Math.PI }, 10000)
+      .to([-1 / 4 * Math.PI, 0, -1 / 4 * Math.PI], 10000)
       .easing(TWEEN.Easing.Quadratic.InOut)
       .delay(5000)
-    let rotTween2 = new TWEEN.Tween(this)
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to({ rot2angle: 1 / 3 * Math.PI }, 10000)
+      .to([1 / 3 * Math.PI, 0, 1 / 3 * Math.PI], 10000)
       .easing(TWEEN.Easing.Cubic.InOut)
-    let rotTween3 = new TWEEN.Tween(this)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
     rotTween3
-      .to({ rot2angle: 0 }, 5000)
+      .to([0, 0, 0], 5000)
       .easing(TWEEN.Easing.Cubic.InOut)
 
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween3)
 
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     this.glInit(gl)
 
@@ -182,26 +242,28 @@ export default class App {
     this.shader.uniforms.scale = scale
     this.shader.uniforms.offset = offset
 
-    this.scaleNOffset = mat4.fromValues(
+    // Scale and Offset
+    let _kifsM = mat4.fromValues(
       scale, 0,     0,     -offset[0] * (scale - 1),
       0,     scale, 0,     -offset[1] * (scale - 1),
       0,     0,     scale, -offset[2] * (scale - 1),
       0,     0,     0,     1)
 
-    const angle2 = this.rot2angle
-    const axis = vec3.fromValues(1, 0, 1)
-    this.rot2nd = rot4(axis, angle2)
+    const angleX = this.rot2angle[0]
+    const axisX = vec3.fromValues(1, 0, 0)
+    mat4.multiply(_kifsM, rot4(axisX, angleX), _kifsM)
 
     // Y-centric
-    const period = Math.PI / 40
-    const a = Math.abs(((period * 4 * t / 1000) % 4) - 2) / 2
-    const angle2n2 = 0 // 2 * Math.PI * t / 1000 / 30
-    this.rot2nd2 = rot4(vec3.fromValues(1, 1, 1), angle2n2)
+    const angleY = this.rot2angle[1]
+    const axisY = vec3.fromValues(0, 1, 0)
+    mat4.multiply(_kifsM, rot4(axisY, angleY), _kifsM)
 
-    mat4.multiply(this.rot2nd, this.rot2nd, this.rot2nd2)
+    // Z-centric
+    const angleZ = this.rot2angle[2]
+    const axisZ = vec3.fromValues(0, 0, 1)
+    mat4.multiply(_kifsM, rot4(axisZ, angleZ), _kifsM)
 
-    this._kifsM = this._kifsM || mat4.create()
-    return mat4.multiply(this._kifsM, this.rot2nd, this.scaleNOffset)
+    return _kifsM
   }
 
   // Get the HMD, and if we're dealing with something that specifies
@@ -240,10 +302,27 @@ export default class App {
 
   getCamera (t) {
     t /= 1000
-    let cameraMatrix = this.cameraMatrix || mat4.create()
+    let cameraMatrix = mat4.create() 
 
     // LookAt
-    mat4.lookAt(cameraMatrix, this.cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+    if (LOOKAT) {
+      mat4.lookAt(cameraMatrix, this.cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+    } else {
+      const angleX = this.cameraAngles[0]
+      const axisX = vec3.fromValues(1, 0, 0)
+      mat4.multiply(cameraMatrix, rot4(axisX, angleX), cameraMatrix)
+
+      // Y-centric
+      const angleY = this.cameraAngles[1]
+      const axisY = vec3.fromValues(0, 1, 0)
+      mat4.multiply(cameraMatrix, rot4(axisY, angleY), cameraMatrix)
+
+      // Z-centric
+      const angleZ = this.cameraAngles[2]
+      const axisZ = vec3.fromValues(0, 0, 1)
+      mat4.multiply(cameraMatrix, rot4(axisZ, angleZ), cameraMatrix)
+    }
+
 
     this.cameraMatrix = cameraMatrix
     return [this.cameraRo, cameraMatrix]
@@ -251,6 +330,8 @@ export default class App {
 
   update (t) {
     TWEEN.update(t)
+
+    this.shader.uniforms.epsilon = this.epsilon
 
     this.controls.update(this.shader)
 
