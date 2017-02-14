@@ -104,8 +104,6 @@ export default class App {
     let manager = new WebVRManager({ domElement: canvas }, effect, params)
     let vrDisplay = undefined
 
-    let audioReady = this.setupAudio()
-
     assign(this, {
       canvas,
       gl,
@@ -114,11 +112,12 @@ export default class App {
       manager,
       vrDisplay,
       currentRAF: null,
-      running: false,
-      audioReady
+      running: false
     })
 
+    this.audioReady = this.setupAudio()
     this.stageReady = this.setupStage()
+    this.loaded = Promise.all([this.audioReady, this.stageReady])
   }
 
   setupAnimation (preset) {
@@ -411,7 +410,7 @@ export default class App {
     window.requestAnimationFrame = winRequestAnimationFrame
     window.performance.now = winProfNow
 
-    Promise.all([this.audioReady, this.stageReady]).then(() => {
+    this.loaded.then(() => {
       if (this.vrDisplay && this.running && !this.currentRAF) {
         this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
       }
