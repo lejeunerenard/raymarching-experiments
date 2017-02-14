@@ -12,6 +12,7 @@ import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
 import { isAndroid, rot4 } from './utils'
 import CCapture from 'ccapture.js'
+import SoundCloud from 'soundcloud-badge'
 
 import assign from 'object-assign'
 import defined from 'defined'
@@ -19,6 +20,7 @@ import { vec3, mat4 } from 'gl-matrix'
 import presets from './presets.json'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0
@@ -74,16 +76,52 @@ export default class App {
       rot2angle: 0
     }
 
+    this.d = preset.d
+    this.cameraRo = vec3.fromValues(0, 0, this.d)
+
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.005
 
     // Fractal parameters
-    this.offset = vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
-    this.d = preset.d
+    this.offset = (preset.offset)
+      ? vec3.fromValues(preset.offset.x, preset.offset.y, preset.offset.z)
+      : vec3.fromValues(0, 0, 0)
     this.scale = preset.scale
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
+    // this.setupAnimation(preset)
+
+    this.glInit(gl)
+
+    let effect = new ShaderVREffect(gl)
+    let controls = new ShaderVROrbitControls(gl)
+
+    let params = {
+      hideButton: true,
+      isUndistorted: false
+    }
+    let manager = new WebVRManager({ domElement: canvas }, effect, params)
+    let vrDisplay = undefined
+
+    let audioReady = this.setupAudio()
+
+    assign(this, {
+      canvas,
+      gl,
+      effect,
+      controls,
+      manager,
+      vrDisplay,
+      currentRAF: null,
+      running: false,
+      audioReady
+    })
+
+    this.stageReady = this.setupStage()
+  }
+
+  setupAnimation (preset) {
     // Epsilon Animation
     let eps1 = new TWEEN.Tween(this)
     eps1
@@ -109,7 +147,7 @@ export default class App {
 
     eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(0, 0, this.d) // vec3.fromValues(.64, .32, 1.45) // 
+    this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Camera location animation
     let tween1 = new TWEEN.Tween(this.cameraRo)
@@ -178,31 +216,36 @@ export default class App {
     rotTween2.chain(rotTween3)
 
     // rotTween1.start(0)
+  }
 
-    this.glInit(gl)
+  setupAudio () {
+    return new Promise((resolve, reject) => {
+      SoundCloud({
+        client_id: CLIENT_ID,
+        song: 'https://soundcloud.com/kartell/sg-lewis-no-less-kartell-remix-1',
+        dark: true,
+        getFonts: true
+      }, (err, src, data, div)  => {
+        if (err) {
+          reject(err)
+          throw err
+        }
 
-    let effect = new ShaderVREffect(gl)
-    let controls = new ShaderVROrbitControls(gl)
+        // Play the song on
+        // a modern browser
+        let audio = new Audio
+        audio.src = src
+        audio.play()
 
-    let params = {
-      hideButton: true,
-      isUndistorted: false
-    }
-    let manager = new WebVRManager({ domElement: canvas }, effect, params)
-    let vrDisplay = undefined
+        this.audio = audio
 
-    assign(this, {
-      canvas,
-      gl,
-      effect,
-      controls,
-      manager,
-      vrDisplay,
-      currentRAF: null,
-      running: false,
+        resolve()
+
+        // Metadata related to the song
+        // retrieved by the API.
+        console.log(data)
+      })
     })
-
-    this.setupStage()
   }
 
   enableEvents () {
@@ -269,15 +312,11 @@ export default class App {
   // Get the HMD, and if we're dealing with something that specifies
   // stageParameters, rearrange the scene.
   setupStage () {
-    navigator.getVRDisplays().then((displays) => {
+    return navigator.getVRDisplays().then((displays) => {
       if (displays.length > 0) {
         this.vrDisplay = displays[0]
         this.effect.setVRDisplay(this.vrDisplay)
         this.controls.setVRDisplay(this.vrDisplay)
-
-        if (this.running && !this.currentRAF) {
-          this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
-        }
       }
     })
   }
@@ -372,9 +411,11 @@ export default class App {
     window.requestAnimationFrame = winRequestAnimationFrame
     window.performance.now = winProfNow
 
-    if (this.vrDisplay && !this.currentRAF) {
-      this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
-    }
+    Promise.all([this.audioReady, this.stageReady]).then(() => {
+      if (this.vrDisplay && this.running && !this.currentRAF) {
+        this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
+      }
+    })
   }
 
   stop () {
