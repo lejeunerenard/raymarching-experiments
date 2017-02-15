@@ -11,8 +11,10 @@ import fit from 'canvas-fit'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
 import { isAndroid, rot4 } from './utils'
+import { cameraOrbit } from './camera-tweens'
 import CCapture from 'ccapture.js'
 import SoundCloud from 'soundcloud-badge'
+import Analyser from 'gl-audio-analyser'
 
 import assign from 'object-assign'
 import defined from 'defined'
@@ -22,19 +24,19 @@ import presets from './presets.json'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
-const fr = 60
+const fr = 25
 let captureTime = 0
-const secondsLong = 38
+const secondsLong = 10
 
 const capturing = false
-const LOOKAT = false
+const LOOKAT = true
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-icosa-spelunking',
+    name: 'kifs-swanky-heart',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -67,12 +69,12 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 1,
-        y: 0,
-        z: PHI
+        x: 1.883,
+        y: .669,
+        z: 1.763
       },
-      d: 3,
-      scale: 2,
+      d: 4.5,
+      scale: 2.56,
       rot2angle: 0
     }
 
@@ -80,7 +82,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.005
+    this.epsilon = preset.epsilon || 0.003
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -90,7 +92,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -118,6 +120,9 @@ export default class App {
     this.audioReady = this.setupAudio()
     this.stageReady = this.setupStage()
     this.loaded = Promise.all([this.audioReady, this.stageReady])
+    this.loaded.then(() => {
+      this.audio.play()
+    })
   }
 
   setupAnimation (preset) {
@@ -144,84 +149,47 @@ export default class App {
     eps2.chain(eps3)
     eps3.chain(eps4)
 
-    eps1.start(0)
+    // eps1.start(0)
 
     this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Camera location animation
-    let tween1 = new TWEEN.Tween(this.cameraRo)
-    tween1
-      .to([.45, .25, 1.6], 7000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let tween2 = new TWEEN.Tween(this.cameraRo)
-    tween2
-      .delay(1000)
-      .to([.62, .31, 1.47], 5500)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let tween3 = new TWEEN.Tween(this.cameraRo)
-    tween3
-      .to([.641, .323, 1.446], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let tween4 = new TWEEN.Tween(this.cameraRo)
-    tween4
-      .delay(1000)
-      .to([0, 0, this.d], 11 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    let posRot = [0, 0]
 
-    tween1.chain(tween2)
-    tween2.chain(tween3)
-    tween3.chain(tween4)
+    let cameraPosTween =
+      cameraOrbit(this.cameraRo, this.d, posRot, [Math.PI / 8, Math.PI / 4], 7 * 1000)
+    let cameraPosTween2 =
+      cameraOrbit(this.cameraRo, this.d, [-Math.PI / 3, Math.PI / 2], [-Math.PI / 3, 0], 7 * 1000)
+    let cameraPosTween3 =
+      cameraOrbit(this.cameraRo, this.d, [-Math.PI / 4, -Math.PI * 3 / 4], [Math.PI / 4, Math.PI / 2], 7 * 1000)
 
-    tween1.start(0)
-
-    // Camera rotation animation
-    let camRotTween1 = new TWEEN.Tween(this.cameraAngles)
-    camRotTween1
-      .delay(7000)
-      .to([Math.PI / 7, -Math.PI / 8, 0], 2000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let camRotTween2 = new TWEEN.Tween(this.cameraAngles)
-    camRotTween2
-      .delay(2000)
-      .to([-2 * Math.PI + 5.535, - 2 * Math.PI + 5.806, -2 * Math.PI + 5.041], 5500)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let camRotTween3 = new TWEEN.Tween(this.cameraAngles)
-    camRotTween3
-      .delay(1000)
-      .to([0, 0, 0], 9 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    camRotTween1.chain(camRotTween2)
-    camRotTween2.chain(camRotTween3)
-
-    camRotTween1.start(0)
+    cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween2.chain(cameraPosTween3)
+    cameraPosTween3.chain(cameraPosTween)
+    cameraPosTween.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([-1 / 4 * Math.PI, 0, -1 / 4 * Math.PI], 10000)
+      .to([-1 / 3 * Math.PI, .5, -1 / 4 * Math.PI], 10000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(5000)
+      .delay(1000)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([1 / 3 * Math.PI, 0, 1 / 3 * Math.PI], 10000)
-      .easing(TWEEN.Easing.Cubic.InOut)
-    let rotTween3 = new TWEEN.Tween(this.rot2angle)
-    rotTween3
-      .to([0, 0, 0], 5000)
+      .to([0, 0, 0], 10000)
       .easing(TWEEN.Easing.Cubic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
+    rotTween2.chain(rotTween1)
 
-    // rotTween1.start(0)
+    rotTween1.start(0)
   }
 
   setupAudio () {
     return new Promise((resolve, reject) => {
       SoundCloud({
         client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/kartell/sg-lewis-no-less-kartell-remix-1',
+        song: 'https://soundcloud.com/shang-lin/swanky',
         dark: true,
         getFonts: true
       }, (err, src, data, div)  => {
@@ -233,8 +201,13 @@ export default class App {
         // Play the song on
         // a modern browser
         let audio = new Audio
+        audio.crossOrigin = 'Anonymous'
         audio.src = src
-        audio.play()
+        audio.addEventListener('canplay', () => {
+          console.log('playing!')
+          this.analyser = Analyser(this.gl, audio)
+          audio.play()
+        })
 
         this.audio = audio
 
@@ -368,6 +341,10 @@ export default class App {
 
   update (t) {
     TWEEN.update(t)
+
+    if (this.analyser) {
+      this.shader.uniforms.audioTexture = this.analyser.bindWaveform(1)
+    }
 
     this.shader.uniforms.epsilon = this.epsilon
 

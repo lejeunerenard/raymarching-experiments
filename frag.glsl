@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -15,6 +15,7 @@ uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D texture;
+uniform sampler2D audioTexture;
 
 // KIFS
 uniform mat4 kifsM;
@@ -23,8 +24,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
-#define maxDistance 20.
+#define maxSteps 256
+#define maxDistance 25.
 #define background #dddddd
 
 const vec3 lightPos = vec3(-.6, 0., .6);
@@ -36,6 +37,7 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: rot4 = require(./rotation-matrix4.glsl)
+#pragma glslify: analyse = require(gl-audio-analyser)
 
 // Folds
 #pragma glslify: fold = require(./folds)
@@ -46,10 +48,23 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-#define Iterations 25
+float scaleWAudio = scale;
+void scaleCalc () {
+  float amplitude = analyse(audioTexture, .5);
+  scaleWAudio = scale + .1 * amplitude;
+}
+
+mat4 kifsMWAduio = kifsM;
+void kifsMCalc () {
+  float amplitude = analyse(audioTexture, .15);
+  kifsMWAduio = kifsM * rot4(vec3(0., 1., 1.), .05 * PI * amplitude);
+}
+
+#define Iterations 7
 #pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
-#pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsM)
+
+#pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsMWAduio)
 
 float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
@@ -150,8 +165,8 @@ vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  color = #34FFE0;
-  color = mix(color, #FF4DAC, (1. + dot(rd, nor)) / 2.);
+  color = mix(#FF6D43, #FF507A, (fragCoord.x + 1.) * .5);
+  // color = mix(color, #FF507A, (1. + dot(rd, nor)) / 2.);
   color += .45 * hsv(vec3(length(p) + dot(rd, nor), .75, 1.));
   color *= .8;
 
@@ -181,7 +196,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       lin += 0.4 * amb * occ * #ffbb66;
       lin += .25 * fre * occ * dif;
       lin += 2. * spec * dif * color.g;
-      color *= lin;
+      color *= 1.5 * lin;
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
@@ -220,6 +235,9 @@ void main() {
     vec3 ro = cameraRo + cOffset;
 
     vec2 uv = fragCoord.xy;
+
+    scaleCalc();
+    kifsMCalc();
 
     #ifdef SS
     // Antialias by averaging all adjacent values
