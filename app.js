@@ -256,8 +256,8 @@ export default class App {
     // Create fragment shader
     this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
     this.bright = createShader(gl, glslify('./vert.glsl'), glslify('./bright.glsl'))
-    this.bloomH = createShader(gl, glslify('./vert.glsl'), glslify('./bloomH.glsl'))
-    this.bloomV = createShader(gl, glslify('./vert.glsl'), glslify('./bloomV.glsl'))
+    this.bloom = createShader(gl, glslify('./vert.glsl'), glslify('./bloom.glsl'))
+    this.finalPass = createShader(gl, glslify('./vert.glsl'), glslify('./final-pass.glsl'))
 
     this.setupFBOs(gl)
 
@@ -391,23 +391,34 @@ export default class App {
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    // Horizontal Blur
-    let brightLayer = this.state[1].color[0]
-    this.state[2].bind()
+    for (let i = 0; i < 5; i++) {
+      // Horizontal Blur
+      let brightLayer = this.state[1].color[0]
+      this.state[2].bind()
 
-    this.bloomH.bind()
-    this.bloomH.uniforms.buffer = brightLayer.bind(1)
-    this.bloomH.uniforms.resolution = dim
-    drawTriangle(gl)
+      this.bloom.bind()
+      this.bloom.uniforms.buffer = brightLayer.bind(1)
+      this.bloom.uniforms.resolution = dim
+      this.bloom.uniforms.direction = [1, 0]
+      drawTriangle(gl)
 
-    // Vertical Blur
-    let prev = this.state[2].color[0]
+      // Vertical Blur
+      let prev = this.state[2].color[0]
+      this.state[1].bind()
+
+      //this.bloom.bind()
+      this.bloom.uniforms.buffer = prev.bind(2)
+      this.bloom.uniforms.resolution = dim
+      this.bloom.uniforms.direction = [0, 1]
+      drawTriangle(gl)
+    }
+
+    // Additive blending
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-
-    this.bloomV.bind()
-    this.bloomV.uniforms.base = base.bind(0)
-    this.bloomV.uniforms.buffer = prev.bind(2)
-    this.bloomV.uniforms.resolution = dim
+    this.finalPass.bind()
+    this.finalPass.uniforms.base = base.bind(0)
+    this.finalPass.uniforms.buffer = this.state[1].color[0].bind(1)
+    this.finalPass.uniforms.resolution = dim
     drawTriangle(gl)
   }
 
