@@ -2,6 +2,7 @@ const glslify = require('glslify')
 
 import createShader from 'gl-shader'
 import createTexture from 'gl-texture2d'
+import createFBO from 'gl-fbo'
 
 import ShaderVREffect from 'shader-vr-effect'
 import ShaderVROrbitControls from 'shader-vr-orbit-controls'
@@ -15,6 +16,7 @@ import { cameraOrbit } from './camera-tweens'
 import CCapture from 'ccapture.js'
 import SoundCloud from 'soundcloud-badge'
 import Analyser from 'gl-audio-analyser'
+import drawTriangle from 'a-big-triangle'
 
 import assign from 'object-assign'
 import defined from 'defined'
@@ -117,12 +119,24 @@ export default class App {
       running: false
     })
 
-    this.audioReady = this.setupAudio()
     this.stageReady = this.setupStage()
-    this.loaded = Promise.all([this.audioReady, this.stageReady])
-    this.loaded.then(() => {
-      this.audio.play()
-    })
+    this.loaded = Promise.all([this.stageReady])
+  }
+
+  getDimensions () {
+    return [dpr * window.innerWidth, dpr * window.innerHeight]
+  }
+
+  setupFBOs (gl) {
+    let dim = this.getDimensions()
+    this.state = [
+      createFBO(gl, dim, { depth: false }),
+      createFBO(gl, dim, { depth: false }) ]
+
+    this.state[0].color.magFilter = gl.LINEAR
+    this.state[0].color.minFilter = gl.LINEAR
+    this.state[1].color.magFilter = gl.LINEAR
+    this.state[1].color.minFilter = gl.LINEAR
   }
 
   setupAnimation (preset) {
@@ -236,20 +250,13 @@ export default class App {
     // Turn off depth test
     gl.disable(gl.DEPTH_TEST)
 
-    let img = document.createElement('img')
-    img.src = 'env.jpg'
-
     // Create fragment shader
     this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
+    this.bloomH = createShader(gl, glslify('./vert.glsl'), glslify('./bloomH.glsl'))
 
-    this.shader.bind()
-
-    img.onload = () => {
-      this.texture = createTexture(gl, img)
-    }
+    this.setupFBOs(gl)
 
     this.shader.attributes.position.location = 0
-
   }
 
   kifsM (t = 0) {
@@ -297,13 +304,26 @@ export default class App {
     let { effect, canvas } = this
     let scale = 1
     fit(canvas, window, dpr * scale)
+    let dim = this.getDimensions()
 
-    effect.setSize(dpr * scale * window.innerWidth, dpr * scale * window.innerHeight)
+    effect.setSize(scale * dim[0], scale * dim[1])
+    this.state[0].shape = dim
+    this.state[1].shape = dim
   }
 
   tick (t) {
+    let gl = this.gl
+
+    let dim = this.getDimensions()
+
     t = capturing ? currentTime + 1000 / fr : t
     currentTime = t
+
+    this.shader.bind()
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    gl.clearColor(0, 0, 0, 1)
+    gl.viewport(0, 0, dim[0], dim[1])
 
     this.update(t)
     this.render(t)
@@ -342,10 +362,6 @@ export default class App {
   update (t) {
     TWEEN.update(t)
 
-    if (this.analyser) {
-      this.shader.uniforms.audioTexture = this.analyser.bindWaveform(1)
-    }
-
     this.shader.uniforms.epsilon = this.epsilon
 
     this.controls.update(this.shader)
@@ -357,13 +373,28 @@ export default class App {
     this.shader.uniforms.kifsM = this.kifsM(t)
   }
 
+  blur (gl) {
+    let dim = this.getDimensions()
+    let prev = this.state[0].color[0]
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    // Horizontal Blur
+    this.bloomH.bind()
+    this.bloomH.uniforms.buffer = prev.bind()
+    this.bloomH.uniforms.resolution = dim
+    drawTriangle(gl)
+  }
+
   render (t) {
-    let { shader, manager, controls } = this
+    let { shader, manager, controls, gl } = this
 
+    this.state[0].bind()
     shader.uniforms.time = t / 1000
-    shader.uniforms.texture = this.texture
-
     manager.render(shader, t)
+
+    this.blur(gl)
+
     capturing && capturer.capture(this.canvas)
   }
 

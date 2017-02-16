@@ -14,8 +14,6 @@ uniform vec3 cameraRo;
 uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
-uniform sampler2D texture;
-uniform sampler2D audioTexture;
 
 // KIFS
 uniform mat4 kifsM;
@@ -48,19 +46,12 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-float scaleWAudio = scale;
-void scaleCalc () {
-  float amplitude = analyse(audioTexture, .5);
-  scaleWAudio = scale + .1 * amplitude;
-}
-
 mat4 kifsMWAduio = kifsM;
 void kifsMCalc () {
-  float amplitude = analyse(audioTexture, .15);
-  kifsMWAduio = kifsM * rot4(vec3(0., 1., 1.), .05 * PI * amplitude);
+  kifsMWAduio = kifsM;
 }
 
-#define Iterations 7
+#define Iterations 4
 #pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
@@ -119,7 +110,6 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 
 #pragma glslify: softshadow = require(./soft-shadows, map=map)
 #pragma glslify: calcAO = require(./ao, map=map)
-#pragma glslify: matCap = require(./matCap, texture=texture)
 
 void colorMap (inout vec3 color) {
   float l = length(vec4(color, 1.));
@@ -236,7 +226,6 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    scaleCalc();
     kifsMCalc();
 
     #ifdef SS
