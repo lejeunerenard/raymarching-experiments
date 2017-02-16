@@ -131,12 +131,15 @@ export default class App {
     let dim = this.getDimensions()
     this.state = [
       createFBO(gl, dim, { depth: false }),
+      createFBO(gl, dim, { depth: false }),
       createFBO(gl, dim, { depth: false }) ]
 
     this.state[0].color.magFilter = gl.LINEAR
     this.state[0].color.minFilter = gl.LINEAR
     this.state[1].color.magFilter = gl.LINEAR
     this.state[1].color.minFilter = gl.LINEAR
+    this.state[2].color.magFilter = gl.LINEAR
+    this.state[2].color.minFilter = gl.LINEAR
   }
 
   setupAnimation (preset) {
@@ -252,7 +255,9 @@ export default class App {
 
     // Create fragment shader
     this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
+    this.bright = createShader(gl, glslify('./vert.glsl'), glslify('./bright.glsl'))
     this.bloomH = createShader(gl, glslify('./vert.glsl'), glslify('./bloomH.glsl'))
+    this.bloomV = createShader(gl, glslify('./vert.glsl'), glslify('./bloomV.glsl'))
 
     this.setupFBOs(gl)
 
@@ -309,6 +314,7 @@ export default class App {
     effect.setSize(scale * dim[0], scale * dim[1])
     this.state[0].shape = dim
     this.state[1].shape = dim
+    this.state[2].shape = dim
   }
 
   tick (t) {
@@ -375,14 +381,33 @@ export default class App {
 
   blur (gl) {
     let dim = this.getDimensions()
-    let prev = this.state[0].color[0]
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    // Brightness pass
+    let base = this.state[0].color[0]
+    this.state[1].bind()
+    this.bright.bind()
+    this.bright.uniforms.minBright = .2
+    this.bright.uniforms.buffer = base.bind(0)
+    this.bright.uniforms.resolution = dim
+    drawTriangle(gl)
 
     // Horizontal Blur
+    let brightLayer = this.state[1].color[0]
+    this.state[2].bind()
+
     this.bloomH.bind()
-    this.bloomH.uniforms.buffer = prev.bind()
+    this.bloomH.uniforms.buffer = brightLayer.bind(1)
     this.bloomH.uniforms.resolution = dim
+    drawTriangle(gl)
+
+    // Vertical Blur
+    let prev = this.state[2].color[0]
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    this.bloomV.bind()
+    this.bloomV.uniforms.base = base.bind(0)
+    this.bloomV.uniforms.buffer = prev.bind(2)
+    this.bloomV.uniforms.resolution = dim
     drawTriangle(gl)
   }
 
