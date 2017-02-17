@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -24,7 +24,7 @@ uniform vec3 offset;
 uniform float epsilon;
 #define maxSteps 256
 #define maxDistance 25.
-#define background #dddddd
+#define background #aaaaaa
 
 const vec3 lightPos = vec3(-.6, 0., .6);
 
@@ -51,7 +51,7 @@ void kifsMCalc () {
   kifsMWAduio = kifsM;
 }
 
-#define Iterations 4
+#define Iterations 15
 #pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
@@ -155,10 +155,7 @@ vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  color = mix(#FF6D43, #FF507A, (fragCoord.x + 1.) * .5);
-  // color = mix(color, #FF507A, (1. + dot(rd, nor)) / 2.);
-  color += .45 * hsv(vec3(length(p) + dot(rd, nor), .75, 1.));
-  color *= .8;
+  color = #999999;
 
   return clamp(color, 0., 1.);
 }
@@ -183,16 +180,16 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
       lin += 1. * vec3(dif);
-      lin += 0.4 * amb * occ * #ffbb66;
+      lin += 0.4 * amb * occ * #ccccff;
       lin += .25 * fre * occ * dif;
       lin += 2. * spec * dif * color.g;
-      color *= 1.5 * lin;
+      color *= lin;
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
 
       // Inner Glow
-      vec3 glowColor = #FF3356 * 5.0;
+      vec3 glowColor = #6699FF * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
       fGlow = pow(fGlow, 3.5);
       color += glowColor * 3.5 * fGlow;
@@ -254,5 +251,5 @@ void main() {
     gl_FragColor = shade(ro, rd, t, uv);
     #endif
 
-    gl_FragColor += .0125 * snoise2(uv.xy * resolution * .1 + 100000. * time);
+    // gl_FragColor += .0125 * snoise2(uv.xy * resolution * .1 + 100000. * time);
 }

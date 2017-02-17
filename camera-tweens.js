@@ -4,7 +4,7 @@ export function cameraOrbit (ro, radius, from, to, period) {
   let tweened = from.slice()
   let tween = new TWEEN.Tween(tweened)
   tween
-    .to(to, 7000)
+    .to(to, period)
     .onUpdate(function () {
       ro[0] = radius * Math.sin(this[0])
       ro[1] = radius * Math.cos(this[1])

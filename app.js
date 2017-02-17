@@ -26,11 +26,11 @@ import presets from './presets.json'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
-const fr = 25
+const fr = 60
 let captureTime = 0
-const secondsLong = 10
+const secondsLong = 35
 
-const capturing = false
+const capturing = true
 const LOOKAT = true
 
 let capturer = {}
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-swanky-heart',
+    name: 'kifs-diamond-in-the-rough',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -71,12 +71,12 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 1.883,
-        y: .669,
-        z: 1.763
+        x: .228,
+        y: .118,
+        z: 1.111
       },
-      d: 4.5,
-      scale: 2.56,
+      d: 1.5,
+      scale: 1.61,
       rot2angle: 0
     }
 
@@ -174,32 +174,47 @@ export default class App {
     let posRot = [0, 0]
 
     let cameraPosTween =
-      cameraOrbit(this.cameraRo, this.d, posRot, [Math.PI / 8, Math.PI / 4], 7 * 1000)
+      cameraOrbit(this.cameraRo, this.d, [-Math.PI / 2, 0], [Math.PI / 2, Math.PI / 3], 10 * 1000)
     let cameraPosTween2 =
-      cameraOrbit(this.cameraRo, this.d, [-Math.PI / 3, Math.PI / 2], [-Math.PI / 3, 0], 7 * 1000)
-    let cameraPosTween3 =
-      cameraOrbit(this.cameraRo, this.d, [-Math.PI / 4, -Math.PI * 3 / 4], [Math.PI / 4, Math.PI / 2], 7 * 1000)
+      cameraOrbit(this.cameraRo, this.d, [Math.PI / 2, Math.PI / 3], [-Math.PI / 3, Math.PI / 2], 10 * 1000)
 
     cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween3)
-    cameraPosTween3.chain(cameraPosTween)
     cameraPosTween.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([-1 / 3 * Math.PI, .5, -1 / 4 * Math.PI], 10000)
+      .to([0, 0, .178], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(1000)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([0, 0, 0], 10000)
-      .easing(TWEEN.Easing.Cubic.InOut)
-
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
+      .delay(10 * 1000)
 
     rotTween1.start(0)
+
+    // Scale Tween
+    let scaleTween1 = new TWEEN.Tween(this)
+    scaleTween1
+      .to({ scale: 1.91 }, 15 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .delay(1000)
+    let scaleTween2 = new TWEEN.Tween(this)
+    scaleTween2
+      .to({ scale: 2.11 }, 15 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .delay(1000)
+
+    scaleTween1.start(0)
+
+    // Offset Tween
+    let offsetTween1 = new TWEEN.Tween(this.offset)
+    offsetTween1
+      .to({
+        x: .128,
+        y: .118,
+        z: 1.111
+      }, 15 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    offsetTween1.start(0)
   }
 
   setupAudio () {
