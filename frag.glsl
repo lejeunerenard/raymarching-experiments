@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -51,7 +51,7 @@ void kifsMCalc () {
   kifsMWAduio = kifsM;
 }
 
-#define Iterations 15
+#define Iterations 20
 #pragma glslify: mandelbox = require(./mandelbox, trap=19, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
