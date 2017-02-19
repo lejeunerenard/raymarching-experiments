@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 43
+const secondsLong = 40
 
 const capturing = false
 // const LOOKAT = true
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-geode',
+    name: 'kifs-open-doors',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -72,20 +72,20 @@ export default class App {
 
     const preset = {
       offset: {
-        x: .78,
-        y: 1.524,
-        z: 1.077
+        x: 0,
+        y: 0,
+        z: 0
       },
-      d: 1.5,
-      scale: 1.61,
-      rot2angle: [.136, 0, 0]
+      d: 6,
+      scale: -1.6,
+      rot2angle: [0, 0, 0]
     }
 
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -169,42 +169,22 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(-1.316, .098, -.441)
+    // this.cameraRo = vec3.fromValues(-1.316, .098, -.441)
 
     // Camera location animation
     let posRot = [0, 0]
 
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([-1.316, 0, 1.579], 10 * 1000)
+      .to([0, 0, 8], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
     cameraPosTween2
-      .to([.442, 0, 1.579], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let cameraPosTween3 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween3
-      .to([.5, 1.04, 1.175], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let cameraPosTween4 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween4
-      .to([.5, 1.04, .637], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-      .onComplete(() => {
-        this.cameraAngles[0] = -1.023
-        this.cameraAngles[1] = .39
-        this.cameraAngles[2] = .553
-        this.LOOKAT = false
-      })
-    let cameraPosTween5 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween5
-      .to([.3, -.414, -.778], 10 * 1000)
+      .to([0, 0, 6], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween3)
-    cameraPosTween3.chain(cameraPosTween4)
-    cameraPosTween4.chain(cameraPosTween5)
+    cameraPosTween2.chain(cameraPosTween)
     cameraPosTween.start(0)
 
     // Camera rotation
@@ -220,26 +200,15 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
       .delay(30 * 1000)
 
-    camRotTween1.start(0)
+    // camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], .267, 0], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(10 * 1000)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([.287, .267, 0], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween3 = new TWEEN.Tween(this.rot2angle)
-    rotTween3
-      .to([.415, .368, 0], 10 * 1000)
+      .to([Math.PI, 0, 0], 40 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
-    rotTween1.start(0)
+    rotTween1.start(0).repeat(Infinity)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -333,9 +302,9 @@ export default class App {
 
     // Scale and Offset
     let _kifsM = mat4.fromValues(
-      scale, 0,     0,     -offset[0] * (scale - 1),
-      0,     scale, 0,     -offset[1] * (scale - 1),
-      0,     0,     scale, -offset[2] * (scale - 1),
+      1, 0,     0,     -offset[0],
+      0,     1, 0,     -offset[1],
+      0,     0,     1, -offset[2],
       0,     0,     0,     1)
 
     const angleX = this.rot2angle[0]
@@ -453,7 +422,7 @@ export default class App {
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 2; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
