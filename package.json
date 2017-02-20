@@ -63,8 +63,8 @@
   },
   "glslify": {
     "transform": [
-      "glslify-hex",
-      "glslify-import"
+      "glslify-import",
+      "glslify-hex"
     ]
   }
 }

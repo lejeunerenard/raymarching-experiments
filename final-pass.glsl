@@ -1,3 +1,5 @@
+#pragma glslify: import(./background)
+
 precision highp float;
 
 uniform vec2 resolution;
@@ -11,5 +13,5 @@ void main() {
   vec4 baseColor = texture2D(base, uv);
   vec4 result = baseColor + texture2D(buffer, uv);
   result.rgb = pow(result.rgb, vec3(1.0 / gamma));
-  gl_FragColor = mix(vec4(#eeeefe, 1.), result, baseColor.a);
+  gl_FragColor = mix(vec4(background, 1.), result, baseColor.a);
 }

@@ -22,11 +22,11 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
-#define maxDistance 200.
-#define background #bbbbbb
+#define maxSteps 256
+#define maxDistance 5.
+#pragma glslify: import(./background)
 
-const vec3 lightPos = vec3(-1., 0., 1.6);
+const vec3 lightPos = normalize(vec3(-6., 0., 6.));
 
 const vec3 un = vec3(1., -1., 0.);
 
@@ -51,7 +51,7 @@ void kifsMCalc () {
   kifsMWAduio = kifsM;
 }
 
-#define Iterations 12
+#define Iterations 9
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.6, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
@@ -64,13 +64,18 @@ float sdBox( vec3 p, vec3 b ) {
 
 vec3 map (in vec3 p) {
   // Sphere
-  // return vec3(length(p) - 1., 1., 0.);
+  vec3 s = vec3(length(p) - .5, 1., 0.);
 
   // Square
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
-  vec2 fractal = mandelbox(p);
-  return vec3(fractal.x, 1., fractal.y);
+  vec2 fractal = octahedron(p);
+  vec3 f = vec3(fractal.x, 1., fractal.y);
+
+  const float period = .2;
+  float t = .5 * (1. + sin(PI * period * time));
+  float x = clamp(1.5 * t, 0., 1.);
+  return mix(f, s, x * x * x);
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -152,7 +157,8 @@ vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 color = vec3(1.);
 
-  color = mix(#E46491, #029F8D, (1. + dot(rd, nor)));
+  color = #eeeeee;
+  color *= attenuation(1., vec3(7., 5., 3.), nor, rd);
 
   return clamp(color, 0., 1.);
 }
@@ -171,7 +177,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
-      float spec = pow(clamp( dot(ref, lightPos), 0., 1. ), 32.);
+      float spec = pow(clamp( dot(ref, lightPos), 0., 1. ), 16.);
       const float ReflectionFresnel = 0.99;
       float fre = ReflectionFresnel * pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 2.) + (1. - ReflectionFresnel);
 
@@ -179,8 +185,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 lin = vec3(0.);
       lin += 1. * vec3(dif);
       lin += 0.4 * amb * occ * #ccccff;
-      lin += .25 * fre * occ * dif;
-      lin += 1. * spec * dif * color.g;
+      lin += .25 * fre * occ * #ff8888;
+      lin += 2. * spec * dif * color.g;
       color *= lin;
 
       // Fog
@@ -190,7 +196,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 glowColor = #6699FF * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
       fGlow = pow(fGlow, 3.5);
-      // color += glowColor * 3.5 * fGlow;
+      color += glowColor * 3.5 * fGlow;
 
       color *= exp(-t.x * .1);
 
@@ -207,13 +213,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       #endif
       return vec4(color, 1.);
     } else {
-      return vec4(0.);
       vec4 color = vec4(background, 0.);
       // Radial Gradient
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      // color = mix(vec3(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
+      // color = mix(vec4(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
       return color;
     }
 }

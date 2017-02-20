@@ -28,9 +28,10 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 40
+const secondsLong = 25
 
 const capturing = false
+const BLOOM = true
 // const LOOKAT = true
 
 let capturer = {}
@@ -38,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-open-doors',
+    name: 'kifs-mix-fractal',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -72,12 +73,12 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 0,
+        x: 1,
         y: 0,
         z: 0
       },
-      d: 6,
-      scale: -1.6,
+      d: .8,
+      scale: 2,
       rot2angle: [0, 0, 0]
     }
 
@@ -85,7 +86,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0005
+    this.epsilon = preset.epsilon || 0.005
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -169,19 +170,13 @@ export default class App {
 
     // eps1.start(0)
 
-    // this.cameraRo = vec3.fromValues(-1.316, .098, -.441)
+    this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Camera location animation
     let posRot = [0, 0]
 
-    let cameraPosTween = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween
-      .to([0, 0, 8], 20 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween2
-      .to([0, 0, 6], 20 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    let cameraPosTween = cameraOrbit(this.cameraRo, this.d, [0, 0], [Math.PI * 4 / 3, 0], 10 * 1000)
+    let cameraPosTween2 = cameraOrbit(this.cameraRo, this.d, [Math.PI * 4 / 3, 0], [0, 0], 10 * 1000)
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
@@ -208,7 +203,7 @@ export default class App {
       .to([Math.PI, 0, 0], 40 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.start(0).repeat(Infinity)
+    // rotTween1.start(0).repeat(Infinity)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -302,9 +297,9 @@ export default class App {
 
     // Scale and Offset
     let _kifsM = mat4.fromValues(
-      1, 0,     0,     -offset[0],
-      0,     1, 0,     -offset[1],
-      0,     0,     1, -offset[2],
+      scale, 0,     0,     -offset[0] * (scale - 1),
+      0,     scale, 0,     -offset[1] * (scale - 1),
+      0,     0,     scale, -offset[2] * (scale - 1),
       0,     0,     0,     1)
 
     const angleX = this.rot2angle[0]
@@ -410,7 +405,7 @@ export default class App {
     this.shader.uniforms.kifsM = this.kifsM(t)
   }
 
-  blur (gl) {
+  bloomBlur (gl) {
     let dim = this.getDimensions()
 
     // Brightness pass
@@ -422,7 +417,7 @@ export default class App {
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 5; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
@@ -456,11 +451,16 @@ export default class App {
   render (t) {
     let { shader, manager, controls, gl } = this
 
-    this.state[0].bind()
+    if (BLOOM){
+      this.state[0].bind()
+    }
+
     shader.uniforms.time = t / 1000
     manager.render(shader, t)
 
-    this.blur(gl)
+    if (BLOOM){
+      this.bloomBlur(gl)
+    }
 
     capturing && capturer.capture(this.canvas)
   }
