@@ -1,1 +1,1 @@
-#define background #FFE157
+#define background #aaaaaa

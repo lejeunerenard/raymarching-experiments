@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0
-const secondsLong = 25
+const secondsLong = 20
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-mix-fractal',
+    name: 'voronoi-maxi-fbm',
     autoSaveTime: 5,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -77,7 +77,7 @@ export default class App {
         y: 0,
         z: 0
       },
-      d: .8,
+      d: 3,
       scale: 2,
       rot2angle: [0, 0, 0]
     }
@@ -86,7 +86,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, this.d)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.005
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -170,16 +170,32 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(0, 0, this.d)
+    this.cameraRo = vec3.fromValues(-1.929, 1.708, -.716)
 
     // Camera location animation
-    let posRot = [0, 0]
-
-    let cameraPosTween = cameraOrbit(this.cameraRo, this.d, [0, 0], [Math.PI * 4 / 3, 0], 10 * 1000)
-    let cameraPosTween2 = cameraOrbit(this.cameraRo, this.d, [Math.PI * 4 / 3, 0], [0, 0], 10 * 1000)
+    // let cameraPosTween = cameraOrbit(this.cameraRo, this.d, [Math.PI * 5 / 3, 0], [Math.PI, -Math.PI / 4], 10 * 1000)
+    // let cameraPosTween2 = cameraOrbit(this.cameraRo, this.d, [Math.PI, -Math.PI / 4], [Math.PI * 5 / 3, 0], 10 * 1000)
+    let cameraPosTween = new TWEEN.Tween(this.cameraRo)
+    cameraPosTween
+      .to([-.919, 1.304, 2.516], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
+    cameraPosTween2
+      .to([2.92, -.515, 1.304], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let cameraPosTween4 = new TWEEN.Tween(this.cameraRo)
+    cameraPosTween4
+      .to([-1.929, 1.708, -.716], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let cameraPosTween3 = new TWEEN.Tween(this.cameraRo)
+    cameraPosTween3
+      .to([-.919, 1.304, 2.516], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
 
     cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween)
+    cameraPosTween2.chain(cameraPosTween3)
+    cameraPosTween3.chain(cameraPosTween4)
+    cameraPosTween4.chain(cameraPosTween)
     cameraPosTween.start(0)
 
     // Camera rotation
