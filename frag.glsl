@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -52,88 +52,11 @@ void kifsMCalc () {
   kifsMWAduio = kifsM;
 }
 
-#define Iterations 9
+#define Iterations 14
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.6, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
 #pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsMWAduio)
-
-float sdBox( vec3 p, vec3 b ) {
-  vec3 d = abs(p) - b;
-  return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
-}
-
-vec2 hash( vec2 p  ) {
-  p = vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));
-  return fract(sin(p)*18.5453);
-}
-
-vec3 hash( vec3 p  ) {
-  p = vec3(
-    dot(p,vec3(127.1,311.7, 131.)),
-    dot(p,vec3(269.5,183.3, 1.394)),
-    dot(p,vec3(137.1,728.1, 91.230))
-  );
-  return fract(sin(p)*18.5453);
-}
-
-float voronoi(in vec2 x) {
-  vec2 p = floor(x);
-  vec2 f = fract(x);
-
-  float res = 8.0;
-  for (int j=-1; j<=1; j++) {
-    for (int i=-1; i<=1; i++) {
-      vec2 b = vec2(i, j);
-      vec2  r = vec2(b) - f + hash(p + b);
-      float d = dot( r, r );
-
-      res = min( res, d );
-    }
-  }
-  return sqrt( res );
-}
-
-float voronoi(in vec3 x) {
-  vec3 p = floor(x);
-  vec3 f = fract(x);
-
-  float res = 8.0;
-  for (int k=-1; k<=1; k++) {
-    for (int j=-1; j<=1; j++) {
-      for (int i=-1; i<=1; i++) {
-        vec3 b = vec3(i, j, k);
-        vec3 r = abs(vec3(b) - f + hash(p + b));
-        float d = max(max(r.x, r.y), r.z);
-
-        res = min( res, d );
-      }
-    }
-  }
-  return sqrt(res);
-}
-
-float fbmVoronoi (in vec3 p) {
-  float n = .5 * voronoi(p);
-  p *= 2.01;
-
-  n += .25 * voronoi(p);
-  p *= 2.03;
-
-  n += .125 * voronoi(p);
-  p *= 2.02;
-
-  return n;
-}
-float fV (in vec3 p, out vec3 q, out vec3 r) {
-  q = vec3(
-    fbmVoronoi(p + vec3(0.)),
-    fbmVoronoi(p + vec3(1., 3.4, 7.4)),
-    fbmVoronoi(p + vec3(9., 2., 0.5)));
-
-  return fbmVoronoi(p + 4.0 * q);
-
-}
 
 float fbmNoise (in vec3 p) {
   float n = .5 * cnoise3(p);
@@ -166,23 +89,26 @@ float f (in vec3 p, out vec3 q, out vec3 r, out vec3 s) {
     fbmNoise(cos(p) + 4.0 * q + vec3(103., 245., 4.)),
     fbmNoise(cos(p) + 4.0 * q + vec3(2., 4., 8.)));
 
-  return fbmNoise(p + 4.0 * r);
+  s = vec3(
+    fbmNoise(p + 4.0 * r + vec3(2., 4.42, 5.3)),
+    fbmNoise(p + 4.0 * r + vec3(3103., 572., 34.2345)),
+    fbmNoise(p + 4.0 * r + vec3(.1239, 59.2, 5236.4)));
+
+  return fbmNoise(p + 4.0 * s);
 }
 
 vec3 map (in vec3 p) {
   // Sphere
-  vec3 s = vec3(length(p) - 1., 1., 0.);
+  vec3 s = vec3(length(p) - .5, 1., 0.);
 
   // Square
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
-  vec3 q = vec3(0.);
-  vec3 r = vec3(0.);
-  float v = fV(4. * p, q, r);
-  s.x -= .2 * v;
-  s.y = 1.;
+  // Fractal
+  vec2 f = octahedron(p);
+  vec3 fractal = vec3(f.x, 1., f.y);
 
-  return vec3(s.x * .2, s.y, s.z);
+  return fractal;
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -256,7 +182,7 @@ vec3 stripsGeneral (in float t) {
 
 #define THICKNESS_SCALE 32.0     // film thickness scaling factor
 vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
-  return 0.5 + 0.5 * cos(((THICKNESS_SCALE * filmThickness)/(wavelengths + 1.0)) * dot(normal, rd));    
+  return 0.5 + 0.5 * cos(((THICKNESS_SCALE * filmThickness)/(wavelengths + 1.0)) * dot(normal, rd));
 }
 
 #pragma glslify: hsv = require(glsl-hsv2rgb)
@@ -267,11 +193,16 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   vec3 r = vec3(0.);
   vec3 s = vec3(0.);
 
-  // float v = f(p, q, r, s);
-  // v = smoothstep(.2, .3, v);
+  // float v = f(2. * p, q, r, s);
+  // v = smoothstep(.05, .8, v);
+  // v += .2; // Base line
   // color = vec3(v);
-  color = #ffffff;
-  color += .5 * attenuation(.8, vec3(7., 5., 3.), nor, rd);
+
+  color = #444444;
+
+  // color += .25 * attenuation(1., vec3(7., 5., 3.), nor, rd);
+  float t = dot(nor, rd) * length(p);
+  color += .5 * ( .5 + .5 * cos(2. * PI * ( vec3(1.) * t + vec3(0., .33, .67) )) );
 
   return clamp(color, 0., 1.);
 }
@@ -281,7 +212,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = background;
 
-      vec3 nor = getNormal(pos, .001 * t.x);
+      vec3 nor = getNormal2(pos, .001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
@@ -290,16 +221,25 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
-      // float spec = pow(clamp( dot(ref, lightPos), 0., 1. ), 16.);
-      // const float ReflectionFresnel = 0.99;
-      // float fre = ReflectionFresnel * pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 2.) + (1. - ReflectionFresnel);
+      float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
+      const float n1 = 1.000277; // Air
+      const float n2 = 1.778; // Sapphire
+      const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
+      float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-      // dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+      dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
-      lin += 1. * vec3(dif);
-      // lin += 0.4 * amb * occ * #ccccff;
-      // lin += .25 * fre * occ * #ff8888;
-      // lin += 2. * spec * dif * color.g;
+
+      // Specular Lighting
+      lin += spec * (1. - fre) * dif * color.g;
+      lin += fre * occ;
+
+      // Ambient
+      lin += 0.2 * amb * occ * #ccccff;
+
+      float conserve = (1. - (dot(lin, vec3(1.)) * .3333));
+      lin += conserve * dif;
+
       color *= lin;
 
       // Fog
@@ -311,7 +251,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       fGlow = pow(fGlow, 3.5);
       // color += glowColor * 3.5 * fGlow;
 
-      // color *= exp(-t.x * .1);
+      color *= exp(-t.x * .1);
 
       // colorMap(color);
 
@@ -356,6 +296,7 @@ void main() {
                   float(y) / R.y + uv.y),
                   projectionMatrix);
             rd = (vec4(rd, 1.) * cameraMatrix).xyz;
+            rd = normalize(rd);
             t = march(ro, rd);
             color += shade(ro, rd, t, uv);
         }
@@ -365,6 +306,7 @@ void main() {
     #else
     vec3 rd = getRayDirection(uv, projectionMatrix);
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
+    rd = normalize(rd);
     vec4 t = march(ro, rd);
     gl_FragColor = shade(ro, rd, t, uv);
     #endif
