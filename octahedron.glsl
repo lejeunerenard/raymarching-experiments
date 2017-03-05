@@ -7,6 +7,7 @@
 
 vec2 kifs( inout vec3 p ) {
   float minD = 10000.;
+  float k = 1.0;
 
   for (int i = 0; i < Iterations; i++) {
     p = -abs(-p);
@@ -20,7 +21,8 @@ vec2 kifs( inout vec3 p ) {
     // Stretch
     p = (vec4(p, 1.) * kifsM).xyz;
 
-    minD = min(length(p), minD);
+    minD = min(dot(p, p) / (k * k), minD);
+    k *= 1.1;
   }
 
   return vec2((length(p) - 1.) * pow(scale, - float(Iterations)), minD);

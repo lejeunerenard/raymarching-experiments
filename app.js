@@ -27,8 +27,8 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
-let captureTime = 0
-const secondsLong = 35
+let captureTime = 5 * 5
+const secondsLong = 62
 
 const capturing = false
 const BLOOM = true
@@ -39,8 +39,9 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-door-labyrinth',
+    name: 'mandel-false-origin',
     autoSaveTime: 5,
+    quality: 90,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
@@ -73,20 +74,20 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 1,
+        x: 0,
         y: 0,
         z: 0
       },
-      d: 1,
-      scale: 2,
-      rot2angle: [0, 5.853, 5.29]
+      d: 2.1,
+      scale: -1.63,
+      rot2angle: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, this.d)
+    this.cameraRo = vec3.fromValues(-this.d, 0, 0)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -170,7 +171,7 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(0, 0, this.d)
+    this.cameraRo = vec3.fromValues(-this.d, 0, 0)
 
     // Camera location animation
     // let cameraPosTween = cameraOrbit(this.cameraRo, this.d, [Math.PI * 5 / 3, 0], [Math.PI, -Math.PI / 4], 10 * 1000)
@@ -187,7 +188,7 @@ export default class App {
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
@@ -207,15 +208,20 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([0, 6.13, 5.5], 15 * 1000)
+      .to([Math.PI / 4, 0, 0], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([0, 5.853, 5.29], 15 * 1000)
+      .to([Math.PI / 4, Math.PI, 0], 20 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([0, 0, 0], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween1)
     rotTween1.start(0)
 
     // Scale Tween
@@ -310,10 +316,17 @@ export default class App {
     this.shader.uniforms.offset = offset
 
     // Scale and Offset
+    // let _kifsM = mat4.fromValues(
+    //   scale, 0,     0,     -offset[0] * (scale - 1),
+    //   0,     scale, 0,     -offset[1] * (scale - 1),
+    //   0,     0,     scale, -offset[2] * (scale - 1),
+    //   0,     0,     0,     1)
+
+    // Mandelbox
     let _kifsM = mat4.fromValues(
-      scale, 0,     0,     -offset[0] * (scale - 1),
-      0,     scale, 0,     -offset[1] * (scale - 1),
-      0,     0,     scale, -offset[2] * (scale - 1),
+      1,     0,     0,     -offset[0],
+      0,     1,     0,     -offset[1],
+      0,     0,     1,     -offset[2],
       0,     0,     0,     1)
 
     const angleX = this.rot2angle[0]

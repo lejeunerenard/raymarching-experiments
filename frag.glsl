@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -26,7 +26,7 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
-const vec3 lightPos = normalize(vec3(-6., 0., 6.));
+vec3 lightPos = normalize(vec3(-6., 0., 6.));
 
 const vec3 un = vec3(1., -1., 0.);
 
@@ -52,8 +52,8 @@ void kifsMCalc () {
   kifsMWAduio = kifsM;
 }
 
-#define Iterations 14
-#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.6, rotM=kifsM)
+#define Iterations 18
+#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
 #pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsMWAduio)
@@ -100,12 +100,13 @@ float f (in vec3 p, out vec3 q, out vec3 r, out vec3 s) {
 vec3 map (in vec3 p) {
   // Sphere
   vec3 s = vec3(length(p) - .5, 1., 0.);
+  // return s;
 
   // Square
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
   // Fractal
-  vec2 f = octahedron(p);
+  vec2 f = mandelbox(p);
   vec3 fractal = vec3(f.x, 1., f.y);
 
   return fractal;
@@ -187,7 +188,7 @@ vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
 
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
-vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
+vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   vec3 color = vec3(1.);
   vec3 q = vec3(0.);
   vec3 r = vec3(0.);
@@ -198,11 +199,13 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m) {
   // v += .2; // Base line
   // color = vec3(v);
 
-  color = #444444;
+  color = #ffffff;
+  color = mix(color, #FF5359, .5 + .5 * sin(4. + 20. * trap));
+  // color = mix(color, #7C8CFF, .5 + .5 * sin(1. + 20. * length(p)));
 
   // color += .25 * attenuation(1., vec3(7., 5., 3.), nor, rd);
-  float t = dot(nor, rd) * length(p);
-  color += .5 * ( .5 + .5 * cos(2. * PI * ( vec3(1.) * t + vec3(0., .33, .67) )) );
+  // float t = dot(nor, rd) * length(p);
+  // color += .5 * ( .5 + .5 * cos(2. * PI * ( vec3(1.) * t + vec3(0., .33, .67) )) );
 
   return clamp(color, 0., 1.);
 }
@@ -216,7 +219,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
-      color = baseColor(pos, nor, rayDirection, t.y);
+      color = baseColor(pos, nor, rayDirection, t.y, t.w);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -249,11 +252,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 glowColor = #6699FF * 5.0;
       float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
       fGlow = pow(fGlow, 3.5);
-      // color += glowColor * 3.5 * fGlow;
+      color += glowColor * 3.5 * fGlow;
 
-      color *= exp(-t.x * .1);
+      // color *= exp(-t.x * .1);
 
-      // colorMap(color);
+      colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
@@ -264,6 +267,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
       #endif
+
+      // gamma
+      // color = pow( clamp( color*1.1, 0.0, 1.0 ), vec3(0.45) );
+
       return vec4(color, 1.);
     } else {
       vec4 color = vec4(background, 0.);
@@ -281,6 +288,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
+    lightPos = normalize(vec3(-2., .1, -.2));
     kifsMCalc();
 
     #ifdef SS
