@@ -22,7 +22,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 512
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
@@ -36,7 +36,6 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: rot4 = require(./rotation-matrix4.glsl)
-#pragma glslify: analyse = require(gl-audio-analyser)
 
 // Folds
 #pragma glslify: fold = require(./folds)
@@ -47,55 +46,11 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-mat4 kifsMWAduio = kifsM;
-void kifsMCalc () {
-  kifsMWAduio = kifsM;
-}
-
-#define Iterations 18
+#define Iterations 15
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
-#pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsMWAduio)
-
-float fbmNoise (in vec3 p) {
-  float n = .5 * cnoise3(p);
-  p *= 2.01;
-
-  n += .25 * cnoise3(p);
-  p *= 2.03;
-
-  n += .125 * cnoise3(p);
-  p *= 2.02;
-
-  n += .0625 * cnoise3(p);
-  p *= 2.05;
-
-  n += .03125 * cnoise3(p);
-  p *= 2.101;
-
-
-  return n;
-}
-
-float f (in vec3 p, out vec3 q, out vec3 r, out vec3 s) {
-  q = vec3(
-    fbmNoise(p + vec3(0.)),
-    fbmNoise(p + vec3(1., 3.4, 7.4)),
-    fbmNoise(p + vec3(9., 2., 0.5)));
-
-  r = vec3(
-    fbmNoise(cos(p) + 4.0 * q + vec3(6.)),
-    fbmNoise(cos(p) + 4.0 * q + vec3(103., 245., 4.)),
-    fbmNoise(cos(p) + 4.0 * q + vec3(2., 4., 8.)));
-
-  s = vec3(
-    fbmNoise(p + 4.0 * r + vec3(2., 4.42, 5.3)),
-    fbmNoise(p + 4.0 * r + vec3(3103., 572., 34.2345)),
-    fbmNoise(p + 4.0 * r + vec3(.1239, 59.2, 5236.4)));
-
-  return fbmNoise(p + 4.0 * s);
-}
+#pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsM)
 
 vec3 map (in vec3 p) {
   // Sphere
@@ -106,7 +61,7 @@ vec3 map (in vec3 p) {
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
   // Fractal
-  vec2 f = mandelbox(p);
+  vec2 f = octahedron(p);
   vec3 fractal = vec3(f.x, 1., f.y);
 
   return fractal;
@@ -160,52 +115,14 @@ float isMaterialSmooth( float m, float goal ) {
   return 1. - smoothstep(0., eps, abs(m - goal));
 }
 
-vec3 stripsGeneral (in float t) {
-  const int num = 2;
-  vec3 colors[num];
-  colors[0] = #FF0000;
-  colors[1] = #1485CC;
-
-  const float period = 2.;
-  t = mod(t + snoise2(vec2(t, t)), period);
-
-  // Gradient
-  const float fraction = period / float(num);
-  const float delta = fraction;
-
-  vec3 c = vec3(1.);
-  for (int i = 0; i < num; i++) {
-    c = mix(c, colors[i], smoothstep(float(i) * fraction - delta * .5, float(i) * fraction + delta * .5, t));
-  }
-
-  return c;
-}
-
-#define THICKNESS_SCALE 32.0     // film thickness scaling factor
-vec3 attenuation(float filmThickness, vec3 wavelengths, vec3 normal, vec3 rd) {
-  return 0.5 + 0.5 * cos(((THICKNESS_SCALE * filmThickness)/(wavelengths + 1.0)) * dot(normal, rd));
-}
-
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   vec3 color = vec3(1.);
-  vec3 q = vec3(0.);
-  vec3 r = vec3(0.);
-  vec3 s = vec3(0.);
 
-  // float v = f(2. * p, q, r, s);
-  // v = smoothstep(.05, .8, v);
-  // v += .2; // Base line
-  // color = vec3(v);
-
-  color = #ffffff;
-  color = mix(color, #FF5359, .5 + .5 * sin(4. + 20. * trap));
-  // color = mix(color, #7C8CFF, .5 + .5 * sin(1. + 20. * length(p)));
-
-  // color += .25 * attenuation(1., vec3(7., 5., 3.), nor, rd);
-  // float t = dot(nor, rd) * length(p);
-  // color += .5 * ( .5 + .5 * cos(2. * PI * ( vec3(1.) * t + vec3(0., .33, .67) )) );
+  // color = #ffffff;
+  // color = mix(color, #FF5359, .5 + .5 * sin(4. + 20. * trap));
+  color = hsv(vec3(sin( 4. + 20. * trap), .5, 1.));
 
   return clamp(color, 0., 1.);
 }
@@ -249,14 +166,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
 
       // Inner Glow
-      vec3 glowColor = #6699FF * 5.0;
-      float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
-      fGlow = pow(fGlow, 3.5);
-      color += glowColor * 3.5 * fGlow;
+      // vec3 glowColor = #6699FF * 5.0;
+      // float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
+      // fGlow = pow(fGlow, 3.5);
+      // color += glowColor * 3.5 * fGlow;
 
       // color *= exp(-t.x * .1);
 
-      colorMap(color);
+      // colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
@@ -288,8 +205,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    lightPos = normalize(vec3(-2., .1, -.2));
-    kifsMCalc();
+    lightPos = normalize(vec3(-.1, -.1, -1.));
 
     #ifdef SS
     // Antialias by averaging all adjacent values

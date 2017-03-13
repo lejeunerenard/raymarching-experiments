@@ -1,1 +1,1 @@
-#define background #aaaaaa
+#define background #ffffff
