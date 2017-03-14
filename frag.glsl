@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -22,7 +22,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
@@ -46,22 +46,27 @@ void foldNd (inout vec3 z, vec3 n1) {
   z-=2.0 * min(0.0, dot(z, n1)) * n1;
 }
 
-#define Iterations 15
+float hash(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+#define Iterations 9
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
 #pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsM)
+#pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
 vec3 map (in vec3 p) {
   // Sphere
-  vec3 s = vec3(length(p) - .5, 1., 0.);
+  // vec3 s = vec3(length(p) - .5, 1., 0.);
   // return s;
 
   // Square
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
   // Fractal
-  vec2 f = octahedron(p);
+  vec2 f = mengersphere(p);
   vec3 fractal = vec3(f.x, 1., f.y);
 
   return fractal;
@@ -87,7 +92,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 #pragma glslify: getNormal = require(./get-normal, map=map)
 #
 vec3 getNormal2 (in vec3 p, in float eps) {
-  vec2 e = vec2(1.,-1.) * .015 * eps;
+  vec2 e = vec2(1.,-1.) * .015 * eps + hash(p.xy + p.xz);
   return normalize(vec3(
     map(p + e.xyy).x - map(p - e.xyy).x,
     map(p + e.yxy).x - map(p - e.yxy).x,
@@ -120,9 +125,7 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   vec3 color = vec3(1.);
 
-  // color = #ffffff;
-  // color = mix(color, #FF5359, .5 + .5 * sin(4. + 20. * trap));
-  color = hsv(vec3(sin( 4. + 20. * trap), .5, 1.));
+  color = #ffffff;
 
   return clamp(color, 0., 1.);
 }
@@ -132,7 +135,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = background;
 
-      vec3 nor = getNormal2(pos, .001 * t.x);
+      vec3 nor = getNormal(pos, .0001 * t.x * hash(pos.xy + pos.yz));
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
@@ -143,7 +146,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float dif = diffuse(nor, lightPos);
       float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
       const float n1 = 1.000277; // Air
-      const float n2 = 1.778; // Sapphire
+      const float n2 = 2.42; // Diamond
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
       float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -155,7 +158,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       lin += fre * occ;
 
       // Ambient
-      lin += 0.2 * amb * occ * #ccccff;
+      lin += 0.1 * amb * occ * #ccccff;
 
       float conserve = (1. - (dot(lin, vec3(1.)) * .3333));
       lin += conserve * dif;
@@ -163,7 +166,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= lin;
 
       // Fog
-      // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
 
       // Inner Glow
       // vec3 glowColor = #6699FF * 5.0;
@@ -171,9 +174,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // fGlow = pow(fGlow, 3.5);
       // color += glowColor * 3.5 * fGlow;
 
-      // color *= exp(-t.x * .1);
+      color *= exp(-t.x * .15);
 
-      // colorMap(color);
+      colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
@@ -187,6 +190,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // gamma
       // color = pow( clamp( color*1.1, 0.0, 1.0 ), vec3(0.45) );
+      // color = pow(color, vec3(1. / 2.2));
 
       return vec4(color, 1.);
     } else {
