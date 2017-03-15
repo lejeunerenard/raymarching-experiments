@@ -26,7 +26,7 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
-vec3 lightPos = normalize(vec3(-6., 0., 6.));
+vec3 lightPos = normalize(vec3(1., 0., 0.));
 
 const vec3 un = vec3(1., -1., 0.);
 
@@ -50,8 +50,8 @@ float hash(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-#define Iterations 9
-#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1.25, s=scale, minRadius=0.1, rotM=kifsM)
+#define Iterations 20
+#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
 #pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsM)
@@ -66,8 +66,11 @@ vec3 map (in vec3 p) {
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
   // Fractal
-  vec2 f = mengersphere(p);
+  vec2 f = mandelbox(p);
   vec3 fractal = vec3(f.x, 1., f.y);
+
+  // vec2 f2 = mengersphere(p);
+  // vec3 fractal2 = vec3(f2.x, 1., f2.y);
 
   return fractal;
 }
@@ -92,7 +95,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 #pragma glslify: getNormal = require(./get-normal, map=map)
 #
 vec3 getNormal2 (in vec3 p, in float eps) {
-  vec2 e = vec2(1.,-1.) * .015 * eps + hash(p.xy + p.xz);
+  vec2 e = vec2(1.,-1.) * .015 * eps;
   return normalize(vec3(
     map(p + e.xyy).x - map(p - e.xyy).x,
     map(p + e.yxy).x - map(p - e.yxy).x,
@@ -110,9 +113,9 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 void colorMap (inout vec3 color) {
   float l = length(vec4(color, 1.));
   // Light
-  color = mix(#90B8FF, color, 1. - l * .0625);
+  color = mix(#ef78FF, color, 1. - l * .0625);
   // Dark
-  color = mix(#7782E8, color, clamp(exp(l) * .325, 0., 1.));
+  color = mix(#043210, color, clamp(exp(l) * .325, 0., 1.));
 }
 
 float isMaterialSmooth( float m, float goal ) {
@@ -123,9 +126,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
-  vec3 color = vec3(1.);
-
-  color = #ffffff;
+  vec3 color = vec3(.8);
 
   return clamp(color, 0., 1.);
 }
@@ -135,7 +136,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = background;
 
-      vec3 nor = getNormal(pos, .0001 * t.x * hash(pos.xy + pos.yz));
+      vec3 nor = getNormal(pos, .0001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
@@ -148,7 +149,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float n1 = 1.000277; // Air
       const float n2 = 2.42; // Diamond
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
-      float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
+      float fre = 0.01; // ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
@@ -158,7 +159,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       lin += fre * occ;
 
       // Ambient
-      lin += 0.1 * amb * occ * #ccccff;
+      lin += 0.05 * amb * occ * #ccccff;
 
       float conserve = (1. - (dot(lin, vec3(1.)) * .3333));
       lin += conserve * dif;
@@ -174,9 +175,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // fGlow = pow(fGlow, 3.5);
       // color += glowColor * 3.5 * fGlow;
 
-      color *= exp(-t.x * .15);
+      color *= exp(-t.x * .2);
 
-      colorMap(color);
+      // colorMap(color);
 
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
@@ -190,7 +191,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // gamma
       // color = pow( clamp( color*1.1, 0.0, 1.0 ), vec3(0.45) );
-      // color = pow(color, vec3(1. / 2.2));
+      color = pow(color, vec3(1. / 2.2));
 
       return vec4(color, 1.);
     } else {
@@ -209,7 +210,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    lightPos = normalize(vec3(-.1, -.1, -1.));
+    lightPos = normalize(vec3(1., .75, 0.));
 
     #ifdef SS
     // Antialias by averaging all adjacent values

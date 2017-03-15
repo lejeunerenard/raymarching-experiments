@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 30
+const secondsLong = 31
 
 const capturing = false
 const BLOOM = true
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'menger-rooms',
+    name: 'mandelbox-dawn-2',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -77,8 +77,8 @@ export default class App {
         y: 0,
         z: 0
       },
-      d: 2,
-      scale: 3,
+      d: 5,
+      scale: -1.8,
       rot2angle: [0, 0, 0],
       cameraAngles: [0, Math.PI / 2, 0]
     }
@@ -87,7 +87,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(this.d, 0, 0)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.005
+    this.epsilon = preset.epsilon || 0.000036
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -169,15 +169,15 @@ export default class App {
     // eps2.chain(eps3)
     // eps3.chain(eps4)
 
-    eps1.start(0)
+    // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(this.d, 0, 0)
+    this.cameraRo = vec3.fromValues(2.031, 1.774, 0)
 
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([1, .5, .5], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+      .to([2.031, 2.027, 0], 30 * 1000)
+      .easing(TWEEN.Easing.Sinusoidal.Out)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
     cameraPosTween2
       .delay(0 * 1000)
@@ -193,9 +193,9 @@ export default class App {
       .to([0, .5, .165], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween3)
-    cameraPosTween3.chain(cameraPosTween4)
+    // cameraPosTween.chain(cameraPosTween2)
+    // cameraPosTween2.chain(cameraPosTween3)
+    // cameraPosTween3.chain(cameraPosTween4)
     cameraPosTween.start(0)
 
     // Camera rotation
@@ -221,8 +221,8 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
       .delay(0 * 1000)
 
-    camRotTween1.chain(camRotTween2)
-    camRotTween1.start(0)
+    // camRotTween1.chain(camRotTween2)
+    // camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
@@ -327,18 +327,18 @@ export default class App {
     this.shader.uniforms.offset = offset
 
     // Scale and Offset
-    let _kifsM = mat4.fromValues(
-      scale, 0,     0,     -offset[0] * (scale - 1),
-      0,     scale, 0,     -offset[1] * (scale - 1),
-      0,     0,     scale, -offset[2] * (scale - 1),
-      0,     0,     0,     1)
+    // let _kifsM = mat4.fromValues(
+    //   scale, 0,     0,     -offset[0] * (scale - 1),
+    //   0,     scale, 0,     -offset[1] * (scale - 1),
+    //   0,     0,     scale, -offset[2] * (scale - 1),
+    //   0,     0,     0,     1)
 
     // Mandelbox
-    // let _kifsM = mat4.fromValues(
-    //   1,     0,     0,     -offset[0],
-    //   0,     1,     0,     -offset[1],
-    //   0,     0,     1,     -offset[2],
-    //   0,     0,     0,     1)
+    let _kifsM = mat4.fromValues(
+      1,     0,     0,     -offset[0],
+      0,     1,     0,     -offset[1],
+      0,     0,     1,     -offset[2],
+      0,     0,     0,     1)
 
     const angleX = this.rot2angle[0]
     const axisX = vec3.fromValues(1, 0, 0)
