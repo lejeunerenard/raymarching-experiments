@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 31
+const secondsLong = 40
 
 const capturing = false
 const BLOOM = true
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'mandelbox-dawn-2',
+    name: 'mandelbox-the-great-wave-off-kanagawa-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -78,13 +78,13 @@ export default class App {
         z: 0
       },
       d: 5,
-      scale: -1.8,
+      scale: -1.53,
       rot2angle: [0, 0, 0],
-      cameraAngles: [0, Math.PI / 2, 0]
+      cameraAngles: [-.18, .949, .137]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(this.d, 0, 0)
+    this.cameraRo = vec3.fromValues(2.269, 1.822, 2.112)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.000036
@@ -171,17 +171,16 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(2.031, 1.774, 0)
+    this.cameraRo = vec3.fromValues(2.516, .698, 2.064)
 
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([2.031, 2.027, 0], 30 * 1000)
+      .to([2.269, 1.822, 2.112], 10 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
     cameraPosTween2
-      .delay(0 * 1000)
-      .to([.5, .5, .5], 5 * 1000)
+      .to([2.005, 1.998, 2.003], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let cameraPosTween3 = new TWEEN.Tween(this.cameraRo)
     cameraPosTween3
@@ -193,23 +192,23 @@ export default class App {
       .to([0, .5, .165], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween.chain(cameraPosTween2)
     // cameraPosTween2.chain(cameraPosTween3)
     // cameraPosTween3.chain(cameraPosTween4)
     cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
-    let camRotTween1 = new TWEEN.Tween([0, Math.PI / 2, 0])
+    let camRotTween1 = new TWEEN.Tween([-.18, .949, .137])
     camRotTween1
-      .to([0, 0, 0], 5 * 1000)
+      .to([-0.124, 0.917, 0.121], 10 * 1000)
       .onUpdate(function () {
         self.cameraAngles[0] = this[0]
         self.cameraAngles[1] = this[1]
         self.cameraAngles[2] = this[2]
       })
-      .easing(TWEEN.Easing.Quadratic.InOut)
       .delay(10 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
     let camRotTween2 = new TWEEN.Tween([0, 0, 0])
     camRotTween2
       .to([0, Math.PI / 2, 0], 5 * 1000)
@@ -222,18 +221,19 @@ export default class App {
       .delay(0 * 1000)
 
     // camRotTween1.chain(camRotTween2)
-    // camRotTween1.start(0)
+    camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([.064, 2 * Math.PI + 1.198, 0], 40 * 1000)
+      .delay(20 * 1000)
+      .to([.738, 0, 0], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     // rotTween1.chain(rotTween2)
     // rotTween2.chain(rotTween3)
     // rotTween3.chain(rotTween1)
-    // rotTween1.start(0)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)

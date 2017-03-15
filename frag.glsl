@@ -50,7 +50,7 @@ float hash(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-#define Iterations 20
+#define Iterations 35
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
@@ -128,6 +128,14 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   vec3 color = vec3(.8);
 
+  // Experiment with traps
+  // float t = smoothstep(-.25, 0., trap);
+  // color = vec3(.5) + vec3(.5) * cos ( 2. * PI * (vec3(1.) * t + vec3(.33, .66, 1.)) );
+  // color = vec3(t);
+  // if (color == vec3(1.)) {
+  //   color = vec3(1., 0., 1.);
+  // }
+
   return clamp(color, 0., 1.);
 }
 
@@ -136,7 +144,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = background;
 
-      vec3 nor = getNormal(pos, .0001 * t.x);
+      vec3 nor = getNormal(pos, .00001);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion

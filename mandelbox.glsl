@@ -33,7 +33,7 @@ vec2 mandelbox (in vec3 z) {
 
     p.xyzw = p*scalevec + p0;
 
-    minD = min(minD, (dot(p.xyz, p.xyz) - C1) / (k * k * p.w));
+    minD = min(minD, (length(p.xyz) - C1) / (p.w));
     k *= 1.1;
   }
 
