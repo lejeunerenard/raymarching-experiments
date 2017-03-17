@@ -26,6 +26,8 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
+#define Iterations 9
+
 vec3 lightPos = normalize(vec3(1., 0., 0.));
 
 const vec3 un = vec3(1., -1., 0.);
@@ -50,11 +52,10 @@ float hash(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-#define Iterations 35
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
-#pragma glslify: dodecahedron = require(./dodecahedron, scale=scale, kifsM=kifsM)
+#pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
 vec3 map (in vec3 p) {
@@ -66,7 +67,7 @@ vec3 map (in vec3 p) {
   // return vec3(sdBox(p, vec3(.5)), 1., 0.);
 
   // Fractal
-  vec2 f = mandelbox(p);
+  vec2 f = dodecahedron(p);
   vec3 fractal = vec3(f.x, 1., f.y);
 
   // vec2 f2 = mengersphere(p);
@@ -126,7 +127,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
-  vec3 color = vec3(.8);
+  vec3 color = vec3(.9);
 
   // Experiment with traps
   // float t = smoothstep(-.25, 0., trap);
@@ -144,7 +145,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = background;
 
-      vec3 nor = getNormal(pos, .00001);
+      vec3 nor = getNormal(pos, .0001);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
@@ -157,7 +158,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float n1 = 1.000277; // Air
       const float n2 = 2.42; // Diamond
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
-      float fre = 0.01; // ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
+      float fre = 0.05; // ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
@@ -167,7 +168,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       lin += fre * occ;
 
       // Ambient
-      lin += 0.05 * amb * occ * #ccccff;
+      lin += 0.04 * amb * occ * #ccccff;
 
       float conserve = (1. - (dot(lin, vec3(1.)) * .3333));
       lin += conserve * dif;

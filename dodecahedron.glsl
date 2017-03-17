@@ -1,49 +1,21 @@
-#define _PHI_ (1.+sqrt(5.))/2.
-
-#define _IVNORM_ (0.5/_PHI_)
-#define _PHI1_ (_PHI_*_IVNORM_)
-#define _1PHI_ (_IVNORM_)
-#define _PHI2_ (_PHI_*_PHI_*_IVNORM_)
-
-#define _IKVNORM_ 1. / sqrt(pow(_PHI_*(1.+_PHI_),2.) + pow(pow(_PHI_, 2.) - 1., 2.) + pow(1.+_PHI_, 2.))
-#define _C1_ (_PHI_*(1.+_PHI_)*_IKVNORM_)
-#define _C2_ ((_PHI_*_PHI_-1.)*_IKVNORM_)
-#define _1C_ ((1.+_PHI_)*_IKVNORM_)
-
 #ifndef Iterations
   #define Iterations 10
 #endif
+const int IT = Iterations;
 
-#pragma glslify: foldNd = require(./foldNd)
+#pragma glslify: dodecahedronFold = require(./folds/dodecahedron-fold, Iterations=IT, kifsM=kifsM)
+
+float sdBox( vec3 p, vec3 b ) {
+  vec3 d = abs(p) - b;
+  return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+}
 
 vec2 dodecasierpinski(in vec3 p) {
   float minD = 10000.;
 
-  for(int i=0; i < Iterations; i++) {
-    p=abs(p);
+  p = dodecahedronFold(p, minD);
 
-    vec3 axis = vec3(_PHI2_, _1PHI_, -_PHI1_);
-    foldNd(p, axis);
-
-    axis = vec3(-_PHI1_, _PHI2_, _1PHI_);
-    foldNd(p, axis);
-
-    axis = vec3(_1PHI_, -_PHI1_, _PHI2_);
-    foldNd(p, axis);
-
-    axis = vec3(-_C1_, _C2_, _1C_);
-    foldNd(p, axis);
-
-    axis = vec3(_1C_, -_C1_, _C2_);
-    foldNd(p, axis);
-
-    // Stretch
-    p = (vec4(p, 1.) * kifsM).xyz;
-
-    minD = min(length(p), minD);
-  }
-
-  return vec2((length(p)-2.) * pow(scale, -float(Iterations)), minD);
+  return vec2((sdBox(p, vec3(1.))) * pow(scale, -float(Iterations)), minD);
 }
 
 #pragma glslify: export(dodecasierpinski)
