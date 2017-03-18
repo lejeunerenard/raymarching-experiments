@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 41
+const secondsLong = 21
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-icosa-rorschach-test1',
+    name: 'kifs-composite-dandelion-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -70,7 +70,7 @@ export default class App {
     }
 
     let gl = makeContext(canvas)
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     const preset = {
       offset: {
@@ -80,12 +80,12 @@ export default class App {
       },
       d: 5,
       scale: PHI * PHI,
-      rot2angle: [.734, .342, 1.08],
-      cameraAngles: [-1.579, 2.148, 1.57]
+      rot2angle: [0, 0, 0],
+      cameraAngles: [0, Math.PI / 2, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(this.d, 0, 0)
+    this.cameraRo = vec3.fromValues(.07, 0, 0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -172,7 +172,7 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(1.864, 0.294, 0)
+    this.cameraRo = vec3.fromValues(.05, 0, 0)
 
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
@@ -227,14 +227,11 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([.3, .342, 1.08], 10 * 1000)
+      .to([.191, .306, .375], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([2.661, 2.458, .748], 30 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
+    // rotTween1.chain(rotTween2)
     // rotTween2.chain(rotTween3)
     // rotTween3.chain(rotTween1)
     rotTween1.start(0)
@@ -242,25 +239,23 @@ export default class App {
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .to({ scale: 1.91 }, 15 * 1000)
+      .delay(10 * 1000)
+      .to({ scale: 2.52 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(1000)
-    let scaleTween2 = new TWEEN.Tween(this)
-    scaleTween2
-      .to({ scale: 2.11 }, 15 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(1000)
-    // scaleTween1.start(0)
+    scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to({
-        x: .128,
-        y: .118,
-        z: 1.111
-      }, 15 * 1000)
+      .delay(10 * 1000)
+      .to([
+        .633,
+        1.045,
+        1.331
+      ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+
+    offsetTween1.start(0)
   }
 
   setupAudio () {

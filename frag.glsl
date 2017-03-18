@@ -26,7 +26,7 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
-#define Iterations 9
+#define Iterations 5
 
 vec3 lightPos = normalize(vec3(1., 0., 0.));
 
@@ -52,11 +52,35 @@ float hash(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
+// Orbit Trap
+float trapCalc (in vec3 p, in float k) {
+  return dot(p, p) / (k * k);
+}
+
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
+// #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
 #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
+
+#define octaPreFold 4
+mat4 octaM = mat4(
+scale, 0., 0., 0.,
+0., scale, 0., 0.,
+0., 0., scale, 0.,
+1., 1., 1., 1.) * mat4(
+1., 0., 0.1, .0,
+0., 1., 0., 0.,
+0., 0.2, 1., 0.,
+0., 0., 0., 1.);
+#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
+
+float sdBox( vec3 p, vec3 b ) {
+  vec3 d = abs(p) - b;
+  return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+}
+
+#pragma glslify: fold = require(./folds)
 
 vec3 map (in vec3 p) {
   // Sphere
@@ -64,11 +88,14 @@ vec3 map (in vec3 p) {
   // return s;
 
   // Square
-  // return vec3(sdBox(p, vec3(.5)), 1., 0.);
+  float minD = maxDistance;
+  p = octahedronFold(p, minD);
+  float octaScale = pow(scale, -float(octaPreFold));
+  // return vec3(sdBox(p, vec3(1.)) * octaScale, 1., 0.);
 
   // Fractal
   vec2 f = dodecahedron(p);
-  vec3 fractal = vec3(f.x, 1., f.y);
+  vec3 fractal = vec3(f.x * octaScale, 1., min(minD, f.y));
 
   // vec2 f2 = mengersphere(p);
   // vec3 fractal2 = vec3(f2.x, 1., f2.y);
@@ -77,7 +104,7 @@ vec3 map (in vec3 p) {
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
-  float t = 0.;
+  float t = 0.00001;
   float maxI = 0.;
 
   float trap = maxDistance;
@@ -130,8 +157,8 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   vec3 color = vec3(.9);
 
   // Experiment with traps
-  // float t = smoothstep(-.25, 0., trap);
-  // color = vec3(.5) + vec3(.5) * cos ( 2. * PI * (vec3(1.) * t + vec3(.33, .66, 1.)) );
+  float t = smoothstep(0., .015, trap) + .6;
+  color = vec3(.5) + vec3(.5) * cos ( 2. * PI * (vec3(1., .7, .4) * t + vec3(0., .15, .2)) );
   // color = vec3(t);
   // if (color == vec3(1.)) {
   //   color = vec3(1., 0., 1.);

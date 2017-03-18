@@ -1,7 +1,3 @@
-#ifndef Iterations
-  #define Iterations 10
-#endif
-
 #pragma glslify: fold = require(../folds)
 #pragma glslify: foldInv = require(../foldInv)
 
