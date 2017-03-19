@@ -84,7 +84,7 @@ float sdBox( vec3 p, vec3 b ) {
 
 vec3 map (in vec3 p) {
   // Sphere
-  // vec3 s = vec3(length(p) - .5, 1., 0.);
+  // vec3 s = vec3(length(p) - 1., 1., 0.);
   // return s;
 
   // Square
@@ -154,15 +154,25 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
-  vec3 color = vec3(.9);
+  vec3 color = vec3(.7);
 
   // Experiment with traps
-  float t = smoothstep(0., .015, trap) + .6;
-  color = vec3(.5) + vec3(.5) * cos ( 2. * PI * (vec3(1., .7, .4) * t + vec3(0., .15, .2)) );
+  // float t = smoothstep(0., .015, trap) + .6;
+  // color = vec3(.5) + vec3(.5) * cos ( 2. * PI * (vec3(1., .7, .4) * t + vec3(0., .15, .2)) );
   // color = vec3(t);
   // if (color == vec3(1.)) {
   //   color = vec3(1., 0., 1.);
   // }
+
+  float n = clamp(1. + dot(rd, nor), 0., 1.) - .15;
+  n = smoothstep(.2, 1., n);
+  n += .75 * snoise3(p * 1.3);
+  // float n = clamp(1. + dot(vec3(-1., 0., 0.), p), 0., 1.);
+  // float n = .5 * p.x;
+  // color = vec3(.5) + vec3(.5) * cos( 2. * PI * ( vec3(1.) * n + vec3(0., .33, .67) ) );
+  float mask = clamp(pow(smoothstep(.1, 1., 1. + dot(rd, nor)), .8), 0., 1.);
+  // color = mask * hsv(vec3(1. + n, .75, 1.));
+  color = mix(color, hsv(vec3(1. + n, .9, 1.)), mask);
 
   return clamp(color, 0., 1.);
 }
@@ -185,7 +195,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float n1 = 1.000277; // Air
       const float n2 = 2.42; // Diamond
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
-      float fre = 0.05; // ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
+      float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
       dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);

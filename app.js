@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 21
+const secondsLong = 30
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-composite-dandelion-test1',
+    name: 'kifs-composite-refract-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -75,17 +75,17 @@ export default class App {
     const preset = {
       offset: {
         x: 1,
-        y: 0,
-        z: PHI
+        y: -.544,
+        z: 1.837
       },
       d: 5,
-      scale: PHI * PHI,
+      scale: 1.65,
       rot2angle: [0, 0, 0],
       cameraAngles: [0, Math.PI / 2, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(.07, 0, 0)
+    this.cameraRo = vec3.fromValues(.02, .496, .092)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -172,31 +172,27 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(.05, 0, 0)
+    this.cameraRo = vec3.fromValues(.02, .496, .092)
 
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([2.269, 1.822, 2.112], 10 * 1000)
+      .delay(1 * 1000)
+      .to([-.066, .359, .217], 2 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
     cameraPosTween2
-      .to([2.005, 1.998, 2.003], 10 * 1000)
+      .to([.492, -.002, -.059], 3 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let cameraPosTween3 = new TWEEN.Tween(this.cameraRo)
     cameraPosTween3
-      .delay(0 * 1000)
-      .to([.5, .5, .165], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let cameraPosTween4 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween4
-      .to([0, .5, .165], 5 * 1000)
+      .to([.02, .496, .092], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     cameraPosTween.chain(cameraPosTween2)
-    // cameraPosTween2.chain(cameraPosTween3)
-    // cameraPosTween3.chain(cameraPosTween4)
-    // cameraPosTween.start(0)
+    cameraPosTween2.chain(cameraPosTween3)
+    cameraPosTween3.chain(cameraPosTween)
+    cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
@@ -227,13 +223,25 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([.191, .306, .375], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+      .to([.191, .306, .375], .5 * 1000)
+      .easing(TWEEN.Easing.Elastic.Out)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .to([0, 0, 0], .5 * 1000)
+      .easing(TWEEN.Easing.Elastic.Out)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([.998, 1.137, .721], 1 * 1000)
+      .easing(TWEEN.Easing.Elastic.Out)
+    let rotTween4 = new TWEEN.Tween(this.rot2angle)
+    rotTween4
+      .to([.652, .167, .998], 1 * 1000)
+      .easing(TWEEN.Easing.Elastic.Out)
 
-    // rotTween1.chain(rotTween2)
-    // rotTween2.chain(rotTween3)
-    // rotTween3.chain(rotTween1)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween4)
+    rotTween4.chain(rotTween1)
     rotTween1.start(0)
 
     // Scale Tween
@@ -242,7 +250,7 @@ export default class App {
       .delay(10 * 1000)
       .to({ scale: 2.52 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    scaleTween1.start(0)
+    // scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
@@ -255,7 +263,7 @@ export default class App {
       ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
   }
 
   setupAudio () {
