@@ -74,18 +74,18 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 1,
-        y: -.544,
+        x: 1.278,
+        y: -2.536,
         z: 1.837
       },
       d: 5,
-      scale: 1.65,
-      rot2angle: [0, 0, 0],
+      scale: 1.57,
+      rot2angle: [1.137, 5.883, .561],
       cameraAngles: [0, Math.PI / 2, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(.02, .496, .092)
+    this.cameraRo = vec3.fromValues(.45, 0, 0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -98,7 +98,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -175,23 +175,29 @@ export default class App {
     this.cameraRo = vec3.fromValues(.02, .496, .092)
 
     // Camera location animation
-    let cameraPosTween = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween
-      .delay(1 * 1000)
-      .to([-.066, .359, .217], 2 * 1000)
-      .easing(TWEEN.Easing.Sinusoidal.Out)
-    let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween2
-      .to([.492, -.002, -.059], 3 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let cameraPosTween3 = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween3
-      .to([.02, .496, .092], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // let cameraPosTween = new TWEEN.Tween(this.cameraRo)
+    // cameraPosTween
+    //   .delay(1 * 1000)
+    //   .to([-.066, .359, .217], 2 * 1000)
+    //   .easing(TWEEN.Easing.Sinusoidal.Out)
+    // let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
+    // cameraPosTween2
+    //   .to([.492, -.002, -.059], 3 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
+    // let cameraPosTween3 = new TWEEN.Tween(this.cameraRo)
+    // cameraPosTween3
+    //   .to([.02, .496, .092], 5 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
 
-    cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween3)
-    cameraPosTween3.chain(cameraPosTween)
+    let cameraPosTween = new TWEEN.Tween({ a: 0})
+    cameraPosTween
+      .to({a: 1.9 * Math.PI}, 10 * 1000)
+      .onUpdate(function () {
+        const radius = .45
+        self.cameraRo[0] = radius * Math.cos(this.a)
+        self.cameraRo[1] = radius * Math.sin(this.a)
+      })
+      .easing(TWEEN.Easing.Quadratic.InOut)
     cameraPosTween.start(0)
 
     // Camera rotation
@@ -242,7 +248,7 @@ export default class App {
     rotTween2.chain(rotTween3)
     rotTween3.chain(rotTween4)
     rotTween4.chain(rotTween1)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
