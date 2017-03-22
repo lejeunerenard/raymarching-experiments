@@ -26,7 +26,7 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
-#define Iterations 8
+#define Iterations 9
 
 vec3 lightPos = normalize(vec3(1., 0., 0.));
 
@@ -37,7 +37,11 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
+#pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: rot4 = require(./rotation-matrix4.glsl)
+#pragma glslify: bounce = require(glsl-easings/bounce-out)
+#pragma glslify: circ = require(glsl-easings/circular-in-out)
+#pragma glslify: rotateEase = require(glsl-easings/quintic-in-out)
 
 // Folds
 #pragma glslify: fold = require(./folds)
@@ -156,23 +160,16 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   vec3 color = vec3(.7);
 
-  // Experiment with traps
-  float t = smoothstep(0., .015, trap) + .6;
-  color = vec3(.5) + vec3(.5) * cos ( 2. * PI * (vec3(1., .7, .4) * t + vec3(0., .15, .2)) );
-  color = vec3(t);
-  // if (color == vec3(1.)) {
-  //   color = vec3(1., 0., 1.);
-  // }
-
-  // float n = clamp(1. + dot(rd, nor), 0., 1.) - .15;
-  // n = smoothstep(.2, 1., n);
-  // n += .75 * snoise3(p * 1.3);
+  float n = clamp(1. + dot(rd, nor), 0., 1.) - .15;
+  n = smoothstep(.2, 1., n);
+  n += .75 * snoise3(p * 1.3);
   // float n = clamp(1. + dot(vec3(-1., 0., 0.), p), 0., 1.);
   // float n = .5 * p.x;
   // color = vec3(.5) + vec3(.5) * cos( 2. * PI * ( vec3(1.) * n + vec3(0., .33, .67) ) );
   // float mask = clamp(pow(smoothstep(.1, 1., 1. + dot(rd, nor)), .8), 0., 1.);
   // color = mask * hsv(vec3(1. + n, .75, 1.));
   // color = mix(color, hsv(vec3(1. + n, .9, 1.)), mask);
+  color = hsv(vec3(1. + n, .9, 1.));
 
   return clamp(color, 0., 1.);
 }
@@ -251,6 +248,54 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+float mask1 (in float time, in vec2 uv, in float minRadius, in float maxRadius) {
+  time = clamp(time, 0., 1.);
+
+  float radius = min((maxRadius - minRadius) * min(bounce(time), 1.) + minRadius, maxRadius);
+  const float eps = .005;
+
+  vec2 absUV = abs(uv);
+
+  float metric = max(absUV.x, absUV.y);
+
+  return 1. - smoothstep(radius - eps, radius, metric);
+}
+float mask1 (in float time, in vec2 uv) {
+  time = clamp(time, 0., 1.);
+
+  const float minRadius = .3;
+  const float maxRadius = .65;
+  return mask1(time, uv, minRadius, maxRadius);
+}
+
+float mask2 (in float time, in vec2 uv) {
+  time = clamp(time, 0., 1.);
+
+  const float minRadius = .1;
+  const float maxRadius = .5;
+  float radius = min((maxRadius - minRadius) * min(bounce(time), 1.) + minRadius, maxRadius);
+  const float eps = .005;
+
+  vec2 absUV = abs(uv);
+
+  float metric = length(absUV);
+
+  return 1. - smoothstep(radius - eps, radius, metric);
+}
+
+void delayRotate(in float t, inout vec2 uv) {
+  t = clamp(t, 0., 1.);
+
+  float a = .5 * PI * circ(t);
+  float c = cos(a);
+  float s = sin(a);
+  mat2 rot = mat2(
+     c, s,
+    -s, c);
+
+  uv *= rot;
+}
+
 void main() {
     vec3 ro = cameraRo + cOffset;
 
@@ -286,5 +331,12 @@ void main() {
     gl_FragColor = shade(ro, rd, t, uv);
     #endif
 
-    // gl_FragColor += .0125 * snoise2(uv.xy * resolution * .1 + 100000. * time);
+    delayRotate(1. * (time - 4.), uv);
+    float trans = clamp(time - 6., 0., 1.);
+
+    gl_FragColor *= mix(
+      vec4(mask1(1.5 * (time - 3.), uv)),
+      vec4(mask1(1.5 * (time - 7.), uv, .65, .85)),
+      trans);
+    // gl_FragColor *= smoothstep(.25, .3, abs(cnoise2(8. * uv)));
 }

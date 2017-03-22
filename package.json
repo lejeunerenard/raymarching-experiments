@@ -13,6 +13,7 @@
     "gl-matrix": "^2.3.2",
     "gl-shader": "^4.2.1",
     "gl-texture2d": "^2.1.0",
+    "glsl-easings": "^1.0.0",
     "glsl-fast-gaussian-blur": "^1.0.2",
     "glsl-hsv2rgb": "^1.0.0",
     "glsl-inverse": "^1.0.0",
