@@ -2,7 +2,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -26,7 +26,7 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
-#define Iterations 9
+#define Iterations 6
 
 vec3 lightPos = normalize(vec3(1., 0., 0.));
 
@@ -67,7 +67,7 @@ float trapCalc (in vec3 p, in float k) {
 #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
-#define octaPreFold 4
+#define octaPreFold 6
 mat4 octaM = mat4(
 scale, 0., 0., 0.,
 0., scale, 0., 0.,
@@ -169,7 +169,7 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   // float mask = clamp(pow(smoothstep(.1, 1., 1. + dot(rd, nor)), .8), 0., 1.);
   // color = mask * hsv(vec3(1. + n, .75, 1.));
   // color = mix(color, hsv(vec3(1. + n, .9, 1.)), mask);
-  color = hsv(vec3(1. + n, .9, 1.));
+  color = hsv(vec3(0.5 + .5 * n, .9, 1.));
 
   return clamp(color, 0., 1.);
 }
@@ -334,9 +334,10 @@ void main() {
     delayRotate(1. * (time - 4.), uv);
     float trans = clamp(time - 6., 0., 1.);
 
-    gl_FragColor *= mix(
-      vec4(mask1(1.5 * (time - 3.), uv)),
-      vec4(mask1(1.5 * (time - 7.), uv, .65, .85)),
-      trans);
+    // gl_FragColor *= mix(
+    //   vec4(mask1(1.5 * (time - 3.), uv)),
+    //   vec4(mask1(1.5 * (time - 7.), uv, .65, .85)),
+    //   trans);
+
     // gl_FragColor *= smoothstep(.25, .3, abs(cnoise2(8. * uv)));
 }

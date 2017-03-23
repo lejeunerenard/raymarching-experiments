@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 9
+const secondsLong = 10
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-composite-moving-window',
+    name: 'kifs-composite-still',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -74,18 +74,18 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 1,
-        y: 0,
-        z: PHI
+        x: .669,
+        y: -.654,
+        z: 1.618
       },
       d: 5,
-      scale: 1.62,
-      rot2angle: [1.345, 0, .375],
+      scale: 1.88,
+      rot2angle: [.685, .583, 2.259],
       cameraAngles: [0, Math.PI / 2, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(.2, 0, 0)
+    this.cameraRo = vec3.fromValues(.053, 0, 0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -172,7 +172,7 @@ export default class App {
 
     // eps1.start(0)
 
-    this.cameraRo = vec3.fromValues(.2, 0, 0)
+    this.cameraRo = vec3.fromValues(.053, 0, 0)
 
     // Camera location animation
 
@@ -180,7 +180,7 @@ export default class App {
     cameraPosTween
       .to([.161, 0, 0], 5 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
@@ -211,14 +211,15 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([1.183, .245, .818], 5 * 1000)
+      .to([.665, .583, 2.259], 5 * 1000)
       .easing(TWEEN.Easing.Elastic.Out)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([0, 0, 0], .5 * 1000)
+      .to([.685, .583, 2.259], 5 * 1000)
       .easing(TWEEN.Easing.Elastic.Out)
 
-    // rotTween1.chain(rotTween2)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween1)
     rotTween1.start(0)
 
     // Scale Tween
@@ -226,7 +227,7 @@ export default class App {
     scaleTween1
       .to({ scale: 1.72 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    scaleTween1.start(0)
+    // scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
