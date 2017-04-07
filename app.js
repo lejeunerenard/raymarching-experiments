@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 40
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-composite-still',
+    name: 'kifs-composite-permeate',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -79,7 +79,7 @@ export default class App {
         z: 1.618
       },
       d: 5,
-      scale: 1.88,
+      scale: 1.79,
       rot2angle: [.685, .583, 2.259],
       cameraAngles: [0, Math.PI / 2, 0]
     }
@@ -211,15 +211,9 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([.665, .583, 2.259], 5 * 1000)
-      .easing(TWEEN.Easing.Elastic.Out)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([.685, .583, 2.259], 5 * 1000)
-      .easing(TWEEN.Easing.Elastic.Out)
+      .to([.605, .563, 2.4], 40 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
     rotTween1.start(0)
 
     // Scale Tween
@@ -232,15 +226,14 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .delay(10 * 1000)
       .to([
-        .633,
-        1.045,
-        1.331
-      ], 10 * 1000)
+        .89,
+        -.875,
+        1.749
+      ], 40 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // offsetTween1.start(0)
+    offsetTween1.start(0)
   }
 
   setupAudio () {

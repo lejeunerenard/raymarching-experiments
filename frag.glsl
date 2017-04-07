@@ -26,7 +26,7 @@ uniform float epsilon;
 #define maxDistance 50.
 #pragma glslify: import(./background)
 
-#define Iterations 6
+#define Iterations 9
 
 vec3 lightPos = normalize(vec3(1., 0., 0.));
 
@@ -169,7 +169,7 @@ vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
   // float mask = clamp(pow(smoothstep(.1, 1., 1. + dot(rd, nor)), .8), 0., 1.);
   // color = mask * hsv(vec3(1. + n, .75, 1.));
   // color = mix(color, hsv(vec3(1. + n, .9, 1.)), mask);
-  color = hsv(vec3(0.5 + .5 * n, .9, 1.));
+  color = hsv(vec3(0.69 + .5 * n, .9, 1.));
 
   return clamp(color, 0., 1.);
 }
@@ -231,10 +231,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
       #endif
-
-      // gamma
-      // color = pow( clamp( color*1.1, 0.0, 1.0 ), vec3(0.45) );
-      color = pow(color, vec3(1. / 2.2));
 
       return vec4(color, 1.);
     } else {
@@ -334,10 +330,25 @@ void main() {
     delayRotate(1. * (time - 4.), uv);
     float trans = clamp(time - 6., 0., 1.);
 
-    // gl_FragColor *= mix(
-    //   vec4(mask1(1.5 * (time - 3.), uv)),
-    //   vec4(mask1(1.5 * (time - 7.), uv, .65, .85)),
-    //   trans);
+    float mask = 0.; // Block out everything
+    float eps = .01;
+    float dist = length(uv);
+
+    const int circles = 6;
+    float startAmount = .9;
+    float endAmount = .001;
+    float delta = (startAmount - endAmount) / float(circles);
+
+    // Circles
+    for(int i = 0; i < circles; i++) {
+      float radius = startAmount - float(i) * delta;
+      mask += (1. - 2. * mod(float(i), 2.)) * (1. - smoothstep(radius, radius + eps, dist));
+    }
+
+    gl_FragColor *= clamp(mask, 0., 1.);
+
+    // gamma
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // gl_FragColor *= smoothstep(.25, .3, abs(cnoise2(8. * uv)));
 }
