@@ -28,10 +28,10 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 20
 
 const capturing = false
-const BLOOM = true
+const BLOOM = false
 const MANDELBOX = false
 
 let capturer = {}
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-composite-permeate',
+    name: 'dispersion-light-n-chaos-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -70,7 +70,7 @@ export default class App {
     }
 
     let gl = makeContext(canvas)
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     const preset = {
       offset: {
@@ -81,7 +81,7 @@ export default class App {
       d: 5,
       scale: 1.79,
       rot2angle: [.685, .583, 2.259],
-      cameraAngles: [0, Math.PI / 2, 0]
+      cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
@@ -98,7 +98,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
