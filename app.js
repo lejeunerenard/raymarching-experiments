@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 40
 
 const capturing = false
 const BLOOM = false
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-light-n-chaos-test1',
+    name: 'dispersion-quixotic-test2',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,

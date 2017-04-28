@@ -151,151 +151,11 @@ void colorMap (inout vec3 color) {
   color = mix(#043210, color, clamp(exp(l) * .325, 0., 1.));
 }
 
-float isMaterialSmooth( float m, float goal ) {
-  const float eps = .1;
-  return 1. - smoothstep(0., eps, abs(m - goal));
-}
-
 #pragma glslify: hsv = require(glsl-hsv2rgb)
-
-vec3 baseColor (in vec3 p, in vec3 nor, in vec3 rd, float m, float trap) {
-  vec3 color = vec3(.7);
-
-  float n = clamp(1. + dot(rd, nor), 0., 1.) - .15;
-  n = smoothstep(.2, 1., n);
-  n += .75 * snoise3(p * 1.3);
-  // float n = clamp(1. + dot(vec3(-1., 0., 0.), p), 0., 1.);
-  // float n = .5 * p.x;
-  // color = vec3(.5) + vec3(.5) * cos( 2. * PI * ( vec3(1.) * n + vec3(0., .33, .67) ) );
-  // float mask = clamp(pow(smoothstep(.1, 1., 1. + dot(rd, nor)), .8), 0., 1.);
-  // color = mask * hsv(vec3(1. + n, .75, 1.));
-  // color = mix(color, hsv(vec3(1. + n, .9, 1.)), mask);
-  color = hsv(vec3(0.69 + .5 * n, .9, 1.));
-
-  return clamp(color, 0., 1.);
-}
-
-vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
-    vec3 pos = rayOrigin + rayDirection * t.x;
-    if (t.x>0.) {
-      vec3 color = background;
-
-      vec3 nor = getNormal(pos, .0001);
-      vec3 ref = reflect(rayDirection, nor);
-
-      // Basic Diffusion
-      color = baseColor(pos, nor, rayDirection, t.y, t.w);
-
-      float occ = calcAO(pos, nor);
-      float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
-      float dif = diffuse(nor, lightPos);
-      float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
-      const float n1 = 1.000277; // Air
-      const float n2 = 2.42; // Diamond
-      const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
-      float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
-
-      dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
-      vec3 lin = vec3(0.);
-
-      // Specular Lighting
-      lin += spec * (1. - fre) * dif * color.g;
-      lin += fre * occ;
-
-      // Ambient
-      lin += 0.04 * amb * occ * #ccccff;
-
-      float conserve = (1. - (dot(lin, vec3(1.)) * .3333));
-      lin += conserve * dif;
-
-      color *= lin;
-
-      // Fog
-      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-
-      // Inner Glow
-      // vec3 glowColor = #6699FF * 5.0;
-      // float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
-      // fGlow = pow(fGlow, 3.5);
-      // color += glowColor * 3.5 * fGlow;
-
-      color *= exp(-t.x * .2);
-
-      // colorMap(color);
-
-      #ifdef debugMapMaxed
-      if (t.z / float(maxSteps) > 0.9) {
-        color = vec3(1., 0., 1.);
-      }
-      #endif
-
-      #ifdef debugMapCalls
-      color = vec3(t.z / float(maxSteps));
-      #endif
-
-      return vec4(color, 1.);
-    } else {
-      vec4 color = vec4(background, 0.);
-      // Radial Gradient
-      // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
-
-      // Glow
-      // color = mix(vec4(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
-      return color;
-    }
-}
-
-float mask1 (in float time, in vec2 uv, in float minRadius, in float maxRadius) {
-  time = clamp(time, 0., 1.);
-
-  float radius = min((maxRadius - minRadius) * min(bounce(time), 1.) + minRadius, maxRadius);
-  const float eps = .005;
-
-  vec2 absUV = abs(uv);
-
-  float metric = max(absUV.x, absUV.y);
-
-  return 1. - smoothstep(radius - eps, radius, metric);
-}
-float mask1 (in float time, in vec2 uv) {
-  time = clamp(time, 0., 1.);
-
-  const float minRadius = .3;
-  const float maxRadius = .65;
-  return mask1(time, uv, minRadius, maxRadius);
-}
-
-float mask2 (in float time, in vec2 uv) {
-  time = clamp(time, 0., 1.);
-
-  const float minRadius = .1;
-  const float maxRadius = .5;
-  float radius = min((maxRadius - minRadius) * min(bounce(time), 1.) + minRadius, maxRadius);
-  const float eps = .005;
-
-  vec2 absUV = abs(uv);
-
-  float metric = length(absUV);
-
-  return 1. - smoothstep(radius - eps, radius, metric);
-}
-
-void delayRotate(in float t, inout vec2 uv) {
-  t = clamp(t, 0., 1.);
-
-  float a = .5 * PI * circ(t);
-  float c = cos(a);
-  float s = sin(a);
-  mat2 rot = mat2(
-     c, s,
-    -s, c);
-
-  uv *= rot;
-}
 
 vec3 scene (in vec3 pos) {
   // return .5 + .5 * sin(2. * PI * pos);
-  return vec3(length(pos.zy));
+  return vec3(length(pos.zy + vec2(slowTime, 0.)));
   // return vec3(mod(pos.x, .5) + mod(pos.y, .5));
   // return vec3(dot(vec3(0., 0., -1.), pos));
 }
@@ -310,6 +170,15 @@ float fbm (in vec2 p) {
   n += 0.125 * cnoise2(p);
   p *= 2.02;
 
+  // n += 0.0625 * cnoise2(p);
+  // p *= 2.04;
+
+  // n += 0.03125 * cnoise2(p);
+  // p *= 2.01;
+
+  // n += 0.015625 * cnoise2(p);
+  // p *= 2.02;
+
   return n;
 }
 
@@ -317,36 +186,17 @@ vec3 scene (in vec2 pos) {
   const float d = .15;
   const float r = .9;
   // return vec3(smoothstep(r, r + d, length(pos)));
-  return vec3(smoothstep(0., .35, cnoise2(2. * pos)));
-}
-
-float iorRatio (in float frequency) {
-  const float green = 588.;
-  const float greenIOR = 1.57;
-  const float airIOR = 1.;
-  const float dispersionFactor = .03;
-
-  float ior = greenIOR + dispersionFactor * sin(.5 * PI * (frequency - green) / 125. );
-  return airIOR / ior;
+  return vec3(smoothstep(0., .35, cnoise2(2. * pos + 5. * slowTime)));
 }
 
 float normalNoise (in vec2 p) {
-  p *= 0.03125;
+  p *= .5;
+  // p.x += 18.;
   p += vec2(slowTime, smoothstep(-1., 1., cnoise2(p)) * slowTime);
 
-  vec2 q = vec2(
-    fbm(p + vec2(0., slowTime)),
-    fbm(p + vec2(1., 3.4 * sin(.1 * slowTime))));
-
-  vec2 r = vec2(
-    fbm(p + 4.0 * q + vec2(6.)),
-    fbm(p + 4.0 * q + vec2(103., 245.)));
-
-  vec2 s = vec2(
-    fbm(p + 4.0 * r + vec2(1.34)),
-    fbm(p + 4.0 * r + vec2(13., 275.)));
-
-  return fbm(p + 4.0 * s);
+  // return cos(p.x + fbm(p));
+  return .5 + .5 * abs(fbm(p));
+  // return .5 + .5 * abs(fbm(p)) + .00005 * cnoise2(500. * p - 134.2);
 }
 vec3 makeNormal (in vec2 eye) {
   const vec2 eps = vec2(.01, 0.);
@@ -358,7 +208,7 @@ vec3 makeNormal (in vec2 eye) {
   return vec3(
     normalNoise(eye + eps.xy) - normalNoise(eye - eps.xy),
     normalNoise(eye + eps.yx) - normalNoise(eye - eps.yx),
-    cnoise2(1. * (eye + 20. * slowTime + cnoise2(eye + slowTime))));
+    0.);
   // return vec3(
   //   normalNoise(eye + eps.xy) - normalNoise(eye - eps.xy),
   //   normalNoise(eye + eps.yx) - normalNoise(eye - eps.yx),
@@ -372,21 +222,17 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   const vec2 eps = vec2(.01, 0.);
   // vec3 nor = vec3(0., 0., 1.);
   vec3 nor = makeNormal(eye);
-  // vec3 nor = vec3(
-  //   cnoise3(rd + eps.xyy) - cnoise3(rd - eps.xyy),
-  //   cnoise3(rd + eps.yxy) - cnoise3(rd - eps.yxy),
-  //   cnoise3(rd + eps.yyx) - cnoise3(rd - eps.yyx));
 
   nor = normalize(nor);
 
   const float between = .08;
   const float greenIOR = 1.57;
-  float redIORRatio = 1./(greenIOR - 2. * between); // iorRatio(461.);
-  float yellowIORRatio = 1./(greenIOR - 1. * between); // iorRatio(508.);
-  float greenIORRatio = 1./greenIOR; // iorRatio(588.);
-  float cyanIORRatio = 1./(greenIOR + 1. * between); // iorRatio(609.);
-  float blueIORRatio = 1./(greenIOR + 2. * between); // iorRatio(631.);
-  float purpleIORRatio = 1./(greenIOR + 3. * between); // iorRatio(674.);
+  float redIORRatio = 1./(greenIOR - 2. * between);
+  float yellowIORRatio = 1./(greenIOR - 1. * between);
+  float greenIORRatio = 1./greenIOR;
+  float cyanIORRatio = 1./(greenIOR + 1. * between);
+  float blueIORRatio = 1./(greenIOR + 2. * between);
+  float purpleIORRatio = 1./(greenIOR + 3. * between);
 
   vec3 eye3D = vec3(eye, 1.);
   vec3 redRefract = refract(eye3D, nor, redIORRatio);
@@ -407,13 +253,24 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   float G = g + (2.0*y + 2.0*c - p)/3.0;
   float B = b + (2.0*c + 2.0*p - y)/3.0;
 
-  color = vec3(R, G, B);
+  vec3 refractC = vec3(R, G, B);
 
-  const vec3 light = normalize(vec3(0.5, .95, -1.));
-  vec3 ref = reflect(eye3D, nor);
-  float spec = pow(clamp( dot(ref, light), 0., 1. ), 4.);
-  color = mix(color, color * vec3(spec), .85);
+  const vec3 light = normalize(vec3(0., .25, -1.));
 
+  vec3 diffuseColor = #00FF00;
+
+  color = vec3(1.);
+
+  vec3 diff = vec3(.3) + vec3(.7) * diffuseColor * vec3(1.) * max(dot(nor, light), 0.);
+
+  vec3 bdrf; // ganked from iq
+  // bdrf  = vec3(0.70,0.90,0.95)*(nor.y*0.5+0.5);
+  // bdrf += vec3(0.15,0.10,0.05)*diff;
+  bdrf  = #c0efff*(nor.y*0.5+0.5);
+  bdrf += vec3(0.15,0.10,0.05)*diff;
+  color *= 1.0*bdrf;
+
+  color = mix(color, refractC, .4);
   // color = nor;
 
   #if 0
@@ -463,25 +320,28 @@ void main() {
     // delayRotate(1. * (time - 4.), uv);
     // float trans = clamp(time - 6., 0., 1.);
 
-    // float mask = 0.; // Block out everything
-    // float eps = .01;
-    // float dist = length(uv);
+    float mask = 0.; // Block out everything
+    float eps = .001;
+    uv = abs(uv);
+    float dist = max(uv.x, uv.y);
 
-    // const int circles = 6;
-    // float startAmount = .9;
-    // float endAmount = .001;
-    // float delta = (startAmount - endAmount) / float(circles);
+    const int circles = 2;
+    float startAmount = .65;
+    float endAmount = .5;
+    float delta = (startAmount - endAmount) / float(circles);
 
-    // // Circles
-    // for(int i = 0; i < circles; i++) {
-    //   float radius = startAmount - float(i) * delta;
-    //   mask += (1. - 2. * mod(float(i), 2.)) * (1. - smoothstep(radius, radius + eps, dist));
-    // }
+    // Circles
+    for(int i = 0; i < circles; i++) {
+      float radius = startAmount - float(i) * delta;
+      mask += (1. - 2. * mod(float(i), 2.)) * (1. - smoothstep(radius, radius + eps, dist));
+    }
 
-    // gl_FragColor *= clamp(mask, 0., 1.);
+    mask = 1. - clamp(mask, 0., 1.);
+    gl_FragColor.rgb *= mask;
+    gl_FragColor.rgb += (1. - mask);
 
     // gamma
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
-    // gl_FragColor *= smoothstep(.25, .3, abs(cnoise2(8. * uv)));
+    gl_FragColor += .05 * cnoise2(500. * uv) + .05 * cnoise2(500. * uv + 253.5);
 }
