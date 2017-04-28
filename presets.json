@@ -8,5 +8,93 @@
       "y": 3.8,
       "z": 2.3
     }
+  },
+  {
+    "name": "hive castle",
+    "scale": 1.56,
+    "d": 4.1,
+    "offset": {
+      "x": 3.9,
+      "y": -.9,
+      "z": 3.6
+    }
+  },
+  {
+    "name": "triangle cake",
+    "scale": 2.01,
+    "d": 5,
+    "offset": {
+      "x": 0.8,
+      "y": 2.54,
+      "z": 1.8
+    }
+  },
+  {
+    "name": "mobius sponge",
+    "scale": 2.08,
+    "d": 4.6,
+    "offset": {
+      "x": 0.78,
+      "y": 2,
+      "z": 2.1
+    }
+  },
+  {
+    "comment": "FoldInv, FoldInv, Fold"
+  },
+  {
+    "name": "sierpinski what?",
+    "scale": 1.43,
+    "d": 1.8,
+    "angle2": 0.39269908169872414,
+    "offset": {
+      "x": 0.34,
+      "y": 2,
+      "z": 0.4
+    }
+  },
+  {
+    "name": "ornate as fuck",
+    "scale": 1.23,
+    "d": 0.9,
+    "angle2": 0.39269908169872414,
+    "offset": {
+      "x": 0.3400000035762787,
+      "y": 2,
+      "z": 0.4000000059604645
+    }
+  },
+  {
+    "name": "chesser cat",
+    "scale": 2.85,
+    "d": 5.79,
+    "angle2": 1.2,
+    "offset": {
+      "x": 3.1,
+      "y": 1.8,
+      "z": 1.55
+    }
+  },
+  {
+    "name": "circular banding debug",
+    "scale": 1.43,
+    "d": 4.6,
+    "angle2": 0.8,
+    "offset": {
+      "x": 1.33,
+      "y": 3.4,
+      "z": 2.1
+    }
+  },
+  {
+    "name": "sierpinski laborythn",
+    "scale": 1.95,
+    "d": 0.2,
+    "angle2": 3.1,
+    "offset": {
+      "x": -0.3,
+      "y": 0.1,
+      "z": 3.4
+    }
   }
 ]
