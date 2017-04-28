@@ -1,1 +1,1 @@
-#define background #ffffff
+#define background #000000
