@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <title>budo</title><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+html, body {
+  padding: 0;
+  margin: 0;
+}
+    </style>
+  </head>
+  <body>
+    <script>
+      WebVRConfig = {}
+    </script>
+    <script src="dat.gui.min.js"></script>
+    <script src="node_modules/webvr-polyfill/build/webvr-polyfill.js"></script>
+    <script src="bundle.js"></script>
+    <script>
+var app = new RayMarch()
+var gui = new dat.GUI()
+gui.remember(app)
+gui.closed = true
+
+var offsetF = gui.addFolder('Offset')
+offsetF.add(app.offset, '0', -5, 5).step(0.001).listen()
+offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
+offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
+
+gui.add(app, 'd', 0, 20).step(.01).listen()
+gui.add(app, 'scale', -6, 6).step(0.01).listen()
+gui.add(app, 'epsilon', 0.00000001, .05).step(0.00000001).listen()
+
+var rotationF = gui.addFolder('Rotation')
+rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
+rotationF.add(app.rot2angle, '1', 0, 2 * Math.PI).step(0.001).listen()
+rotationF.add(app.rot2angle, '2', 0, 2 * Math.PI).step(0.001).listen()
+
+var cameraF = gui.addFolder('Camera')
+
+var cameraPosF = cameraF.addFolder('Position')
+cameraPosF.add(app.cameraRo, '0', -9, 9).step(0.001).listen()
+cameraPosF.add(app.cameraRo, '1', -9, 9).step(0.001).listen()
+cameraPosF.add(app.cameraRo, '2', -9, 9).step(0.001).listen()
+
+var cameraRotF = cameraF.addFolder('Rotation')
+cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
+cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
+cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
+
+app.run()
+    </script>
+  </body>
+</html>
