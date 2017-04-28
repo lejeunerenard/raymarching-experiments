@@ -47,7 +47,7 @@
     "build": "npm run build:bundle",
     "build:bundle": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
     "build:gallery": "npm run build:bundle; node bin/gallery.js",
-    "gh-pages": "git checkout gh-pages; git rebase master; git push origin gh-pages; git checkout master",
+    "gh-pages": "git checkout gh-pages; git rebase master; git push -f origin gh-pages; git checkout master",
     "test": "eslint '**/*.js'"
   },
   "keywords": [],
