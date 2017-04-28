@@ -39,11 +39,15 @@
     "eslint-plugin-standard": "^2.0.1",
     "glslify-hex": "^2.1.1",
     "glslify-import": "^3.0.0",
+    "inquirer": "^3.0.6",
     "uglify-js": "^2.7.5"
   },
   "scripts": {
     "start": "budo app.js:bundle.js --live -- --standalone RayMarch",
-    "build": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
+    "build": "npm run build:bundle",
+    "build:bundle": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
+    "build:gallery": "npm run build:bundle; node bin/gallery.js",
+    "gh-pages": "git checkout gh-pages; git rebase master; git push origin gh-pages; git checkout master",
     "test": "eslint '**/*.js'"
   },
   "keywords": [],
