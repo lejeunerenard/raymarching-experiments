@@ -39,23 +39,6 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
-#pragma glslify: rot4 = require(./rotation-matrix4.glsl)
-#pragma glslify: bounce = require(glsl-easings/bounce-out)
-#pragma glslify: circ = require(glsl-easings/circular-in-out)
-#pragma glslify: rotateEase = require(glsl-easings/quintic-in-out)
-
-// Folds
-#pragma glslify: fold = require(./folds)
-#pragma glslify: foldInv = require(./foldInv)
-#pragma glslify: sphereFold = require(./sphere-fold)
-#pragma glslify: twist = require(./twist)
-void foldNd (inout vec3 z, vec3 n1) {
-  z-=2.0 * min(0.0, dot(z, n1)) * n1;
-}
-
-float hash(vec2 co){
-    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-}
 
 // Orbit Trap
 float trapCalc (in vec3 p, in float k) {
@@ -112,7 +95,6 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 }
 
 #pragma glslify: getNormal = require(./get-normal, map=map)
-
 vec3 getNormal2 (in vec3 p, in float eps) {
   vec2 e = vec2(1.,-1.) * .015 * eps;
   return normalize(vec3(
@@ -141,10 +123,12 @@ void colorMap (inout vec3 color) {
 #pragma glslify: checker = require(glsl-checker)
 #pragma glslify: debugColor = require(./debug-color-clip)
 
+const float n1 = 1.0;
+const float n2 = 1.57;
+
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  // float v = checker(rd.xy, 10.);
   float v = cnoise3(10. * rd);
   v = smoothstep(-1.0, 1.0, v);
 
@@ -164,7 +148,7 @@ vec3 scene (in vec3 rd) {
 #pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.1)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  return dispersion(nor, rd, 1.57);
+  return dispersion(nor, rd, n2);
 }
 
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
@@ -182,8 +166,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
       float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
-      const float n1 = 1.000277; // Air
-      const float n2 = 2.42; // Diamond
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
       float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -210,8 +192,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // #pragma glslify: innerGlow = require(./inner-glow, glowColor=#6699FF)
       // color += innerGlow(t.w);
 
+      // Post process
       // colorMap(color);
 
+      // Debugging
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
         color = vec3(1., 0., 1.);
@@ -274,5 +258,6 @@ void main() {
     // gamma
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
-    // gl_FragColor += .05 * cnoise2(500. * uv) + .05 * cnoise2(500. * uv + 253.5);
+    // 'Film' Noise
+    // gl_FragColor.rgb += .05 * cnoise2(500. * uv + sin(uv + time)) + .05 * cnoise2(500. * uv + 253.5);
 }
