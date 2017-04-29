@@ -204,16 +204,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-
-      // Inner Glow
-      // vec3 glowColor = #6699FF * 5.0;
-      // float fGlow = clamp(t.w * 0.1, 0.0, 1.0);
-      // fGlow = pow(fGlow, 3.5);
-      // color += glowColor * 3.5 * fGlow;
-
       color *= exp(-t.x * .2);
 
-      // color = baseColor(pos, nor, rayDirection, t.y, t.w);
+      // Inner Glow
+      // #pragma glslify: innerGlow = require(./inner-glow, glowColor=#6699FF)
+      // color += innerGlow(t.w);
 
       // colorMap(color);
 
