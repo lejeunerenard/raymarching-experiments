@@ -139,6 +139,7 @@ void colorMap (inout vec3 color) {
 
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: checker = require(glsl-checker)
+#pragma glslify: debugColor = require(./debug-color-clip)
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -148,16 +149,6 @@ vec3 textures (in vec3 rd) {
   v = smoothstep(-1.0, 1.0, v);
 
   color = vec3(v);
-
-  #if 0
-  if (color == vec3(0.)) {
-    color = vec3(1., 0., 1.);
-  }
-  if (color == vec3(1.)) {
-    color = vec3(0., 1., 0.);
-  }
-  #endif
-
   return clamp(color, 0., 1.);
 }
 
