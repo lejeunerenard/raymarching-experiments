@@ -27,11 +27,11 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
-let captureTime = 0 * 5
-const secondsLong = 50
+let captureTime = 7 * 5
+const secondsLong = 45
 
 const capturing = false
-const BLOOM = false
+const BLOOM = true
 const MANDELBOX = false
 
 let capturer = {}
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-dodeca-introspective-reflective-test1',
+    name: 'material-study-creature-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -98,7 +98,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -152,24 +152,6 @@ export default class App {
     eps1
       .to({ epsilon: 0.001 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let eps2 = new TWEEN.Tween(this)
-    eps2
-      .to({ epsilon: 0.00006 }, 6000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let eps3 = new TWEEN.Tween(this)
-    eps3
-      .to({ epsilon: 0.000009 }, 5000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let eps4 = new TWEEN.Tween(this)
-    eps4
-      .delay(2000)
-      .to({ epsilon: 0.005 }, 10000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    // eps1.chain(eps2)
-    // eps2.chain(eps3)
-    // eps3.chain(eps4)
-
     // eps1.start(0)
 
     // Camera location animation
@@ -182,7 +164,7 @@ export default class App {
       .easing(TWEEN.Easing.Sinusoidal.Out)
     cameraPosTween.chain(cameraPosTween2)
 
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
@@ -436,7 +418,7 @@ export default class App {
     let base = this.state[0].color[0]
     this.state[1].bind()
     this.bright.bind()
-    this.bright.uniforms.minBright = .2
+    this.bright.uniforms.minBright = .4
     this.bright.uniforms.buffer = base.bind(0)
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
