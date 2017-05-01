@@ -24,7 +24,7 @@ uniform vec3 offset;
 // Greatest precision = 0.000001;
 uniform float epsilon;
 #define maxSteps 512
-#define maxDistance 50.
+#define maxDistance 50.0
 #pragma glslify: import(./background)
 
 #define slowTime time * .01
@@ -69,6 +69,19 @@ float trapCalc (in vec3 p, in float k) {
   return dot(p, p) / (k * k);
 }
 
+// IQ's capsule
+float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
+{
+    vec3 pa = p - a, ba = b - a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h ) - r;
+}
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 d = abs(p) - b;
+  return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+}
+
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 // #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
@@ -88,6 +101,7 @@ scale, 0., 0., 0.,
 #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
 
 #pragma glslify: fold = require(./folds)
+#pragma glslify: twist = require(./twist)
 
 float gRAngle = TWO_PI * 0.025 * time;
 float gRc = cos(gRAngle);
@@ -97,27 +111,43 @@ mat3 globalRot = mat3(
   0.0, 1.0,  0.0,
   gRs, 0.0,  gRc);
 
+// Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
-  p *= globalRot;
+  // p *= globalRot;
 
   // Sphere
-  vec3 s = vec3(length(p) - 1., 1., 0.);
-  vec3 bP = p;
-  bP.x *= 20.0;
-  bP.x += 1.0 * sin(TWO_PI * bP.y + noise(bP - 823.45));
+  // vec3 s = vec3(length(p) - 1., 1., 0.);
+  // return s;
 
-  bP.x += .5 * cos(4.0 * bP.y + 10.0 * sin(gRAngle));
-  bP.y += .5 * cos(4.0 * bP.z + 10.0 * sin(gRAngle + 1.0));
-  bP.z += .5 * cos(4.0 * bP.x + 10.0 * sin(gRAngle + 2.4));
+  vec3 q = p;
+  q.yz -= vec2(1.0, 2.0);
 
-  float bump = .025 * (iqFBM(bP + iqFBM(2.0 * bP)) + noise(bP));
-  s.x += bump;
-  s.z = 90. * bump;
+  // q.y += 0.5 * sin(p.x + time) + 0.25 * sin(1.5 * p.x + time);
 
-  // Smaller steps
-  s.x *= .6;
+  // Wave offset
+  // q.y += 0.5 * sin(p.x) + 0.25 * sin(1.5 * p.x);
 
-  return s;
+  // Circular offset around origin
+  float angle = q.x + sin(2.0 * q.x + time);
+  q.yz += vec2(
+    cos(angle),
+    sin(angle));
+
+  // Tapper
+  q.yz *= 1.0 + pow(abs(0.2 * q.x), 2.0);
+
+  q.yzx = twist(q.yxz, -q.x + 0.35 * noise(2.0 * vec3(0.0, q.yz)));
+
+
+  vec3 c = vec3(sdCapsule(q, vec3(-5.0, 0.0, 0.0), vec3(5.0, 0.0, 0.0), 1.5), 1.0, 0.0);
+  // vec3 c = vec3(sdBox(q, vec3(5, 2.5, 2.5)));
+
+  // Distortions
+  vec3 noiseP = 20.0 * q;
+  noiseP.x *= 0.05;
+  c.x += 0.1 * noise(noiseP);
+
+  return 0.1 * c;
 
   // Fractal
   // vec2 f = dodecahedron(p);
@@ -246,7 +276,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      color *= exp(-t.x * .2);
+      color *= #FF67A6 * exp(-t.x * .1);
 
       // Inner Glow
       color += innerGlow(t.w);
@@ -286,6 +316,7 @@ void main() {
     vec3 ro = cameraRo + cOffset;
 
     vec2 uv = fragCoord.xy;
+    background = getBackground(uv);
 
     lightPos = normalize(vec3(1., .75, 0.));
 

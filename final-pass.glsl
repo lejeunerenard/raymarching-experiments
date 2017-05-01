@@ -1,6 +1,6 @@
-#pragma glslify: import(./background)
-
 precision highp float;
+
+#pragma glslify: import(./background)
 
 uniform vec2 resolution;
 uniform sampler2D base;
@@ -10,6 +10,8 @@ void main() {
   const float gamma = 1.5;
 
   vec2 uv = vec2(gl_FragCoord.xy / resolution.xy);
+  background = getBackground(uv);
+
   vec4 baseColor = texture2D(base, uv);
   vec4 result = baseColor + texture2D(buffer, uv);
   result.rgb = pow(result.rgb, vec3(1.0 / gamma));

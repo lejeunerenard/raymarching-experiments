@@ -27,7 +27,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
-let captureTime = 7 * 5
+let captureTime = 0 * 5
 const secondsLong = 45
 
 const capturing = false
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'material-study-creature-test1',
+    name: 'distance-field-study-slither-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1, 1, 1)
+    this.cameraRo = vec3.fromValues(8.443, 1.294, 5.344)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
