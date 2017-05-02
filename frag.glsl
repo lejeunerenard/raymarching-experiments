@@ -103,6 +103,73 @@ scale, 0., 0., 0.,
 #pragma glslify: fold = require(./folds)
 #pragma glslify: twist = require(./twist)
 
+vec3 equation (in vec3 p, in float dt) {
+  const float a = 2.4;
+  const float b = -3.78;
+  const float c = 14.0;
+  const float d = -11.0;
+  const float e = 4.0;
+  const float f = 5.58;
+  const float r = 1.0;
+
+  float dxdt = dot(p.yx, vec2(a, b)) + c * p.y * p.z;
+  float dydt = dot(p.yz, vec2(d, -1)) + e * p.x * p.z;
+  float dzdt = f * p.z + r * p.x * p.y;
+
+  return p + dt * vec3(dxdt, dydt, dzdt);
+}
+vec3 chen (in vec3 p, in float dt) {
+  const float a = 40.0;
+  const float b = 28.0;
+  const float c = 3.0;
+
+  float dxdt = dot(p.yx, vec2(a, -a));
+  float dydt = (c - a) * p.x - p.x * p.z + c * p.y;
+  float dzdt = p.x * p.y - b * p.z;
+
+  return p + dt * vec3(dxdt, dydt, dzdt);
+}
+
+vec3 lorenz (in vec3 p, in float dt) {
+  const float r = 28.0;
+  const float s = 10.0;
+  const float b = 2.666667; // 8/3
+
+  float dxdt = s * dot(p.yx, vec2(1.0, -1.0));
+  float dydt = p.x * ( r - p.z ) - p.y;
+  float dzdt = p.x * p.y - b * p.z;
+
+  return p + dt * vec3(dxdt, dydt, dzdt);
+}
+
+vec3 beep (in vec3 p, in float dt) {
+  const float a = 2.1;
+  const float b = 5.1;
+  const float c = 0.5;
+
+  float dxdt = b * cos( p.x + p.z * cos(p.y) );
+  float dydt = c * cos( p.y + p.x * cos(p.x) );
+  float dzdt = a * sin(dot(p, vec3(1.)) + exp(p.x));
+
+  return p + dt * vec3(dxdt, dydt, dzdt);
+}
+
+#define MAX_IT 100
+
+vec3 de (in vec3 x, in float endt, in float dt) {
+  float t = 0.0;
+
+  for (int i = 0; i < MAX_IT; i ++) {
+    if (t >= endt) break;
+
+    x = beep(x, dt);
+
+    t += dt;
+  }
+
+  return x;
+}
+
 float gRAngle = TWO_PI * 0.025 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
@@ -120,7 +187,11 @@ vec3 map (in vec3 p) {
   // return s;
 
   vec3 q = p;
-  q.yz -= vec2(1.0, 2.0);
+
+  q.yz -= vec2(2.0, 2.0);
+
+  // DE warp
+  // q = de(abs(q), 0.05, 0.01);
 
   // q.y += 0.5 * sin(p.x + time) + 0.25 * sin(1.5 * p.x + time);
 
@@ -128,26 +199,33 @@ vec3 map (in vec3 p) {
   // q.y += 0.5 * sin(p.x) + 0.25 * sin(1.5 * p.x);
 
   // Circular offset around origin
-  float angle = q.x + sin(2.0 * q.x + time);
+  float angle = q.x + sin(2.0 * q.x) + exp(noise(p + time));
   q.yz += vec2(
     cos(angle),
     sin(angle));
 
+  // Circular offset around origin
+  float angle2 = q.x + sin(1.2 * q.y + noise(q + time));
+  q.yz += vec2(
+    cos(angle2),
+    sin(angle2));
+
   // Tapper
-  q.yz *= 1.0 + pow(abs(0.2 * q.x), 2.0);
+  // q.yz *= 1.0 + pow(abs(0.2 * q.x), 2.0);
 
   q.yzx = twist(q.yxz, -q.x + 0.35 * noise(2.0 * vec3(0.0, q.yz)));
 
 
   vec3 c = vec3(sdCapsule(q, vec3(-5.0, 0.0, 0.0), vec3(5.0, 0.0, 0.0), 1.5), 1.0, 0.0);
   // vec3 c = vec3(sdBox(q, vec3(5, 2.5, 2.5)));
+  // vec3 c = vec3(length(q) - 1., 1., 0.);
 
   // Distortions
-  vec3 noiseP = 20.0 * q;
+  vec3 noiseP = 10.0 * q;
   noiseP.x *= 0.05;
   c.x += 0.1 * noise(noiseP);
 
-  return 0.1 * c;
+  return 0.05 * c;
 
   // Fractal
   // vec2 f = dodecahedron(p);
@@ -203,21 +281,24 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.57;
+const float n2 = 2.57;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float v = 2.1 * noise(rd);
+  // float v = cnoise3(rd);
   // v = smoothstep(-1.0, 1.0, v);
 
   // vec3 maxRd = abs(rd);
   // float v = max(maxRd.x, maxRd.y);
 
-  // color = vec3(v);
+  color = vec3(v);
   // color = mix(#FF1F99, #FF7114, v);
-  color = .5 + .5 * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
+  // color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
   color += #FF1F99 * (0.5 * abs(rd.y));
+
+  color *= 1.1 * cos(rd);
 
   return clamp(color, 0., 1.);
 }
@@ -231,7 +312,7 @@ vec3 scene (in vec3 rd) {
   return color;
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.1)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.5)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   return dispersion(nor, rd, n2);
@@ -276,7 +357,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      color *= #FF67A6 * exp(-t.x * .1);
+      color *= exp(-t.x * .1);
 
       // Inner Glow
       color += innerGlow(t.w);
@@ -349,5 +430,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    // gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }

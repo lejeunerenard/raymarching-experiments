@@ -39,8 +39,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-slither-test1',
-    autoSaveTime: 5,
+    name: 'distance-field-study-abstract3-test',
+    autoSaveTime: 4,
     quality: 90,
     startTime: captureTime,
     timeLimit: secondsLong,
@@ -85,10 +85,10 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(8.443, 1.294, 5.344)
+    this.cameraRo = vec3.fromValues(6, 4, 5)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
