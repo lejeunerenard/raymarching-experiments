@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 45
+const secondsLong = 30
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-abstract3-test',
+    name: 'distance-field-study-lost-test1',
     autoSaveTime: 4,
     quality: 90,
     startTime: captureTime,
@@ -85,10 +85,10 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(6, 4, 5)
+    this.cameraRo = vec3.fromValues(0, 3.46, 8)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -98,7 +98,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -157,14 +157,15 @@ export default class App {
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([1.91, 0.092, 1.102], 20 * 1000)
+      .to([0, -.796, 8], 15 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-      .to([2.92, 0, 0], 20 * 1000)
+      .to([-8.2, -.796, 8], 15 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
+
     cameraPosTween.chain(cameraPosTween2)
 
-    // cameraPosTween.start(0)
+    cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
@@ -202,7 +203,7 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -221,7 +222,7 @@ export default class App {
       ], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
   }
 
   setupAudio () {

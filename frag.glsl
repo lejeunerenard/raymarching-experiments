@@ -3,7 +3,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -23,7 +23,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
@@ -40,6 +40,7 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
+#pragma glslify: voronoi = require(./voronoi)
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -60,6 +61,55 @@ float iqFBM (vec3 p) {
   f += 0.2500*noise( p ); p = p*2.03;
   f += 0.1250*noise( p ); p = p*2.01;
   f += 0.0625*noise( p );
+
+  return f * 1.066667;
+}
+//=====================================
+// otaviogood's noise from https://www.shadertoy.com/view/ld2SzK
+//--------------------------------------------------------------
+// This spiral noise works by successively adding and rotating sin waves while increasing frequency.
+// It should work the same on all computers since it's not based on a hash function like some other noises.
+// It can be much faster than other noise functions if you're ok with some repetition.
+const float nudge = 0.739513; // size of perpendicular vector
+float normalizer = 1.0 / sqrt(1.0 + nudge*nudge); // pythagorean theorem on that perpendicular to maintain scale
+float SpiralNoiseC(vec3 p)
+{
+    float n = 0.0;  // noise amount
+    float iter = 1.0;
+    for (int i = 0; i < 8; i++)
+    {
+        // add sin and cos scaled inverse with the frequency
+        n += -abs(sin(p.y*iter) + cos(p.x*iter)) / iter;  // abs for a ridged look
+        // rotate by adding perpendicular and scaling down
+        p.xy += vec2(p.y, -p.x) * nudge;
+        p.xy *= normalizer;
+        // rotate on other axis
+        p.xz += vec2(p.z, -p.x) * nudge;
+        p.xz *= normalizer;
+        // increase the frequency
+        iter *= 1.733733;
+    }
+    return n;
+}
+float spiralFBM (vec3 p) {
+  float f = 0.0;
+
+  const float angle = PI * 0.5;
+  const float c = cos(angle);
+  const float s = sin(angle);
+  mat2 m2 = mat2(c, -s, s, c);
+
+  f += 0.5000*SpiralNoiseC( p ); p = p*2.02;
+  p.xy *= m2;
+  f += 0.2500*SpiralNoiseC( p ); p = p*2.03;
+  p.xy *= m2;
+  f += 0.1250*SpiralNoiseC( p ); p = p*2.01;
+  p.xy *= m2;
+  // f += 0.0625*SpiralNoiseC( p ); p = p*2.03;
+  // p.xy *= m2;
+  // f += 0.03125*SpiralNoiseC( p ); p = p*2.00;
+  // p.xy *= m2;
+  f += 0.0625*SpiralNoiseC( p );
 
   return f * 1.066667;
 }
@@ -101,6 +151,7 @@ scale, 0., 0., 0.,
 #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
 
 #pragma glslify: fold = require(./folds)
+#pragma glslify: foldNd = require(./foldNd)
 #pragma glslify: twist = require(./twist)
 
 vec3 equation (in vec3 p, in float dt) {
@@ -154,6 +205,13 @@ vec3 beep (in vec3 p, in float dt) {
   return p + dt * vec3(dxdt, dydt, dzdt);
 }
 
+vec3 noiseField (in vec3 p, in float dt) {
+  return p + dt * vec3(
+    SpiralNoiseC(p),
+    SpiralNoiseC(p.zyx + 1.),
+    SpiralNoiseC(p.yzx + 3.));
+}
+
 #define MAX_IT 100
 
 vec3 de (in vec3 x, in float endt, in float dt) {
@@ -162,7 +220,7 @@ vec3 de (in vec3 x, in float endt, in float dt) {
   for (int i = 0; i < MAX_IT; i ++) {
     if (t >= endt) break;
 
-    x = beep(x, dt);
+    x = noiseField(x, dt);
 
     t += dt;
   }
@@ -187,45 +245,58 @@ vec3 map (in vec3 p) {
   // return s;
 
   vec3 q = p;
+  q.x += 0.5 * cos(4.0 * p.y + noise(p.zyx));
+  q.y += 0.5 * cos(3.0 * p.z + 7.0);
+  q.z += 0.5 * cos(7.0 * p.x + noise(cos(p)));
+  q.x += 0.5 * cos(1.0 * p.y + noise(p.zyx));
+  q.y += 0.5 * cos(2.5 * p.z + 3.0);
+  q.z += 0.5 * cos(9.0 * p.x + noise(p));
 
-  q.yz -= vec2(2.0, 2.0);
+  float n = iqFBM(0.5 * q);
+  float v = 1.0 - 1.5 * voronoi(0.25 * q);
+  v -= 0.2 * smoothstep(0.4, 0.5, n);
+
+  return vec3(0.275 * v, 1., 0.);
 
   // DE warp
-  // q = de(abs(q), 0.05, 0.01);
+  // q = de(q, 0.20, 0.10);
 
-  // q.y += 0.5 * sin(p.x + time) + 0.25 * sin(1.5 * p.x + time);
+  // q.x += 0.5 * cos(4.0 * p.y + noise(p.zyx));
+  // q.y += 0.5 * cos(3.0 * p.z + 7.0);
+  // q.z += 0.5 * cos(7.0 * p.x + noise(cos(p)));
+
+  // foldNd(q, normalize(vec3(1.0, 0.0, 0.5)));
+  // q -= 1.;
+  // foldNd(q, normalize(vec3(0.5, 0.0, 1.0)));
+
+  // q = noiseField(q, 1.0);
 
   // Wave offset
-  // q.y += 0.5 * sin(p.x) + 0.25 * sin(1.5 * p.x);
+  q.y += 0.5 * sin(p.x) + 0.25 * sin(1.5 * p.x);
 
   // Circular offset around origin
-  float angle = q.x + sin(2.0 * q.x) + exp(noise(p + time));
-  q.yz += vec2(
-    cos(angle),
-    sin(angle));
-
-  // Circular offset around origin
-  float angle2 = q.x + sin(1.2 * q.y + noise(q + time));
-  q.yz += vec2(
-    cos(angle2),
-    sin(angle2));
+  // float angle = q.x + sin(2.0 * q.x) + exp(noise(p + time));
+  // q.yz += vec2(
+  //   cos(angle),
+  //   sin(angle));
 
   // Tapper
   // q.yz *= 1.0 + pow(abs(0.2 * q.x), 2.0);
 
-  q.yzx = twist(q.yxz, -q.x + 0.35 * noise(2.0 * vec3(0.0, q.yz)));
+  // q.yzx = twist(q.yxz, -q.x);
 
-
-  vec3 c = vec3(sdCapsule(q, vec3(-5.0, 0.0, 0.0), vec3(5.0, 0.0, 0.0), 1.5), 1.0, 0.0);
-  // vec3 c = vec3(sdBox(q, vec3(5, 2.5, 2.5)));
+  // vec3 c = vec3(sdCapsule(q, vec3(-5.0, 0.0, 0.0), vec3(5.0, 0.0, 0.0), 1.5), 1.0, 0.0);
+  vec3 c = vec3(sdBox(q, vec3(5, 2.5, 2.5)));
   // vec3 c = vec3(length(q) - 1., 1., 0.);
 
   // Distortions
-  vec3 noiseP = 10.0 * q;
-  noiseP.x *= 0.05;
-  c.x += 0.1 * noise(noiseP);
+  vec3 noiseP = 1.0 * q;
+  noiseP.x *= 0.5;
+  // c.x -= 1.0 * SpiralNoiseC(noiseP);
+  // c.x += 2.0 * SpiralNoiseC(0.2 * noiseP + c.x);
+  // c.x -= 1.0 * spiralFBM(noiseP);
 
-  return 0.05 * c;
+  return 0.1 * abs(c);
 
   // Fractal
   // vec2 f = dodecahedron(p);
@@ -287,7 +358,7 @@ vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float v = 2.1 * noise(rd);
-  // float v = cnoise3(rd);
+  //float v = cnoise3(rd);
   // v = smoothstep(-1.0, 1.0, v);
 
   // vec3 maxRd = abs(rd);
@@ -296,7 +367,7 @@ vec3 textures (in vec3 rd) {
   color = vec3(v);
   // color = mix(#FF1F99, #FF7114, v);
   // color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
-  color += #FF1F99 * (0.5 * abs(rd.y));
+  color += #61FF77 * (0.5 * abs(rd.y));
 
   color *= 1.1 * cos(rd);
 
@@ -318,7 +389,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   return dispersion(nor, rd, n2);
 }
 
-const vec3 glowColor = #FF882D;
+const vec3 glowColor = #39CCA1;
 
 #pragma glslify: innerGlow = require(./inner-glow, glowColor=glowColor)
 
