@@ -176,8 +176,6 @@ vec3 cluster (in vec3 x) {
     }
   }
   return res;
-
-  return res;
 }
 
 // Return value is (distance, material, orbit trap)
