@@ -1,5 +1,6 @@
 #define PI 3.1415926536
 #define TWO_PI 6.2831853072
+#define PHI (1.618033988749895)
 
 // #define debugMapCalls
 // #define debugMapMaxed
@@ -45,13 +46,13 @@ const vec3 un = vec3(1., -1., 0.);
 // 3D noise function (IQ)
 float noise(vec3 p) {
   vec3 ip=floor(p);
-    p-=ip; 
+    p-=ip;
     vec3 s=vec3(7,157,113);
     vec4 h=vec4(0.,s.yz,s.y+s.z)+dot(ip,s);
-    p=p*p*(3.-2.*p); 
+    p=p*p*(3.-2.*p);
     h=mix(fract(sin(h)*43758.5),fract(sin(h+s.x)*43758.5),p.x);
     h.xy=mix(h.xz,h.yw,p.y);
-    return mix(h.x,h.y,p.z); 
+    return mix(h.x,h.y,p.z);
 }
 
 float iqFBM (vec3 p) {
@@ -64,59 +65,16 @@ float iqFBM (vec3 p) {
 
   return f * 1.066667;
 }
-//=====================================
-// otaviogood's noise from https://www.shadertoy.com/view/ld2SzK
-//--------------------------------------------------------------
-// This spiral noise works by successively adding and rotating sin waves while increasing frequency.
-// It should work the same on all computers since it's not based on a hash function like some other noises.
-// It can be much faster than other noise functions if you're ok with some repetition.
-const float nudge = 0.739513; // size of perpendicular vector
-float normalizer = 1.0 / sqrt(1.0 + nudge*nudge); // pythagorean theorem on that perpendicular to maintain scale
-float SpiralNoiseC(vec3 p)
-{
-    float n = 0.0;  // noise amount
-    float iter = 1.0;
-    for (int i = 0; i < 8; i++)
-    {
-        // add sin and cos scaled inverse with the frequency
-        n += -abs(sin(p.y*iter) + cos(p.x*iter)) / iter;  // abs for a ridged look
-        // rotate by adding perpendicular and scaling down
-        p.xy += vec2(p.y, -p.x) * nudge;
-        p.xy *= normalizer;
-        // rotate on other axis
-        p.xz += vec2(p.z, -p.x) * nudge;
-        p.xz *= normalizer;
-        // increase the frequency
-        iter *= 1.733733;
-    }
-    return n;
-}
-float spiralFBM (vec3 p) {
-  float f = 0.0;
-
-  const float angle = PI * 0.5;
-  const float c = cos(angle);
-  const float s = sin(angle);
-  mat2 m2 = mat2(c, -s, s, c);
-
-  f += 0.5000*SpiralNoiseC( p ); p = p*2.02;
-  p.xy *= m2;
-  f += 0.2500*SpiralNoiseC( p ); p = p*2.03;
-  p.xy *= m2;
-  f += 0.1250*SpiralNoiseC( p ); p = p*2.01;
-  p.xy *= m2;
-  // f += 0.0625*SpiralNoiseC( p ); p = p*2.03;
-  // p.xy *= m2;
-  // f += 0.03125*SpiralNoiseC( p ); p = p*2.00;
-  // p.xy *= m2;
-  f += 0.0625*SpiralNoiseC( p );
-
-  return f * 1.066667;
-}
 
 // Orbit Trap
 float trapCalc (in vec3 p, in float k) {
   return dot(p, p) / (k * k);
+}
+
+// The "Round" variant uses a quarter-circle to join the two objects smoothly:
+float fOpUnionRound(float a, float b, float r) {
+  vec2 u = max(vec2(r - a,r - b), vec2(0));
+  return max(r, min (a, b)) - length(u);
 }
 
 // IQ's capsule
@@ -130,6 +88,11 @@ float sdBox( vec3 p, vec3 b )
 {
   vec3 d = abs(p) - b;
   return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
+}
+float sdHexPrism( vec3 p, vec2 h )
+{
+    vec3 q = abs(p);
+    return max(q.z-h.y,max((q.x*0.866025+q.y*0.5),q.y)-h.x);
 }
 
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
@@ -205,13 +168,6 @@ vec3 beep (in vec3 p, in float dt) {
   return p + dt * vec3(dxdt, dydt, dzdt);
 }
 
-vec3 noiseField (in vec3 p, in float dt) {
-  return p + dt * vec3(
-    SpiralNoiseC(p),
-    SpiralNoiseC(p.zyx + 1.),
-    SpiralNoiseC(p.yzx + 3.));
-}
-
 #define MAX_IT 100
 
 vec3 de (in vec3 x, in float endt, in float dt) {
@@ -220,12 +176,22 @@ vec3 de (in vec3 x, in float endt, in float dt) {
   for (int i = 0; i < MAX_IT; i ++) {
     if (t >= endt) break;
 
-    x = noiseField(x, dt);
+    // x = noiseField(x, dt);
 
     t += dt;
   }
 
   return x;
+}
+
+vec2 dMin (vec2 d1, vec2 d2) {
+  return (d1.x < d2.x) ? d1 : d2;
+}
+vec3 dMin (vec3 d1, vec3 d2) {
+  return (d1.x < d2.x) ? d1 : d2;
+}
+vec3 dMax (vec3 d1, vec3 d2) {
+  return (d1.x > d2.x) ? d1 : d2;
 }
 
 float gRAngle = TWO_PI * 0.025 * time;
@@ -236,73 +202,87 @@ mat3 globalRot = mat3(
   0.0, 1.0,  0.0,
   gRs, 0.0,  gRc);
 
+// --------------------------------------------------------
+// http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
+// --------------------------------------------------------
+
+mat3 rotationMatrix(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+
+    return mat3(
+        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
+        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
+        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c
+    );
+}
+
+#pragma glslify: dodeca = require(./dodec)
+
+vec3 quartz (in vec3 p, in float angle) {
+  vec3 quartzBody = vec3(sdHexPrism(p.xzy - vec3(0., -0.30, 0.0), vec2(0.5, 3.)), 1., 0.);
+
+  const float dodecaScale = 1.00;
+  vec3 dp = p;
+  dp.y *= 0.416;
+  dp *= rotationMatrix(vec3(0.000,PHI,1.), PI / 5. + angle) / dodecaScale;
+  vec3 d = vec3(dodeca(dp, 1.) * dodecaScale, 1., 0.);
+
+  return dMax(quartzBody, d);
+  // return d;
+}
+
+vec3 cluster (in vec3 x) {
+  const float scale = 0.4;
+  x /= scale;
+
+  const float angleSpan = PI * 0.85;
+
+  vec3 res = vec3(1000.0, 1., 0.);
+  for (int k=-1; k<=1; k++) {
+    for (int j=-1; j<=1; j++) {
+      for (int i=-1; i<=1; i++) {
+        vec3 b = 1.5 * vec3(i, j, k);
+
+        vec3 p = x + b;
+        p *= rotationMatrix(vec3(
+          noise(b),
+          noise(1.1 * b - 20.3),
+          noise(0.9 * b + 414.9)), angleSpan * noise(20.0 * b));
+
+        vec3 d = quartz(p, PI / 4.0 * noise(13.0 * b));
+        d.x *= scale;
+        res = dMin( res, d );
+      }
+    }
+  }
+  return res;
+
+  return res;
+}
+
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
-  // p *= globalRot;
+  p *= globalRot;
 
-  // Sphere
-  // vec3 s = vec3(length(p) - 1., 1., 0.);
-  // return s;
+  vec3 outD = vec3(10000., 0., 0.);
 
-  vec3 q = p;
-  q.x += 0.5 * cos(4.0 * p.y + noise(p.zyx));
-  q.y += 0.5 * cos(3.0 * p.z + 7.0);
-  q.z += 0.5 * cos(7.0 * p.x + noise(cos(p)));
-  q.x += 0.5 * cos(1.0 * p.y + noise(p.zyx));
-  q.y += 0.5 * cos(2.5 * p.z + 3.0);
-  q.z += 0.5 * cos(9.0 * p.x + noise(p));
+  vec3 cl = cluster(p);
+  outD = dMin(outD, cl);
 
-  float n = iqFBM(0.5 * q);
-  float v = 1.0 - 1.5 * voronoi(0.25 * q);
-  v -= 0.2 * smoothstep(0.4, 0.5, n);
+  vec3 s = vec3(length(p) - 0.65, 2., 0.);
+  s.x -= 0.7 * iqFBM(p + iqFBM(p + iqFBM(p + 20.)));
+  // s.x -= 0.9 * voronoi(p - voronoi(2.0 * p));
+  s.x *= 0.8;
 
-  return vec3(0.275 * v, 1., 0.);
+  float dPre = outD.x;
+  outD = dMin(outD, s);
+  outD.x = fOpUnionRound(dPre, s.x, 0.0625);
 
-  // DE warp
-  // q = de(q, 0.20, 0.10);
-
-  // q.x += 0.5 * cos(4.0 * p.y + noise(p.zyx));
-  // q.y += 0.5 * cos(3.0 * p.z + 7.0);
-  // q.z += 0.5 * cos(7.0 * p.x + noise(cos(p)));
-
-  // foldNd(q, normalize(vec3(1.0, 0.0, 0.5)));
-  // q -= 1.;
-  // foldNd(q, normalize(vec3(0.5, 0.0, 1.0)));
-
-  // q = noiseField(q, 1.0);
-
-  // Wave offset
-  q.y += 0.5 * sin(p.x) + 0.25 * sin(1.5 * p.x);
-
-  // Circular offset around origin
-  // float angle = q.x + sin(2.0 * q.x) + exp(noise(p + time));
-  // q.yz += vec2(
-  //   cos(angle),
-  //   sin(angle));
-
-  // Tapper
-  // q.yz *= 1.0 + pow(abs(0.2 * q.x), 2.0);
-
-  // q.yzx = twist(q.yxz, -q.x);
-
-  // vec3 c = vec3(sdCapsule(q, vec3(-5.0, 0.0, 0.0), vec3(5.0, 0.0, 0.0), 1.5), 1.0, 0.0);
-  vec3 c = vec3(sdBox(q, vec3(5, 2.5, 2.5)));
-  // vec3 c = vec3(length(q) - 1., 1., 0.);
-
-  // Distortions
-  vec3 noiseP = 1.0 * q;
-  noiseP.x *= 0.5;
-  // c.x -= 1.0 * SpiralNoiseC(noiseP);
-  // c.x += 2.0 * SpiralNoiseC(0.2 * noiseP + c.x);
-  // c.x -= 1.0 * spiralFBM(noiseP);
-
-  return 0.1 * abs(c);
-
-  // Fractal
-  // vec2 f = dodecahedron(p);
-  // vec3 fractal = vec3(f.x, 1., f.y);
-
-  // return fractal;
+  return outD;
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -357,9 +337,9 @@ const float n2 = 2.57;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float v = 2.1 * noise(rd);
-  //float v = cnoise3(rd);
-  // v = smoothstep(-1.0, 1.0, v);
+  // float v = 2.1 * noise(rd);
+  float v = cnoise3(5. * rd);
+  v = smoothstep(-1.0, 1.0, v);
 
   // vec3 maxRd = abs(rd);
   // float v = max(maxRd.x, maxRd.y);
@@ -369,7 +349,7 @@ vec3 textures (in vec3 rd) {
   // color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
   color += #61FF77 * (0.5 * abs(rd.y));
 
-  color *= 1.1 * cos(rd);
+  // color *= 1.1 * cos(rd);
 
   return clamp(color, 0., 1.);
 }
@@ -384,9 +364,46 @@ vec3 scene (in vec3 rd) {
 }
 
 #pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.5)
+bool isMaterial( float m, float goal ) {
+  return m < goal + 1. && m > goal - .1;
+}
+float isMaterialSmooth( float m, float goal ) {
+  const float eps = .1;
+  return 1. - smoothstep(0., eps, abs(m - goal));
+}
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  return dispersion(nor, rd, n2);
+  // return #ffffff;
+  return dispersion(nor, rd, n2) * isMaterialSmooth(m, 1.) + #7D8091 * isMaterialSmooth(m, 2.);
+}
+
+vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
+  float t = 0.;
+  float maxI = 0.;
+
+  float trap = maxDistance;
+
+  for (int i = 0; i < maxSteps / 3; i++) {
+    vec3 d = map(rayOrigin + rayDirection * t);
+    if (d.x < epsilon) return vec4(t + d.x, d.y, float(i), d.z);
+    t += d.x;
+    maxI = float(i);
+    trap = d.z;
+    if (t > maxDistance) break;
+  }
+  return vec4(-1., 0., maxI, trap);
+}
+vec3 reflection (in vec3 ro, in vec3 rd) {
+  rd = normalize(rd);
+  vec4 t = marchRef(ro + rd * .09, rd);
+  vec3 pos = ro + rd * t.x;
+  vec3 color = vec3(0.);
+  if (t.x > 0.) {
+    vec3 nor = getNormal(pos, .0001);
+    color = baseColor(pos, nor, rd, t.y, t.w);
+  }
+
+  return color;
 }
 
 const vec3 glowColor = #39CCA1;
@@ -425,6 +442,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       lin += conserve * dif;
 
       color *= lin;
+
+      color += .09 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.);
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
