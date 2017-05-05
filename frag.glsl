@@ -137,7 +137,7 @@ mat3 globalRot = mat3(
 
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
-const float transitionLength = 10.0;
+const float transitionLength = 9.0;
 float animationTime = time;
 
 vec3 transform ( in vec3 p, in float time ) {
@@ -153,7 +153,7 @@ vec3 reverseTransform ( in vec3 p, in float time ) {
 }
 
 float noiseGrid (in vec3 p, in vec3 transformedP, in float time) {
-  float morphK = clamp(.6 + .6 * sin(time + 2.0 * p.y + 0.5 * cos(4.0 * p.x)), 0., 1.);
+  float morphK = 1.6 - 1.6 * time;
 
   float cellSize = 0.2;
   float bubbleRadius = cellSize * 0.3;
@@ -187,6 +187,12 @@ float noiseGrid (in vec3 p, in vec3 transformedP, in float time) {
   return totalDistance;
 }
 
+// IQ
+float sdCylinder( vec3 p, vec3 c )
+{
+  return length(p.xz-c.xy)-c.z;
+}
+
 bool insideSphere = false;
 
 // Return value is (distance, material, orbit trap)
@@ -194,7 +200,10 @@ vec3 map (in vec3 p) {
   p *= globalRot;
 
   // Timing
-  // animationTime = mod(time, transitionLength);
+  animationTime = mod(time, transitionLength) / transitionLength;
+
+  vec3 q = p;
+  p.xzy = twist(p, TWO_PI * animationTime + p.y);
 
   // Transform space
   vec3 transformedP = p;
@@ -202,20 +211,30 @@ vec3 map (in vec3 p) {
 
   vec3 outD = vec3(10000., 0., 0.);
 
-  vec3 s = vec3(length(p) - 1.0, 1.0, 0.0);
+  // vec3 s = vec3(length(p) - 1.0, 1.0, 0.0);
+  vec3 s = vec3(sdBox(p, vec3(0.5,1.0, 0.5)), 1.0, 0.0);
   outD = dMin(outD, s);
 
   if (outD.x < epsilon) {
     // Points
-    outD.x = noiseGrid(p, transformedP, time);
+    outD.x = noiseGrid(p, transformedP, animationTime);
     if (outD.x < epsilon) {
       outD.x = insideSphere ? outD.x : s.x;
+      outD.x *= 0.9;
     } else {
       insideSphere = true;
     }
   } else {
     insideSphere = false;
   }
+
+  // Expand outwards
+  float c = sdCylinder(q, vec3(0.,0., animationTime));
+  outD.x = max(outD.x, c);
+
+  // Reveal top to bottom
+  float r = sdBox(q + vec3(0., -1., 0.), vec3(1.0, 2.0 * pow(animationTime, 0.5), 1.0));
+  // outD.x = max(outD.x, r);
 
   return outD;
 }
@@ -279,9 +298,9 @@ vec3 textures (in vec3 rd) {
   // vec3 maxRd = abs(rd);
   // float v = max(maxRd.x, maxRd.y);
 
-  color = vec3(v);
+  // color = vec3(v);
   // color = mix(#FF1F99, #FF7114, v);
-  // color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
+  color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
   // color += #61FF77 * (0.5 * abs(rd.y));
 
   // color *= 1.1 * cos(rd);
@@ -454,5 +473,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    // gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }

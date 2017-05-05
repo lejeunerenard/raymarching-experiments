@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 10
 
 const capturing = false
 const BLOOM = true
@@ -39,8 +39,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-unicorn-blood-test1',
-    autoSaveTime: 4,
+    name: 'distance-field-study-we-are-one-test1',
+    autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
     timeLimit: secondsLong,
