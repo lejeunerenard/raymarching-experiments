@@ -4,7 +4,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -24,7 +24,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
@@ -136,65 +136,86 @@ mat3 globalRot = mat3(
   gRs, 0.0,  gRc);
 
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
-#pragma glslify: dodeca = require(./dodec)
 
-vec3 quartz (in vec3 p, in float angle) {
-  vec3 quartzBody = vec3(sdHexPrism(p.xzy - vec3(0., -0.30, 0.0), vec2(0.5, 3.)), 1., 0.);
+const float transitionLength = 10.0;
+float animationTime = time;
 
-  const float dodecaScale = 1.00;
-  vec3 dp = p;
-  dp.y *= 0.416;
-  dp *= rotationMatrix(vec3(0.000,PHI,1.), PI / 5. + angle) / dodecaScale;
-  vec3 d = vec3(dodeca(dp, 1.) * dodecaScale, 1., 0.);
+vec3 transform ( in vec3 p, in float time ) {
+  float up = (p.y - time) / transitionLength;
+  p.y = time + 1. / (1. - up) - 1.;
 
-  return dMax(quartzBody, d);
-  // return d;
+  return p;
+}
+vec3 reverseTransform ( in vec3 p, in float time ) {
+  p.y = 0.1 * transitionLength / (p.y - time + 1.);
+
+  return p;
 }
 
-vec3 cluster (in vec3 x) {
-  const float scale = 0.4;
-  x /= scale;
+float noiseGrid (in vec3 p, in vec3 transformedP, in float time) {
+  float morphK = clamp(.6 + .6 * sin(time + 2.0 * p.y + 0.5 * cos(4.0 * p.x)), 0., 1.);
 
-  const float angleSpan = PI * 0.85;
+  float cellSize = 0.2;
+  float bubbleRadius = cellSize * 0.3;
+  vec3 cellPosCenter = floor(p / cellSize);
 
-  vec3 res = vec3(1000.0, 1., 0.);
-  for (int k=-1; k<=1; k++) {
-    for (int j=-1; j<=1; j++) {
-      for (int i=-1; i<=1; i++) {
-        vec3 b = 1.5 * vec3(i, j, k);
+  float totalDistance = 1000.0;
+  for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+    vec3 cellPos = cellPosCenter + vec3(x, y, z);
+    vec3 cellNoise = vec3(
+      noise(cellPos),
+      noise(cellPos + 1230.23),
+      noise(cellPos + 8456.34));
+    vec3 pos = (cellPos + cellNoise) * cellSize;
+    float radius = clamp(bubbleRadius * cellNoise.x, 0., 1.);
 
-        vec3 p = x + b;
-        p *= rotationMatrix(vec3(
-          noise(b),
-          noise(1.1 * b - 20.3),
-          noise(0.9 * b + 414.9)), angleSpan * noise(20.0 * b));
+    // No point drawing a sphere w/ a negative radius
+    if (radius < 0.0) continue;
 
-        vec3 d = quartz(p, PI / 4.0 * noise(13.0 * b));
-        d.x *= scale;
-        res = dMin( res, d );
-      }
-    }
+    // float d = length(transformedP - transform(pos, animationTime)) - radius;
+    float d = length(transformedP - pos) - radius;
+
+    // Merge op
+    float k = mix(cellSize*1.5, cellSize*0.5, morphK);
+    float h = clamp(0.5 + 0.5*(totalDistance - d)/k, 0.0, 1.0);
+    totalDistance = mix(totalDistance, d, h) - k*h*(1.0-h);
+
+    // Union
+    // totalDistance = min(d, totalDistance);
   }
-  return res;
+
+  return totalDistance;
 }
+
+bool insideSphere = false;
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
   p *= globalRot;
 
+  // Timing
+  // animationTime = mod(time, transitionLength);
+
+  // Transform space
+  vec3 transformedP = p;
+  // p = reverseTransform(p, animationTime);
+
   vec3 outD = vec3(10000., 0., 0.);
 
-  vec3 cl = cluster(p);
-  outD = dMin(outD, cl);
-
-  vec3 s = vec3(length(p) - 0.65, 2., 0.);
-  s.x -= 0.7 * iqFBM(p + iqFBM(p + iqFBM(p + 20.)));
-  // s.x -= 0.9 * voronoi(p - voronoi(2.0 * p));
-  s.x *= 0.8;
-
-  float dPre = outD.x;
+  vec3 s = vec3(length(p) - 1.0, 1.0, 0.0);
   outD = dMin(outD, s);
-  outD.x = fOpUnionRound(dPre, s.x, 0.0625);
+
+  if (outD.x < epsilon) {
+    // Points
+    outD.x = noiseGrid(p, transformedP, time);
+    if (outD.x < epsilon) {
+      outD.x = insideSphere ? outD.x : s.x;
+    } else {
+      insideSphere = true;
+    }
+  } else {
+    insideSphere = false;
+  }
 
   return outD;
 }
@@ -218,7 +239,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
 #pragma glslify: getNormal = require(./get-normal, map=map)
 vec3 getNormal2 (in vec3 p, in float eps) {
-  vec2 e = vec2(1.,-1.) * .015 * eps;
+  vec2 e = vec2(1.,0.) * .015 * eps;
   return normalize(vec3(
     map(p + e.xyy).x - map(p - e.xyy).x,
     map(p + e.yxy).x - map(p - e.yxy).x,
@@ -227,7 +248,7 @@ vec3 getNormal2 (in vec3 p, in float eps) {
 
 // Material Functions
 float diffuse (in vec3 nor, in vec3 lightPos) {
-  return clamp(dot(lightPos, nor), 0., 1.);
+  return dot(lightPos, nor);
 }
 
 #pragma glslify: softshadow = require(./soft-shadows, map=map)
@@ -246,14 +267,14 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 2.57;
+const float n2 = 1.50;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   // float v = 2.1 * noise(rd);
-  float v = cnoise3(5. * rd);
-  v = smoothstep(-1.0, 1.0, v);
+  float v = noise(2. * rd);
+  // v = smoothstep(-1.0, 1.0, v);
 
   // vec3 maxRd = abs(rd);
   // float v = max(maxRd.x, maxRd.y);
@@ -261,7 +282,7 @@ vec3 textures (in vec3 rd) {
   color = vec3(v);
   // color = mix(#FF1F99, #FF7114, v);
   // color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
-  color += #61FF77 * (0.5 * abs(rd.y));
+  // color += #61FF77 * (0.5 * abs(rd.y));
 
   // color *= 1.1 * cos(rd);
 
@@ -287,8 +308,7 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  // return #ffffff;
-  return dispersion(nor, rd, n2) * isMaterialSmooth(m, 1.) + #7D8091 * isMaterialSmooth(m, 2.);
+  return dispersion(nor, rd, n2) * isMaterialSmooth(m, 1.);
 }
 
 vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -329,7 +349,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = background;
 
-      vec3 nor = getNormal(pos, .0001);
+      vec3 nor = getNormal2(pos, 0.001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
 
       // Basic Diffusion
@@ -338,33 +358,33 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float dif = diffuse(nor, lightPos);
-      float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
+      float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 8.);
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
       float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-      dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+      // dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
       vec3 lin = vec3(0.);
 
       // Specular Lighting
-      lin += spec * (1. - fre) * dif * color.g;
+      lin += spec * (1. - fre) * dif;
       lin += fre * occ;
 
       // Ambient
-      lin += 0.04 * amb * occ * #ccccff;
+      // lin += 0.04 * amb * occ * #ccccff;
 
-      float conserve = (1. - (dot(lin, vec3(1.)) * .3333));
+      float conserve = 1.; // max(0., 1. - length(lin));
       lin += conserve * dif;
 
       color *= lin;
 
-      color += .09 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.);
+      // color += .09 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.);
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
       color *= exp(-t.x * .1);
 
       // Inner Glow
-      color += innerGlow(t.w);
+      // color += innerGlow(t.w);
 
       // Post process
       // colorMap(color);
@@ -434,5 +454,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }
