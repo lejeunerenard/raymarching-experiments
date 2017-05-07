@@ -11,6 +11,7 @@ precision highp float;
 varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
+uniform bool BLOOM;
 uniform vec3 cOffset;
 uniform vec3 cameraRo;
 uniform mat4 cameraMatrix;
@@ -31,7 +32,7 @@ uniform float epsilon;
 #define slowTime time * .01
 #define Iterations 8
 
-vec3 lightPos = normalize(vec3(1., 0., 0.));
+vec3 lightPos = normalize(vec3(1., .75, 0.));
 
 const vec3 un = vec3(1., -1., 0.);
 
@@ -127,7 +128,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.025 * time;
+float gRAngle = TWO_PI * 0.05 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -193,48 +194,60 @@ float sdCylinder( vec3 p, vec3 c )
   return length(p.xz-c.xy)-c.z;
 }
 
+vec3 n4 = vec3(0.577,0.577,0.577);
+vec3 n5 = vec3(-0.577,0.577,0.577);
+vec3 n6 = vec3(0.577,-0.577,0.577);
+vec3 n7 = vec3(0.577,0.577,-0.577);
+vec3 n8 = vec3(0.000,0.357,0.934);
+vec3 n9 = vec3(0.000,-0.357,0.934);
+vec3 n10 = vec3(0.934,0.000,0.357);
+vec3 n11 = vec3(-0.934,0.000,0.357);
+vec3 n12 = vec3(0.357,0.934,0.000);
+vec3 n13 = vec3(-0.357,0.934,0.000);
+vec3 n14 = vec3(0.000,0.851,0.526);
+vec3 n15 = vec3(0.000,-0.851,0.526);
+vec3 n16 = vec3(0.526,0.000,0.851);
+vec3 n17 = vec3(-0.526,0.000,0.851);
+vec3 n18 = vec3(0.851,0.526,0.000);
+vec3 n19 = vec3(-0.851,0.526,0.000);
+
+// p as usual, e exponent (p in the paper), r radius or something like that
+float octahedral(vec3 p, float e, float r) {
+  float s = pow(abs(dot(p,n4)),e);
+  s += pow(abs(dot(p,n5)),e);
+  s += pow(abs(dot(p,n6)),e);
+  s += pow(abs(dot(p,n7)),e);
+  s = pow(s, 1./e);
+  return s-r;
+}
+
 bool insideSphere = false;
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
+  vec3 outD = vec3(10000., 0., 0.);
+
   p *= globalRot;
 
   // Timing
   animationTime = mod(time, transitionLength) / transitionLength;
+  float toOct = 0.5 + 0.5 * sin(TWO_PI * 0.1 * time);
 
-  vec3 q = p;
-  p.xzy = twist(p, TWO_PI * animationTime + p.y);
+  vec3 q = p; // Unwarped coordinate
 
-  // Transform space
-  vec3 transformedP = p;
-  // p = reverseTransform(p, animationTime);
+  q *= mix(1.0, 1.33, toOct);
 
-  vec3 outD = vec3(10000., 0., 0.);
-
-  // vec3 s = vec3(length(p) - 1.0, 1.0, 0.0);
-  vec3 s = vec3(sdBox(p, vec3(0.5,1.0, 0.5)), 1.0, 0.0);
+  vec3 s = vec3(sdBox(q, vec3(mix(0.5, 1.5, toOct))), 1.0, 0.0);
   outD = dMin(outD, s);
 
-  if (outD.x < epsilon) {
-    // Points
-    outD.x = noiseGrid(p, transformedP, animationTime);
-    if (outD.x < epsilon) {
-      outD.x = insideSphere ? outD.x : s.x;
-      outD.x *= 0.9;
-    } else {
-      insideSphere = true;
-    }
-  } else {
-    insideSphere = false;
-  }
+  float o = octahedral(q, 70.0, 0.875);
+  outD.x = max(outD.x, o);
 
-  // Expand outwards
-  float c = sdCylinder(q, vec3(0.,0., animationTime));
-  outD.x = max(outD.x, c);
+  q *= 10.0;
 
-  // Reveal top to bottom
-  float r = sdBox(q + vec3(0., -1., 0.), vec3(1.0, 2.0 * pow(animationTime, 0.5), 1.0));
-  // outD.x = max(outD.x, r);
+  outD.x += 0.004 * iqFBM(q + iqFBM(q + iqFBM(q)));
+
+  outD.x *= mix(1.0, 0.75188, toOct);
 
   return outD;
 }
@@ -327,7 +340,7 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  return dispersion(nor, rd, n2) * isMaterialSmooth(m, 1.);
+  return #020202;
 }
 
 vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -370,37 +383,49 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
+      ref = normalize(ref);
 
       // Basic Diffusion
-      color = baseColor(pos, nor, rayDirection, t.y, t.w);
+      vec3 diffusColor = baseColor(pos, nor, rayDirection, t.y, t.w);
+
+      // Declare lights
+      struct light {
+        vec3 position;
+      };
+      const int NUM_OF_LIGHTS = 2;
+      light lights[NUM_OF_LIGHTS];
+      lights[0] = light(normalize(vec3(1., .75, 0.)));
+      lights[1] = light(normalize(vec3(-1., -.5, -.5)));
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
-      float dif = diffuse(nor, lightPos);
-      float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 8.);
-      const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
-      float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
+      for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
+        vec3 lightPos = lights[i].position;
+        float dif = diffuse(nor, lightPos);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.);
+        const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
+        float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-      // dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
-      vec3 lin = vec3(0.);
+        // dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+        vec3 lin = vec3(0.);
 
-      // Specular Lighting
-      lin += spec * (1. - fre) * dif;
-      lin += fre * occ;
+        // Specular Lighting
+        lin += spec * (1. - fre);
+        lin += 0.01 * fre * occ;
 
-      // Ambient
-      // lin += 0.04 * amb * occ * #ccccff;
+        // Ambient
+        lin += 0.001 * amb * occ * #ffcccc;
 
-      float conserve = 1.; // max(0., 1. - length(lin));
-      lin += conserve * dif;
-
-      color *= lin;
+        float conserve = max(0., 1. - length(lin));
+        color += (conserve * dif) * diffusColor + clamp(lin, 0., 1.);
+      }
 
       // color += .09 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.);
+      color += 0.003 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 1.);
 
       // Fog
-      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      color *= exp(-t.x * .1);
+      // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      // color *= exp(-t.x * .1);
 
       // Inner Glow
       // color += innerGlow(t.w);
@@ -422,11 +447,16 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       return vec4(color, 1.);
     } else {
       vec4 color = vec4(background, 0.);
+      if (!BLOOM) {
+        color.a = 1.0;
+      }
+
       // Radial Gradient
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      // color = mix(vec4(1.), color, 1. - .95 * clamp(t.z / float(maxSteps), 0., 1.));
+      color = mix(vec4(#FFC594, 1.0), color, 1. - .99 * clamp(t.z / (7.0 * float(maxSteps)), 0., 1.));
+
       return color;
     }
 }
@@ -441,8 +471,6 @@ void main() {
 
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
-
-    lightPos = normalize(vec3(1., .75, 0.));
 
     #ifdef SS
     // Antialias by averaging all adjacent values

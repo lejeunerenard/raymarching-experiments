@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 20
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-we-are-one-test1',
+    name: 'distance-field-study-platonic-dual-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.001, 1.001, 1.001)
+    this.cameraRo = vec3.fromValues(1.151, 1.151, 1.151)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.001
@@ -419,12 +419,12 @@ export default class App {
     let base = this.state[0].color[0]
     this.state[1].bind()
     this.bright.bind()
-    this.bright.uniforms.minBright = .4
+    this.bright.uniforms.minBright = 0.8
     this.bright.uniforms.buffer = base.bind(0)
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
@@ -439,7 +439,6 @@ export default class App {
       let prev = this.state[2].color[0]
       this.state[1].bind()
 
-      //this.bloom.bind()
       this.bloom.uniforms.buffer = prev.bind(2)
       this.bloom.uniforms.resolution = dim
       this.bloom.uniforms.direction = [0, 1]
@@ -449,8 +448,8 @@ export default class App {
     // Additive blending
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     this.finalPass.bind()
-    this.finalPass.uniforms.base = base.bind(0)
-    this.finalPass.uniforms.buffer = this.state[1].color[0].bind(1)
+    this.finalPass.uniforms.base = this.state[0].color[0].bind(3)
+    this.finalPass.uniforms.buffer = this.state[1].color[0].bind(4)
     this.finalPass.uniforms.resolution = dim
     drawTriangle(gl)
   }
@@ -463,6 +462,7 @@ export default class App {
     }
 
     shader.uniforms.time = t / 1000
+    shader.uniforms.BLOOM = BLOOM
     manager.render(shader, t)
 
     if (BLOOM){
