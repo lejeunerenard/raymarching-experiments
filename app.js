@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-platonic-dual-test1',
+    name: 'distance-field-study-platonic-dual-2-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.151, 1.151, 1.151)
+    this.cameraRo = vec3.fromValues(0.9, 0.9, 0.9)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.001

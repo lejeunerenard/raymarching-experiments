@@ -67,6 +67,27 @@ float iqFBM (vec3 p) {
   return f * 1.066667;
 }
 
+float fbmWarp (vec3 p, out vec3 q) {
+  const float scale = 4.0;
+
+  q = vec3(
+        iqFBM(p + vec3(0.0, 0.0, 0.0)),
+        iqFBM(p + vec3(3.2, 34.5, .234)),
+        iqFBM(p + vec3(7.0, 2.9, -2.42)));
+
+  vec3 s = vec3(
+        iqFBM(p + scale * q + vec3(23.9, 234.0, -193.0)),
+        iqFBM(p + scale * q + vec3(3.2, 852.0, 23.42)),
+        iqFBM(p + scale * q + vec3(7.0, -232.0, -2.42)));
+
+  vec3 x = vec3(
+        iqFBM(p + scale * s + vec3(-1.0, 73.234, 0.0)),
+        iqFBM(p + scale * s + vec3(3.2, 34.5, 2.664)),
+        iqFBM(p + scale * s + vec3(8.0, 2.9, 222.42)));
+
+  return iqFBM(p + scale * x);
+}
+
 // Orbit Trap
 float trapCalc (in vec3 p, in float k) {
   return dot(p, p) / (k * k);
@@ -194,32 +215,10 @@ float sdCylinder( vec3 p, vec3 c )
   return length(p.xz-c.xy)-c.z;
 }
 
-vec3 n4 = vec3(0.577,0.577,0.577);
-vec3 n5 = vec3(-0.577,0.577,0.577);
-vec3 n6 = vec3(0.577,-0.577,0.577);
-vec3 n7 = vec3(0.577,0.577,-0.577);
-vec3 n8 = vec3(0.000,0.357,0.934);
-vec3 n9 = vec3(0.000,-0.357,0.934);
-vec3 n10 = vec3(0.934,0.000,0.357);
-vec3 n11 = vec3(-0.934,0.000,0.357);
-vec3 n12 = vec3(0.357,0.934,0.000);
-vec3 n13 = vec3(-0.357,0.934,0.000);
-vec3 n14 = vec3(0.000,0.851,0.526);
-vec3 n15 = vec3(0.000,-0.851,0.526);
-vec3 n16 = vec3(0.526,0.000,0.851);
-vec3 n17 = vec3(-0.526,0.000,0.851);
-vec3 n18 = vec3(0.851,0.526,0.000);
-vec3 n19 = vec3(-0.851,0.526,0.000);
-
 // p as usual, e exponent (p in the paper), r radius or something like that
-float octahedral(vec3 p, float e, float r) {
-  float s = pow(abs(dot(p,n4)),e);
-  s += pow(abs(dot(p,n5)),e);
-  s += pow(abs(dot(p,n6)),e);
-  s += pow(abs(dot(p,n7)),e);
-  s = pow(s, 1./e);
-  return s-r;
-}
+#pragma glslify: octahedral = require(./model/octahedral)
+#pragma glslify: dodecahedral = require(./model/dodecahedral)
+#pragma glslify: icosahedral = require(./model/icosahedral)
 
 bool insideSphere = false;
 
@@ -231,23 +230,21 @@ vec3 map (in vec3 p) {
 
   // Timing
   animationTime = mod(time, transitionLength) / transitionLength;
-  float toOct = 0.5 + 0.5 * sin(TWO_PI * 0.1 * time);
+  float toDual = 0.35 + 0.35 * sin(TWO_PI * 0.1 * time);
 
   vec3 q = p; // Unwarped coordinate
 
-  q *= mix(1.0, 1.33, toOct);
+  float r = mix(0.5, 1.4, toDual);
+  vec3 d = vec3(dodecahedral(q, 70.0, r), 1.0, 0.0);
+  outD = dMin(outD, d);
 
-  vec3 s = vec3(sdBox(q, vec3(mix(0.5, 1.5, toOct))), 1.0, 0.0);
-  outD = dMin(outD, s);
+  float r2 = mix(0.875, 0.3, toDual);
+  vec3 o = vec3(icosahedral(q, 70.0, r2), 2.0, 0.0);
+  outD = dMax(outD, o);
 
-  float o = octahedral(q, 70.0, 0.875);
-  outD.x = max(outD.x, o);
-
-  q *= 10.0;
-
-  outD.x += 0.004 * iqFBM(q + iqFBM(q + iqFBM(q)));
-
-  outD.x *= mix(1.0, 0.75188, toOct);
+  q *= 50.0;
+  vec3 s = vec3(0.0);
+  outD.x -= 0.008 * fbmWarp(p, s);
 
   return outD;
 }
@@ -340,7 +337,7 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  return #020202;
+  return mix(#d2d2d2, #030303, (m - 1.0));
 }
 
 vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -379,23 +376,24 @@ const vec3 glowColor = #39CCA1;
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
     if (t.x>0.) {
-      vec3 color = background;
+      vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.001 * t.x);
       vec3 ref = reflect(rayDirection, nor);
       ref = normalize(ref);
 
       // Basic Diffusion
-      vec3 diffusColor = baseColor(pos, nor, rayDirection, t.y, t.w);
+      vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w);
 
       // Declare lights
       struct light {
         vec3 position;
+        float intensity;
       };
       const int NUM_OF_LIGHTS = 2;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(1., .75, 0.)));
-      lights[1] = light(normalize(vec3(-1., -.5, -.5)));
+      lights[0] = light(normalize(vec3(1., .75, 0.)), 1.0);
+      lights[1] = light(normalize(vec3(-1., -.5, 0.5)), 0.6);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -411,21 +409,22 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
         // Specular Lighting
         lin += spec * (1. - fre);
-        lin += 0.01 * fre * occ;
+        lin += (0.3 + 0.7 * isMaterialSmooth(t.y, 1.0)) * fre * occ;
 
         // Ambient
         lin += 0.001 * amb * occ * #ffcccc;
 
         float conserve = max(0., 1. - length(lin));
-        color += (conserve * dif) * diffusColor + clamp(lin, 0., 1.);
+        color += clamp((conserve * dif * lights[i].intensity) * diffuseColor, 0.0, 1.0)
+          + clamp(lights[i].intensity * lin, 0., 1.);
       }
 
       // color += .09 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.);
-      color += 0.003 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 1.);
+      color += 0.04 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 1.);
 
       // Fog
-      // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      // color *= exp(-t.x * .1);
+      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      color *= exp(-t.x * .1);
 
       // Inner Glow
       // color += innerGlow(t.w);
@@ -455,7 +454,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      color = mix(vec4(#FFC594, 1.0), color, 1. - .99 * clamp(t.z / (7.0 * float(maxSteps)), 0., 1.));
+      color = mix(vec4(#E8F6FF, 1.0), color, 1. - .9 * clamp(t.z / (float(maxSteps)), 0., 1.));
 
       return color;
     }
