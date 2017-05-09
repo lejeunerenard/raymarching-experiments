@@ -26,11 +26,10 @@ uniform vec3 offset;
 // Greatest precision = 0.000001;
 uniform float epsilon;
 #define maxSteps 256
-#define maxDistance 50.0
+#define maxDistance 10.0
 #pragma glslify: import(./background)
 
 #define slowTime time * .01
-#define Iterations 8
 
 vec3 lightPos = normalize(vec3(1., .75, 0.));
 
@@ -38,11 +37,7 @@ const vec3 un = vec3(1., -1., 0.);
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
-#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
-#pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
-#pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
-#pragma glslify: voronoi = require(./voronoi)
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -80,12 +75,12 @@ float fbmWarp (vec3 p, out vec3 q) {
         iqFBM(p + scale * q + vec3(3.2, 852.0, 23.42)),
         iqFBM(p + scale * q + vec3(7.0, -232.0, -2.42)));
 
-  vec3 x = vec3(
-        iqFBM(p + scale * s + vec3(-1.0, 73.234, 0.0)),
-        iqFBM(p + scale * s + vec3(3.2, 34.5, 2.664)),
-        iqFBM(p + scale * s + vec3(8.0, 2.9, 222.42)));
+  // vec3 x = vec3(
+  //       iqFBM(p + scale * s + vec3(-1.0, 73.234, 0.0)),
+  //       iqFBM(p + scale * s + vec3(3.2, 34.5, 2.664)),
+  //       iqFBM(p + scale * s + vec3(8.0, 2.9, 222.42)));
 
-  return iqFBM(p + scale * x);
+  return iqFBM(p + scale * s);
 }
 
 // Orbit Trap
@@ -117,27 +112,27 @@ float sdHexPrism( vec3 p, vec2 h )
     return max(q.z-h.y,max((q.x*0.866025+q.y*0.5),q.y)-h.x);
 }
 
-#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
+// #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 // #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
 
-#pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
-#pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
+// #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
+// #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
-#define octaPreFold 6
-mat4 octaM = mat4(
-scale, 0., 0., 0.,
-0., scale, 0., 0.,
-0., 0., scale, 0.,
-1., 1., 1., 1.) * mat4(
-1., 0., 0.1, .0,
-0., 1., 0., 0.,
-0., 0.2, 1., 0.,
-0., 0., 0., 1.);
-#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
-
-#pragma glslify: fold = require(./folds)
-#pragma glslify: foldNd = require(./foldNd)
-#pragma glslify: twist = require(./twist)
+// #define octaPreFold 6
+// mat4 octaM = mat4(
+// scale, 0., 0., 0.,
+// 0., scale, 0., 0.,
+// 0., 0., scale, 0.,
+// 1., 1., 1., 1.) * mat4(
+// 1., 0., 0.1, .0,
+// 0., 1., 0., 0.,
+// 0., 0.2, 1., 0.,
+// 0., 0., 0., 1.);
+// #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
+// 
+// #pragma glslify: fold = require(./folds)
+// #pragma glslify: foldNd = require(./foldNd)
+// #pragma glslify: twist = require(./twist)
 
 vec2 dMin (vec2 d1, vec2 d2) {
   return (d1.x < d2.x) ? d1 : d2;
@@ -174,41 +169,6 @@ vec3 reverseTransform ( in vec3 p, in float time ) {
   return p;
 }
 
-float noiseGrid (in vec3 p, in vec3 transformedP, in float time) {
-  float morphK = 1.6 - 1.6 * time;
-
-  float cellSize = 0.2;
-  float bubbleRadius = cellSize * 0.3;
-  vec3 cellPosCenter = floor(p / cellSize);
-
-  float totalDistance = 1000.0;
-  for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
-    vec3 cellPos = cellPosCenter + vec3(x, y, z);
-    vec3 cellNoise = vec3(
-      noise(cellPos),
-      noise(cellPos + 1230.23),
-      noise(cellPos + 8456.34));
-    vec3 pos = (cellPos + cellNoise) * cellSize;
-    float radius = clamp(bubbleRadius * cellNoise.x, 0., 1.);
-
-    // No point drawing a sphere w/ a negative radius
-    if (radius < 0.0) continue;
-
-    // float d = length(transformedP - transform(pos, animationTime)) - radius;
-    float d = length(transformedP - pos) - radius;
-
-    // Merge op
-    float k = mix(cellSize*1.5, cellSize*0.5, morphK);
-    float h = clamp(0.5 + 0.5*(totalDistance - d)/k, 0.0, 1.0);
-    totalDistance = mix(totalDistance, d, h) - k*h*(1.0-h);
-
-    // Union
-    // totalDistance = min(d, totalDistance);
-  }
-
-  return totalDistance;
-}
-
 // IQ
 float sdCylinder( vec3 p, vec3 c )
 {
@@ -216,9 +176,9 @@ float sdCylinder( vec3 p, vec3 c )
 }
 
 // p as usual, e exponent (p in the paper), r radius or something like that
-#pragma glslify: octahedral = require(./model/octahedral)
-#pragma glslify: dodecahedral = require(./model/dodecahedral)
-#pragma glslify: icosahedral = require(./model/icosahedral)
+// #pragma glslify: octahedral = require(./model/octahedral)
+// #pragma glslify: dodecahedral = require(./model/dodecahedral)
+// #pragma glslify: icosahedral = require(./model/icosahedral)
 
 bool insideSphere = false;
 
@@ -234,17 +194,31 @@ vec3 map (in vec3 p) {
 
   vec3 q = p; // Unwarped coordinate
 
-  float r = mix(0.5, 1.4, toDual);
-  vec3 d = vec3(dodecahedral(q, 70.0, r), 1.0, 0.0);
+  // vec3 r = vec3(0.0);
+  // float n = fbmWarp(q + slowTime, r);
+  float n = iqFBM(q + 4.0 * slowTime);
+
+  vec3 d = vec3(sdBox(q, vec3(0.5)), 1.0, 0.0);
+  d.x += 0.2 * smoothstep(0.4, 0.45, n + 0.1 * noise(q));
   outD = dMin(outD, d);
 
-  float r2 = mix(0.875, 0.3, toDual);
-  vec3 o = vec3(icosahedral(q, 70.0, r2), 2.0, 0.0);
-  outD = dMax(outD, o);
+  vec3 d2 = vec3(sdBox(q, vec3(0.475)), 2.0, 0.0);
+  d2.x += 0.2 * smoothstep(0.45, 0.5, n + 0.1 * noise(1.1 * q));
+  outD = dMin(outD, d2);
 
-  q *= 50.0;
-  vec3 s = vec3(0.0);
-  outD.x -= 0.008 * fbmWarp(p, s);
+  vec3 d3 = vec3(sdBox(q, vec3(0.45)), 3.0, 0.0);
+  d3.x += 0.2 * smoothstep(0.5, 0.55, n + 0.1 * noise(0.9 * q));
+  outD = dMin(outD, d3);
+
+  vec3 d4 = vec3(sdBox(q, vec3(0.425)), 4.0, 0.0);
+  d4.x += 0.2 * smoothstep(0.55, 0.6, n + 0.1 * noise(1.3 * q));
+  outD = dMin(outD, d4);
+
+  vec3 d5 = vec3(sdBox(q, vec3(0.4)), 4.0, 0.0);
+  d5.x += 0.2 * smoothstep(0.6, 0.65, n + 0.1 * noise(0.85 * q));
+  outD = dMin(outD, d5);
+
+  outD.x *= 0.1;
 
   return outD;
 }
@@ -337,7 +311,15 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  return mix(#d2d2d2, #030303, (m - 1.0));
+  vec3 color = vec3(1.0);
+
+  color = mix(color, #d2d2d2, isMaterialSmooth(m, 1.0));
+  color = mix(color, #FF7C0B, isMaterialSmooth(m, 2.0));
+  color = mix(color, #FF3D1C, isMaterialSmooth(m, 3.0));
+  color = mix(color, #FFAE00, isMaterialSmooth(m, 4.0));
+  color = mix(color, #E8130E, isMaterialSmooth(m, 5.0));
+
+  return color + 0.5 * cos(TWO_PI * dot(rd, nor)) - nor.y * vec3(0.0, 1.0, 0.0);
 }
 
 vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -408,8 +390,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        lin += spec * (1. - fre);
-        lin += (0.3 + 0.7 * isMaterialSmooth(t.y, 1.0)) * fre * occ;
+        lin += 0.9 * spec * (1. - fre);
+        lin += 0.1 * fre * occ;
 
         // Ambient
         lin += 0.001 * amb * occ * #ffcccc;
@@ -419,8 +401,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
           + clamp(lights[i].intensity * lin, 0., 1.);
       }
 
-      // color += .09 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.);
-      color += 0.04 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 1.);
+      // color += 0.09 * reflection(pos, ref);
+      color += 0.10 * dispersion(nor, rayDirection, n2);
 
       // Fog
       color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
@@ -454,7 +436,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      color = mix(vec4(#E8F6FF, 1.0), color, 1. - .9 * clamp(t.z / (float(maxSteps)), 0., 1.));
+      // color = mix(vec4(#E8F6FF, 1.0), color, 1. - .99 * clamp(t.z / (2.0 * float(maxSteps)), 0., 1.));
 
       return color;
     }
@@ -497,8 +479,9 @@ void main() {
     #endif
 
     // gamma
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
+    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.555556));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }

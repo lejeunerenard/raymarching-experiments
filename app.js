@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 let captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 40
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-platonic-dual-2-test1',
+    name: 'distance-field-study-noise-decay-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -65,9 +65,9 @@ export default class App {
     let canvas = document.createElement('canvas')
     document.body.appendChild(canvas)
     canvas.style.display = 'none'
-    if (!isAndroid()) {
-      canvas.addEventListener('touchstart', function(e) { e.preventDefault() })
-    }
+    // if (!isAndroid()) {
+    //   canvas.addEventListener('touchstart', function(e) { e.preventDefault() })
+    // }
 
     let gl = makeContext(canvas)
     this.LOOKAT = true
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.9, 0.9, 0.9)
+    this.cameraRo = vec3.fromValues(0.8, 0.8, 0.8)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.001
