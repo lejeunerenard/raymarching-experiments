@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-noise-decay-test1',
+    name: 'distance-field-study-minty-fresh-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.8, 0.8, 0.8)
+    this.cameraRo = vec3.fromValues(2.0, 0.0, 2.0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.001
