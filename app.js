@@ -23,12 +23,12 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import presets from './presets.json'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 1.5 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
-let captureTime = 0 * 5
-const secondsLong = 40
+const captureTime = 0 * 5
+const secondsLong = 100
 
 const capturing = false
 const BLOOM = true
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-minty-fresh-test1',
+    name: 'distance-field-study-lagoon-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,10 +85,10 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(2.0, 0.0, 2.0)
+    this.cameraRo = vec3.fromValues(-.796, 1.224, 0.5)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.000001
 
     // Fractal parameters
     this.offset = (preset.offset)

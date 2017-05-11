@@ -25,11 +25,12 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
 #define slowTime time * .01
+// #define slowTime 0.55
 
 vec3 lightPos = normalize(vec3(1., .75, 0.));
 
@@ -54,10 +55,10 @@ float noise(vec3 p) {
 float iqFBM (vec3 p) {
   float f = 0.0;
 
-  f += 0.5000*noise( p ); p = p*2.02;
-  f += 0.2500*noise( p ); p = p*2.03;
-  f += 0.1250*noise( p ); p = p*2.01;
-  f += 0.0625*noise( p );
+  f += 0.500000*noise( p ); p = p*2.02;
+  f += 0.250000*noise( p ); p = p*2.03;
+  f += 0.125000*noise( p ); p = p*2.01;
+  f += 0.062500*noise( p ); p = p*2.025;
 
   return f * 1.066667;
 }
@@ -181,7 +182,7 @@ bool insideSphere = false;
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p; // Unwarped coordinate
 
@@ -189,14 +190,12 @@ vec3 map (in vec3 p) {
   const float size = 0.25;
 
   // Padded space transform - every unit
-  float splitTime = clamp(0.5 + 0.75 * sin(4.0 * slowTime), 0., 1.);
-  float padding = size * (0.5 + 0.5 * cos(TWO_PI * splitTime - PI));
-  float index = floor(q.y / (2.0 * padding + size));
-  q.y = -index * 2.0 * padding + q.y;
-  // Global offset
-  q.y -= padding;
-
-  // vec3 b = vec3(sdBox(q, vec3(0.5, 2.0, 0.5)), 1.0, q.y);
+  // float splitTime = clamp(0.5 + 0.75 * sin(4.0 * slowTime), 0., 1.);
+  // float padding = size * (0.5 + 0.5 * cos(TWO_PI * splitTime - PI));
+  // float index = floor(q.y / (2.0 * padding + size));
+  // q.y = -index * 2.0 * padding + q.y;
+  // // Global offset
+  // q.y -= padding;
 
   q.x += 0.5 * cos(2.0 * q.y + TWO_PI * slowTime);
   q.y += 0.5 * cos(3.0 * q.z + TWO_PI * slowTime);
@@ -204,18 +203,23 @@ vec3 map (in vec3 p) {
   q.x += 0.5 * cos(1.1 * q.y + 1.0);
   q.y += 0.5 * cos(0.9 * q.z + 1.4);
   q.z += 0.5 * cos(1.4 * q.x + 5.0);
+  // q.x += 0.5 * cos(3.1 * q.y + noise(q));
+  // q.y += 0.5 * cos(2.9 * q.z + noise(q));
+  // q.z += 0.5 * cos(1.0 * q.x + noise(q));
 
-  vec3 b = vec3(sdCapsule(q, vec3(0.0, 0.5, 0.0), vec3(0.0, -0.5, 0.0), 0.5 + 0.25 * iqFBM(vec3(15.0, 1.0, 15.0) * q)), 1.0, q.x);
-  // vec3 b = vec3(sdCapsule(q, vec3(0.0, 0.5, 0.0), vec3(0.0, -0.5, 0.0), 0.5 + 0.25 * noise(vec3(10.0, 1.0, 10.0) * q)), 1.0, q.x);
-  b.x *= 0.1;
+  vec3 noiseP = q;
+  noiseP.xz *= 35.0;
+  vec3 b = vec3(sdCapsule(q, vec3(0.0, 0.5, 0.0), vec3(0.0, -0.5, 0.0), 0.5 + 0.25 * iqFBM(noiseP)), 1.0, q.x);
+  b.x *= clamp(b.x * b.x * 0.25 + 0.1, 0.1, 0.5);
+  // b.x *= 0.1;
   outD = dMin(outD, b);
 
-  vec3 cP = p;
-  cP.y -= 0.5 * size + padding;
-  float cI = pMod1(cP.y, 2.0 * padding + size);
-  const float breadth = 10.0; // 0.5;
-  vec3 crop = vec3(sdBox(cP, vec3(breadth, 0.5 * size, breadth)), 2.0, 0.0);
-  outD = dMax(outD, crop);
+  // vec3 cP = p;
+  // cP.y -= 0.5 * size + padding;
+  // float cI = pMod1(cP.y, 2.0 * padding + size);
+  // const float breadth = 10.0; // 0.5;
+  // vec3 crop = vec3(sdBox(cP, vec3(breadth, 0.5 * size, breadth)), 2.0, 0.0);
+  // outD = dMax(outD, crop);
   // outD = dMin(outD, crop);
 
   return outD;
@@ -311,17 +315,17 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
-  float i = floor(abs(trap + cos(TWO_PI * trap + 1.0)) * 4.0);
-  color = mix(color, #A151E8, isMaterialSmooth(i, 1.0));
-  color = mix(color, #5C51E8, isMaterialSmooth(i, 2.0));
-  color = mix(color, #E85F79, isMaterialSmooth(i, 3.0));
-  color = mix(color, #5996FF, isMaterialSmooth(i, 4.0));
-  color = mix(color, #5C51E8, isMaterialSmooth(i, 5.0));
+  trap = abs(trap + cos(TWO_PI * trap + 1.0));
+  float colorSpeed = 8.0;
+  float i = mod(floor( trap * colorSpeed), 2.0) + 1.0;
+
+  color = mix(color, #1a1a1a, isMaterialSmooth(i, 1.0));
+  color = mix(color, #69F2DF, isMaterialSmooth(i, 2.0));
 
   // Inner
   color = mix(color, 2.0 * #E651E8, isMaterialSmooth(m, 2.0));
 
-  return 2.2 * color;
+  return color;
 }
 
 vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -374,10 +378,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 position;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 2;
+      const int NUM_OF_LIGHTS = 3;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(1., .75, 0.)), 1.0);
       lights[1] = light(normalize(vec3(-1., -.5, 0.5)), 0.6);
+      lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), 0.2);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -387,9 +392,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.);
         const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
-        fre *= 0.5;
 
-        dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+        // dif *= min(0.5 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -397,10 +401,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         lin += fre * occ;
 
         // Ambient
-        lin += 0.001 * amb * occ * #ffcccc;
+        lin += 0.01 * amb * occ * #ffcccc;
 
-        float conserve = max(0., 1. - length(lin));
-        color += clamp((conserve * dif * lights[i].intensity) * diffuseColor, 0.0, 1.0)
+        float conserve = 1.0; // max(0., 1. - length(lin));
+        color +=
+          clamp((conserve * dif * lights[i].intensity) * diffuseColor, 0.0, 1.0)
           + clamp(lights[i].intensity * lin, 0., 1.);
       }
 
@@ -408,8 +413,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.10 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      color *= exp(-t.x * .1);
+      // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      // color *= exp(-t.x * .1);
 
       // Inner Glow
       // color += innerGlow(t.w);
@@ -418,14 +423,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // colorMap(color);
 
       // Debugging
+      #ifdef debugMapCalls
+      color = vec3(t.z / float(maxSteps));
+      #endif
+
       #ifdef debugMapMaxed
       if (t.z / float(maxSteps) > 0.9) {
         color = vec3(1., 0., 1.);
       }
-      #endif
-
-      #ifdef debugMapCalls
-      color = vec3(t.z / float(maxSteps));
       #endif
 
       return vec4(color, 1.);
