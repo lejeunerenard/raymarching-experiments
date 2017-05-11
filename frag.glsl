@@ -145,16 +145,6 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-// source: hg_sdf
-// Repeat space along one axis. Use like this to repeat along the x axis:
-// <float cell = pMod1(p.x,5);> - using the return value is optional.
-float pMod1(inout float p, float size) {
-  float halfsize = size*0.5;
-  float c = floor((p + halfsize)/size);
-  p = mod(p + halfsize, size) - halfsize;
-  return c;
-}
-
 float gRAngle = TWO_PI * 0.05 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
@@ -176,6 +166,8 @@ float sdCylinder( vec3 p, vec3 c )
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
+#pragma glslify: split = require(./split, size=0.25)
+
 bool insideSphere = false;
 
 // Return value is (distance, material, orbit trap)
@@ -186,16 +178,10 @@ vec3 map (in vec3 p) {
 
   vec3 q = p; // Unwarped coordinate
 
-  // Split & Separate
-  const float size = 0.25;
-
+  // --- Split & Separate ---
   // Padded space transform - every unit
-  // float splitTime = clamp(0.5 + 0.75 * sin(4.0 * slowTime), 0., 1.);
-  // float padding = size * (0.5 + 0.5 * cos(TWO_PI * splitTime - PI));
-  // float index = floor(q.y / (2.0 * padding + size));
-  // q.y = -index * 2.0 * padding + q.y;
-  // // Global offset
-  // q.y -= padding;
+  float splitTime = clamp(0.5 + 0.75 * sin(4.0 * slowTime), 0., 1.);
+  float c = split(q,splitTime);
 
   q.x += 0.5 * cos(2.0 * q.y + TWO_PI * slowTime);
   q.y += 0.5 * cos(3.0 * q.z + TWO_PI * slowTime);
@@ -214,13 +200,8 @@ vec3 map (in vec3 p) {
   // b.x *= 0.1;
   outD = dMin(outD, b);
 
-  // vec3 cP = p;
-  // cP.y -= 0.5 * size + padding;
-  // float cI = pMod1(cP.y, 2.0 * padding + size);
-  // const float breadth = 10.0; // 0.5;
-  // vec3 crop = vec3(sdBox(cP, vec3(breadth, 0.5 * size, breadth)), 2.0, 0.0);
-  // outD = dMax(outD, crop);
-  // outD = dMin(outD, crop);
+  vec3 crop = vec3(c, 2.0, 0.0);
+  outD = dMax(outD, crop);
 
   return outD;
 }
