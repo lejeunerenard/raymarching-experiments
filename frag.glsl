@@ -352,13 +352,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Declare lights
       struct light {
         vec3 position;
+        vec3 color;
         float intensity;
       };
       const int NUM_OF_LIGHTS = 3;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(1., .75, 0.)), 1.0);
-      lights[1] = light(normalize(vec3(-1., -.5, 0.5)), 0.6);
-      lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), 0.2);
+      lights[0] = light(normalize(vec3(1., .75, 0.)), #ff0000, 1.0);
+      lights[1] = light(normalize(vec3(-1., -.5, 0.5)), #00ff00, 0.6);
+      lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), #0000ff, 0.2);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -381,7 +382,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
         float conserve = 1.0; // max(0., 1. - length(lin));
         color +=
-          clamp((conserve * dif * lights[i].intensity) * diffuseColor, 0.0, 1.0)
+          clamp((conserve * dif * lights[i].intensity) * lights[i].color * diffuseColor, 0.0, 1.0)
           + clamp(lights[i].intensity * lin, 0., 1.);
       }
 
