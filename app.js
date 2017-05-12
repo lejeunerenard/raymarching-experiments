@@ -23,12 +23,12 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import presets from './presets.json'
 
-const dpr = 1.5 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 1.75 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 100
+const secondsLong = 30
 
 const capturing = false
 const BLOOM = true
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-.796, 1.224, 0.5)
+    this.cameraRo = vec3.fromValues(-.300, 1.224, 0.5)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.000001
@@ -367,7 +367,7 @@ export default class App {
     this.update(t)
     this.render(t)
 
-    this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
+    // this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
   }
 
   getCamera (t) {
@@ -419,7 +419,7 @@ export default class App {
     let base = this.state[0].color[0]
     this.state[1].bind()
     this.bright.bind()
-    this.bright.uniforms.minBright = 0.8
+    this.bright.uniforms.minBright = 0.9
     this.bright.uniforms.buffer = base.bind(0)
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)

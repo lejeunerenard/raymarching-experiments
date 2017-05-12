@@ -25,7 +25,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1536
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
@@ -96,19 +96,18 @@ float fOpUnionRound(float a, float b, float r) {
 }
 
 // IQ's capsule
-float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
-{
+float sdCapsule( vec3 p, vec3 a, vec3 b, float r ) {
     vec3 pa = p - a, ba = b - a;
     float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
     return length( pa - ba*h ) - r;
 }
-float sdBox( vec3 p, vec3 b )
-{
+
+float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
   return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
 }
-float sdHexPrism( vec3 p, vec2 h )
-{
+
+float sdHexPrism( vec3 p, vec2 h ) {
     vec3 q = abs(p);
     return max(q.z-h.y,max((q.x*0.866025+q.y*0.5),q.y)-h.x);
 }
@@ -166,10 +165,6 @@ float sdCylinder( vec3 p, vec3 c )
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
-#pragma glslify: split = require(./split, size=0.25)
-
-bool insideSphere = false;
-
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
@@ -178,30 +173,22 @@ vec3 map (in vec3 p) {
 
   vec3 q = p; // Unwarped coordinate
 
-  // --- Split & Separate ---
-  // Padded space transform - every unit
-  float splitTime = clamp(0.5 + 0.75 * sin(4.0 * slowTime), 0., 1.);
-  float c = split(q,splitTime);
-
-  q.x += 0.5 * cos(2.0 * q.y + TWO_PI * slowTime);
-  q.y += 0.5 * cos(3.0 * q.z + TWO_PI * slowTime);
-  q.z += 0.5 * cos(1.3 * q.x + TWO_PI * slowTime);
-  q.x += 0.5 * cos(1.1 * q.y + 1.0);
-  q.y += 0.5 * cos(0.9 * q.z + 1.4);
-  q.z += 0.5 * cos(1.4 * q.x + 5.0);
-  // q.x += 0.5 * cos(3.1 * q.y + noise(q));
-  // q.y += 0.5 * cos(2.9 * q.z + noise(q));
-  // q.z += 0.5 * cos(1.0 * q.x + noise(q));
+  q += 1.0000 * cos( 2.0 * q.yzx + noise(       q + slowTime));
+  q *= rotationMatrix(vec3(0.0, 1.0, 0.0), PI * 0.125);
+  q += 0.5000 * cos( 4.0 * q.yzx + noise( 3.0 * q + slowTime));
+  q *= rotationMatrix(vec3(0.0, 1.0, 0.0), PI * 0.125);
+  q += 0.2500 * cos( 8.0 * q.yzx + noise( 9.0 * q + slowTime));
 
   vec3 noiseP = q;
   noiseP.xz *= 35.0;
-  vec3 b = vec3(sdCapsule(q, vec3(0.0, 0.5, 0.0), vec3(0.0, -0.5, 0.0), 0.5 + 0.25 * iqFBM(noiseP)), 1.0, q.x);
-  b.x *= clamp(b.x * b.x * 0.25 + 0.1, 0.1, 0.5);
-  // b.x *= 0.1;
-  outD = dMin(outD, b);
 
-  vec3 crop = vec3(c, 2.0, 0.0);
-  outD = dMax(outD, crop);
+  vec3 b = vec3(sdCapsule(q, vec3(0.0, 0.5, 0.0), vec3(0.0, -0.5, 0.0),
+    0.5 + 0.25 * noise(noiseP)
+  ),
+      1.0, q.x);
+  b.x *= clamp(b.x * b.x * 0.05 + 0.005, 0.005, 0.5);
+  // b.x *= 0.005;
+  outD = dMin(outD, b);
 
   return outD;
 }
@@ -258,8 +245,16 @@ const float n2 = 1.50;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
+  rd.x += 0.75 * cos(rd.y + 1.0);
+  rd.y += 0.75 * cos(rd.z + 3.1);
+  rd.z += 0.75 * cos(rd.x - 0.8);
+  rd.x += 0.75 * cos(2.0 * rd.y + noise(rd + slowTime));
+  rd.y += 0.75 * cos(5.0 * rd.z);
+  rd.z += 0.75 * cos(4.0 * rd.x);
+
   // float v = 2.1 * noise(rd);
-  float v = noise(2. * rd);
+  vec3 s = vec3(0.0);
+  float v = iqFBM(2. * rd);
   // v = smoothstep(-1.0, 1.0, v);
 
   // vec3 maxRd = abs(rd);
@@ -293,15 +288,15 @@ float isMaterialSmooth( float m, float goal ) {
   return 1. - smoothstep(0., eps, abs(m - goal));
 }
 
+#pragma glslify: gradient = require(./gradient)
+
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
   trap = abs(trap + cos(TWO_PI * trap + 1.0));
-  float colorSpeed = 8.0;
-  float i = mod(floor( trap * colorSpeed), 2.0) + 1.0;
+  float colorSpeed = 0.5;
 
-  color = mix(color, #1a1a1a, isMaterialSmooth(i, 1.0));
-  color = mix(color, #69F2DF, isMaterialSmooth(i, 2.0));
+  color = gradient(trap * colorSpeed);
 
   // Inner
   color = mix(color, 2.0 * #E651E8, isMaterialSmooth(m, 2.0));
@@ -391,7 +386,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       // color += 0.09 * reflection(pos, ref);
-      // color += 0.10 * dispersion(nor, rayDirection, n2);
+      color += 0.20 * dispersion(nor, rayDirection, n2);
 
       // Fog
       // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
