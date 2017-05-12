@@ -3,6 +3,7 @@ precision highp float;
 uniform vec2 resolution;
 uniform sampler2D base;
 uniform sampler2D buffer;
+uniform float wet;
 
 #pragma glslify: import(./background)
 
@@ -19,7 +20,7 @@ void main() {
   vec4 bufferColor  = texture2D(buffer, uv);
   bufferColor.rgb = pow(bufferColor.rgb, gamma);
 
-  vec4 result = baseColor + bufferColor;
+  vec4 result = wet * bufferColor + baseColor;
 
   // Gamma encode
   gl_FragColor = mix(vec4(background, 1.), result, baseColor.a);

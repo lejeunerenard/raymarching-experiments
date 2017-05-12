@@ -29,10 +29,12 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 const fr = 60
 const captureTime = 0 * 5
 const secondsLong = 30
-
 const capturing = false
 const BLOOM = true
 const MANDELBOX = false
+const BLOOM = true
+const BLOOM_WET = 0.75
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
@@ -419,12 +421,12 @@ export default class App {
     let base = this.state[0].color[0]
     this.state[1].bind()
     this.bright.bind()
-    this.bright.uniforms.minBright = 0.9
+    this.bright.uniforms.minBright = BLOOM_MIN_BRIGHTNESS
     this.bright.uniforms.buffer = base.bind(0)
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 2; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
@@ -451,6 +453,7 @@ export default class App {
     this.finalPass.uniforms.base = this.state[0].color[0].bind(3)
     this.finalPass.uniforms.buffer = this.state[1].color[0].bind(4)
     this.finalPass.uniforms.resolution = dim
+    this.finalPass.uniforms.wet = BLOOM_WET
     drawTriangle(gl)
   }
 
