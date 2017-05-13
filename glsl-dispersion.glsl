@@ -2,7 +2,7 @@
 
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 
-vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1) {
+vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 lightColor) {
   const float between = amount;
   float greenIOR = n2;
 
@@ -51,10 +51,13 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1) {
   float B = b;
   #endif
 
-  return vec3(R, G, B);
+  return vec3(R, G, B) * lightColor;
 }
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2) {
-  return refractColors(nor, eye, n2, 1.);
+  return refractColors(nor, eye, n2, 1., vec3(1.0));
+}
+vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in vec3 lightColor) {
+  return refractColors(nor, eye, n2, 1., lightColor);
 }
 
 #pragma glslify: export(refractColors)

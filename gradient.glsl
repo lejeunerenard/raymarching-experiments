@@ -12,12 +12,12 @@ vec3 gradientColors (in float v) {
 
   vec3 color = colors[0];
   for (int i = 1; i < SIZE; i++) {
-    float a =  smoothstep(period * float(i - 1), period * float(i), v);
+    float a = smoothstep(period * float(i - 1), period * float(i), v);
     color = mix(color, colors[i], a);
   }
 
   // Final loop around
-  float a =  smoothstep(period * float(SIZE - 1), 1., v);
+  float a = smoothstep(period * float(SIZE - 1), 1., v);
   color = mix(color, colors[0], a);
 
   return color;

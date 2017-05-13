@@ -23,14 +23,14 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import presets from './presets.json'
 
-const dpr = 1.75 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
 const secondsLong = 30
 const capturing = false
-const BLOOM = true
+
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.75
@@ -41,7 +41,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-lagoon-test1',
+    name: 'distance-field-study-ooooze-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -59,7 +59,7 @@ let winclearInterval = window.clearInterval
 let winRequestAnimationFrame = window.requestAnimationFrame
 let winProfNow = window.performance.now
 
-const PHI = (1+Math.sqrt(5))/2;
+const PHI = (1+Math.sqrt(5))/2
 
 // Initialize shell
 export default class App {
@@ -87,10 +87,10 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-.300, 1.224, 0.5)
+    this.cameraRo = vec3.fromValues(0, 1, 3)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -369,12 +369,12 @@ export default class App {
     this.update(t)
     this.render(t)
 
-    // this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
+    this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
   }
 
   getCamera (t) {
     t /= 1000
-    let cameraMatrix = mat4.create() 
+    let cameraMatrix = mat4.create()
 
     // LookAt
     if (this.LOOKAT) {
