@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -26,8 +26,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
-#define maxDistance 20.0
+#define maxSteps 512
+#define maxDistance 50.0
 #pragma glslify: import(./background)
 
 #define slowTime time * .1
@@ -39,6 +39,7 @@ const vec3 un = vec3(1., -1., 0.);
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
+#pragma glslify: vmax = require(./hg_sdf/vmax)
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -108,6 +109,10 @@ float sdHexPrism( vec3 p, vec2 h ) {
 float sdTorus( vec3 p, vec2 t ) {
   vec2 q = vec2(length(p.xz)-t.x,p.y);
   return length(q)-t.y;
+}
+// Endless "corner"
+float fCorner (vec2 p) {
+  return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
 // #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
@@ -180,29 +185,17 @@ float sdCylinder( vec3 p, vec3 c )
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
-float parametric (in vec3 p, in int i) {
-  float outD = 1000.0;
-
-  float a = atan(p.y, p.x);
-  float r = 3.0 + 0.15 * cos(6.0 * a + cos(12.0 * a) + 0.1 * float(i) * time);
-  vec3 c = vec3( r * cos(a), r * sin(a), 0.2 * cos(2.0 * a + cos(3.0 * a)) + 0.1 * noise(p));
-
-  outD = length(p - c) - 0.05;
-
-  return outD;
+float timeIndex (in float x) {
+  return 100.0 * x + 3.0; //  + 10.0 * time;
 }
 
-#pragma glslify: rotated1 = require(./rotated-map, map=parametric, rotSymmetry=10)
-
-float rotated1Adjusted (in vec3 p, in int i) {
-  p.y += 1.5;
-
-  p *= rotationMatrix(normalize(vec3(0.1, 1., 0.)), PI * -0.2) * rotationMatrix(normalize(vec3(0.0, 0., 1.)), slowTime);
-
-  return rotated1(p);
+float bumpStripes (in float x) {
+  float v = 0.75 + 0.25 * sin(x + 0.25 * noise(vec3(20.0 * x, x, 0.0)));
+  v = 0.45 + 0.5 * smoothstep(0.55, 0.6, v);
+  return v;
 }
 
-#pragma glslify: rotated2 = require(./rotated-map, map=rotated1Adjusted, rotSymmetry=5)
+mat3 stripesRot = mat3(0.);
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
@@ -212,11 +205,24 @@ vec3 map (in vec3 p) {
 
   vec3 q = p; // Unwarped coordinate
 
-  vec3 t = vec3(0.4 * rotated2(p), 1.0, 0.0);
-  outD = dMin(outD, t);
+  q *= stripesRot;
 
-  vec3 o = vec3(length(p) - 0.1, 2.0, 0.0);
+  vec3 z = q;
+  q += 1.00 * cos(2.0 * q.yzx);
+
+  float t = timeIndex(z.z);
+  float radius = 0.9 + 0.02 * noise(z) * bumpStripes(t);
+  radius += 0.7 * noise(q + slowTime);
+
+  vec3 o = vec3(length(p) - radius, 1.0, 0.0);
+  o.x *= 0.25;
   outD = dMin(outD, o);
+
+  vec3 f = vec3(fCorner(p.xy + vec2(-4.0, 2.0)), 2.0, 0.0);
+  outD = dMin(outD, f);
+
+  vec3 w = vec3(fCorner(p.xy + vec2(4.0, -5.0)), 3.0, 0.0);
+  outD = dMin(outD, w);
 
   return outD;
 }
@@ -321,7 +327,19 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
-  color = mix(#5F8BFF, #58E8DD, saturate(2.0 * pos.z + 0.2));
+  pos *= stripesRot;
+
+
+  float notFloor = isMaterialSmooth(m, 1.0);
+  float isFloor = (1.0 - notFloor);
+
+  float t = timeIndex(pos.z);
+  float v = bumpStripes(t);
+  color = #C9E3FF * notFloor;
+  color *= vec3(v) * notFloor;
+
+  color = mix(color, #010101, isFloor);
+  color = mix(color, #97AABF, isMaterialSmooth(m, 3.0));
 
   return color;
 }
@@ -363,8 +381,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
     if (t.x>0.) {
       vec3 color = vec3(0.0);
+      float isFloor = isMaterialSmooth(t.y, 2.0);
+      float isWall = isMaterialSmooth(t.y, 3.0);
 
       vec3 nor = getNormal2(pos, 0.08 * t.x);
+      vec3 nNorP = pos * 50.0;
+      nor = normalize(nor +
+        0.09 * vec3(noise(nNorP), noise(nNorP + 203.0), noise(nNorP - 523.0))
+          * (isFloor + 0.5 * isWall));
 
       vec3 ref = reflect(rayDirection, nor);
       ref = normalize(ref);
@@ -381,13 +405,17 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.3333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(1., .75, 0.)), #22aaff, 0.8);
-      lights[1] = light(normalize(vec3(-1., -.5, 0.5)), #8800ff, 0.6);
+      lights[0] = light(normalize(vec3(1., .75, 0.)), #ffffff, 0.8);
+      lights[1] = light(normalize(vec3(-1., -.5, 0.5)), #ffffff, 0.6);
       lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), #ffffff, 0.2);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
+
+      float freCo = mix(0.6, 0.1, isFloor);
+      float specCo = mix(0.5, 0.1, isFloor);
+      float disperCo  = mix(0.05, 0.01, isFloor);
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
@@ -399,27 +427,29 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= occ;
+        fre *= freCo * occ;
         lin += fre;
-        lin += spec * (1. - fre);
+        lin += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.01 * amb * occ * #ffcccc;
+        lin += 0.01 * amb * occ * #ffcccc;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
           clamp((conserve * dif * lights[i].intensity) * lights[i].color * diffuseColor, 0.0, 1.0)
           + clamp(lights[i].intensity * lin, 0., 1.);
 
-        // color += 0.3 * repNUM_OF_LIGHTS * dispersion(nor, rayDirection, n2, lights[i].color);
+        color += disperCo * repNUM_OF_LIGHTS * lights[i].intensity * dispersion(nor, rayDirection, n2, lights[i].color);
       }
+      color *= 2.0 / float(NUM_OF_LIGHTS);
 
-      // color += 0.09 * reflection(pos, ref);
-      color += 0.50 * dispersion(nor, rayDirection, n2);
+      color += 0.025 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.0);
+      color += 0.01 * reflection(pos, ref) * isFloor;
+      // color += 0.50 * dispersion(nor, rayDirection, n2);
 
       // Fog
       // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      color *= exp(-t.x * .05);
+      // color *= exp(-t.x * .05);
 
       // Inner Glow
       // color += innerGlow(t.w);
@@ -465,6 +495,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
+    stripesRot = rotationMatrix(vec3(0.0, 1.0, 0.0), PI * 0.4);
 
     #ifdef SS
     // Antialias by averaging all adjacent values

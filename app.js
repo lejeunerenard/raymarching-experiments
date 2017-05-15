@@ -27,7 +27,7 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
-const captureTime = 2 * 5
+const captureTime = 0 * 5
 const secondsLong = 10
 const capturing = false
 
@@ -41,7 +41,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-revolutionary-test2',
+    name: 'distance-field-study-zero-g-mercury-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -87,11 +87,10 @@ export default class App {
     }
 
     this.d = preset.d
-    // this.cameraRo = vec3.fromValues(0, 5, 0.0001)
-    this.cameraRo = vec3.fromValues(0, 0, 7)
+    this.cameraRo = vec3.fromValues(2.1, 1.65, 0)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)

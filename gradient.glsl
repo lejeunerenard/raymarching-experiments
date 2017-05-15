@@ -1,10 +1,12 @@
 vec3 gradientColors (in float v) {
-  #define SIZE 3
+  #define SIZE 5
 
   vec3 colors[SIZE];
-  colors[0] = #AD27FF;
-  colors[1] = #2C66FF;
-  colors[2] = #39FFE0;
+  colors[0] = #E46BFF;
+  colors[1] = #391B40;
+  colors[2] = #AB51BF;
+  colors[3] = #CD61E5;
+  colors[4] = #72367F;
 
   v = mod(v, 1.);
 
