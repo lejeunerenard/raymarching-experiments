@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -26,7 +26,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 128
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
@@ -90,6 +90,15 @@ float trapCalc (in vec3 p, in float k) {
   return dot(p, p) / (k * k);
 }
 
+float fOpIntersectionRound(float a, float b, float r) {
+  vec2 u = max(vec2(r + a,r + b), vec2(0));
+  return min(-r, max (a, b)) + length(u);
+}
+
+float fOpDifferenceRound (float a, float b, float r) {
+  return fOpIntersectionRound(a, -b, r);
+}
+
 // IQ's capsule
 float sdCapsule( vec3 p, vec3 a, vec3 b, float r ) {
     vec3 pa = p - a, ba = b - a;
@@ -110,6 +119,13 @@ float sdTorus( vec3 p, vec2 t ) {
   vec2 q = vec2(length(p.xz)-t.x,p.y);
   return length(q)-t.y;
 }
+
+float sdPlane( vec3 p, vec4 n )
+{
+  // n must be normalized
+  return dot(p,n.xyz) + n.w;
+}
+
 // Endless "corner"
 float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
@@ -197,32 +213,112 @@ float bumpStripes (in float x) {
 
 mat3 stripesRot = mat3(0.);
 
+#define goldenRatio 2.399827721492203
+// In radians 👆
+
+float polarDistance (in vec2 p1, in vec2 p2) {
+  // p1.x is radius
+  // p1.y is angle
+
+  return sqrt( p1.x * p1.x + p2.x * p2.x - 2.0 * p1.x * p2.x * cos(p2.y - p2.y) );
+}
+
+float petal (in vec3 p, in float radius) {
+  float groundedY = p.y + radius;
+
+  p.x = abs(p.x);
+
+  p.x /= groundedY * sqrt((2.0 - groundedY) / 3.0) + 0.01;
+  p.x = max(p.x, 0.0); // clip negative x
+
+  // Z Trimming
+  float d = sdBox(p, vec3(1.0, 1.0, 0.05));
+  d *= 0.25;
+
+  return d;
+}
+
+float phyllotaxis (in vec3 p) {
+  const float c = 0.5;
+  const float radius = 0.5;
+
+  float r0 = length(p.xy);
+
+  float phi = 0.0;
+  float r = 0.0;
+  float minD = 10000.0;
+
+  for (float n = 1.0; n < 100.0; n++) {
+    float phiN = n * goldenRatio;
+    float rN = c * sqrt(n);
+
+    if (n >= 2.0 * time) { break; }
+
+    vec3 z = p;
+    if ( rN >= r0 + 3.0 * radius ) { break; }
+
+      vec3 center = vec3(
+          rN * cos(phiN),
+          rN * sin(phiN),
+          0.0);
+
+      z -= center;
+
+      // Rotate space to align w/ phi
+      // z *= rotationMatrix(vec3(0.0, 0.0, -1.0), phiN);
+
+      // float d = petal(z - center, radius);
+      // float d = sdBox(z, vec3(0.5));
+      float d = length(z - center) - radius;
+      minD = min(minD, d);
+  }
+
+  return minD;
+}
+
+float parametric (in vec3 p) {
+  float angle = atan(p.y, p.x);
+  // angle += TWO_PI * step(0.0, -angle);
+  float k = 6.0 + 4.0 * sin(0.1 * slowTime);
+  // float k = 4.0;
+
+  float minD = 1000.0;
+
+  for (int i = 0; i < 20; i++) {
+    float formula = cos(k * angle);
+    vec3 center = vec3(
+        formula * cos(angle),
+        formula * sin(angle),
+        0.0);
+
+    minD = min(minD, length(p - center) - 0.05);
+    angle += PI;
+  }
+
+  return minD;
+}
+
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
   // p *= globalRot;
 
-  vec3 q = p; // Unwarped coordinate
+  vec3 q = p;
 
-  q *= stripesRot;
+  // float phyllo = phyllotaxis(p);
+  // vec3 o = vec3(phyllo, 1.0, 0.0);
+  // outD = dMin(outD, o);
 
-  vec3 z = q;
-  q += 1.00 * cos(2.0 * q.yzx);
+  // p *= rotationMatrix(vec3(0.0, 0.0, 1.0), PI * 0.5);
+  // vec3 r = vec3(petal(p, 1.0), 1.0, 0.0);
+  // outD = dMin(outD, r);
 
-  float t = timeIndex(z.z);
-  float radius = 0.9 + 0.02 * noise(z) * bumpStripes(t);
-  radius += 0.7 * noise(q + slowTime);
+  // vec3 s = vec3(length(p) - 0.5, 1.0, 0.0);
+  // outD = dMin(outD, s);
 
-  vec3 o = vec3(length(p) - radius, 1.0, 0.0);
-  o.x *= 0.25;
-  outD = dMin(outD, o);
-
-  vec3 f = vec3(fCorner(p.xy + vec2(-4.0, 2.0)), 2.0, 0.0);
-  outD = dMin(outD, f);
-
-  vec3 w = vec3(fCorner(p.xy + vec2(4.0, -5.0)), 3.0, 0.0);
-  outD = dMin(outD, w);
+  vec3 r = vec3(0.25 * parametric(p), 1.0, 0.0);
+  outD = dMin(outD, r);
 
   return outD;
 }
@@ -326,20 +422,7 @@ float isMaterialSmooth( float m, float goal ) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
-
-  pos *= stripesRot;
-
-
-  float notFloor = isMaterialSmooth(m, 1.0);
-  float isFloor = (1.0 - notFloor);
-
-  float t = timeIndex(pos.z);
-  float v = bumpStripes(t);
-  color = #C9E3FF * notFloor;
-  color *= vec3(v) * notFloor;
-
-  color = mix(color, #010101, isFloor);
-  color = mix(color, #97AABF, isMaterialSmooth(m, 3.0));
+  color = #cf0000;
 
   return color;
 }
@@ -385,10 +468,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isWall = isMaterialSmooth(t.y, 3.0);
 
       vec3 nor = getNormal2(pos, 0.08 * t.x);
-      vec3 nNorP = pos * 50.0;
-      nor = normalize(nor +
-        0.09 * vec3(noise(nNorP), noise(nNorP + 203.0), noise(nNorP - 523.0))
-          * (isFloor + 0.5 * isWall));
+      // vec3 nNorP = pos * 50.0;
+      // nor = normalize(nor +
+      //   0.09 * vec3(noise(nNorP), noise(nNorP + 203.0), noise(nNorP - 523.0))
+      //     * (isFloor + 0.5 * isWall));
 
       vec3 ref = reflect(rayDirection, nor);
       ref = normalize(ref);
@@ -413,9 +496,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(0.6, 0.1, isFloor);
-      float specCo = mix(0.5, 0.1, isFloor);
-      float disperCo  = mix(0.05, 0.01, isFloor);
+      float freCo = 0.8;
+      float specCo = 1.0;
+      float disperCo = 0.1;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
@@ -423,7 +506,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
+        // dif *= min(0.1 + softshadow(pos, lightPos, 0.02, 1.5), 1.);
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -443,8 +526,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
       color *= 2.0 / float(NUM_OF_LIGHTS);
 
-      color += 0.025 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.0);
-      color += 0.01 * reflection(pos, ref) * isFloor;
+      // color += 0.025 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.0);
+      // color += 0.01 * reflection(pos, ref) * isFloor;
       // color += 0.50 * dispersion(nor, rayDirection, n2);
 
       // Fog
@@ -526,5 +609,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    // gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }

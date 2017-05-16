@@ -28,7 +28,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 60
 const capturing = false
 
 const MANDELBOX = false
@@ -41,7 +41,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-zero-g-mercury-test1',
+    name: 'distance-field-study-mothersday-rose-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -87,7 +87,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(2.1, 1.65, 0)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0005
@@ -100,7 +100,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -159,13 +159,14 @@ export default class App {
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([0, -.796, 8], 15 * 1000)
+      .to([0.9, -.796, 1], 15 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-      .to([-8.2, -.796, 8], 15 * 1000)
+      .to([-1.2, .5, 1], 15 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
 
     cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween2.chain(cameraPosTween)
 
     cameraPosTween.start(0)
 
