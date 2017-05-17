@@ -26,7 +26,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
@@ -298,27 +298,64 @@ float parametric (in vec3 p) {
   return minD;
 }
 
+#pragma glslify: ease = require(glsl-easings/bounce-in)
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  // p *= globalRot;
-
+  p *= globalRot;
   vec3 q = p;
 
-  // float phyllo = phyllotaxis(p);
-  // vec3 o = vec3(phyllo, 1.0, 0.0);
-  // outD = dMin(outD, o);
+  // Timing
+  float oscTime = mod(time, 5.0);
 
-  // p *= rotationMatrix(vec3(0.0, 0.0, 1.0), PI * 0.5);
-  // vec3 r = vec3(petal(p, 1.0), 1.0, 0.0);
-  // outD = dMin(outD, r);
+  // Cube
+  float cubeTime = smoothstep(0.0, 1.0, oscTime) * (1.0 - smoothstep(1.0, 2.0, oscTime));
+  float cubeYOffset = mix(-1.0, 1.5, ease(cubeTime));
+  vec3 cube = vec3(sdBox(p - vec3(0., cubeYOffset, 0.), vec3(0.5)), 1.0, 0.0);
+  outD = dMin(outD, cube);
 
-  // vec3 s = vec3(length(p) - 0.5, 1.0, 0.0);
-  // outD = dMin(outD, s);
+  // Sphere
+  float sphereTime = smoothstep(3.0, 4.0, oscTime) * (1.0 - smoothstep(4.0, 5.0, oscTime));
+  float sphereYOffset = mix(-1.5, 1.5, ease(sphereTime));
+  vec3 s = vec3(length(p - vec3(0., sphereYOffset, 0.)) - 1.0, 1.0, 0.0);
+  outD = dMin(outD, s);
 
-  vec3 r = vec3(0.25 * parametric(p), 1.0, 0.0);
-  outD = dMin(outD, r);
+  vec3 floor = vec3(sdPlane(p, vec4(0.,1.,0.,0.)), 1.0, 0.0);
+  float dBefore = outD.x;
+
+  // Cube Ripple
+  float cubePreRippleTimeIndex = oscTime - 0.2 * length(p.xz);
+  float cubePreRippleTime = smoothstep(0.25, 0.45, cubePreRippleTimeIndex)
+                        * (1.0 - smoothstep(0.45, 0.75, cubePreRippleTimeIndex));
+  floor.x -= 0.02 * cubePreRippleTime * max(0.0, 2.5 - length(p.xz)) * sin(-20.0 * time + 12.0 * length(p.xz));
+
+  float cubeRippleTimeIndex = oscTime - 0.25 * length(p.xz);
+  float cubeRippleTime = smoothstep(1.15, 1.35, cubeRippleTimeIndex)
+                        * (1.0 - smoothstep(1.35, 1.55, cubeRippleTimeIndex));
+  floor.x -= 0.09 * cubeRippleTime * max(0.0, 2.5 - length(p.xz)) * sin(-20.0 * time + 12.0 * length(p.xz));
+
+  // Sphere Ripple
+  float spherePreRippleTimeIndex = oscTime - 0.2 * length(p.xz);
+  float spherePreRippleTime = smoothstep(3.30, 3.50, spherePreRippleTimeIndex)
+                        * (1.0 - smoothstep(3.50, 3.80, spherePreRippleTimeIndex));
+  floor.x -= 0.02 * spherePreRippleTime * max(0.0, 2.5 - length(p.xz)) * sin(-20.0 * time + 12.0 * length(p.xz));
+
+  float sphereRippleTimeIndex = oscTime - 0.25 * length(p.xz);
+  float sphereRippleTime = smoothstep(4.20, 4.40, sphereRippleTimeIndex)
+                        * (1.0 - smoothstep(4.40, 4.60, sphereRippleTimeIndex));
+  floor.x -= 0.05 * sphereRippleTime * max(0.0, 2.5 - length(p.xz)) * sin(-20.0 * time + 12.0 * length(p.xz));
+
+  // Ambient ripples
+  vec3 fbms = vec3(0.0);
+  floor.x += 0.1 * (abs(iqFBM(vec3(2.0 * p.xz, time))) + dot(sin(vec2(1.3, 3.0) * time + p.xz), vec2(1.0)));
+
+  // Floor Combine
+  outD = dMin(outD, floor);
+  outD.x = fOpUnionRound(dBefore, floor.x, 0.5);
+
+  // Safety coefficient
+  outD.x *= 0.9;
 
   return outD;
 }
@@ -422,7 +459,7 @@ float isMaterialSmooth( float m, float goal ) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
-  color = #cf0000;
+  color += 0.25 + 0.25 * cos(TWO_PI * (dot(nor, rd) + vec3(0.0, 0.33, 0.67)));
 
   return color;
 }
@@ -498,7 +535,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       float freCo = 0.8;
       float specCo = 1.0;
-      float disperCo = 0.1;
+      float disperCo = 0.3;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
@@ -526,12 +563,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
       color *= 2.0 / float(NUM_OF_LIGHTS);
 
-      // color += 0.025 * reflection(pos, ref) * isMaterialSmooth(t.y, 1.0);
+      color += 0.0125 * reflection(pos, ref);
       // color += 0.01 * reflection(pos, ref) * isFloor;
       // color += 0.50 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
       // color *= exp(-t.x * .05);
 
       // Inner Glow
@@ -609,5 +646,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }

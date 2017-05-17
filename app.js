@@ -28,20 +28,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 60
+const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.75
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_WET = 0.25
+const BLOOM_MIN_BRIGHTNESS = 0.99
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-mothersday-rose-test1',
+    name: 'distance-field-study-rebirth-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -87,10 +87,10 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2)
+    this.cameraRo = vec3.fromValues(0, 2.122, 3.469)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0005
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -100,7 +100,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -465,7 +465,7 @@ export default class App {
       this.state[0].bind()
     }
 
-    shader.uniforms.time = t / 1000
+    shader.uniforms.time = window.time || t / 1000
     shader.uniforms.BLOOM = BLOOM
     manager.render(shader, t)
 
