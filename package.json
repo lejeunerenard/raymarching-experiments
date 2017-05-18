@@ -42,6 +42,10 @@
     "inquirer": "^3.0.6",
     "uglify-js": "^2.7.5"
   },
+  "eslintConfig": {
+    "extends": "standard",
+    "globals": { "Audio": true }
+  },
   "scripts": {
     "start": "budo app.js:bundle.js --live -- --standalone RayMarch",
     "build": "npm run build:bundle",

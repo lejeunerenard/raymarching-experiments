@@ -1,7 +1,6 @@
 const glslify = require('glslify')
 
 import createShader from 'gl-shader'
-import createTexture from 'gl-texture2d'
 import createFBO from 'gl-fbo'
 
 import ShaderVREffect from 'shader-vr-effect'
@@ -11,8 +10,7 @@ import WebVRManager from 'shader-webvr-manager'
 import fit from 'canvas-fit'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
-import { isAndroid, rot4 } from './utils'
-import { cameraOrbit } from './camera-tweens'
+import { rot4 } from './utils'
 import CCapture from 'ccapture.js'
 import SoundCloud from 'soundcloud-badge'
 import Analyser from 'gl-audio-analyser'
@@ -21,7 +19,6 @@ import drawTriangle from 'a-big-triangle'
 import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
-import presets from './presets.json'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
@@ -59,7 +56,7 @@ let winclearInterval = window.clearInterval
 let winRequestAnimationFrame = window.requestAnimationFrame
 let winProfNow = window.performance.now
 
-const PHI = (1+Math.sqrt(5))/2
+// const PHI = (1+Math.sqrt(5))/2
 
 // Initialize shell
 export default class App {
@@ -76,13 +73,13 @@ export default class App {
 
     const preset = {
       offset: {
-        x: .669,
-        y: -.654,
+        x: 0.669,
+        y: -0.654,
         z: 1.618
       },
       d: 5,
-      scale: .9, // 1.79,
-      rot2angle: [.685, .583, 2.259],
+      scale: 0.9, // 1.79,
+      rot2angle: [0.685, 0.583, 2.259],
       cameraAngles: [0, 0, 0]
     }
 
@@ -112,7 +109,6 @@ export default class App {
       isUndistorted: false
     }
     let manager = new WebVRManager({ domElement: canvas }, effect, params)
-    let vrDisplay = undefined
 
     assign(this, {
       canvas,
@@ -120,7 +116,7 @@ export default class App {
       effect,
       controls,
       manager,
-      vrDisplay,
+      vrDisplay: undefined,
       currentRAF: null,
       running: false
     })
@@ -159,10 +155,10 @@ export default class App {
     // Camera location animation
     let cameraPosTween = new TWEEN.Tween(this.cameraRo)
     cameraPosTween
-      .to([0.9, -.796, 1], 15 * 1000)
+      .to([0.9, -0.796, 1], 15 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
     let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-      .to([-1.2, .5, 1], 15 * 1000)
+      .to([-1.2, 0.5, 1], 15 * 1000)
       .easing(TWEEN.Easing.Sinusoidal.Out)
 
     cameraPosTween.chain(cameraPosTween2)
@@ -217,11 +213,12 @@ export default class App {
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
+    offsetTween1
       .delay(20 * 1000)
       .to([
         1.441,
-        .669,
-        -.654
+        0.669,
+        -0.654
       ], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
@@ -235,7 +232,7 @@ export default class App {
         song: 'https://soundcloud.com/shang-lin/swanky',
         dark: true,
         getFonts: true
-      }, (err, src, data, div)  => {
+      }, (err, src, data, div) => {
         if (err) {
           reject(err)
           throw err
@@ -243,7 +240,7 @@ export default class App {
 
         // Play the song on
         // a modern browser
-        let audio = new Audio
+        let audio = new Audio()
         audio.crossOrigin = 'Anonymous'
         audio.src = src
         audio.addEventListener('canplay', () => {
@@ -300,16 +297,16 @@ export default class App {
 
     if (MANDELBOX) {
       _kifsM = mat4.fromValues(
-        1,     0,     0,     -offset[0],
-        0,     1,     0,     -offset[1],
-        0,     0,     1,     -offset[2],
-        0,     0,     0,     1)
+        1, 0, 0, -offset[0],
+        0, 1, 0, -offset[1],
+        0, 0, 1, -offset[2],
+        0, 0, 0, 1)
     } else {
       _kifsM = mat4.fromValues(
-        scale, 0,     0,     -offset[0] * (scale - 1),
-        0,     scale, 0,     -offset[1] * (scale - 1),
-        0,     0,     scale, -offset[2] * (scale - 1),
-        0,     0,     0,     1)
+        scale, 0, 0, -offset[0] * (scale - 1),
+        0, scale, 0, -offset[1] * (scale - 1),
+        0, 0, scale, -offset[2] * (scale - 1),
+        0, 0, 0, 1)
     }
 
     const angleX = this.rot2angle[0]
@@ -396,7 +393,6 @@ export default class App {
       mat4.multiply(cameraMatrix, rot4(axisZ, angleZ), cameraMatrix)
     }
 
-
     this.cameraMatrix = cameraMatrix
     return [this.cameraRo, cameraMatrix]
   }
@@ -459,9 +455,9 @@ export default class App {
   }
 
   render (t) {
-    let { shader, manager, controls, gl } = this
+    let { shader, manager, gl } = this
 
-    if (BLOOM){
+    if (BLOOM) {
       this.state[0].bind()
     }
 
@@ -469,7 +465,7 @@ export default class App {
     shader.uniforms.BLOOM = BLOOM
     manager.render(shader, t)
 
-    if (BLOOM){
+    if (BLOOM) {
       this.bloomBlur(gl)
     }
 
