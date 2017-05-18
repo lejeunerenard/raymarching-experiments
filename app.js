@@ -25,7 +25,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 40
 const capturing = false
 
 const MANDELBOX = false
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-rebirth-test1',
+    name: 'distance-field-study-writhe-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,7 +84,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 2.122, 3.469)
+    this.cameraRo = vec3.fromValues(0, 1, 2)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
