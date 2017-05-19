@@ -1,4 +1,4 @@
-// #define RGBCMY 1
+#define RGBCMY 1
 
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 

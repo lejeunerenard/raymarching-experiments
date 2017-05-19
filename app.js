@@ -25,20 +25,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.25
-const BLOOM_MIN_BRIGHTNESS = 0.99
+const BLOOM_WET = 0.75
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-writhe-test1',
+    name: 'distance-field-study-oscillate-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,7 +84,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 1, 2)
+    this.cameraRo = vec3.fromValues(1, 1.75, 1)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
