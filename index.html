@@ -52,6 +52,12 @@ cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
 cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
 cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
 
+var objF = gui.addFolder('Object')
+objF.add(app.objectPos, '0', -4, 4).step(0.001).listen()
+objF.add(app.objectPos, '1', -4, 4).step(0.001).listen()
+objF.add(app.objectPos, '2', -4, 4).step(0.001).listen()
+objF.add(app, 'objectR', 0.1, 3).step(0.001).listen()
+
 app.run()
     </script>
   </body>

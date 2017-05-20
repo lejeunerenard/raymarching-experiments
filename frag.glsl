@@ -19,6 +19,9 @@ uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 
+uniform vec3 objectPos;
+uniform float objectR;
+
 // KIFS
 uniform mat4 kifsM;
 uniform float scale;
@@ -26,7 +29,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 20.0
 #pragma glslify: import(./background)
 
@@ -205,101 +208,12 @@ float sdCylinder( vec3 p, vec3 c )
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
-float timeIndex (in float x) {
-  return 100.0 * x + 3.0; //  + 10.0 * time;
+bool isMaterial( float m, float goal ) {
+  return m < goal + 1. && m > goal - .1;
 }
-
-float bumpStripes (in float x) {
-  float v = 0.75 + 0.25 * sin(x + 0.25 * noise(vec3(20.0 * x, x, 0.0)));
-  v = 0.45 + 0.5 * smoothstep(0.55, 0.6, v);
-  return v;
-}
-
-mat3 stripesRot = mat3(0.);
-
-#define goldenRatio 2.399827721492203
-// In radians 👆
-
-float polarDistance (in vec2 p1, in vec2 p2) {
-  // p1.x is radius
-  // p1.y is angle
-
-  return sqrt( p1.x * p1.x + p2.x * p2.x - 2.0 * p1.x * p2.x * cos(p2.y - p2.y) );
-}
-
-float petal (in vec3 p, in float radius) {
-  float groundedY = p.y + radius;
-
-  p.x = abs(p.x);
-
-  p.x /= groundedY * sqrt((2.0 - groundedY) / 3.0) + 0.01;
-  p.x = max(p.x, 0.0); // clip negative x
-
-  // Z Trimming
-  float d = sdBox(p, vec3(1.0, 1.0, 0.05));
-  d *= 0.25;
-
-  return d;
-}
-
-float phyllotaxis (in vec3 p) {
-  const float c = 0.5;
-  const float radius = 0.5;
-
-  float r0 = length(p.xy);
-
-  float phi = 0.0;
-  float r = 0.0;
-  float minD = 10000.0;
-
-  for (float n = 1.0; n < 100.0; n++) {
-    float phiN = n * goldenRatio;
-    float rN = c * sqrt(n);
-
-    if (n >= 2.0 * time) { break; }
-
-    vec3 z = p;
-    if ( rN >= r0 + 3.0 * radius ) { break; }
-
-      vec3 center = vec3(
-          rN * cos(phiN),
-          rN * sin(phiN),
-          0.0);
-
-      z -= center;
-
-      // Rotate space to align w/ phi
-      // z *= rotationMatrix(vec3(0.0, 0.0, -1.0), phiN);
-
-      // float d = petal(z - center, radius);
-      // float d = sdBox(z, vec3(0.5));
-      float d = length(z - center) - radius;
-      minD = min(minD, d);
-  }
-
-  return minD;
-}
-
-float parametric (in vec3 p) {
-  float angle = atan(p.y, p.x);
-  // angle += TWO_PI * step(0.0, -angle);
-  float k = 6.0 + 4.0 * sin(0.1 * slowTime);
-  // float k = 4.0;
-
-  float minD = 1000.0;
-
-  for (int i = 0; i < 20; i++) {
-    float formula = cos(k * angle);
-    vec3 center = vec3(
-        formula * cos(angle),
-        formula * sin(angle),
-        0.0);
-
-    minD = min(minD, length(p - center) - 0.05);
-    angle += PI;
-  }
-
-  return minD;
+float isMaterialSmooth( float m, float goal ) {
+  const float eps = .1;
+  return 1. - smoothstep(0., eps, abs(m - goal));
 }
 
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
@@ -308,23 +222,63 @@ float parametric (in vec3 p) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  // p *= globalRot;
   vec3 q = p;
 
-  // Timing
-  float oscTime = mod(time, 5.0);
+  q += 0.5 * cos(2.0 * q.yzx + 0.05 * sin(time * 0.7 + 1.3 * q.y));
+  q += 0.25 * cos(4.0 * q.yzx + 0.25 * sin(time + q.x));
 
-  vec3 floor = vec3(sdPlane(q, vec4(0.,1.,0.,0.)), 1.0, 0.0);
-  outD = dMin(outD, floor);
-
-  // Boxes
-  vec2 c = pMod2(q.xz, vec2(0.75));
-  q.y += 0.15 + 0.075 * sin(1.0 * length(c) + 1.2 * time);
-
-  vec3 b = vec3(udRoundBox(q, vec3(0.25, 0.1, 0.25), 0.075), 1.0, 0.0);
-  float dBefore = outD.x;
+  // Box
+  vec3 b = vec3(udRoundBox(q, vec3(0.15, 0.1, 0.25), 0.075), 2.0, 0.0);
+  b.x *= 0.3;
   outD = dMin(outD, b);
-  outD.x = fOpUnionRound(dBefore, b.x, 0.10);
+
+  // Sphere
+  vec3 s = vec3(length(q + vec3(0.0, 1.0, 1.0)) - 0.55, 2.0, 0.0);
+  s.x *= 0.3;
+  outD = dMin(outD, s);
+
+  // Sphere
+  vec3 s2 = vec3(length(q + vec3(-0.5, -1.0, 2.0)) - 1.0, 2.0, 0.0);
+  s2.x *= 0.3;
+  outD = dMin(outD, s2);
+
+  q += 0.125 * cos(8.0 * q.yxz);
+  q += 0.00625 * cos(16.0 * q.yxz);
+
+  // Sphere
+  vec3 s3 = vec3(length(q + vec3(1.0, 0.0, 2.0)) - 1.0, 2.0, 0.0);
+  s3.x *= 0.25;
+  outD = dMin(outD, s3);
+
+  // Mask
+  vec3 m = vec3(length(q + vec3(0.0, -1.0, 1.0)) - 1.0, 3.0, 0.0);
+  float dBefore = outD.x;
+  outD = dMin(outD, m);
+  outD.x = dBefore;
+
+  // Mask 2
+  // vec3 m2 = vec3(length(q + vec3(0.1, -0.0, -0.2)) - 0.25, 4.0, 0.0);
+  vec3 m2 = vec3(length(q + vec3(-2.111, 0.712, -0.17)) - 2.032, 4.0, 0.0);
+  dBefore = outD.x;
+  outD = dMin(outD, m2);
+  outD.x = dBefore;
+
+  // Mask 3
+  vec3 m3 = vec3(length(q + vec3(1.065, 0.094, 1.506)) - 0.593, 5.0, 0.0);
+  dBefore = outD.x;
+  outD = dMin(outD, m3);
+  outD.x = dBefore;
+
+  // Mask 4
+  vec3 m4 = vec3(length(q + vec3(-0.853, -0.975, 1.019)) - 0.717, 6.0, 0.0);
+  dBefore = outD.x;
+  outD = dMin(outD, m4);
+  outD.x = dBefore;
+
+  // Texture
+  float isAMask = step(2.1, outD.y);
+  // outD.x -= 0.0005 * iqFBM(160.0 * q) * (1.0 - isAMask);
+  outD.x -= 0.00015 * noise(200.0 * q) * isAMask;
 
   return outD;
 }
@@ -404,24 +358,34 @@ vec3 scene (in vec3 rd) {
 }
 
 #pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.5)
-bool isMaterial( float m, float goal ) {
-  return m < goal + 1. && m > goal - .1;
-}
-float isMaterialSmooth( float m, float goal ) {
-  const float eps = .1;
-  return 1. - smoothstep(0., eps, abs(m - goal));
-}
 
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
+
   float rdDOTnor = dot(rd, nor);
-  color = mix(#FFC73D, #FF7631, smoothstep(-1.0, -0.85, rdDOTnor));
-  color = mix(color, #F037A6, smoothstep(-0.85, -0.7, rdDOTnor));
-  color = mix(color, #4842C3, smoothstep(-0.7, -0.55, rdDOTnor));
-  color = mix(color, #10AE75, smoothstep(-0.55, 0.1, rdDOTnor));
-  color = mix(color, #ffffff, 0.05);
+  float posDOTnor = dot(pos, nor);
+
+  // Mask
+  float isMask = isMaterialSmooth(m, 3.0);
+  vec3 maskColor = mix(#00aaff, #25F7E8, rdDOTnor);
+  color = mix(color, maskColor, isMask);
+  color *= 1.4 * vec3(1.5, 1.0, 0.6) * cos(0.4 * PI * posDOTnor + vec3(0.2, -0.4, 0.67)) * isMask + (1.0 - isMask);
+
+  float isMask2 = isMaterialSmooth(m, 4.0);
+  vec3 mask2Color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.2) * rdDOTnor + vec3(0.0, 0.33, 0.67) + 0.18));
+  color *= mask2Color * isMask2 + (1.0 - isMask2);
+
+  float isMask3 = isMaterialSmooth(m, 5.0);
+  vec3 mask3Color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.15) * posDOTnor + vec3(0.0, 0.33, 0.67) - 0.6));
+  color *= mask3Color * isMask3 + (1.0 - isMask3);
+
+  float isMask4 = isMaterialSmooth(m, 6.0);
+  vec3 mask4Color = vec3(0.5) + vec3(0.7, 0.5, 0.5) * cos(TWO_PI * (vec3(0.2) * rdDOTnor + vec3(0.1, 0.33, 0.67) - 0.0));
+  color *= mask4Color * isMask4 + (1.0 - isMask4);
+
+
   return color;
 }
 
@@ -462,8 +426,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
     if (t.x>0.) {
       vec3 color = vec3(0.0);
-      float isFloor = isMaterialSmooth(t.y, 2.0);
-      float isWall = isMaterialSmooth(t.y, 3.0);
+      float isAMask = smoothstep(1.9, 2.0, t.y);
 
       vec3 nor = getNormal2(pos, 0.08 * t.x);
       // vec3 nNorP = pos * 50.0;
@@ -488,19 +451,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(1., .75, 0.)), #ffffff, 0.9);
       lights[1] = light(normalize(vec3(-1., -.5, 0.5)), #ffffff, 0.8);
-      lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), #ffffff, 0.2);
+      lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), #ffffff, 0.9);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.8;
-      float disperCo = 0.8;
+      float freCo = 0.8;
+      float specCo = 0.7;
+      float disperCo = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = diffuse(nor, lightPos);
+        float dif = pow(diffuse(nor, lightPos), 3.0);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -508,27 +471,27 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * occ;
+        fre *= freCo * dif * occ;
         lin += fre;
-        lin += specCo * spec * (1. - fre);
+        lin += specCo * spec * dif * (1. - fre);
 
         // Ambient
-        // lin += 0.01 * amb * occ * #ffcccc;
+        lin += 0.3 * amb * #ffffff;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
-          clamp((conserve * dif * lights[i].intensity) * lights[i].color * diffuseColor, 0.0, 1.0)
-          + clamp(lights[i].intensity * lin, 0., 1.);
+          saturate((conserve * dif * lights[i].intensity) * lights[i].color * diffuseColor)
+          + saturate(lights[i].intensity * lin * mix(diffuseColor, #ffffff, 0.4));
 
-        color += disperCo * repNUM_OF_LIGHTS * lights[i].intensity * dispersion(nor, rayDirection, n2, lights[i].color);
+        // color += disperCo * repNUM_OF_LIGHTS * lights[i].intensity * dispersion(nor, rayDirection, n2, lights[i].color);
       }
       color *= 2.0 / float(NUM_OF_LIGHTS);
 
-      // color += 0.0125 * reflection(pos, ref);
+      color += 0.01250 * reflection(pos, ref) * (1.0 - isAMask);
       // color += 0.50 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
       // color *= exp(-t.x * .05);
 
       // Inner Glow
@@ -548,6 +511,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
       #endif
 
+      color = saturate(color);
       return vec4(color, 1.);
     } else {
       vec4 color = vec4(background, 0.);
@@ -575,7 +539,6 @@ void main() {
 
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
-    stripesRot = rotationMatrix(vec3(0.0, 1.0, 0.0), PI * 0.4);
 
     #ifdef SS
     // Antialias by averaging all adjacent values
@@ -606,5 +569,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .03 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    // gl_FragColor.rgb += .02 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }
