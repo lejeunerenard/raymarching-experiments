@@ -1,4 +1,4 @@
-#define RGBCMY 1
+// #define RGBCMY 1
 
 #pragma glslify: chunkedHueIOR = require(./dispersion-ray-direction)
 
@@ -55,6 +55,9 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 }
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2) {
   return refractColors(nor, eye, n2, 1., vec3(1.0));
+}
+vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1) {
+  return refractColors(nor, eye, n2, n1, vec3(1.0));
 }
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in vec3 lightColor) {
   return refractColors(nor, eye, n2, 1., lightColor);

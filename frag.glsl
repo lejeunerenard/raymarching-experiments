@@ -29,18 +29,21 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
-#define maxDistance 20.0
+#define maxSteps 64
+#define maxDistance 10.0
 #pragma glslify: import(./background)
 
 #define slowTime time * .1
 
 vec3 lightPos = normalize(vec3(1., .75, 0.));
+vec3 gPos = vec3(0.0);
+vec3 gNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
+#pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
@@ -222,63 +225,16 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  vec3 q = p;
+  vec4 q = vec4(p, 1.0);
 
-  q += 0.5 * cos(2.0 * q.yzx + 0.05 * sin(time * 0.7 + 1.3 * q.y));
-  q += 0.25 * cos(4.0 * q.yzx + 0.25 * sin(time + q.x));
-
-  // Box
-  vec3 b = vec3(udRoundBox(q, vec3(0.15, 0.1, 0.25), 0.075), 2.0, 0.0);
-  b.x *= 0.3;
-  outD = dMin(outD, b);
+  q += 0.5 * cos(2.0 * q.yzwx + time);
+  q += 0.25 * cos(4.0 * q.yzwx + sin(time));
+  q += 0.125 * cos(8.0 * q.yzwx);
 
   // Sphere
-  vec3 s = vec3(length(q + vec3(0.0, 1.0, 1.0)) - 0.55, 2.0, 0.0);
+  vec3 s = vec3(length(q.xyz) - 1.0, 2.0, 0.0);
   s.x *= 0.3;
   outD = dMin(outD, s);
-
-  // Sphere
-  vec3 s2 = vec3(length(q + vec3(-0.5, -1.0, 2.0)) - 1.0, 2.0, 0.0);
-  s2.x *= 0.3;
-  outD = dMin(outD, s2);
-
-  q += 0.125 * cos(8.0 * q.yxz);
-  q += 0.00625 * cos(16.0 * q.yxz);
-
-  // Sphere
-  vec3 s3 = vec3(length(q + vec3(1.0, 0.0, 2.0)) - 1.0, 2.0, 0.0);
-  s3.x *= 0.25;
-  outD = dMin(outD, s3);
-
-  // Mask
-  vec3 m = vec3(length(q + vec3(0.0, -1.0, 1.0)) - 1.0, 3.0, 0.0);
-  float dBefore = outD.x;
-  outD = dMin(outD, m);
-  outD.x = dBefore;
-
-  // Mask 2
-  // vec3 m2 = vec3(length(q + vec3(0.1, -0.0, -0.2)) - 0.25, 4.0, 0.0);
-  vec3 m2 = vec3(length(q + vec3(-2.111, 0.712, -0.17)) - 2.032, 4.0, 0.0);
-  dBefore = outD.x;
-  outD = dMin(outD, m2);
-  outD.x = dBefore;
-
-  // Mask 3
-  vec3 m3 = vec3(length(q + vec3(1.065, 0.094, 1.506)) - 0.593, 5.0, 0.0);
-  dBefore = outD.x;
-  outD = dMin(outD, m3);
-  outD.x = dBefore;
-
-  // Mask 4
-  vec3 m4 = vec3(length(q + vec3(-0.853, -0.975, 1.019)) - 0.717, 6.0, 0.0);
-  dBefore = outD.x;
-  outD = dMin(outD, m4);
-  outD.x = dBefore;
-
-  // Texture
-  float isAMask = step(2.1, outD.y);
-  // outD.x -= 0.0005 * iqFBM(160.0 * q) * (1.0 - isAMask);
-  outD.x -= 0.00015 * noise(200.0 * q) * isAMask;
 
   return outD;
 }
@@ -330,20 +286,17 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 2.50;
+const float n2 = 1.65;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float v = iqFBM(20.0 * rd);
-  // v = smoothstep(-1.0, 1.0, v);
+  float v = cnoise3(0.1 * rd);
+  v = smoothstep(-1.0, 1.0, v);
+  // v = dot(gNor, rd);
 
   color = vec3(v);
-  // color = mix(#FF1F99, #FF7114, v);
-  // color = .5 + vec3(.5, .3, .6) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
-  // color += #61FF77 * (0.5 * abs(rd.y));
-
-  // color *= 1.1 * cos(rd);
+  // color = 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
 
   return clamp(color, 0., 1.);
 }
@@ -357,7 +310,53 @@ vec3 scene (in vec3 rd) {
   return color;
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.5)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.15)
+
+float dispersionMarch (in vec3 rayDirection) {
+  vec3 rayOrigin = gPos + -gNor * 0.01;
+  rayDirection = normalize(rayDirection);
+
+  float t = 0.0001;
+
+  for (int i = 0; i < 20; i++) {
+    float d = map(rayOrigin + rayDirection * t).x;
+    if (d >= 0.0) break;
+    d = min(d, -0.0001);
+
+    t += abs(d);
+  }
+  return t;
+}
+
+vec3 secondReflection (in vec3 rd) {
+  // return scene(rd);
+  float d = 0.0;
+
+  #if 1
+  d = dispersionMarch(rd);
+  #else
+  const int samples = 12;
+  for (int i = 0; i < samples; i++) {
+    vec3 lightDir = rd;
+    lightDir += 0.1 * vec3(
+    noise(gPos),
+    noise(1.3 * gPos + 340.0),
+    noise(-1.9 * gPos + 640.0));
+
+    d += dispersionMarch(lightDir);
+  }
+  d /= float(samples);
+  #endif
+
+  vec3 reflectionPoint = gPos - gNor * 0.1 + rd * d;
+  vec3 reflectionPointNor = getNormal(reflectionPoint, 0.001);
+  // vec3 sss = vec3(1.0 - pow(length(reflectionPoint - gPos) * 0.25, 0.125));
+  vec3 disp = dispersion(reflectionPointNor, rd, n2, n1);
+
+  return disp;
+}
+
+#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondReflection, amount=0.15)
 
 #pragma glslify: gradient = require(./gradient)
 
@@ -424,15 +423,17 @@ const vec3 glowColor = #39CCA1;
 
 vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
+    gPos = pos;
     if (t.x>0.) {
       vec3 color = vec3(0.0);
       float isAMask = smoothstep(1.9, 2.0, t.y);
 
       vec3 nor = getNormal2(pos, 0.08 * t.x);
-      // vec3 nNorP = pos * 50.0;
+      // vec3 nNorP = pos * 500.0;
       // nor = normalize(nor +
-      //   0.09 * vec3(noise(nNorP), noise(nNorP + 203.0), noise(nNorP - 523.0))
-      //     * (isFloor + 0.5 * isWall));
+      //   0.09 * vec3(noise(nNorP), noise(nNorP + 203.0), noise(nNorP - 523.0)));
+
+      gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
       ref = normalize(ref);
@@ -459,7 +460,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       float freCo = 0.8;
       float specCo = 0.7;
-      float disperCo = 0.0;
+      float disperCo = 0.5;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
@@ -476,19 +477,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         lin += specCo * spec * dif * (1. - fre);
 
         // Ambient
-        lin += 0.3 * amb * #ffffff;
+        lin += 0.1 * amb * #ffffff;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
           saturate((conserve * dif * lights[i].intensity) * lights[i].color * diffuseColor)
           + saturate(lights[i].intensity * lin * mix(diffuseColor, #ffffff, 0.4));
 
-        // color += disperCo * repNUM_OF_LIGHTS * lights[i].intensity * dispersion(nor, rayDirection, n2, lights[i].color);
+        // color += disperCo * repNUM_OF_LIGHTS * lights[i].intensity * dispersionStep1(nor, rayDirection, n2, lights[i].color);
       }
       color *= 2.0 / float(NUM_OF_LIGHTS);
 
-      color += 0.01250 * reflection(pos, ref) * (1.0 - isAMask);
-      // color += 0.50 * dispersion(nor, rayDirection, n2);
+      color = 0.25 * reflection(pos, ref) * (1.0 - isAMask);
+      color += 1.0 * dispersionStep1(nor, rayDirection, n2);
 
       // Fog
       // color = mix(background, color, clamp(1.1 * ((maxDistance-t.x) / maxDistance), 0., 1.));
@@ -569,5 +570,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .02 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
+    gl_FragColor.rgb += .02 * (cnoise2((500. + 1.1 * time) * uv + sin(uv + time)) + cnoise2((500. + time) * uv + 253.5));
 }
