@@ -1,6 +1,8 @@
 // #define RGBCMY 1
+// #define HUE 1
 
 #pragma glslify: chunkedHueIOR = require(./dispersion-ray-direction)
+#pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 lightColor) {
   const float between = amount;
@@ -34,6 +36,31 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
   #else
 
+  #ifdef HUE
+  float ior1 = chunkedHueIOR(0.0, greenIOR, n1, between);
+  float ior2 = chunkedHueIOR(90.0, greenIOR, n1, between);
+  float ior3 = chunkedHueIOR(180.0, greenIOR, n1, between);
+  float ior4 = chunkedHueIOR(240.0, greenIOR, n1, between);
+
+  vec3 ior1Refract = refract(eye, nor, ior1);
+  vec3 ior2Refract = refract(eye, nor, ior2);
+  vec3 ior3Refract = refract(eye, nor, ior3);
+  vec3 ior4Refract = refract(eye, nor, ior4);
+
+  vec3 color = vec3(0.);
+  color += hsv(vec3(0.0, 1.0, 1.0)) * scene(ior1Refract);
+  color += hsv(vec3(90.0, 1.0, 1.0)) * scene(ior2Refract);
+  color += hsv(vec3(180.0, 1.0, 1.0)) * scene(ior3Refract);
+  color += hsv(vec3(240.0, 1.0, 1.0)) * scene(ior4Refract);
+
+  color *= 0.25;
+
+  float R = color.r;
+  float G = color.g;
+  float B = color.b;
+
+  #else
+
   float redIORRatio = chunkedHueIOR(0.0, greenIOR, n1, between);
   float greenIORRatio = chunkedHueIOR(120.0, greenIOR, n1, between);
   float blueIORRatio = chunkedHueIOR(240.0, greenIOR, n1, between);
@@ -49,6 +76,7 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
   float R = r;
   float G = g;
   float B = b;
+  #endif
   #endif
 
   return vec3(R, G, B) * lightColor;
