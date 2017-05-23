@@ -25,12 +25,12 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 45
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.00
+const BLOOM_WET = 0.60
 const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-echo-test1',
+    name: 'distance-field-study-tasty-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,7 +84,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.15)
+    this.cameraRo = vec3.fromValues(0, 0, 4)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -429,7 +429,7 @@ export default class App {
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 4; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
