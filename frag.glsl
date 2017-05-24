@@ -209,7 +209,7 @@ float sdCylinder( vec3 p, vec3 c )
 // p as usual, e exponent (p in the paper), r radius or something like that
 // #pragma glslify: octahedral = require(./model/octahedral)
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
-// #pragma glslify: icosahedral = require(./model/icosahedral)
+#pragma glslify: icosahedral = require(./model/icosahedral)
 
 bool isMaterial( float m, float goal ) {
   return m < goal + 1. && m > goal - .1;
@@ -229,14 +229,23 @@ vec3 map (in vec3 p) {
 
   vec3 q = p;
 
-  q += 0.500000 * cos( 3.1 * q.yzx + slowTime);
-  q += 0.250000 *  cos( 9.1 * q.yzx + 0.5 * sin(PI * slowTime));
-  // q += 0.125000 *  cos( 27.3 * q.zxy + noise(q + slowTime));
+  q *= globalRot;
+  // q *= 1.3;
+  q *= 2.0;
 
-  // Sphere
-  vec3 s = vec3(length(q.xyz) - 1.5, 2.0, 0.0);
-  s.x *= 0.2;
-  outD = dMin(outD, s);
+  q += 0.5 * cos(2.0 * q.yzx + 0.5 * time);
+  q += 0.25 * cos(4.0 * q.yzx + noise(q + time));
+  q += 0.125 * cos(8.0 * q.yzx + noise(q + time));
+
+  pMod2(q.xy, vec2(2.0));
+
+  vec3 b = vec3(sdBox(q, vec3(1.0)), 1.0, 0.0);
+  outD = dMin(outD, b);
+  outD.x *= 0.4 * 0.5;
+
+  // Mask
+  // outD.x = max(outD.x, sdBox(p, vec3(1.0)));
+  outD.x = max(outD.x, icosahedral(p, 40.0, 1.0));
 
   // outD.x += 0.25 * noise(10.0 * q);
   // outD.x *= 0.25;
@@ -361,9 +370,9 @@ vec3 secondReflection (in vec3 rd) {
   // vec3 sss = vec3(1.0 - pow(length(reflectionPoint - gPos) * 0.25, 0.125));
   // vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1);
 
-  vec3 color1 = #19ACCC;
-  vec3 color2 = #FF468F;
-  vec3 color3 = #FFF060;
+  vec3 color1 = #77FFC9;
+  vec3 color2 = #FFB8B7;
+  vec3 color3 = #859699;
 
   vec3 color = vec3(1.0);
   color = mix(color, color1, saturate(dot(vec3(1.0, 0.0, 0.0), reflectionPointNor)));
@@ -373,7 +382,7 @@ vec3 secondReflection (in vec3 rd) {
   return color / max(0.9, pow(d * 0.5, 2.0));
 }
 
-#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondReflection, amount=0.05)
+#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondReflection, amount=0.075)
 
 #pragma glslify: gradient = require(./gradient)
 
@@ -453,13 +462,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.6;
+      float freCo = 0.6;
+      float specCo = 0.4;
       float disperCo = 0.5;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = pow(diffuse(nor, lightPos), 1.0);
+        float dif = pow(diffuse(nor, lightPos), 3.0);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -472,7 +481,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         lin += specCo * spec * dif * (1. - fre);
 
         // Ambient
-        lin += 0.075 * amb * #ffffff;
+        // lin += 0.075 * amb * #ffffff;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
@@ -483,7 +492,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
       color *= 1.0 / float(NUM_OF_LIGHTS);
 
-      color += 0.75 * reflection(pos, ref) * (1.0 - isAMask);
+      // color += 0.5 * reflection(pos, ref) * (1.0 - isAMask);
       color += 0.60 * dispersionStep1(nor, rayDirection, n2);
 
       // Fog
@@ -519,7 +528,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      // color = mix(vec4(#E8F6FF, 1.0), color, 1. - .99 * clamp(t.z / (2.0 * float(maxSteps)), 0., 1.));
+      color = mix(vec4(#E8F6FF, 1.0), color, 1. - .99 * clamp(t.z / (2.0 * float(maxSteps)), 0., 1.));
 
       return color;
     }
