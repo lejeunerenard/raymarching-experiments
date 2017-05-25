@@ -29,7 +29,7 @@ const secondsLong = 30
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_WET = 0.75
 const BLOOM_MIN_BRIGHTNESS = 0.9
 
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-over-the-waters-test1',
+    name: 'distance-field-study-jack-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,

@@ -1,20 +1,22 @@
 // #define RGBCMY 1
 // #define HUE 1
 
-#pragma glslify: chunkedHueIOR = require(./dispersion-ray-direction)
-#pragma glslify: hsv = require(glsl-hsv2rgb)
+// #pragma glslify: chunkedHueIOR = require(./dispersion-ray-direction)
+// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
+// #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 lightColor) {
   const float between = amount;
   float greenIOR = n2;
 
   #ifdef RGBCMY
-  float redIORRatio = chunkedHueIOR(0.0, greenIOR, n1, between);
-  float yellowIORRatio = chunkedHueIOR(60.0, greenIOR, n1, between);
-  float greenIORRatio = chunkedHueIOR(120.0, greenIOR, n1, between);
-  float cyanIORRatio = chunkedHueIOR(180.0, greenIOR, n1, between);
-  float blueIORRatio = chunkedHueIOR(240.0, greenIOR, n1, between);
-  float purpleIORRatio = chunkedHueIOR(270.0, greenIOR, n1, between);
+  float redIORRatio = hue2IOR(0.0, greenIOR, n1, between);
+  float yellowIORRatio = hue2IOR(60.0, greenIOR, n1, between);
+  float greenIORRatio = hue2IOR(120.0, greenIOR, n1, between);
+  float cyanIORRatio = hue2IOR(180.0, greenIOR, n1, between);
+  float blueIORRatio = hue2IOR(240.0, greenIOR, n1, between);
+  float purpleIORRatio = hue2IOR(270.0, greenIOR, n1, between);
 
   vec3 redRefract = refract(eye, nor, redIORRatio);
   vec3 yellowRefract = refract(eye, nor, yellowIORRatio);
@@ -37,10 +39,10 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
   #else
 
   #ifdef HUE
-  float ior1 = chunkedHueIOR(0.0, greenIOR, n1, between);
-  float ior2 = chunkedHueIOR(90.0, greenIOR, n1, between);
-  float ior3 = chunkedHueIOR(180.0, greenIOR, n1, between);
-  float ior4 = chunkedHueIOR(240.0, greenIOR, n1, between);
+  float ior1 = hue2IOR(0.0, greenIOR, n1, between);
+  float ior2 = hue2IOR(90.0, greenIOR, n1, between);
+  float ior3 = hue2IOR(180.0, greenIOR, n1, between);
+  float ior4 = hue2IOR(240.0, greenIOR, n1, between);
 
   vec3 ior1Refract = refract(eye, nor, ior1);
   vec3 ior2Refract = refract(eye, nor, ior2);
@@ -61,9 +63,9 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
   #else
 
-  float redIORRatio = chunkedHueIOR(0.0, greenIOR, n1, between);
-  float greenIORRatio = chunkedHueIOR(120.0, greenIOR, n1, between);
-  float blueIORRatio = chunkedHueIOR(240.0, greenIOR, n1, between);
+  float redIORRatio = hue2IOR(0.0, greenIOR, n1, between);
+  float greenIORRatio = hue2IOR(120.0, greenIOR, n1, between);
+  float blueIORRatio = hue2IOR(240.0, greenIOR, n1, between);
 
   vec3 redRefract = refract(eye, nor, redIORRatio);
   vec3 greenRefract = refract(eye, nor, greenIORRatio);
