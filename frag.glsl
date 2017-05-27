@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -29,7 +29,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 225
+#define maxSteps 1024
 #define maxDistance 50.0
 #pragma glslify: import(./background)
 
@@ -220,6 +220,7 @@ float isMaterialSmooth( float m, float goal ) {
   return 1. - smoothstep(0., eps, abs(m - goal));
 }
 
+#pragma glslify: pModInterval11 = require(./hg_sdf/p-mod-interval1)
 #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 #pragma glslify: ease = require(glsl-easings/bounce-in)
@@ -230,19 +231,38 @@ float isMaterialSmooth( float m, float goal ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  vec3 q = 1.0 * p;
+  vec3 q = p;
 
-  vec3 s = vec3(sdBox(p, vec3(10.0, 10.0, 1.0)), 1.0, 0.0);
-  outD = dMin(outD, s);
+  vec3 nP = 10.0 * q;
 
-  q += 0.25 * cnoise3(2.0 * q);
-  q += 0.25 * cnoise3(4.0 * q);
+  const float eps = 0.01;
+  const float depth = 0.05;
+  const int slices = 8;
 
-  float n = cnoise3(q + vec3(sin(slowTime), slowTime, sin(PI * slowTime + 2.5)));
-  // float n = cnoise3(q);
-  outD.x += n;
+  // const float depth = 0.5;
+  // float c = pModInterval1(nP.x, depth, 0.0, float(slices - 1));
+  // float c = pMod1(nP.x, depth);
+  // vec3 nPos = vec3(c * 0.25, nP.y + slowTime, nP.z);
 
-  return 0.05 * outD;
+  // float n = cnoise3(nPos);
+  float n = cnoise3(nP + vec3(sin(slowTime), slowTime, sin(PI * slowTime + 2.5)));
+  // float n = cnoise3(nP);
+
+  // nP *= 0.1;
+
+  // vec3 d = vec3(sdBox(nP, vec3(0.015625, 2.0, 2.0)), 1.0, 0.0);
+  // float lowEnd = 0.4 - 0.1 * c;
+  // d.x += (depth * 2.0) * (1.0 - smoothstep(lowEnd, lowEnd + eps, n));
+  // outD = dMin(outD, d);
+
+  for (int i = 0; i < slices; i++) {
+    vec3 d = vec3(sdBox(q, vec3(2.0 - depth * float(i))), 1.0, 0.0);
+    float lowEnd = 0.4 - 0.2 * float(i);
+    d.x += (depth * 2.0) * (1.0 - smoothstep(lowEnd, lowEnd + eps, n));
+    outD = dSMin(outD, d, 0.01);
+  }
+
+  return 0.025 * outD;
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -379,7 +399,7 @@ vec3 secondReflection (in vec3 rd) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
-  color = .75 + .25 * cos(TWO_PI * (dot(-rd, nor) + vec3(0.0, 0.33, 0.67)));
+  color = .75 + .25 * cos(TWO_PI * (saturate(dot(-rd, nor)) + vec3(0.0, 0.25, 0.5)));
 
   return color;
 }
@@ -422,7 +442,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     gPos = pos;
     if (t.x>0.) {
       vec3 color = vec3(0.0);
-      float isAMask = smoothstep(1.9, 2.0, t.y);
 
       vec3 nor = getNormal2(pos, 0.8);
       // vec3 nNorP = pos * 500.0;
@@ -455,7 +474,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.9;
-      float specCo = 0.7;
+      float specCo = 0.9;
       float disperCo = 0.5;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
@@ -464,7 +483,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 4.);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= saturate(0.3 + softshadow(pos, lightPos, 0.02, 1.5));
+        // dif *= saturate(0.5 + softshadow(pos, lightPos, 0.02, 1.5));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -566,5 +585,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

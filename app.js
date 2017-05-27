@@ -31,14 +31,14 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.75
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-noise-displacement-test4',
+    name: 'distance-field-study-pillars-of-creation-test3',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,14 +84,14 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(2.4, 0, 0)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
     this.objectR = 1.36
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0025
+    this.epsilon = preset.epsilon || 0.000001
 
     // Fractal parameters
     this.offset = (preset.offset)
