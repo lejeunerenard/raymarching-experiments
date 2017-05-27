@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-ether-manifest-test1',
+    name: 'distance-field-study-noise-displacement-test4',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
