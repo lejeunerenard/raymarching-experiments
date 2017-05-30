@@ -24,5 +24,5 @@ void main() {
 
   // Gamma encode
   gl_FragColor = mix(vec4(background, 1.), result, baseColor.a);
-  gl_FragColor.rgb = pow(result.rgb, gammaEnc);
+  gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 }
