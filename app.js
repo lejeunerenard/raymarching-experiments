@@ -30,15 +30,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.05
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_WET = 0.75
+const BLOOM_MIN_BRIGHTNESS = 0.6
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-swarm-test5',
+    name: 'distance-field-study-we-test2',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,14 +84,14 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(13.49, 10.61, 13.561)
+    this.cameraRo = vec3.fromValues(0, 8, 18)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
     this.objectR = 1.36
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
