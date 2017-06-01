@@ -25,7 +25,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 60
 const capturing = false
 
 const MANDELBOX = false
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-we-test2',
+    name: 'distance-field-study-shallow-unity-test2',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,7 +84,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 8, 18)
+    this.cameraRo = vec3.fromValues(4.75, 1.5, 0)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
