@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -257,27 +257,14 @@ vec3 map (in vec3 p) {
   p *= globalRot;
   vec3 q = p;
 
-  vec2 un = vec2(1.0, 0.0);
-
-  vec3 s = vec3(tetrahedron(q, 0.5), 1.0, 0.0);
-  // s.x *= 0.7;
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 1.0, 0.0);
   outD = dMin(outD, s);
 
-  float b = sdBox(q + vec3(0.0, 0.3, 0.0), vec3(2.0, 0.09, 2.0));
-  float patch = max(outD.x, b); // For flashing annoying noise hole
-
-  const float strength = 7.0;
-  vec3 offset = vec3(0.0, strength * time, 0.0);
-  q.y += 0.25;
-
-  float n = 0.5 + 0.5 * iqFBM(2.0 * strength * q - offset);
-  n = mix(0.0, n, 0.825 + 0.2 * cos(time));
-
-  float baseMul = 0.125 + q.y * 1.25;
-  float c = pow(max(0., length(q * vec3(baseMul, 1.0, baseMul) ) - n * max( 0., q.y + .25  )), 1.0);
-  outD.x = max(outD.x, c);
-
-  outD.x = min(outD.x, patch);
+  float n = 0.0;
+  n -= 0.1 * iqFBM(20.0 * q);
+  n -= 0.05 * iqFBM(90.0 * q);
+  n -= 0.50 * noise(5.0 * q);
+  outD.x += 0.2 * mix(0.0, n, 0.5 + 0.5 * sin(time));
 
   return outD;
 }
@@ -514,12 +501,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       float colorLen = length(color) * 0.57735; // normalize w/ √3
 
-      vec3 shadowColor = #684AB2;
+      vec3 shadowColor = #9C372C;
       vec3 highColor = #ffffff;
 
       // Edge
       float edge = 1.0 - saturate(dot(nor, -rayDirection));
-      color = mix(background, shadowColor, smoothstep(0.75, 0.755, edge));
+      color = mix(background, shadowColor, smoothstep(0.1, 0.5, edge));
 
       // Shadow
       color = mix(shadowColor, color, smoothstep(0.06, 0.07, colorLen));
@@ -530,8 +517,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.9 * dispersionStep1(nor, rayDirection, n2);
 
       // Fog
-      // color = mix(background, color, clamp(1.4 * ((maxDistance-t.x) / maxDistance), 0., 1.));
-      // color *= exp(-t.x * .01);
+      color = mix(background, color, clamp(1.4 * ((maxDistance-t.x) / maxDistance), 0., 1.));
+      color *= exp(-t.x * .01);
 
       // Inner Glow
       // color += innerGlow(length(pos));
