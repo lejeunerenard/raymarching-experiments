@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-platonic-earth-test1',
+    name: 'distance-field-study-platonic-air-test6',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,

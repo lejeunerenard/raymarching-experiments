@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -29,7 +29,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 80.0
 #pragma glslify: import(./background)
 
@@ -230,9 +230,9 @@ float sdCylinder( vec3 p, vec3 c )
 }
 
 // p as usual, e exponent (p in the paper), r radius or something like that
-// #pragma glslify: octahedral = require(./model/octahedral)
+#pragma glslify: octahedral = require(./model/octahedral)
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
-#pragma glslify: icosahedral = require(./model/icosahedral)
+// #pragma glslify: icosahedral = require(./model/icosahedral)
 
 bool isMaterial( float m, float goal ) {
   return m < goal + 1. && m > goal - .1;
@@ -249,6 +249,17 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
+#
+// Logistic function
+float sigmoid ( in float x ) {
+  const float L = 1.0;
+  const float k = 1.0;
+  const float x0 = 4.0;
+
+  x *= 8.0; // Scale so x [0, 1]
+
+  return L / ( 1.0 + exp(-k * (x - x0)) );
+}
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
@@ -257,14 +268,21 @@ vec3 map (in vec3 p) {
   p *= globalRot;
   vec3 q = p;
 
-  vec3 s = vec3(sdBox(q, vec3(0.5)), 1.0, 0.0);
-  outD = dMin(outD, s);
+  vec3 o = vec3(octahedral(q, 50.0, 0.5), 1.0, 0.0);
+  outD = dMin(outD, o);
 
-  float n = 0.0;
-  n -= 0.1 * iqFBM(20.0 * q);
-  n -= 0.05 * iqFBM(90.0 * q);
-  n -= 0.50 * noise(5.0 * q);
-  outD.x += 0.2 * mix(0.0, n, 0.5 + 0.5 * sin(time));
+  p.x *= 0.00625 * 1.5;
+  vec3 nP = 30.0 * p;
+  nP.x += 4.0 * slowTime;
+  nP.y += sin(time + 40.0 * nP.x + noise(nP));
+
+  vec3 s = vec3(length(q) - 0.125, 1.0, 0.0);
+  float n = cnoise3(nP);
+
+  s.x += n;
+  s.x *= 0.01;
+
+  outD.x = mix(outD.x, s.x, sigmoid(saturate(0.5 + 0.75 * sin(time))));
 
   return outD;
 }
@@ -458,18 +476,18 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 2;
-      const float repNUM_OF_LIGHTS = 0.5; // 0.3333;
+      const int NUM_OF_LIGHTS = 3;
+      const float repNUM_OF_LIGHTS = 0.3333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(1., .75, 0.)), #ffffff, 0.9);
       lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 0.9);
-      // lights[2] = light(normalize(vec3(-1., 1.0, -0.5)), #ffffff, 0.8);
+      lights[2] = light(normalize(vec3(-0.75, -1.0, 0.5)), #ffffff, 0.3);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.8;
       float specCo = 1.0;
       float disperCo = 0.5;
 
@@ -501,15 +519,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       float colorLen = length(color) * 0.57735; // normalize w/ √3
 
-      vec3 shadowColor = #9C372C;
+      vec3 shadowColor = pow(#AB449E, vec3(2.2));
       vec3 highColor = #ffffff;
 
       // Edge
       float edge = 1.0 - saturate(dot(nor, -rayDirection));
-      color = mix(background, shadowColor, smoothstep(0.1, 0.5, edge));
+      color = mix(background, shadowColor, smoothstep(0.7, 0.75, edge));
 
       // Shadow
-      color = mix(shadowColor, color, smoothstep(0.06, 0.07, colorLen));
+      color = mix(shadowColor, color, smoothstep(0.04, 0.10, colorLen));
       // Highlights
       color = mix(color, highColor, smoothstep(0.60, 0.601, colorLen));
 
