@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -60,6 +60,17 @@ float noise(vec3 p) {
     return mix(h.x,h.y,p.z);
 }
 
+float iqFBM (vec2 p) {
+  float f = 0.0;
+
+  f += 0.500000*cnoise2( p ); p = p*2.02;
+  f += 0.250000*cnoise2( p ); p = p*2.03;
+  f += 0.125000*cnoise2( p ); p = p*2.01;
+  f += 0.062500*cnoise2( p ); p = p*2.025;
+
+  return f * 1.066667;
+}
+
 float iqFBM (vec3 p) {
   float f = 0.0;
 
@@ -69,6 +80,24 @@ float iqFBM (vec3 p) {
   // f += 0.062500*noise( p ); p = p*2.025;
 
   return f * 1.066667;
+}
+
+float fbmWarp (vec2 p, out vec2 q) {
+  const float scale = 4.0;
+
+  q = vec2(
+        iqFBM(p + vec2(0.0, 0.0)),
+        iqFBM(p + vec2(3.2, 34.5)));
+
+  vec2 s = vec2(
+        iqFBM(p + scale * q + vec2(23.9, 234.0)),
+        iqFBM(p + scale * q + vec2(3.2, 852.0)));
+
+  vec2 x = vec2(
+        iqFBM(p + scale * s + vec2(-1.0, 73.234)),
+        iqFBM(p + scale * s + vec2(3.2, 34.5)));
+
+  return iqFBM(p + scale * s);
 }
 
 float fbmWarp (vec3 p, out vec3 q) {
@@ -547,8 +576,42 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 t = march(ro, rd);
-  return shade(ro, rd, t, uv);
+  // vec4 t = march(ro, rd);
+  // return shade(ro, rd, t, uv);
+
+  vec2 nP = uv;
+
+  vec2 nP2 = nP;
+  nP2 += 0.5 * cnoise2(2.0 * nP2.yx);
+  nP2 *= rotMat2(0.1 * PI);
+  nP2 += 0.25 * cnoise2(4.0 * nP2.yx);
+  nP2 *= rotMat2(0.1 * PI);
+  nP2 += 0.125 * cnoise2(8.0 * nP2.yx);
+  nP2 *= rotMat2(0.1 * PI);
+  nP2 += 0.0625 * cnoise2(16.0 * nP2.yx);
+  nP2 *= rotMat2(0.1 * PI);
+
+  nP2.x += cos(time + nP2.y);
+
+  float n1 = cnoise2(nP2 + vec2(slowTime, sin(time)));
+
+  vec2 q = vec2(0.0);
+  float n2 = fbmWarp(0.25 * (nP + vec2(1.0, slowTime)), q);
+
+  float n = n1 + n2;
+  n += cos(TWO_PI * saturate(dot(q, vec2(1.0, 0.0))));
+
+  // n += 0.5 * cos(2.0 * n);
+  // n += 0.25 * cos(4.0 * n);
+  // n += 0.125 * cos(8.0 * n);
+
+  vec3 color = mix(#EB50BC, #E8D35F, 0.5 + 0.5 * sin(TWO_PI * n));
+  color = mix(color, #81C6C7, band(n, 0.4, 0.9));
+  color = pow(color, vec3(2.2));
+
+  // vec3 color = hsv(vec3(0.5 * n, 0.5, 0.8));
+
+  return vec4(color, 1.0);
 }
 
 void main() {
