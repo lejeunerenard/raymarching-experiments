@@ -20,7 +20,7 @@ import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 0.5 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
@@ -38,7 +38,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'tunnel-triangle-repetition-test1',
+    name: 'kifs-hologram-facet-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -73,18 +73,18 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 0.669,
-        y: -0.654,
-        z: 1.618
+        x: 0,
+        y: 0,
+        z: 0
       },
       d: 5,
-      scale: 0.9, // 1.79,
-      rot2angle: [0.685, 0.583, 2.259],
+      scale: 1.01,
+      rot2angle: [0.652, 0.79, 0],
       cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.90)
+    this.cameraRo = vec3.fromValues(0, 0, 1.4)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -101,7 +101,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -168,7 +168,7 @@ export default class App {
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
 
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     let self = this
@@ -204,9 +204,18 @@ export default class App {
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
       .to([2.359, 1.483, 2.315], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+      .to([1.059, 2.483, -0.315], 20 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween4 = new TWEEN.Tween(this.rot2angle)
+      .to([0.652, 0.79, 0], 20 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    // rotTween1.start(0)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween4)
+    rotTween4.chain(rotTween1)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)

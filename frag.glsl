@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -46,6 +46,7 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
+#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
 // 3D noise function (IQ)
@@ -193,7 +194,7 @@ float fCorner (vec2 p) {
 }
 
 // #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-// #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM)
+#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=14)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
@@ -294,27 +295,13 @@ float sigmoid ( in float x ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
-  // Space Warp
-  float blockID = pModInterval1(q.z, 0.1, -30.0, 5.0);
-  // float blockID = pMod1(q.z, 0.5);
+  octahedron(q);
 
-  const int sides = 7;
-  const float angle = TWO_PI / float(sides);
-  const float width = 0.05;
-  q *= rotationMatrix(vec3(0, 0, 1), PI * 0.25 * time * (1.0 + 0.05 * blockID));
-
-  for (int i = 0; i < sides; i++) {
-    vec3 rP = q * rotationMatrix(vec3(0, 0, 1), angle * float(i));
-    vec3 q_3 = rP;
-
-    q_3.x += 1.00 + 0.5 * sin(2.0 * slowTime * (2.0 + 0.33 * blockID));
-
-    vec3 b2 = vec3(sdBox(q_3, vec3(width, 20.0, width * 0.5)), 1.0, blockID);
-    outD = dMin(outD, b2);
-  }
+  vec3 b = vec3(sdBox(q, vec3(0.5)), 1.0, 0.0);
+  outD = dMin(outD, b);
 
   return outD;
 }
@@ -370,16 +357,10 @@ const float n2 = 1.55;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float v = cnoise3(3.5 * rd + 2305.0);
-  v = smoothstep(-0.1, 0.5, v);
-
+  // float v = pnoise3(rd, vec3(10., 20., 30.));
+  float v = cnoise3(20.0 * rd);
+  v = smoothstep(-1.0, 1.0, v);
   color = vec3(v);
-
-  float align1 = saturate(dot(-rd, vec3(1.0, 0.0, 0.0)));
-  color *= mix(vec3(1.0), #00cc42, 0.4 * align1);
-
-  float align2 = saturate(dot(-rd, vec3(0.0, 1.0, 0.0)));
-  color *= mix(vec3(1.0), #cc0000, align2);
 
   return clamp(color, 0., 1.);
 }
@@ -448,17 +429,23 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(0.0);
 
-  // Is a fractional number? No
-  // color = vec3(mod(trap, 1.0));
+  #define depth 10
+  float lum = 1.0;
+  vec3 relRd = normalize(nor + rd);
+  for (int i = 0; i < depth; i++) {
+    vec3 p = pos + relRd * 0.1 * float(i);
+    // lum += textures(relRd).r * abs(sin(10.0 * dot(vec3(1), sin(p))));
+    lum += abs(sin(textures(0.5 * relRd).r * 50.0 * dot(vec2(1), sin(p.xy))));
+    // color += lum;
+    color += hsv(vec3(lum * 0.125, 1., 1.)) / lum;
+      //max(0.001, lum);
+    // color += mix(#FF07A2, #531AE8, .5 + .5 * sin(2.5 * PI * lum)) / max(0.05, lum);
+    // color += 0.0625 * cnoise3(253. * p);
+  }
+  color /= float(depth);
 
-  // Short mod of blockID
-  // color = hsv(vec3(trap * 0.03125, 0.8, 0.8));
-
-  color = vec3(0.5, 0.5, 0.65) + vec3(0.5, 0.5, 0.35) * cos(TWO_PI * ((trap * 0.03125 + slowTime) + vec3(0.0, 0.33, 0.67)));
-
-  // color = hsv(vec3(pos.z * 0.06 + sin(0.3 * slowTime) + 0.6, 1.0, 1.0));
   return color;
 }
 
@@ -490,7 +477,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float intensity;
       };
       const int NUM_OF_LIGHTS = 3;
-      const float repNUM_OF_LIGHTS = 0.5; // 0.3333;
+      const float repNUM_OF_LIGHTS = 0.3333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(1., .75, 1.)), #ffffff, 0.9);
       lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 0.9);
@@ -500,8 +487,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 0.9;
       float disperCo = 0.5;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
@@ -519,7 +506,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         lin += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.020 * amb;
+        lin += 0.2 * amb;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
@@ -530,11 +517,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
       color *= 1.0 / float(NUM_OF_LIGHTS);
 
-      color = 0.8 * diffuseColor;
+      // color = 1.0 * diffuseColor;
 
       // color += 0.05 * reflection(pos, ref);
-      // color += 0.7 * dispersionStep1(nor, rayDirection, n2);
-      color += 0.5 * dispersion(nor, rayDirection, n2);
+      color += 0.1 * dispersionStep1(nor, rayDirection, n2);
+      // color += 0.5 * dispersion(nor, rayDirection, n2);
 
       // Fog
       color = mix(background, color, clamp((maxDistance-t.x) / maxDistance, 0., 1.));
@@ -576,42 +563,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // vec4 t = march(ro, rd);
-  // return shade(ro, rd, t, uv);
-
-  vec2 nP = uv;
-
-  vec2 nP2 = nP;
-  nP2 += 0.5 * cnoise2(2.0 * nP2.yx);
-  nP2 *= rotMat2(0.1 * PI);
-  nP2 += 0.25 * cnoise2(4.0 * nP2.yx);
-  nP2 *= rotMat2(0.1 * PI);
-  nP2 += 0.125 * cnoise2(8.0 * nP2.yx);
-  nP2 *= rotMat2(0.1 * PI);
-  nP2 += 0.0625 * cnoise2(16.0 * nP2.yx);
-  nP2 *= rotMat2(0.1 * PI);
-
-  nP2.x += cos(time + nP2.y);
-
-  float n1 = cnoise2(nP2 + vec2(slowTime, sin(time)));
-
-  vec2 q = vec2(0.0);
-  float n2 = fbmWarp(0.25 * (nP + vec2(1.0, slowTime)), q);
-
-  float n = n1 + n2;
-  n += cos(TWO_PI * saturate(dot(q, vec2(1.0, 0.0))));
-
-  // n += 0.5 * cos(2.0 * n);
-  // n += 0.25 * cos(4.0 * n);
-  // n += 0.125 * cos(8.0 * n);
-
-  vec3 color = mix(#EB50BC, #E8D35F, 0.5 + 0.5 * sin(TWO_PI * n));
-  color = mix(color, #81C6C7, band(n, 0.4, 0.9));
-  color = pow(color, vec3(2.2));
-
-  // vec3 color = hsv(vec3(0.5 * n, 0.5, 0.8));
-
-  return vec4(color, 1.0);
+  vec4 t = march(ro, rd);
+  return shade(ro, rd, t, uv);
 }
 
 void main() {
