@@ -1,6 +1,7 @@
 const glslify = require('glslify')
 
 import createShader from 'gl-shader'
+import createTexture from 'gl-texture2d'
 import createFBO from 'gl-fbo'
 
 import ShaderVREffect from 'shader-vr-effect'
@@ -25,20 +26,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 60
+const secondsLong = 45
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.95
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'kifs-hologram-facet-test1',
+    name: 'dispersion-distortion-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -84,14 +85,14 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.4)
+    this.cameraRo = vec3.fromValues(0, 0, 2.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
     this.objectR = 1.36
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.005
+    this.epsilon = preset.epsilon || 0.0025
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -125,8 +126,18 @@ export default class App {
       running: false
     })
 
+    let tMatCapImg = new Image()
+    tMatCapImg.src = './env.jpg'
+
+    let tMatCapImgLoaded = new Promise((resolve, reject) => {
+      tMatCapImg.onload = () => {
+        this.tMatCap = createTexture(gl, tMatCapImg)
+        resolve()
+      }
+    })
+
     this.stageReady = this.setupStage()
-    this.loaded = Promise.all([this.stageReady])
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
   }
 
   getDimensions () {
@@ -413,6 +424,9 @@ export default class App {
   update (t) {
     TWEEN.update(t)
 
+    if (this.tMatCap) {
+      this.shader.uniforms.tMatCap = this.tMatCap.bind()
+    }
     this.shader.uniforms.epsilon = this.epsilon
 
     this.controls.update(this.shader)

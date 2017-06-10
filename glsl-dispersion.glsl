@@ -1,11 +1,11 @@
-// #define RGBCMY 1
+#define RGBCMY 1
 // #define HUE 1
+// #pragma glslify: hsv = require(glsl-hsv2rgb)
 
-#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
-// #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 lightColor) {
   const float between = amount;
