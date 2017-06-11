@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-distortion-test1',
+    name: 'dispersion-get-jiggy-with-it-test2',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,

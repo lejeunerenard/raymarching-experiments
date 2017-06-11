@@ -299,17 +299,24 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.333333 * cos( 2.0 * q.yzx + 0.5 * slowTime + 0.1 + cnoise3(2.0 * p + slowTime));
-  q += 0.111111 * cos( 3.0 * q.yzx + vec3(slowTime, sin(TWO_PI * slowTime), 0.0));
-  q += 0.037037 * cos( 5.0 * q.yzx + 0.5 * slowTime + cnoise3(p + slowTime));
-  q += 0.012346 * cos( 7.0 * q.yzx);
+  q.x += 0.333333 * cos(2.0 * (q.y + time));
+
+  q += 0.111111 * cos( 4.0 * q.yzx + cnoise3(2.0 * p + vec3(slowTime, sin(TWO_PI * slowTime), 0.0)));
 
   // Ripple
-  q += 0.0025 * smoothstep(0.95,1.0, abs(sin(0.5 * time + 0.75 * (q.x + q.y)))) * cos(51.0 * dot(vec2(1.0), q.xy));
+  // q += 0.0025 * smoothstep(0.95,1.0, abs(sin(0.5 * time + 0.75 * (q.x + q.y)))) * cos(51.0 * dot(vec2(1.0), q.xy));
 
-  vec3 s = vec3(length(q) - 1.0, 1.0, 0.0);
-  s.x *= 0.5125;
-  outD = dMin(outD, s);
+  for (int i = -1; i < 2; i++)
+  for (int j = 0; j < 3; j++) {
+    vec3 b = vec3(
+      sdBox(q + vec3((0.4 + 0.25 * float(j)) * float(i),
+      -0.2 * float(j) + 0.1 * cnoise2(slowTime + vec2(float(i), float(j))), 0.3 * float(j)),
+      vec3(0.1, 1.2, 0.1)),
+    1.0, 0.0);
+    outD = dMin(outD, b);
+  }
+
+  outD.x *= 0.7;
 
   return outD;
 }
@@ -368,9 +375,9 @@ vec3 textures (in vec3 rd) {
 
   float spread = saturate(1.0 - dot(-rd, gNor));
 
-  rd += 0.1 * cos(4.0 * rd);
-  float v = cnoise3(3.5 * rd + 2305.0);
-  v = smoothstep(-0.1, 0.4, v);
+  float n = cnoise3(3.5 * rd + 2305.0);
+  float v = smoothstep(0.0, 0.4, n);
+  v += band(n, -0.1, -0.05);
 
   color = vec3(v * 1.5 * spread);
 
@@ -442,9 +449,9 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
+  vec3 color = vec3(0.5);
 
-  return background * 1.1;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -603,5 +610,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
