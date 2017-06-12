@@ -25,8 +25,8 @@ const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
-const captureTime = 1 * 5
-const secondsLong = 60
+const captureTime = 0 * 5
+const secondsLong = 30
 const capturing = false
 
 const MANDELBOX = false
@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-entangled-test1',
+    name: 'dispersion-crystal-ball-test1',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)

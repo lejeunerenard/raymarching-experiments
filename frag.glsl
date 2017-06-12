@@ -296,23 +296,18 @@ float sigmoid ( in float x ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
-  // q.x += 0.111111 * cos(2.0 * (q.y + time));
-
-  q += 0.111111 * cos( 4.0 * q.yzx + cnoise3(2.0 * p + vec3(slowTime, sin(TWO_PI * slowTime), 0.0)));
+  vec3 distort = 0.111111 * cos(4.0 * q.yzx + noise(2.0 * p + vec3(slowTime, sin(TWO_PI * slowTime), 0.0)));
+  q += mix(vec3(0), distort, 0.5 + 0.5 * sin(TWO_PI * slowTime));
 
   // Ripple
-  // q += 0.0025 * smoothstep(0.95,1.0, abs(sin(0.5 * time + 0.75 * (q.x + q.y)))) * cos(51.0 * dot(vec2(1.0), q.xy));
+  // q += 0.0025 * smoothstep(0.95,1.0, abs(sin(1.0 * time + 0.75 * (q.x + q.y)))) * cos(51.0 * dot(vec2(1.0), q.xy));
 
-  vec3 s1P = q + vec3(sin(PI * 0.25 * time), 0.0, 0.0);
-  vec3 s1 = vec3(length(s1P) - 0.7, 1.0, 0.0);
+  vec3 s1P = q; // + vec3(sin(PI * 0.25 * time), 0.0, 0.0);
+  vec3 s1 = vec3(length(s1P) - 1.0, 1.0, 0.0);
   outD = dMin(outD, s1);
-
-  vec3 s2P = q - vec3(sin(PI * 0.25 * time), 0.0, 0.0);
-  vec3 s2 = vec3(length(s2P) - 0.7, 1.0, 0.0);
-  outD = dSMin(outD, s2, 0.25);
 
   return outD;
 }
@@ -364,21 +359,19 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.45;
+const float n2 = 1.15;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float spread = saturate(1.0 - dot(-rd, gNor));
 
-  float n = cnoise3(3.5 * rd + 2305.0);
-  float v = smoothstep(0.0, 0.4, n);
-  v += band(n, -0.1, -0.05);
-  v += band(n, -0.25, -0.2);
-  v += band(n, -0.3, -0.29);
+  vec3 q = vec3(0);
+  float n = fbmWarp(8.5 * rd + 2305.0 + vec3(0.0, slowTime, sin(PI * slowTime)), q);
+  n *= dot(q, vec3(1, 0, 0.5));
+  float v = smoothstep(0.25, 1.0, n);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * ( 4.0 * dot(vec3(0.0, 0.0, 1.0), rd) + vec3(0.0, 0.33, 0.67)));
-  color *= (v + 0.2) * spread;
+  color = vec3(v);
 
   return clamp(color, 0., 1.);
 }
@@ -392,7 +385,7 @@ vec3 scene (in vec3 rd) {
   return color;
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.055)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.005)
 
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.01;
@@ -441,7 +434,7 @@ vec3 secondRefraction (in vec3 rd) {
   return disp; //  + sss;
 }
 
-#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=0.055)
+#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=0.005)
 
 #pragma glslify: gradient = require(./gradient)
 
@@ -490,8 +483,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 0.5;
       float disperCo = 0.5;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
@@ -520,10 +513,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
       color *= 1.0 / float(NUM_OF_LIGHTS);
 
-      // color = 1.0 * diffuseColor;
-
       // color += 0.05 * reflection(pos, ref);
-      // color += 0.0125 * clamp(matCap(ref), 0.5, 1.0);
+      color += 0.0125 * clamp(matCap(ref), 0.5, 1.0);
       // color += 0.5 * dispersion(nor, rayDirection, n2);
 
       color += 1.0 * dispersionStep1(nor, rayDirection, n2);
