@@ -301,24 +301,24 @@ vec3 map (in vec3 p) {
 
   float twistTime = 0.25 * time; // PI Relative
 
-  vec3 cosP = q;
-  cosP.xyz += 0.50 * cos(3.0 * cosP.yzx);
-  cosP.xyz += 0.25 * cos(9.0 * cosP.yzx);
+  // vec3 cosP = q;
+  // cosP.xyz += 0.50 * cos(3.0 * cosP.yzx);
+  // cosP.xyz += 0.25 * cos(9.0 * cosP.yzx);
 
-  q = mix(q, cosP, 0.5 + 0.5 * cos(PI * twistTime + 0.5 * PI));
+  // q = mix(q, cosP, 0.5 + 0.5 * cos(PI * twistTime + 0.5 * PI));
 
-  q.xzy = twist(q.xyz, q.y * 1.29 * TWO_PI * pow(0.5 + 0.5 * sin(PI * twistTime + PI), 4.0));
+  // q.xzy = twist(q.xyz, q.y * 1.29 * TWO_PI * pow(0.5 + 0.5 * sin(PI * twistTime + PI), 4.0));
 
-  float gap = 0.75 + 0.25 * sin(PI * twistTime);
-  vec3 s1P = q + vec3(gap, 0.0, 0.0);
-  vec3 s1 = vec3(length(s1P) - 0.5, 1.0, 0.0);
+  // float gap = 0.75 + 0.25 * sin(PI * twistTime);
+  vec3 s1P = q; // + vec3(gap, 0.0, 0.0);
+  vec3 s1 = vec3(length(s1P) - 1.5, 1.0, 0.0);
   outD = dMin(outD, s1);
 
-  vec3 s2P = q - vec3(gap, 0.0, 0.0);
-  vec3 s2 = vec3(length(s2P) - 0.5, 2.0, 0.0);
-  outD = dMin(outD, s2);
+  // vec3 s2P = q - vec3(gap, 0.0, 0.0);
+  // vec3 s2 = vec3(length(s2P) - 0.5, 2.0, 0.0);
+  // outD = dMin(outD, s2);
 
-  outD.x *= 0.03125;
+  // outD.x *= 0.03125;
 
   return outD;
 }
@@ -452,7 +452,17 @@ vec3 secondRefraction (in vec3 rd) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
-  color = mix(color, vec3(0), isMaterialSmooth(m, 2.0));
+  vec3 q = vec3(0);
+  rd *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI * pos.z);
+  rd = 9.0 * rd + vec3(sigmoid(time), time, sin(time));
+  float n = fbmWarp(rd, q);
+  n *= dot(q, vec3(1, 0, 0.5));
+  n = fbmWarp(rd + n, q);
+  // n *= dot(q, vec3(1, 0, 0.5));
+  n = smoothstep(0.25, 1.0, n);
+  color = vec3(n);
+
+  // color = vec3(abs(pos.y));
 
   return color;
 }

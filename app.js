@@ -39,7 +39,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cnc-motion-1-twist-n-cosine-distort',
+    name: 'cnc-texture-1-fbmwarp-x2-w-rotation',
     autoSaveTime: 5,
     quality: 90,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3)
+    this.cameraRo = vec3.fromValues(0, 0, 2.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
