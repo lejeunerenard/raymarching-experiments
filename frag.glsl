@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -243,7 +243,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.05 * time;
+float gRAngle = TWO_PI * 0.125 * time + PI * 0.75;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -296,27 +296,23 @@ float sigmoid ( in float x ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
-  q.x += 0.333333 * cos(2.0 * (q.y + time));
+  // q.x += 0.111111 * cos(2.0 * (q.y + time));
 
   q += 0.111111 * cos( 4.0 * q.yzx + cnoise3(2.0 * p + vec3(slowTime, sin(TWO_PI * slowTime), 0.0)));
 
   // Ripple
   // q += 0.0025 * smoothstep(0.95,1.0, abs(sin(0.5 * time + 0.75 * (q.x + q.y)))) * cos(51.0 * dot(vec2(1.0), q.xy));
 
-  for (int i = -1; i < 2; i++)
-  for (int j = 0; j < 3; j++) {
-    vec3 b = vec3(
-      sdBox(q + vec3((0.4 + 0.25 * float(j)) * float(i),
-      -0.2 * float(j) + 0.1 * cnoise2(slowTime + vec2(float(i), float(j))), 0.3 * float(j)),
-      vec3(0.1, 1.2, 0.1)),
-    1.0, 0.0);
-    outD = dMin(outD, b);
-  }
+  vec3 s1P = q + vec3(sin(PI * 0.25 * time), 0.0, 0.0);
+  vec3 s1 = vec3(length(s1P) - 0.7, 1.0, 0.0);
+  outD = dMin(outD, s1);
 
-  outD.x *= 0.7;
+  vec3 s2P = q - vec3(sin(PI * 0.25 * time), 0.0, 0.0);
+  vec3 s2 = vec3(length(s2P) - 0.7, 1.0, 0.0);
+  outD = dSMin(outD, s2, 0.25);
 
   return outD;
 }
@@ -378,10 +374,11 @@ vec3 textures (in vec3 rd) {
   float n = cnoise3(3.5 * rd + 2305.0);
   float v = smoothstep(0.0, 0.4, n);
   v += band(n, -0.1, -0.05);
+  v += band(n, -0.25, -0.2);
+  v += band(n, -0.3, -0.29);
 
-  color = vec3(v * 1.5 * spread);
-
-  color -= 0.125 * hsv(vec3(spread, 0.5, 1.0));
+  color = 0.5 + 0.5 * cos(TWO_PI * ( 4.0 * dot(vec3(0.0, 0.0, 1.0), rd) + vec3(0.0, 0.33, 0.67)));
+  color *= (v + 0.2) * spread;
 
   return clamp(color, 0., 1.);
 }
@@ -451,7 +448,7 @@ vec3 secondRefraction (in vec3 rd) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.5);
 
-  return color;
+  return background;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -493,8 +490,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 0.9;
+      float specCo = 0.4;
       float disperCo = 0.5;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
@@ -512,7 +509,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         lin += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.1 * amb;
+        // lin += 0.1 * amb;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
@@ -526,7 +523,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = 1.0 * diffuseColor;
 
       // color += 0.05 * reflection(pos, ref);
-      color += 0.125 * clamp(matCap(ref), 0.5, 1.0);
+      // color += 0.0125 * clamp(matCap(ref), 0.5, 1.0);
       // color += 0.5 * dispersion(nor, rayDirection, n2);
 
       color += 1.0 * dispersionStep1(nor, rayDirection, n2);
@@ -564,7 +561,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      color = mix(vec4(#E8F6FF, 1.0), color, 1. - .99 * clamp(t.z / (1.5 * float(maxSteps)), 0., 1.));
+      color = mix(vec4(#E8F6FF, 1.0), color, 1. - .99 * clamp(t.z / (2.0 * float(maxSteps)), 0., 1.));
 
       return color;
     }
