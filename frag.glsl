@@ -30,7 +30,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 10.0
 #pragma glslify: import(./background)
 
@@ -297,31 +297,42 @@ vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
   p *= globalRot;
-  vec3 q = p;
+  vec4 q = vec4(p, 1.0);
 
   float twistTime = 0.25 * time; // PI Relative
 
-  vec3 cosP = q;
-  cosP.xyz += 0.50 * cos(3.0 * cosP.yzx);
-  cosP.xyz += 0.25 * cos(9.0 * cosP.yzx);
+  q.xzy = twist(q.xyz, q.y * 0.20 * TWO_PI * pow(0.5 + 0.5 * sin(PI * twistTime + PI), 4.0));
 
-  q = mix(q, cosP, 0.5 + 0.5 * cos(PI * twistTime + 0.5 * PI));
+  // Julia Set Test
+  // [n+1] = z[n]^2 + c
+  const vec4 c = vec4(0.3, 0.1, 0.1, 0.1);
+  q = vec4(q.x*q.x - dot(q.yzw, q.yzw),
+           2.*q.x*q.yzw) + c;
+  q = vec4(q.x*q.x - dot(q.yzw, q.yzw),
+           2.*q.x*q.yzw) + c;
+  q = vec4(q.x*q.x - dot(q.yzw, q.yzw),
+           2.*q.x*q.yzw) + c;
 
-  q.xzy = twist(q.xyz, q.y * 1.29 * TWO_PI * pow(0.5 + 0.5 * sin(PI * twistTime + PI), 4.0));
+  vec4 cosP = q.xyzw;
+  cosP.xyzw += 0.500 * cos(3.0 * cosP.yzxw);
+  cosP.xyzw += 0.250 * cos(9.0 * cosP.yzxw);
+  // cosP.xyzw += 0.125 * cos(27.0 * cosP.yzxw);
+
+  q = cosP;
 
   float gap = 0.75 + 0.25 * sin(PI * twistTime);
-  vec3 s1P = q + vec3(gap, 0.0, 0.0);
-  vec3 s1 = vec3(length(s1P) - 0.5, 1.0, 0.0);
+  // vec3 s1P = q + vec3(gap, 0.0, 0.0);
+  // vec3 s1 = vec3(length(s1P) - 0.5, 1.0, 0.0);
 
-  s1.x += 0.05 * iqFBM(20.0 * s1P);
-  s1.x *= 0.9;
-  outD = dMin(outD, s1);
+  // s1.x += 0.05 * iqFBM(20.0 * s1P);
+  // s1.x *= 0.9;
+  // outD = dMin(outD, s1);
 
-  vec3 s2P = q - vec3(gap, 0.0, 0.0);
+  vec3 s2P = q.xyz; // - vec3(gap, 0.0, 0.0);
   vec3 s2 = vec3(length(s2P) - 0.5, 2.0, 0.0);
   outD = dMin(outD, s2);
 
-  outD.x *= 0.03125;
+  outD.x *= 0.0003125;
 
   return outD;
 }
@@ -642,5 +653,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

@@ -1,10 +1,11 @@
 vec3 getBackground (in vec2 uv) {
   float coord = 1.0 * uv.y;
 
+  // DARK Grey
+  return mix(vec3(0.1, 0.105, 0.125), vec3(0.2, 0.2, 0.2), coord);
+
   return pow(#D1CC9B, vec3(2.2));
 
-  // DARK Grey
-  return vec3(0.005);
   // return pow(mix(#FFBABE, #D5A9CA, coord), vec3(2.2));
   // return pow(mix(#ff0000, #0000ff, coord), vec3(2.2));
   vec3 color =  mix(#ff7777, #aa77ff, coord);

@@ -26,7 +26,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 45
+const secondsLong = 25
 const capturing = false
 
 const MANDELBOX = false
@@ -39,9 +39,9 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cnc-1st-complete-idea',
+    name: 'dispersion-opal-or-cd-julia-set-deform-test1',
     autoSaveTime: 5,
-    quality: 90,
+    quality: 95,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
@@ -85,14 +85,14 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2.2)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
     this.objectR = 1.36
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.005
+    this.epsilon = preset.epsilon || 0.0025
 
     // Fractal parameters
     this.offset = (preset.offset)
