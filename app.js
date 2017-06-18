@@ -26,20 +26,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 25
+const secondsLong = 40
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.75
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-opal-or-cd-julia-set-deform-test1',
+    name: 'distance-field-study-cracken-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -85,7 +85,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2.5)
 
     this.frequency = 0.107
     this.lowend = 0.341
@@ -118,7 +118,7 @@ export default class App {
     }
     let manager = new WebVRManager({ domElement: canvas }, effect, params)
 
-    let audioReady = this.setupAudio()
+    // let audioReady = this.setupAudio()
 
     assign(this, {
       canvas,
@@ -128,8 +128,7 @@ export default class App {
       manager,
       vrDisplay: undefined,
       currentRAF: null,
-      running: false,
-      audioReady
+      running: false
     })
 
     let tMatCapImg = new Image()
@@ -143,7 +142,7 @@ export default class App {
     })
 
     this.stageReady = this.setupStage()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded, audioReady])
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
   }
 
   getDimensions () {
@@ -446,10 +445,6 @@ export default class App {
     this.shader.uniforms.objectR = this.objectR
 
     this.shader.uniforms.kifsM = this.kifsM(t)
-
-    if (this.analyser) {
-      this.shader.uniforms.audioTexture = this.analyser.bindFrequencies()
-    }
   }
 
   bloomBlur (gl) {
