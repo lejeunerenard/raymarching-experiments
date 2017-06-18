@@ -85,7 +85,10 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.2)
+    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+
+    this.frequency = 0.107
+    this.lowend = 0.341
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -115,6 +118,8 @@ export default class App {
     }
     let manager = new WebVRManager({ domElement: canvas }, effect, params)
 
+    let audioReady = this.setupAudio()
+
     assign(this, {
       canvas,
       gl,
@@ -123,7 +128,8 @@ export default class App {
       manager,
       vrDisplay: undefined,
       currentRAF: null,
-      running: false
+      running: false,
+      audioReady
     })
 
     let tMatCapImg = new Image()
@@ -137,7 +143,7 @@ export default class App {
     })
 
     this.stageReady = this.setupStage()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded, audioReady])
   }
 
   getDimensions () {
@@ -253,7 +259,7 @@ export default class App {
     return new Promise((resolve, reject) => {
       SoundCloud({
         client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/shang-lin/swanky',
+        song: 'https://soundcloud.com/main_void/ola-feint',
         dark: true,
         getFonts: true
       }, (err, src, data, div) => {
@@ -428,6 +434,8 @@ export default class App {
       this.shader.uniforms.tMatCap = this.tMatCap.bind()
     }
     this.shader.uniforms.epsilon = this.epsilon
+    this.shader.uniforms.frequency = this.frequency
+    this.shader.uniforms.lowend = this.lowend
 
     this.controls.update(this.shader)
 
@@ -438,6 +446,10 @@ export default class App {
     this.shader.uniforms.objectR = this.objectR
 
     this.shader.uniforms.kifsM = this.kifsM(t)
+
+    if (this.analyser) {
+      this.shader.uniforms.audioTexture = this.analyser.bindFrequencies()
+    }
   }
 
   bloomBlur (gl) {

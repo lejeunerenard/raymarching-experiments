@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
-    "a-big-triangle": "^1.0.2",
+    "a-big-triangle": "^1.0.3",
     "canvas-fit": "^1.5.0",
     "eases": "^1.0.8",
     "gl-audio-analyser": "^1.0.3",
@@ -44,7 +44,9 @@
   },
   "eslintConfig": {
     "extends": "standard",
-    "globals": { "Audio": true }
+    "globals": {
+      "Audio": true
+    }
   },
   "scripts": {
     "start": "budo app.js:bundle.js --live -- --standalone RayMarch",

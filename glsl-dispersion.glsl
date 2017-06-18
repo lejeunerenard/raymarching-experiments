@@ -1,4 +1,4 @@
-#define RGBCMY 1
+// #define RGBCMY 1
 // #define HUE 1
 // #pragma glslify: hsv = require(glsl-hsv2rgb)
 
