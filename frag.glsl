@@ -5,13 +5,15 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
 varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
+uniform float morphTime;
+uniform vec3 amberColor;
 uniform bool BLOOM;
 uniform vec3 cOffset;
 uniform vec3 cameraRo;
@@ -19,6 +21,7 @@ uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D tMatCap;
+uniform sampler2D audioTexture;
 
 uniform vec3 objectPos;
 uniform float objectR;
@@ -30,9 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 128
 #define maxDistance 30.0
-#pragma glslify: import(./background)
 
 #define slowTime time * .05
 
@@ -42,7 +44,6 @@ vec3 gNor = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-float amplitude = 0.0;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -50,6 +51,7 @@ float amplitude = 0.0;
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
+#pragma glslify: analyse = require(gl-audio-analyser)
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -115,6 +117,8 @@ float fbmWarp (vec3 p, out vec3 q) {
 
   return iqFBM(p + scale * s);
 }
+
+#pragma glslify: import(./background)
 
 // Orbit Trap
 float trapCalc (in vec3 p, in float k) {
@@ -291,22 +295,20 @@ vec3 map (in vec3 p) {
 
   p *= globalRot;
   vec3 q = p;
-  // q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
 
   q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.1111 * time));
   q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.25 * time + PI * 2.1234));
 
   // q.x += 0.2 * noise(10.0 * vec3(q.yz, 0));
 
-  q.xyz += 0.500 * cos( 3.0 * q.yzx + noise(q) + time );
-  q.xyz += 0.250 * cos( 9.0 * q.yzx + noise(q) );
+  q.xyz += 0.5000 * cos(3.0 * q.yzx + 0.1 * morphTime);
+  q.xyz += 0.2500 * cos(11.0 * q.yzx + noise(q));
 
   vec3 noiseP = q;
-  noiseP.yz *= 35.0;
+  noiseP.yz *= 25.0;
   float trap = length(q.yz); //  * 0.707107;
-  // vec3 s = vec3(sdCapsule(q, vec3(-0.5, 0, 0), vec3(0.5, 0, 0), 0.5), 1.0, trap);
-  vec3 s = vec3(sdCapsule(q, vec3(-0.5, 0, 0), vec3(0.5, 0, 0), 0.5 + 0.25 * iqFBM(noiseP)), 1.0, trap);
-  s.x *= clamp(s.x * s.x * 0.25 + 0.01, 0.01, 0.2);
+  vec3 s = vec3(sdCapsule(q, vec3(-0.5, 0, 0), vec3(0.5, 0, 0), 0.5), 1.0, trap);
+  s.x *= 0.2;
   outD = dMin(outD, s);
 
   return outD;
@@ -360,7 +362,7 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.50;
+const float n2 = 1.20;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -374,8 +376,8 @@ vec3 textures (in vec3 rd) {
   // float v = smoothstep(0.25, 1.0, n);
 
   vec3 p = rd;
-  float n = cnoise3(3.5 * p + 2305.0 + vec3(0.0, slowTime, sin(PI * slowTime)));
-  float v = smoothstep(0.2, 1.5, n);
+  float n = cnoise3(0.25 * p + 2305.0);
+  float v = smoothstep(-0.7, 1.5, n);
 
   color = vec3(v);
 
@@ -396,6 +398,11 @@ vec3 seaGradient (in float t) {
   vec3 color = mix(#2A3B82, #6FFFF9, t);
   // vec3 color = mix(#2A3B82, #6FFFF9, smoothstep(0.0, 0.5, t));
   return color; // mix(color, #ffffff, smoothstep(0.5, 1.0, t));
+}
+vec3 amberGradient (in float t) {
+  t = saturate(t);
+  vec3 color = mix(#3D1C0B, amberColor, smoothstep(0.3, 0.75, t));
+  return mix(color, pow(#ED4F2C, vec3(2.2)), smoothstep(0.75, 1.0, t));
 }
 
 #pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.025)
@@ -459,15 +466,17 @@ vec3 secondRefraction (in vec3 rd) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.03); // #2A3B82;
 
-  float v = pow(trap, 1.125);
-  color = seaGradient(v) * (v + 0.1);
+  float v = pow(1.15 * trap, 1.0);
+  color = amberGradient(v); //  * (v + 0.1);
+
+  color *= #ffdd88 * dot(nor, -rd);
 
   return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
 
-const vec3 glowColor = #39CCA1;
+const vec3 glowColor = pow(#ED4F2C, vec3(2.2));
 
 #pragma glslify: innerGlow = require(./inner-glow, glowColor=glowColor)
 #pragma glslify: matCap = require(./matCap, texture=tMatCap)
@@ -478,7 +487,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = vec3(0.0);
 
-      vec3 nor = getNormal2(pos, 0.8);
+      vec3 nor = getNormal2(pos, 0.08 * t.x);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -504,14 +513,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.50;
-      float specCo = 1.00;
+      float freCo = 0.70;
+      float specCo = 0.60;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // diffuse(nor, lightPos);
+        float dif = diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -521,39 +530,37 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         // Specular Lighting
         fre *= freCo * dif * occ;
         lin += fre;
-        lin += spec * (1. - fre);
-        specAll += spec * (1. - fre);
+        lin += specCo * spec * (1. - fre);
+        specAll += specCo * spec * (1. - fre);
 
         // Ambient
         // lin += 0.1 * amb;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
-          saturate((conserve * dif * lights[i].intensity) * lights[i].color * diffuseColor)
+          saturate((conserve * occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
           + saturate(lights[i].intensity * lin * mix(diffuseColor, #ffffff, 0.4));
 
         // color += disperCo * repNUM_OF_LIGHTS * lights[i].intensity * dispersionStep1(nor, rayDirection, n2, lights[i].color);
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.5 * vec3(pow(specAll, 4.0));
+      color += 0.5 * vec3(pow(specAll, 8.0));
 
-      // color += 0.05 * reflection(pos, ref);
-      // color += 0.0125 * clamp(matCap(ref), 0.5, 1.0);
-      // color += 1.0 * dispersion(nor, rayDirection, n2);
+      color += 0.025 * reflection(pos, ref);
+      color += 0.03125 * clamp(matCap(ref), 0.5, 1.0);
+      // color += 0.125 * dispersion(nor, rayDirection, n2);
 
-      // color += 0.5 * dispersionStep1(nor, rayDirection, n2);
+      color += 0.03125 * dispersionStep1(nor, rayDirection, n2);
       // color = 1.0 * dispersionStep1(nor, rayDirection, n2);
       // color = scene(rayDirection);
-
-      color *= 1.3;
 
       // Fog
       color = mix(background, color, clamp(1.025 * (maxDistance-t.x) / maxDistance, 0., 1.));
       color *= exp(-t.x * .005);
 
       // Inner Glow
-      // color += innerGlow(t.w);
+      color += 0.5 * innerGlow(5.0 * t.w);
 
       // Post process
       // vec3 colorBefore = color;
@@ -583,7 +590,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      // color = mix(vec4(#E8F6FF, 1.0), color, 1. - .99 * clamp(t.z / (1.5 * float(maxSteps)), 0., 1.));
+      vec3 glowColor = pow(#DE4D2C, vec3(2.2));
+      color = mix(vec4(glowColor, 1.0), color, 1. - .99 * clamp(t.z / (2.4 * float(maxSteps)), 0., 1.));
 
       return color;
     }
@@ -630,5 +638,4 @@ void main() {
 
     // 'Film' Noise
     // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
-
 }

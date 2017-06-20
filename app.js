@@ -14,12 +14,13 @@ import makeContext from 'gl-context'
 import { rot4 } from './utils'
 import CCapture from 'ccapture.js'
 import SoundCloud from 'soundcloud-badge'
-import Analyser from 'gl-audio-analyser'
+import Analyser from 'web-audio-analyser'
 import drawTriangle from 'a-big-triangle'
 
 import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
+import { dampen } from './dampening'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
@@ -31,8 +32,8 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.75
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_WET = 0.95
+const BLOOM_MIN_BRIGHTNESS = 0.8
 
 let capturer = {}
 if (capturing) {
@@ -87,12 +88,10 @@ export default class App {
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0, 2.5)
 
-    this.frequency = 0.107
-    this.lowend = 0.341
-
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
     this.objectR = 1.36
+    this.amberColor = [235, 147, 21];
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0025
@@ -118,7 +117,11 @@ export default class App {
     }
     let manager = new WebVRManager({ domElement: canvas }, effect, params)
 
-    // let audioReady = this.setupAudio()
+    // Audio
+    let audioReady = this.setupAudio()
+    this.morphTime = 0
+    this.morphTimeGoal = 0
+    this.prevAmp = 0
 
     assign(this, {
       canvas,
@@ -128,7 +131,8 @@ export default class App {
       manager,
       vrDisplay: undefined,
       currentRAF: null,
-      running: false
+      running: false,
+      audioReady
     })
 
     let tMatCapImg = new Image()
@@ -258,7 +262,7 @@ export default class App {
     return new Promise((resolve, reject) => {
       SoundCloud({
         client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/main_void/ola-feint',
+        song: 'https://soundcloud.com/tristen/opening-set-pt1-at-globus-house-of-waxx',
         dark: true,
         getFonts: true
       }, (err, src, data, div) => {
@@ -274,7 +278,7 @@ export default class App {
         audio.src = src
         audio.addEventListener('canplay', () => {
           console.log('playing!')
-          this.analyser = Analyser(this.gl, audio)
+          this.analyser = Analyser(audio)
           audio.play()
         })
 
@@ -429,12 +433,27 @@ export default class App {
   update (t) {
     TWEEN.update(t)
 
+    // Update Frequencies
+    if (this.analyser) {
+      this.freqencies = this.analyser.frequencies()
+      this.freqencies = this.freqencies.slice(0, Math.floor(this.freqencies.length / 2))
+
+      let totalAmplitude = this.freqencies
+        .reduce((prev, amp, i) => prev + amp / (i + 1), 0)
+
+      let shift = Math.pow(Math.max( 0, totalAmplitude - this.prevAmp) / 10, 3.0) * 25
+      this.morphTimeGoal += shift
+
+      this.morphTime = dampen(this.morphTime, this.morphTimeGoal, 0.25)
+
+      this.prevAmp = totalAmplitude
+    }
+
     if (this.tMatCap) {
       this.shader.uniforms.tMatCap = this.tMatCap.bind()
     }
     this.shader.uniforms.epsilon = this.epsilon
-    this.shader.uniforms.frequency = this.frequency
-    this.shader.uniforms.lowend = this.lowend
+    this.shader.uniforms.amberColor = [this.amberColor[0] / 255, this.amberColor[1] / 255, this.amberColor[2] / 255]
 
     this.controls.update(this.shader)
 
@@ -498,6 +517,7 @@ export default class App {
     }
 
     shader.uniforms.time = window.time || t / 1000
+    shader.uniforms.morphTime = (t + this.morphTime) / 1000
     shader.uniforms.BLOOM = BLOOM
     manager.render(shader, t)
 
