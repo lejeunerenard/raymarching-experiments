@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -33,7 +33,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 30.0
 
 #define slowTime time * .05
@@ -240,7 +240,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.125 * time + PI * 0.75;
+float gRAngle = TWO_PI * 0.05 * time + PI * 0.75;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -296,19 +296,16 @@ vec3 map (in vec3 p) {
   p *= globalRot;
   vec3 q = p;
 
-  q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.1111 * time));
-  q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.25 * time + PI * 2.1234));
+  q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.1 * time));
+  q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.2 * time + PI * 2.1234));
 
-  // q.x += 0.2 * noise(10.0 * vec3(q.yz, 0));
+  const float period = 20.0;
+  float modTime = mod(time, period);
+  q.xyz += 0.250 * mix(cos(2.3 * q.yzx + 0.5 * modTime), cos(2.3 * q.yzx + 0.5 * (modTime - period)), modTime / period);
+  q.xyz += 0.125 * cos(3.3 * q.yzx + noise(2.0 * q));
 
-  q.xyz += 0.5000 * cos(3.0 * q.yzx + 0.1 * morphTime);
-  q.xyz += 0.2500 * cos(11.0 * q.yzx + noise(q));
-
-  vec3 noiseP = q;
-  noiseP.yz *= 25.0;
-  float trap = length(q.yz); //  * 0.707107;
-  vec3 s = vec3(sdCapsule(q, vec3(-0.5, 0, 0), vec3(0.5, 0, 0), 0.5), 1.0, trap);
-  s.x *= 0.2;
+  vec3 s = vec3(length(q) - 1.0, 1.0, 0.0);
+  s.x *= 0.54;
   outD = dMin(outD, s);
 
   return outD;
@@ -367,17 +364,15 @@ const float n2 = 1.20;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = saturate(1.0 - dot(-rd, gNor));
+  float spread = saturate(dot(-1.0 * rd, gNor));
 
-  vec3 q = vec3(0);
+  // float n = iqFBM(8.0 * rd + 2305.0);
+  // float v = smoothstep(0.0, 0.9, n);
 
-  // float n = fbmWarp(8.5 * rd + 2305.0 + vec3(0.0, slowTime, sin(PI * slowTime)), q);
-  // n *= dot(q, vec3(1, 0, 0.5));
-  // float v = smoothstep(0.25, 1.0, n);
-
-  vec3 p = rd;
-  float n = cnoise3(0.25 * p + 2305.0);
-  float v = smoothstep(-0.7, 1.5, n);
+  const float period = 20.0;
+  float modTime = mod(time, period);
+  float n = mix(cnoise3(1.0 * rd + 2305.0 + 0.5 * cnoise3(1.2 * rd + 0.05 * modTime)), cnoise3(1.0 * rd + 2305.0 + 0.5 * cnoise3(1.2 * rd + 0.05 * (modTime - period))), modTime / period);
+  float v = smoothstep(-0.4, 0.9, n);
 
   color = vec3(v);
 
@@ -396,8 +391,7 @@ vec3 scene (in vec3 rd) {
 vec3 seaGradient (in float t) {
   t = saturate(t);
   vec3 color = mix(#2A3B82, #6FFFF9, t);
-  // vec3 color = mix(#2A3B82, #6FFFF9, smoothstep(0.0, 0.5, t));
-  return color; // mix(color, #ffffff, smoothstep(0.5, 1.0, t));
+  return color;
 }
 vec3 amberGradient (in float t) {
   t = saturate(t);
@@ -464,13 +458,7 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.03); // #2A3B82;
-
-  float v = pow(1.15 * trap, 1.0);
-  color = amberGradient(v); //  * (v + 0.1);
-
-  color *= #ffdd88 * dot(nor, -rd);
-
+  vec3 color = vec3(0.01);
   return color;
 }
 
@@ -513,15 +501,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.70;
-      float specCo = 0.60;
+      float freCo = 1.00;
+      float specCo = 0.9;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         dif *= saturate(0.3 + softshadow(pos, lightPos, 0.02, 1.5));
@@ -547,12 +535,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.5 * vec3(pow(specAll, 8.0));
 
-      color += 0.025 * reflection(pos, ref);
-      color += 0.03125 * clamp(matCap(ref), 0.5, 1.0);
-      // color += 0.125 * dispersion(nor, rayDirection, n2);
+      // color += 0.025 * reflection(pos, ref);
+      color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
-      color += 0.03125 * dispersionStep1(nor, rayDirection, n2);
-      // color = 1.0 * dispersionStep1(nor, rayDirection, n2);
+      color += 0.9 * dispersionStep1(nor, rayDirection, n2);
       // color = scene(rayDirection);
 
       // Fog
@@ -560,11 +546,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= exp(-t.x * .005);
 
       // Inner Glow
-      color += 0.5 * innerGlow(5.0 * t.w);
+      // color += 0.5 * innerGlow(5.0 * t.w);
 
       // Post process
       // vec3 colorBefore = color;
-      // colorMap(color);
+      colorMap(color);
       // color = mix(color, colorBefore, 0.5);
 
       // Debugging
@@ -590,8 +576,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
 
       // Glow
-      vec3 glowColor = pow(#DE4D2C, vec3(2.2));
-      color = mix(vec4(glowColor, 1.0), color, 1. - .99 * clamp(t.z / (2.4 * float(maxSteps)), 0., 1.));
+      // vec3 glowColor = pow(#DE4D2C, vec3(2.2));
+      // color = mix(vec4(glowColor, 1.0), color, 1. - .99 * clamp(t.z / (2.4 * float(maxSteps)), 0., 1.));
 
       return color;
     }
@@ -637,5 +623,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

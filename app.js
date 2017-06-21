@@ -27,20 +27,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.95
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-study-cracken-test2',
+    name: 'dispersion-moonstone-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -117,12 +117,6 @@ export default class App {
     }
     let manager = new WebVRManager({ domElement: canvas }, effect, params)
 
-    // Audio
-    let audioReady = this.setupAudio()
-    this.morphTime = 0
-    this.morphTimeGoal = 0
-    this.prevAmp = 0
-
     assign(this, {
       canvas,
       gl,
@@ -131,8 +125,7 @@ export default class App {
       manager,
       vrDisplay: undefined,
       currentRAF: null,
-      running: false,
-      audioReady
+      running: false
     })
 
     let tMatCapImg = new Image()
@@ -433,22 +426,6 @@ export default class App {
   update (t) {
     TWEEN.update(t)
 
-    // Update Frequencies
-    if (this.analyser) {
-      this.freqencies = this.analyser.frequencies()
-      this.freqencies = this.freqencies.slice(0, Math.floor(this.freqencies.length / 2))
-
-      let totalAmplitude = this.freqencies
-        .reduce((prev, amp, i) => prev + amp / (i + 1), 0)
-
-      let shift = Math.pow(Math.max( 0, totalAmplitude - this.prevAmp) / 10, 3.0) * 25
-      this.morphTimeGoal += shift
-
-      this.morphTime = dampen(this.morphTime, this.morphTimeGoal, 0.25)
-
-      this.prevAmp = totalAmplitude
-    }
-
     if (this.tMatCap) {
       this.shader.uniforms.tMatCap = this.tMatCap.bind()
     }
@@ -517,7 +494,6 @@ export default class App {
     }
 
     shader.uniforms.time = window.time || t / 1000
-    shader.uniforms.morphTime = (t + this.morphTime) / 1000
     shader.uniforms.BLOOM = BLOOM
     manager.render(shader, t)
 
