@@ -32,15 +32,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.95
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_WET = 0.6
+const BLOOM_MIN_BRIGHTNESS = 0.98
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-relaxx-test1',
+    name: 'dispersion-amorphous-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -86,7 +86,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2.2)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -104,7 +104,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
