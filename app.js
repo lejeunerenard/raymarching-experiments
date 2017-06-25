@@ -27,7 +27,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 120
 const capturing = false
 
 const MANDELBOX = false
@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-candy-test2',
+    name: 'distance-field-never-again-test6',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -86,7 +86,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.2)
+    this.cameraRo = vec3.fromValues(0, 0, 3.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)

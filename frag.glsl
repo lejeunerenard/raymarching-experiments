@@ -33,10 +33,10 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 64
+#define maxSteps 128
 #define maxDistance 10.0
 
-#define slowTime time * .05
+#define slowTime time * .2
 
 vec3 lightPos = normalize(vec3(1., .75, 0.));
 vec3 gPos = vec3(0.0);
@@ -302,28 +302,13 @@ vec3 map (in vec3 p) {
   // q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.2 * time));
   // q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.3 * time + PI * 2.1234));
 
-  const float period = 20.0;
-  const float transitionStart = period * 0.5;
-  float modTime = mod(time, period);
+  // 0.999983 * 0.999961 * 0.999331 * 0.997991 * 0.997973 * 0.997651 = 
+  q.xyz += 0.5000 * cos(PI * 0.3333 * vec3(0.999983, 0.999961, 0.999331) * (q.yzx + slowTime));
+  q.xyz += 0.2500 * cos(PI * 0.3333 * vec3(0.997991, 0.997973, 0.997651) * (q.yzx + slowTime));
+  // q.xyz += 0.1250 * cos(PI * 0.3333 * 5.0 * (q.yzx));
+  // q.xyz += 0.0625 * cos(PI * 0.3333 * 7.0 * (q.yzx));
 
-  q.z += 0.25 * sin(time + q.x);
-
-  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 1.0, 0.0);
-
-  vec2 nP = 0.5 * q.xy + vec2(0, 0.125 * time);
-
-  vec2 ev1 = vec2(
-    cnoise2(nP.xy + vec2(1,0) * 0.125 * sin(TWO_PI * 0.1 * time)),
-    cnoise2(nP.xy + 0.25 * sin(TWO_PI * 0.2 * time) + vec2(72.46, 9123.3)));
-  vec2 ev2 = vec2(
-    cnoise2(nP.xy + vec2(1,0) * 0.125 * sin(TWO_PI * 0.1 * (time - period))),
-    cnoise2(nP.xy + 0.25 * sin(TWO_PI * 0.2 * (time - period)) + vec2(72.46, 9123.3)));
-
-  vec2 e = mix(ev1, ev2, (modTime - transitionStart) / (period - transitionStart));
-
-  float n = snoise2(vec2(10.0, 0.25) * (q.xy + 2.0 * e));
-  s.x += 0.015625 * n;
-  s.y = n;
+  vec3 s = vec3(length(q) - 1.0, 1.0, 0.0);
   s.x *= 0.5;
   outD = dMin(outD, s);
 
@@ -471,10 +456,7 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = #FFD7AB;
-  float t = 0.5 + 0.5 * sin(0.75 * TWO_PI * m);
-  color = mix(color, #FFC8B8, smoothstep(0.0, 0.45, t));
-  color = mix(color, #FFABBD, smoothstep(0.45, 0.85, t));
+  vec3 color = vec3(1.0);
   return color;
 }
 
@@ -526,7 +508,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 0.9; // diffuse(nor, lightPos);
+        float dif = diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -557,7 +539,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
       // color += 0.9 * dispersionStep1(nor, rayDirection, n2);
-      color += 0.90 * dispersion(nor, rayDirection, n2);
+      // color += 0.90 * dispersion(nor, rayDirection, n2);
       // color = scene(rayDirection);
 
       // Fog
