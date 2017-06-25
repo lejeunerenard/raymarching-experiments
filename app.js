@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-amorphous-test2',
+    name: 'distance-field-candy-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -94,7 +94,7 @@ export default class App {
     this.amberColor = [235, 147, 21];
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00025
+    this.epsilon = preset.epsilon || 0.000125
 
     // Fractal parameters
     this.offset = (preset.offset)
