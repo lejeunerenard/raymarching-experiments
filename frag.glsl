@@ -85,8 +85,8 @@ float iqFBM (vec2 p) {
 
 float vfbm4 (vec2 p) {
   float f = 0.0;
-  const float a = PI * 0.346;
-  const mat2 m = mat2(
+  float a = PI * 0.173 * (0.5 + 0.5 * sin(PI * 0.5 * slowTime));
+  mat2 m = mat2(
     cos(a), sin(a),
     -sin(a), cos(a));
 
@@ -246,11 +246,11 @@ scale, 0., 0., 0.,
 0., 1., 0., 0.,
 0., 0.2, 1., 0.,
 0., 0., 0., 1.);
-#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
+// #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
 // 
 // #pragma glslify: fold = require(./folds)
-// #pragma glslify: foldNd = require(./foldNd)
-#pragma glslify: twist = require(./twist)
+#pragma glslify: foldNd = require(./foldNd)
+// #pragma glslify: twist = require(./twist)
 
 // The "Round" variant uses a quarter-circle to join the two objects smoothly:
 float fOpUnionRound(float a, float b, float r) {
@@ -297,9 +297,9 @@ float sdCylinder( vec3 p, vec3 c )
 }
 
 // p as usual, e exponent (p in the paper), r radius or something like that
-#pragma glslify: octahedral = require(./model/octahedral)
-#pragma glslify: dodecahedral = require(./model/dodecahedral)
-#pragma glslify: icosahedral = require(./model/icosahedral)
+// #pragma glslify: octahedral = require(./model/octahedral)
+// #pragma glslify: dodecahedral = require(./model/dodecahedral)
+// #pragma glslify: icosahedral = require(./model/icosahedral)
 
 bool isMaterial( float m, float goal ) {
   return m < goal + 1. && m > goal - .1;
@@ -309,14 +309,15 @@ float isMaterialSmooth( float m, float goal ) {
   return 1. - smoothstep(0., eps, abs(m - goal));
 }
 
-#pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
-#pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-#pragma glslify: ease = require(glsl-easings/bounce-in)
-#pragma glslify: voronoi = require(./voronoi)
-#pragma glslify: band = require(./band-filter)
-#pragma glslify: tetrahedron = require(./model/tetrahedron)
-#
+// #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
+// #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
+// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+// #pragma glslify: ease = require(glsl-easings/bounce-in)
+// #pragma glslify: voronoi = require(./voronoi)
+// #pragma glslify: band = require(./band-filter)
+// #pragma glslify: tetrahedron = require(./model/tetrahedron)
+
 // Logistic function
 float sigmoid ( in float x ) {
   const float L = 1.0;
@@ -623,10 +624,10 @@ vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
   // offset = 0.5 * length(uv);
   offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
 
-  vec2 x = 1.5 * (5.0 + 0.5 * sin(TWO_PI * (slowTime + offset))) * uv;
+  vec2 x = 1.0 * (3.0 + 0.5 * sin(TWO_PI * (slowTime + offset))) * uv;
   // vec2 x = 5.0 * uv;
 
-  x = abs(x);
+  pModPolar(x, 6.0);
 
   vec2 o;
   o.x = vfbm4(x);
@@ -647,19 +648,19 @@ vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec2 s;
   s.x = vfbm6(2.0 * o);
-  s.y = vfbm6(2.0 * o + vec2(2.35));
+  s.y = vfbm6(2.0 * o + vec2(7.23));
 
-  vec2 s11 = sin(PI * 0.2 * (vec2(2.0, 1.0) * modTime + length(s)));
-  vec2 s12 = sin(PI * 0.2 * (vec2(2.0, 1.0) * (modTime - period) + length(s)));
+  vec2 s11 = sin(PI * 0.2 * (vec2(2.0, 1.0) * sin(PI * 0.2 * modTime) + length(s)));
+  vec2 s12 = sin(PI * 0.2 * (vec2(2.0, 1.0) * sin(PI * 0.2 * (modTime - period)) + length(s)));
   s += 0.25 * combine(s11, s12, modTime, period);
 
-  vec2 s21 = sin(PI * 0.2 * (vec2(1.0, 0.5) * modTime + s.yx));
-  vec2 s22 = sin(PI * 0.2 * (vec2(1.0, 0.5) * (modTime - period) + s.yx));
+  vec2 s21 = sin(PI * 0.2 * (vec2(1.0, 0.5) * sin(modTime) + s.yx));
+  vec2 s22 = sin(PI * 0.2 * (vec2(1.0, 0.5) * sin(modTime - period) + s.yx));
   s += 0.25 * combine(s21, s22, modTime, period);
 
   vec2 r;
-  r.x = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(9.234));
-  r.y = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(134.5));
+  r.x = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(-13.24));
+  r.y = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(2.353));
 
   float n = 0.5 + 0.5 * vfbm6(x + 4.0 * r);
   n = mix(n, n * n * n * 1.4, n * abs(s.x));
@@ -670,10 +671,9 @@ vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  color = mix(pow(#BBEDE2, vec3(2.2)), pow(#3D4473, vec3(2.2)), pow(n, 0.4));
-  color = mix(color, pow(#EB4779, vec3(2.2)), smoothstep(0.5, 1.0, dot(r, vec2(0.5))));
-  // color += 0.125 + 0.125 * cos(TWO_PI * (length(s) + vec3(0.0, 0.33, 0.67)));
-  // color *= pow(length(s), 2.0);
+  color = mix(color, #ffffff, smoothstep(0.6, 1.0, n * (1.0 - 0.25 * length(uv))));
+  color = mix(color, pow(#9868FF, vec3(2.2)), smoothstep(0.9, 1.0, 1.0 - 0.25 * length(s)));
+  color = mix(color, pow(#FFF568, vec3(2.2)), smoothstep(0.9, 1.0, s.x * s.x));
 
   // Debug
   // color = vec3(n); // noise
