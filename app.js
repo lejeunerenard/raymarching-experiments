@@ -32,15 +32,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.6
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_WET = 0.9
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-architect-test3',
+    name: 'fbm-warp-nebula-test3',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

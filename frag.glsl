@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -54,6 +54,7 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 #pragma glslify: analyse = require(gl-audio-analyser)
+#define combine(v1, v2, t, p) mix(v1, v2, t/p)
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -66,6 +67,10 @@ float noise(vec3 p) {
     h.xy=mix(h.xz,h.yw,p.y);
     return mix(h.x,h.y,p.z);
 }
+// source: https://www.shadertoy.com/view/lsl3RH
+float noise( in vec2 x ) {
+  return sin(1.5*x.x)*sin(1.5*x.y);
+}
 
 float iqFBM (vec2 p) {
   float f = 0.0;
@@ -76,6 +81,38 @@ float iqFBM (vec2 p) {
   f += 0.062500*cnoise2( p ); p = p*2.025;
 
   return f * 1.066667;
+}
+
+float vfbm4 (vec2 p) {
+  float f = 0.0;
+  const float a = PI * 0.346;
+  const mat2 m = mat2(
+    cos(a), sin(a),
+    -sin(a), cos(a));
+
+  f += 0.500000 * noise( p ); p *= m * 2.02;
+  f += 0.250000 * noise( p ); p *= m * 2.03;
+  f += 0.125000 * noise( p ); p *= m * 2.01;
+  f += 0.062500 * noise( p ); p *= m * 2.025;
+
+  return f * 0.9375;
+}
+
+float vfbm6 (vec2 p) {
+  float f = 0.0;
+  const float a = 1.123;
+  const mat2 m = mat2(
+    cos(a), sin(a),
+    -sin(a), cos(a));
+
+  f += 0.500000 * (0.5 + 0.5 * noise( p )); p *= m * 2.02;
+  f += 0.250000 * (0.5 + 0.5 * noise( p )); p *= m * 2.03;
+  f += 0.125000 * (0.5 + 0.5 * noise( p )); p *= m * 2.01;
+  f += 0.062500 * (0.5 + 0.5 * noise( p )); p *= m * 2.025;
+  f += 0.031250 * (0.5 + 0.5 * noise( p )); p *= m * 2.011;
+  f += 0.015625 * (0.5 + 0.5 * noise( p )); p *= m * 2.0232;
+
+  return f * 0.9375;
 }
 
 float iqFBM (vec3 p) {
@@ -302,11 +339,7 @@ vec3 map (in vec3 p) {
   q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.2 * time));
   q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.3 * time + PI * 2.1234));
 
-  q.xyz += 0.50 * cos(5.0 * q.yzx + PI * slowTime);
-  q.xyz += 0.25 * cos(9.0 * (q.yzx + PI * slowTime + noise(q)));
-
-  vec3 s = vec3(length(q) - 1.0, 1.0, 0.0);
-  s.x *= 0.15;
+  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 1.0, 0.0);
   outD = dMin(outD, s);
 
   return outD;
@@ -580,7 +613,82 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec2 aUV = abs(uv);
+
+  const float period = 20.0;
+  float modTime = mod(time, period);
+
+  float offset;
+  // offset = 0.5 * length(uv);
+  offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
+
+  vec2 x = 1.5 * (5.0 + 0.5 * sin(TWO_PI * (slowTime + offset))) * uv;
+  // vec2 x = 5.0 * uv;
+
+  x = abs(x);
+
+  vec2 o;
+  o.x = vfbm4(x);
+  o.y = vfbm4(x);
+
+  vec2 ov11 = sin(PI * 0.2 * (vec2(2.0, 1.0) * modTime + length(x)));
+  vec2 ov12 = sin(PI * 0.2 * (vec2(2.0, 1.0) * (modTime - period) + length(x)));
+  o += 0.25 * combine(ov11, ov12, modTime, period);
+
+  vec2 ov21 = sin(PI * 0.2 * (vec2(1.0, 0.5) * modTime + o.yx));
+  vec2 ov22 = sin(PI * 0.2 * (vec2(1.0, 0.5) * (modTime - period) + o.yx));
+  o += 0.125 * combine(ov21, ov22, modTime, period);
+
+  float a = PI * 0.5 * slowTime;
+  float c = cos(a);
+  float si = sin(a);
+  o *= mat2(c, si, -si, c);
+
+  vec2 s;
+  s.x = vfbm6(2.0 * o);
+  s.y = vfbm6(2.0 * o + vec2(2.35));
+
+  vec2 s11 = sin(PI * 0.2 * (vec2(2.0, 1.0) * modTime + length(s)));
+  vec2 s12 = sin(PI * 0.2 * (vec2(2.0, 1.0) * (modTime - period) + length(s)));
+  s += 0.25 * combine(s11, s12, modTime, period);
+
+  vec2 s21 = sin(PI * 0.2 * (vec2(1.0, 0.5) * modTime + s.yx));
+  vec2 s22 = sin(PI * 0.2 * (vec2(1.0, 0.5) * (modTime - period) + s.yx));
+  s += 0.25 * combine(s21, s22, modTime, period);
+
+  vec2 r;
+  r.x = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(9.234));
+  r.y = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(134.5));
+
+  float n = 0.5 + 0.5 * vfbm6(x + 4.0 * r);
+  n = mix(n, n * n * n * 1.4, n * abs(s.x));
+
+  float v1 = 0.125 * cnoise2(1.0 * x + modTime);
+  float v2 = 0.125 * cnoise2(1.0 * x + modTime - period);
+  n += combine(v1, v2, modTime, period);
+
+  vec3 color = vec3(0);
+
+  color = mix(pow(#BBEDE2, vec3(2.2)), pow(#3D4473, vec3(2.2)), pow(n, 0.4));
+  color = mix(color, pow(#EB4779, vec3(2.2)), smoothstep(0.5, 1.0, dot(r, vec2(0.5))));
+  // color += 0.125 + 0.125 * cos(TWO_PI * (length(s) + vec3(0.0, 0.33, 0.67)));
+  // color *= pow(length(s), 2.0);
+
+  // Debug
+  // color = vec3(n); // noise
+  // float l = length(color);
+  // if (l >= 1.732051) {
+  //   color = #ff00ff;
+  // } else if (l <= 0.0001) {
+  //   color = #00ff00;
+  // }
+
+  return vec4(color, 1);
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return warpy(ro, rd, uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
