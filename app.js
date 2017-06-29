@@ -22,7 +22,7 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import { dampen } from './dampening'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 0.5 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-enso-test2',
+    name: 'distance-field-thump-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -86,7 +86,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 20)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -94,7 +94,7 @@ export default class App {
     this.amberColor = [235, 147, 21];
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000125
+    this.epsilon = preset.epsilon || 0.01
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -162,6 +162,7 @@ export default class App {
   }
 
   setupAnimation (preset) {
+    let self = this
     // Epsilon Animation
     let eps1 = new TWEEN.Tween(this)
     eps1
@@ -170,21 +171,19 @@ export default class App {
     // eps1.start(0)
 
     // Camera location animation
-    let cameraPosTween = new TWEEN.Tween(this.cameraRo)
+    let ob = { angle: 0 }
+    const R = 20
+    let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to([0.9, -0.796, 1], 15 * 1000)
-      .easing(TWEEN.Easing.Sinusoidal.Out)
-    let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-      .to([-1.2, 0.5, 1], 15 * 1000)
-      .easing(TWEEN.Easing.Sinusoidal.Out)
+      .to({ angle: Math.PI * 2.0}, 10 * 1000)
+      .onUpdate(function () {
+        self.cameraRo[0] = R * Math.cos(this.angle)
+        self.cameraRo[2] = R * Math.sin(this.angle)
+      })
 
-    cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween)
-
-    // cameraPosTween.start(0)
+    cameraPosTween.start(0).repeat(Infinity)
 
     // Camera rotation
-    let self = this
     let camRotTween1 = new TWEEN.Tween([-1.579, 2.148, 1.57])
     camRotTween1
       .to([-0.124, 0.917, 0.121], 10 * 1000)
@@ -228,7 +227,7 @@ export default class App {
     rotTween2.chain(rotTween3)
     rotTween3.chain(rotTween4)
     rotTween4.chain(rotTween1)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)

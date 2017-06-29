@@ -33,8 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
-#define maxDistance 10.0
+#define maxSteps 256
+#define maxDistance 100.0
 
 #define slowTime time * .2
 
@@ -333,64 +333,31 @@ float sigmoid ( in float x ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  p *= globalRot;
+  // p *= globalRot;
+  p *= rotationMatrix(vec3(0, 1, 0), PI + 0.25 * sin(PI * 0.5 * time));
 
   vec3 q = p;
 
   // q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.2 * time));
   // q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.3 * time + PI * 2.1234));
 
-  // Cylinder Space
-  float a = atan(q.x, q.y);
-  float R = length(q.xy) - 0.75;
-  R -= 0.5 * band(a - PI, -PI * 0.5, PI * 0.5);
-  q.x = a / PI;
-  q.y = R;
+  vec3 warpP = q;
+  warpP.xyz += 2.00 * cos(0.5 * warpP.yzx);
+  warpP.xyz += 1.00 * cos(1.0 * warpP.yzx);
+  warpP.xyz += 0.50 * cos(2.0 * warpP.yzx);
 
-  // Flatten
-  q.z *= 2.0;
+  q = mix(q, warpP, 0.5 + 0.5 * sin(PI * 0.2 * time));
 
-  // stroke
-  vec3 nP = 60.0 * q;
-  nP.x *= 0.1;
-  // nP.x -= time; // Animate
-  float stroke = 0.125 * noise(nP);
+  float radius = 8.0;
+  radius += 1.0 * pow(0.5 + 0.5 * sin(TWO_PI * 1.2 * time + q.y / 12.5), 4.0);
 
-  // Head
-  float head = 0.125 * smoothstep(0.1, 1.5, -q.x * q.x * q.x);
+  q.z *= 2.0 - q.y / 8.0;
 
-  // Tail
-  float tail = -0.3 * smoothstep(-0.5, 0.9, sign(q.x) * q.x * q.x);
+  q.y = 4.0 + 1.2 * q.y - abs(q.x) * sqrt((20.0 - abs(q.x)) / 8.0);
 
-  float baseR = 0.25;
-  float r = baseR + stroke + head + tail;
-
-  vec3 s = vec3(sdCapsule(q, vec3(-1.0 + baseR + 0.200, 0, 0), vec3(1.0 - baseR + 0.125, 0, 0), r), 1.0, 0.0);
-  s.x *= 0.25;
-
-  // Crop
-  float cropTime = slowTime - 0.2 * (q.x - 1.0);
-  float cropLength = 1.15;
-  float cropStart = 0.01;
-  float crop = smoothstep(cropStart, cropLength + cropStart, cropTime);
-  crop = saturate(crop); // Is this necessary
-
-  crop = 1.0; // 0.5 + 0.5 * sin(PI * crop - PI * 0.5);
-  s.x = mix(maxDistance, s.x, crop);
-
+  vec3 s = vec3(length(q) - radius, 1.0, 0.0);
+  s.x *= 0.0625;
   outD = dMin(outD, s);
-
-  // Missing chunks
-  float chunkS = length(q);
-  vec3 chunkP = 30.0 * q;
-  chunkP.x *= 0.1;
-  chunkP += vec3(2.0, 345.0, 923.4);
-  float chunk = 1.0 * noise(chunkP);
-  chunk = 1.00 * smoothstep(0.25, 1.0, chunk);
-  chunkS -= chunk;
-  chunkS *= 0.25;
-  outD.x = max(outD.x, -chunkS);
-  // outD.x = min(outD.x, chunkS);
 
   return outD;
 }
@@ -443,7 +410,7 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.45;
+const float n2 = 1.25;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -453,7 +420,7 @@ vec3 textures (in vec3 rd) {
   // float n = iqFBM(8.0 * rd + 2305.0);
   // float v = smoothstep(0.0, 1.0, n);
 
-  float n = cnoise3(1.0 * rd);
+  float n = cnoise3(2.0 * rd);
   float v = smoothstep(-0.9, 0.9, n);
 
   color = vec3(v * spread);
@@ -536,7 +503,7 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.01);
+  vec3 color = #ff0000;
   return color;
 }
 
@@ -611,12 +578,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 0.75 * vec3(pow(specAll, 8.0));
+      color += 0.75 * vec3(pow(specAll, 8.0));
 
       // color += 0.025 * reflection(pos, ref);
-      // color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
+      color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
-      // color += mix(vec3(0), 0.8 * dispersionStep1(nor, rayDirection, n2), max(0.1, pow(specAll, 0.2)));
+      color += 0.9 * dispersionStep1(nor, rayDirection, n2);
       // color += 0.90 * dispersion(nor, rayDirection, n2);
 
       // Fog
