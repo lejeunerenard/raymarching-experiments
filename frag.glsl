@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -313,9 +313,9 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 // #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
-// #pragma glslify: ease = require(glsl-easings/bounce-in)
+#pragma glslify: ease = require(glsl-easings/bounce-in)
 // #pragma glslify: voronoi = require(./voronoi)
-// #pragma glslify: band = require(./band-filter)
+#pragma glslify: band = require(./band-filter)
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
 // Logistic function
@@ -337,11 +337,60 @@ vec3 map (in vec3 p) {
 
   vec3 q = p;
 
-  q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.2 * time));
-  q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.3 * time + PI * 2.1234));
+  // q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.2 * time));
+  // q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.3 * time + PI * 2.1234));
 
-  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 1.0, 0.0);
+  // Cylinder Space
+  float a = atan(q.x, q.y);
+  float R = length(q.xy) - 0.75;
+  R -= 0.5 * band(a - PI, -PI * 0.5, PI * 0.5);
+  q.x = a / PI;
+  q.y = R;
+
+  // Flatten
+  q.z *= 2.0;
+
+  // stroke
+  vec3 nP = 60.0 * q;
+  nP.x *= 0.1;
+  // nP.x -= time; // Animate
+  float stroke = 0.125 * noise(nP);
+
+  // Head
+  float head = 0.125 * smoothstep(0.1, 1.5, -q.x * q.x * q.x);
+
+  // Tail
+  float tail = -0.3 * smoothstep(-0.5, 0.9, sign(q.x) * q.x * q.x);
+
+  float baseR = 0.25;
+  float r = baseR + stroke + head + tail;
+
+  vec3 s = vec3(sdCapsule(q, vec3(-1.0 + baseR + 0.200, 0, 0), vec3(1.0 - baseR + 0.125, 0, 0), r), 1.0, 0.0);
+  s.x *= 0.25;
+
+  // Crop
+  float cropTime = slowTime - 0.2 * (q.x - 1.0);
+  float cropLength = 1.15;
+  float cropStart = 0.01;
+  float crop = smoothstep(cropStart, cropLength + cropStart, cropTime);
+  crop = saturate(crop); // Is this necessary
+
+  crop = 1.0; // 0.5 + 0.5 * sin(PI * crop - PI * 0.5);
+  s.x = mix(maxDistance, s.x, crop);
+
   outD = dMin(outD, s);
+
+  // Missing chunks
+  float chunkS = length(q);
+  vec3 chunkP = 30.0 * q;
+  chunkP.x *= 0.1;
+  chunkP += vec3(2.0, 345.0, 923.4);
+  float chunk = 1.0 * noise(chunkP);
+  chunk = 1.00 * smoothstep(0.25, 1.0, chunk);
+  chunkS -= chunk;
+  chunkS *= 0.25;
+  outD.x = max(outD.x, -chunkS);
+  // outD.x = min(outD.x, chunkS);
 
   return outD;
 }
@@ -487,9 +536,7 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
-  float index = dot(pos.xy, vec2(1));
-  color = mix(color, vec3(0), smoothstep(0.7, 1.0, sin(99.0 * index)));
+  vec3 color = vec3(0.01);
   return color;
 }
 
@@ -535,13 +582,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.00;
-      float specCo = 0.70;
+      float specCo = 1.00;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // diffuse(nor, lightPos);
+        float dif = diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -555,7 +602,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.2 * amb;
+        // lin += 0.2 * amb;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
@@ -569,11 +616,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.025 * reflection(pos, ref);
       // color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
-      color += mix(vec3(0), 0.8 * dispersionStep1(nor, rayDirection, n2), max(0.1, pow(specAll, 0.2)));
+      // color += mix(vec3(0), 0.8 * dispersionStep1(nor, rayDirection, n2), max(0.1, pow(specAll, 0.2)));
       // color += 0.90 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp(1.025 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      // color = mix(background, color, clamp(1.025 * (maxDistance-t.x) / maxDistance, 0., 1.));
       color *= exp(-t.x * .005);
 
       // Inner Glow
@@ -604,10 +651,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       // Radial Gradient
-      // color.xyz *= mix(vec3(1.), background, length(uv) / 2.);
+      // color *= mix(vec4(1.), vec4(background, 1), length(uv) / 2.);
 
       // Glow
-      // vec3 glowColor = pow(#F7B3FF, vec3(2.2));
+      // vec3 glowColor = pow(#ffffff, vec3(2.2));
       // color = mix(vec4(glowColor, 1.0), color, 1. - .99 * clamp(t.z / (1.5 * float(maxSteps)), 0., 1.));
 
       return color;
@@ -688,7 +735,7 @@ vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return warpy(ro, rd, uv);
+  // return warpy(ro, rd, uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
