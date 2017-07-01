@@ -5,7 +5,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -333,31 +333,45 @@ float sigmoid ( in float x ) {
 vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
 
-  // p *= globalRot;
-  p *= rotationMatrix(vec3(0, 1, 0), PI + 0.25 * sin(PI * 0.5 * time));
+  p *= globalRot;
+  // p *= rotationMatrix(vec3(0, 1, 0), PI + 0.25 * sin(PI * 0.5 * time));
 
   vec3 q = p;
 
   // q *= rotationMatrix(normalize(vec3(0, 1, 1)), 0.5 + 0.5 * sin(PI * 0.2 * time));
   // q *= rotationMatrix(normalize(vec3(1, -1, 0)), 0.5 + 0.5 * sin(PI * 0.3 * time + PI * 2.1234));
 
-  vec3 warpP = q;
-  warpP.xyz += 2.00 * cos(0.5 * warpP.yzx);
-  warpP.xyz += 1.00 * cos(1.0 * warpP.yzx);
-  warpP.xyz += 0.50 * cos(2.0 * warpP.yzx);
+  float cellSize = 0.5 + 0.15 * cos(TWO_PI * slowTime);
+  float bubbleRadius = cellSize * 0.5;
+  vec3 cellPosCenter = floor(p / cellSize);
 
-  q = mix(q, warpP, 0.5 + 0.5 * sin(PI * 0.2 * time));
+  for (int x = -1; x < 2; x++)
+  for (int y = -1; y < 2; y++)
+  for (int z = -1; z < 2; z++) {
+    vec3 cellPos = cellPosCenter + vec3(x, y, z);
+    vec3 cellNoise = vec3(
+      noise(cellPos + slowTime),
+      noise(cellPos + 1230.23 + slowTime),
+      noise(cellPos + 8456.34 + slowTime));
+    vec3 pos = (cellPos + cellNoise) * cellSize;
+    float radius = clamp(bubbleRadius + 0.1 * cellNoise.x, 0., 1.);
 
-  float radius = 8.0;
-  radius += 1.0 * pow(0.5 + 0.5 * sin(TWO_PI * 1.2 * time + q.y / 12.5), 4.0);
+    float d = length(q - pos) - radius;
+    // vec3 absP = abs(pos);
+    // if (max(absP.x, max(absP.y, absP.z)) > 1.500) {
+    //   outD.z = 1.0;
+    // }
 
-  q.z *= 2.0 - q.y / 8.0;
+    // Union
+    outD.x = min(outD.x, d);
+  }
 
-  q.y = 4.0 + 1.2 * q.y - abs(q.x) * sqrt((20.0 - abs(q.x)) / 8.0);
+  float crop = sdBox(q, vec3(1.0));
+  outD.x = max(outD.x, crop);
 
-  vec3 s = vec3(length(q) - radius, 1.0, 0.0);
-  s.x *= 0.0625;
-  outD = dMin(outD, s);
+  outD.x -= 0.005 * cnoise3(40.0*q);
+
+  // outD.x *= 0.2;
 
   return outD;
 }
@@ -503,7 +517,8 @@ vec3 secondRefraction (in vec3 rd) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = #ff0000;
+  vec3 color = vec3(0.5);
+  color = 0.75 + 0.25 * cos(TWO_PI * (dot(nor, rd) + vec3(0.0, 0.33, 0.67) + noise(pos)));
   return color;
 }
 
@@ -537,19 +552,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 3;
-      const float repNUM_OF_LIGHTS = 0.3333;
+      const int NUM_OF_LIGHTS = 2;
+      const float repNUM_OF_LIGHTS = 0.5;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(1., .75, 1.)), #ffffff, 1.0);
       lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
+      // lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
 
-      float occ = 1.0; // calcAO(pos, nor);
+      float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.00;
-      float specCo = 1.00;
+      float specCo = 0.80;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -565,7 +580,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         // Specular Lighting
         fre *= freCo * dif * occ;
         lin += fre;
-        lin += specCo * spec * (1. - fre);
+        lin += specCo * spec  * (1. - fre);
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
@@ -581,14 +596,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += 0.75 * vec3(pow(specAll, 8.0));
 
       // color += 0.025 * reflection(pos, ref);
-      color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
+      // color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
-      color += 0.9 * dispersionStep1(nor, rayDirection, n2);
+      // color += 0.5 * dispersionStep1(nor, rayDirection, n2);
       // color += 0.90 * dispersion(nor, rayDirection, n2);
 
       // Fog
       // color = mix(background, color, clamp(1.025 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      color *= exp(-t.x * .005);
+      // color *= exp(-t.x * .005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);

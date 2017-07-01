@@ -33,14 +33,14 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.3
+const BLOOM_MIN_BRIGHTNESS = 0.8
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-thump-test2',
+    name: 'distance-field-pearls-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -86,7 +86,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 20)
+    this.cameraRo = vec3.fromValues(0, 0, 3)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
