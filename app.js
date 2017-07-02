@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-pearls-test1',
+    name: 'distance-field-heat-vision-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

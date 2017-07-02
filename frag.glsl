@@ -653,56 +653,23 @@ vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
   // offset = 0.5 * length(uv);
   offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
 
-  vec2 x = 1.0 * (3.0 + 0.5 * sin(TWO_PI * (slowTime + offset))) * uv;
-  // vec2 x = 5.0 * uv;
+  // vec2 x = 1.0 * (3.0 + 0.5 * sin(TWO_PI * (slowTime + offset))) * uv;
+  vec2 x = 5.0 * uv;
 
-  pModPolar(x, 6.0);
+  pModPolar(x, 3.0);
+  float angle = slowTime;
+  float c = cos(PI * angle);
+  float s = sin(PI * angle);
+  x *= mat2(
+    c, s,
+    -s, c);
 
-  vec2 o;
-  o.x = vfbm4(x);
-  o.y = vfbm4(x);
+  vec3 r = vec3(0);
+  float n = fbmWarp(vec3(x, sin(PI * slowTime)), r);
+  // n *= dot(r, r);
 
-  vec2 ov11 = sin(PI * 0.2 * (vec2(2.0, 1.0) * modTime + length(x)));
-  vec2 ov12 = sin(PI * 0.2 * (vec2(2.0, 1.0) * (modTime - period) + length(x)));
-  o += 0.25 * combine(ov11, ov12, modTime, period);
-
-  vec2 ov21 = sin(PI * 0.2 * (vec2(1.0, 0.5) * modTime + o.yx));
-  vec2 ov22 = sin(PI * 0.2 * (vec2(1.0, 0.5) * (modTime - period) + o.yx));
-  o += 0.125 * combine(ov21, ov22, modTime, period);
-
-  float a = PI * 0.5 * slowTime;
-  float c = cos(a);
-  float si = sin(a);
-  o *= mat2(c, si, -si, c);
-
-  vec2 s;
-  s.x = vfbm6(2.0 * o);
-  s.y = vfbm6(2.0 * o + vec2(7.23));
-
-  vec2 s11 = sin(PI * 0.2 * (vec2(2.0, 1.0) * sin(PI * 0.2 * modTime) + length(s)));
-  vec2 s12 = sin(PI * 0.2 * (vec2(2.0, 1.0) * sin(PI * 0.2 * (modTime - period)) + length(s)));
-  s += 0.25 * combine(s11, s12, modTime, period);
-
-  vec2 s21 = sin(PI * 0.2 * (vec2(1.0, 0.5) * sin(modTime) + s.yx));
-  vec2 s22 = sin(PI * 0.2 * (vec2(1.0, 0.5) * sin(modTime - period) + s.yx));
-  s += 0.25 * combine(s21, s22, modTime, period);
-
-  vec2 r;
-  r.x = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(-13.24));
-  r.y = 0.5 + 0.5 * vfbm4(4.0 * s + vec2(2.353));
-
-  float n = 0.5 + 0.5 * vfbm6(x + 4.0 * r);
-  n = mix(n, n * n * n * 1.4, n * abs(s.x));
-
-  float v1 = 0.125 * cnoise2(1.0 * x + modTime);
-  float v2 = 0.125 * cnoise2(1.0 * x + modTime - period);
-  n += combine(v1, v2, modTime, period);
-
-  vec3 color = vec3(0);
-
-  color = mix(color, #ffffff, smoothstep(0.6, 1.0, n * (1.0 - 0.25 * length(uv))));
-  color = mix(color, pow(#9868FF, vec3(2.2)), smoothstep(0.9, 1.0, 1.0 - 0.25 * length(s)));
-  color = mix(color, pow(#FFF568, vec3(2.2)), smoothstep(0.9, 1.0, s.x * s.x));
+  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (n + vec3(0.0, 0.33, 0.67)));
+  color += 0.4 * dot(r, r);
 
   // Debug
   // color = vec3(n); // noise
@@ -717,7 +684,7 @@ vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return warpy(ro, rd, uv);
+  return warpy(ro, rd, uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
