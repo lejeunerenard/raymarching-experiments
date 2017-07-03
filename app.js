@@ -22,7 +22,7 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import { dampen } from './dampening'
 
-const dpr = 0.5 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distance-field-heat-vision-test2',
+    name: 'fbm-alien-puddle-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

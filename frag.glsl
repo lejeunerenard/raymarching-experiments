@@ -643,48 +643,59 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec4 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
+float warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec2 aUV = abs(uv);
 
   const float period = 20.0;
-  float modTime = mod(time, period);
+  // float modTime = mod(time, period);
 
   float offset;
-  // offset = 0.5 * length(uv);
-  offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
+  offset = 0.5 * length(uv);
+  // offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
 
-  // vec2 x = 1.0 * (3.0 + 0.5 * sin(TWO_PI * (slowTime + offset))) * uv;
-  vec2 x = 5.0 * uv;
+  vec2 x = 0.7 * (1.0 + 0.2 * sin(TWO_PI * (slowTime + offset))) * uv;
+  // vec2 x = 2.0 * uv;
 
-  pModPolar(x, 3.0);
+  // pModPolar(x, 9.0);
+
   float angle = slowTime;
   float c = cos(PI * angle);
   float s = sin(PI * angle);
-  x *= mat2(
+  vec2 x2 = x * mat2(
     c, s,
     -s, c);
 
+  float modTime = mod(slowTime, period);
+  vec3 r2 = vec3(0);
   vec3 r = vec3(0);
-  float n = fbmWarp(vec3(x, sin(PI * slowTime)), r);
+  float n21 = fbmWarp(vec3(x, modTime), r2);
+  float n22 = fbmWarp(vec3(x, (modTime - period)), r2);
+  float n2 = mix(n21, n22, modTime / period);
+
+  float n = fbmWarp(vec3(x2, n2), r);
   // n *= dot(r, r);
 
-  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (n + vec3(0.0, 0.33, 0.67)));
-  color += 0.4 * dot(r, r);
-
-  // Debug
-  // color = vec3(n); // noise
-  // float l = length(color);
-  // if (l >= 1.732051) {
-  //   color = #ff00ff;
-  // } else if (l <= 0.0001) {
-  //   color = #00ff00;
-  // }
-
-  return vec4(color, 1);
+  return n;
+  // return vec4(color, 1);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return warpy(ro, rd, uv);
+  float n = warpy(ro, rd, uv);
+  vec3 color = hsv(vec3(0.5 * n + 0.4, 1.0, 1.0));
+
+  vec2 ex = vec2( 1.0 / resolution.x, 0.0 );
+  vec2 ey = vec2( 0.0, 1.0 / resolution.y );
+
+  const vec3 light = normalize(vec3(1));
+  vec3 nor = normalize( vec3( warpy(ro, rd, uv+ex) - n, ex.x, warpy(ro, rd, uv+ey) - n ) );
+  vec3 ref = reflect(rd, nor);
+
+  color *= max(0.4, dot(nor, light));
+  float spec = pow(clamp( dot(ref, light), 0., 1. ), 16.0);
+  color += spec;
+
+  return vec4(color, 1.0);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -724,5 +735,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
