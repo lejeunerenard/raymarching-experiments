@@ -312,10 +312,10 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 // #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
-#pragma glslify: ease = require(glsl-easings/bounce-in)
-// #pragma glslify: voronoi = require(./voronoi)
-#pragma glslify: band = require(./band-filter)
+// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+// #pragma glslify: ease = require(glsl-easings/bounce-in)
+#pragma glslify: voronoi = require(./voronoi)
+// #pragma glslify: band = require(./band-filter)
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
 // Logistic function
@@ -424,22 +424,19 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.25;
+const float n2 = 1.65;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.0 - saturate(dot(-1.0 * rd, gNor));
-
   // float n = iqFBM(8.0 * rd + 2305.0);
   // float v = smoothstep(0.0, 1.0, n);
 
-  float n = cnoise3(2.0 * rd);
+  float n = cnoise3(4.0 * rd);
   float v = smoothstep(-0.9, 0.9, n);
 
-  color = vec3(v * spread);
-  float shift = dot(gNor, rd);
-  color *= 0.75 + 0.25 * cos(TWO_PI * (shift + vec3(0.0, 0.33, 0.67)));
+  color = vec3(v);
+  // color.r *= rd.y * rd.y;
 
   return clamp(color, 0., 1.);
 }
@@ -464,7 +461,7 @@ vec3 amberGradient (in float t) {
   return mix(color, pow(#ED4F2C, vec3(2.2)), smoothstep(0.75, 1.0, t));
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.125)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.5)
 
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.01;
@@ -656,8 +653,6 @@ float warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec2 x = 0.7 * (1.0 + 0.2 * sin(TWO_PI * (slowTime + offset))) * uv;
   // vec2 x = 2.0 * uv;
 
-  // pModPolar(x, 9.0);
-
   float angle = slowTime;
   float c = cos(PI * angle);
   float s = sin(PI * angle);
@@ -678,21 +673,54 @@ float warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
   return n;
   // return vec4(color, 1);
 }
+vec2 glass (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec2 aUV = abs(uv);
+
+  const float period = 20.0;
+  // float modTime = mod(time, period);
+
+  float offset;
+  offset = 0.5 * length(uv);
+  // offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
+
+  // vec2 x = 0.7 * (1.0 + 0.2 * sin(TWO_PI * (slowTime + offset))) * uv;
+  vec2 x = 3.0 * uv;
+
+  float angle = slowTime;
+  float c = cos(PI * angle);
+  float s = sin(PI * angle);
+  vec2 x2 = x * mat2(
+    c, s,
+    -s, c);
+
+  float modTime = mod(slowTime, period);
+  vec2 v = voronoi(x, 0.0001 * (0.75 * sin(TWO_PI * slowTime) + sin(PI * slowTime)));
+
+  return vec2(1.0 - v.x, v.y);
+}
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  float n = warpy(ro, rd, uv);
-  vec3 color = hsv(vec3(0.5 * n + 0.4, 1.0, 1.0));
+  vec2 n = glass(ro, rd, uv);
+  vec3 color = vec3(n.x); // hsv(vec3(0.5 * n.y, 1.0, 1.0));
 
   vec2 ex = vec2( 1.0 / resolution.x, 0.0 );
   vec2 ey = vec2( 0.0, 1.0 / resolution.y );
 
   const vec3 light = normalize(vec3(1));
-  vec3 nor = normalize( vec3( warpy(ro, rd, uv+ex) - n, ex.x, warpy(ro, rd, uv+ey) - n ) );
+  vec3 nor = normalize( vec3( glass(ro, rd, uv+ex).x - n.x, ex.x, glass(ro, rd, uv+ey).x - n.x ) );
   vec3 ref = reflect(rd, nor);
 
-  color *= max(0.4, dot(nor, light));
+  float dif = dot(nor, light);
+  color *= max(0.2, dif);
+
+  color += 1.0 * dispersion(nor, rd, n2);
+
+  const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
+  float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rd), 0., 1. ), 5.) * (1. - ReflectionFresnel);
   float spec = pow(clamp( dot(ref, light), 0., 1. ), 16.0);
-  color += spec;
+  fre *= dif;
+  // color += fre;
+  // color += spec * (1.0 - fre);
 
   return vec4(color, 1.0);
 

@@ -31,16 +31,16 @@ const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'fbm-alien-puddle-test2',
+    name: 'fbm-ziggurat-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
