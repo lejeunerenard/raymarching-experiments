@@ -1,3 +1,4 @@
+#extension GL_OES_standard_derivatives : enable
 #define PI 3.1415926536
 #define TWO_PI 6.2831853072
 #define PHI (1.618033988749895)
@@ -12,7 +13,6 @@ precision highp float;
 varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
-uniform float morphTime;
 uniform vec3 amberColor;
 uniform bool BLOOM;
 uniform vec3 cOffset;
@@ -54,7 +54,10 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 #pragma glslify: analyse = require(gl-audio-analyser)
+#
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
+#
+#pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -115,6 +118,21 @@ float vfbm6 (vec2 p) {
   return f * 0.9375;
 }
 
+float vfbm6 (vec3 p) {
+  float f = 0.0;
+  const float a = 1.123;
+  mat3 m = rotationMatrix(vec3(1, 0, 0), a);
+
+  f += 0.500000 * (0.5 + 0.5 * noise( p )); p *= m * 2.02;
+  f += 0.250000 * (0.5 + 0.5 * noise( p )); p *= m * 2.03;
+  f += 0.125000 * (0.5 + 0.5 * noise( p )); p *= m * 2.01;
+  f += 0.062500 * (0.5 + 0.5 * noise( p )); p *= m * 2.025;
+  f += 0.031250 * (0.5 + 0.5 * noise( p )); p *= m * 2.011;
+  f += 0.015625 * (0.5 + 0.5 * noise( p )); p *= m * 2.0232;
+
+  return f * 0.9375;
+}
+
 float iqFBM (vec3 p) {
   float f = 0.0;
 
@@ -126,22 +144,36 @@ float iqFBM (vec3 p) {
   return f * 1.066667;
 }
 
-float fbmWarp (vec2 p, out vec2 q) {
+float fbmWarp (vec2 p, out vec2 q, out vec2 s, out vec2 r) {
   const float scale = 4.0;
 
   q = vec2(
         iqFBM(p + vec2(0.0, 0.0)),
         iqFBM(p + vec2(3.2, 34.5)));
 
-  vec2 s = vec2(
+  s = vec2(
         iqFBM(p + scale * q + vec2(23.9, 234.0)),
         iqFBM(p + scale * q + vec2(3.2, 852.0)));
 
+  r = vec2(
+        iqFBM(p + scale * s + vec2(23.9, 234.0)),
+        iqFBM(p + scale * s + vec2(3.2, 852.0)));
 
-  return iqFBM(p + scale * s);
+  return iqFBM(p + scale * r);
+}
+float fbmWarp (vec2 p, out vec2 q) {
+  vec2 s = vec2(0);
+  vec2 r = vec2(0);
+  return fbmWarp(p, q, s, r);
+}
+float fbmWarp (vec2 p) {
+  vec2 q = vec2(0);
+  vec2 s = vec2(0);
+  vec2 r = vec2(0);
+  return fbmWarp(p, q, s, r);
 }
 
-float fbmWarp (vec3 p, out vec3 q) {
+float fbmWarp (vec3 p, out vec3 q, out vec3 s, vec3 r) {
   const float scale = 4.0;
 
   q = vec3(
@@ -149,12 +181,37 @@ float fbmWarp (vec3 p, out vec3 q) {
         iqFBM(p + vec3(3.2, 34.5, .234)),
         iqFBM(p + vec3(7.0, 2.9, -2.42)));
 
-  vec3 s = vec3(
+  s = vec3(
         iqFBM(p + scale * q + vec3(23.9, 234.0, -193.0)),
         iqFBM(p + scale * q + vec3(3.2, 852.0, 23.42)),
         iqFBM(p + scale * q + vec3(7.0, -232.0, -2.42)));
 
   return iqFBM(p + scale * s);
+}
+float fbmWarp (vec3 p, out vec3 q) {
+  vec3 s = vec3(0);
+  vec3 r = vec3(0);
+  return fbmWarp(p, q, r, s);
+}
+float vfbmWarp (vec3 p, out vec3 q, out vec3 s, vec3 r) {
+  const float scale = 4.0;
+
+  q = vec3(
+        vfbm6(p + vec3(0.0, 0.0, 0.0)),
+        vfbm6(p + vec3(3.2, 34.5, .234)),
+        vfbm6(p + vec3(7.0, 2.9, -2.42)));
+
+  s = vec3(
+        vfbm6(p + scale * q + vec3(23.9, 234.0, -193.0)),
+        vfbm6(p + scale * q + vec3(3.2, 852.0, 23.42)),
+        vfbm6(p + scale * q + vec3(7.0, -232.0, -2.42)));
+
+  return vfbm6(p + scale * s);
+}
+float vfbmWarp (vec3 p, out vec3 q) {
+  vec3 s = vec3(0);
+  vec3 r = vec3(0);
+  return vfbmWarp(p, q, r, s);
 }
 
 #pragma glslify: import(./background)
@@ -287,7 +344,6 @@ mat3 globalRot = mat3(
   0.0, 1.0,  0.0,
   gRs, 0.0,  gRc);
 
-#pragma glslify: rotationMatrix = require(./rotation-matrix3)
 #pragma glslify: rotMat2 = require(./rotation-matrix2)
 
 // IQ
@@ -642,44 +698,68 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-float warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
+vec3 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec2 aUV = abs(uv);
 
   const float period = 20.0;
-  // float modTime = mod(time, period);
+  const float transitionTime = 0.5 * 12.5;
+  float modTime = mod(0.5 * slowTime, 0.5 * period);
+  float mixTime = saturate((modTime - transitionTime) / (period - transitionTime));
 
   float offset;
   offset = 0.5 * length(uv);
   // offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
 
-  vec2 x = 0.7 * (1.0 + 0.2 * sin(TWO_PI * (slowTime + offset))) * uv;
-  // vec2 x = 2.0 * uv;
+  vec2 x = 0.7 * (0.5 + 0.1 * sin(TWO_PI * (slowTime + offset))) * uv;
+  // vec2 x = 0.75 * uv;
+  x = abs(x);
 
-  float angle = slowTime;
-  float c = cos(PI * angle);
-  float s = sin(PI * angle);
+  float angle = PI * slowTime;
+  float c = cos(angle);
+  float si = sin(angle);
   vec2 x2 = x * mat2(
-    c, s,
-    -s, c);
+    c, si,
+    -si, c);
 
-  float modTime = mod(slowTime, period);
-  vec3 r2 = vec3(0);
   vec3 r = vec3(0);
-  float n21 = fbmWarp(vec3(x, modTime), r2);
-  float n22 = fbmWarp(vec3(x, (modTime - period)), r2);
-  float n2 = mix(n21, n22, modTime / period);
+  vec3 r2 = vec3(0);
+  vec3 s = vec3(0);
+  vec3 s2 = vec3(0);
+  vec3 q = vec3(0);
+  vec3 q2 = vec3(0);
 
-  float n = fbmWarp(vec3(x2, n2), r);
-  // n *= dot(r, r);
 
-  return n;
-  // return vec4(color, 1);
+  float n21 = vfbmWarp(vec3(x, modTime), q, s, r);
+  float n22 = vfbmWarp(vec3(x, (modTime - period)), q2, s2, r2);
+  float n = mix(n21, n22, mixTime);
+
+  vec3 color = vec3(n);
+
+  float qn = 0.5 * smoothstep(1.3, 1.5, mix(abs(q.x) + abs(q.y), abs(q2.x) + abs(q2.y), mixTime));
+
+  float sn = mix(s.y * s.y, s2.y * s2.y, mixTime);
+
+  // Lighting
+  vec3 nor = normalize( vec3( dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y  )  );
+  vec3 ref = reflect(nor, rd);
+
+  const vec3 light = normalize(vec3(-1, 1, 1));
+
+  float dif = dot(nor, light);
+  color *= dif;
+  float edge = saturate(dot(-rd, nor));
+  color *= edge;
+  color += 0.25 * pow(edge, 2.0) * (0.5 + 0.5 * cos(TWO_PI * (2.0 * edge + vec3(0.0, 0.33, 0.67))));
+
+  float spec = pow(clamp( dot(ref, (light)), 0., 1. ), 16.0);
+  color += spec;
+
+  return color;
 }
 vec2 glass (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec2 aUV = abs(uv);
 
   const float period = 20.0;
-  // float modTime = mod(time, period);
 
   float offset;
   offset = 0.5 * length(uv);
@@ -702,6 +782,8 @@ vec2 glass (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = warpy(ro, rd, uv);
+  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -741,5 +823,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

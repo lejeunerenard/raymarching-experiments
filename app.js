@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cubez-test4',
+    name: 'loom-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -71,6 +71,12 @@ export default class App {
     // }
 
     let gl = makeContext(canvas)
+
+    // enable extensions
+    var ext = gl.getExtension('OES_standard_derivatives')
+    if (!ext)
+      throw new Error('derivatives not supported')
+
     this.LOOKAT = true
 
     const preset = {
