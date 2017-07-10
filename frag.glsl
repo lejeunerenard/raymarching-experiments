@@ -33,7 +33,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 64
+#define maxSteps 512
 #define maxDistance 20.0
 
 #define slowTime time * .2
@@ -371,7 +371,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: ease = require(glsl-easings/bounce-in)
 #pragma glslify: voronoi = require(./voronoi)
-// #pragma glslify: band = require(./band-filter)
+#pragma glslify: band = require(./band-filter)
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
 // Logistic function
@@ -390,47 +390,18 @@ vec3 map (in vec3 p) {
   vec3 outD = vec3(10000., 0., 0.);
   float d = 10000.0;
 
-  const float period = 20.0;
-  const float startTime = 2.5;
-  float modTime = mod(slowTime, period);
-
   vec3 q = p;
+  q *= globalRot;
 
-  vec2 c = pMod2(q.xy, vec2(0.5));
+  q += 0.50 * noise(2.0 * q + slowTime);
+  q += 0.5 * cos(3.0 * q.yzx + noise(q));
+  q -= 0.25 * noise(4.0 * q);
+  q += 0.125 * noise(8.0 * q);
 
-  float i1 = cnoise3(vec3(0.3 * c, modTime));
-  float i2 = cnoise3(vec3(0.3 * c, modTime - period));
-  float i = mix(i1, i2, (modTime - startTime) / (period - startTime));
-  i = 0.5 * smoothstep(-1.0, 1.0, i);
+  d = length(q) - 2.0;
+  d *= 0.20;
 
-  float j1 = cnoise2(0.15 * c + modTime);
-  float j2 = cnoise2(0.15 * c + modTime - period);
-  float j = mix(j1, j2, (modTime - startTime) / (period - startTime));
-  j = smoothstep(-1.0, 1.0, j);
-
-  float bump = i;
-  q.z += 2.4 * bump;
-
-  q *= rotationMatrix(vec3(0, 1, 0), TWO_PI * i);
-  q *= rotationMatrix(vec3(1, 0, 0), TWO_PI * j);
-
-  d = sdBox(q, vec3(0.125));
-
-  // Mask some
-  vec2 absC = abs(c);
-  float angle = PI * 0.2 * time;
-  absC *= mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
-
-  d = mix(d, maxDistance, step(8.0, dot(absC, vec2(1))));
-
-  vec2 cRot = c * mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
-  vec2 absCRot = abs(cRot);
-  float taxiC = dot(absCRot, vec2(1));
-  d = mix(d, maxDistance, step(12.0, taxiC));
-
-  d *= 0.7;
-
-  return vec3(d, 1.0, bump);
+  return vec3(d, 1.0, 0.0);
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -481,7 +452,7 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.65;
+const float n2 = 1.27;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -489,11 +460,10 @@ vec3 textures (in vec3 rd) {
   // float n = iqFBM(8.0 * rd + 2305.0);
   // float v = smoothstep(0.0, 1.0, n);
 
-  float n = cnoise3(4.0 * rd);
+  float n = cnoise3(1.0 * rd);
   float v = smoothstep(-0.9, 0.9, n);
 
   color = vec3(v);
-  // color.r *= rd.y * rd.y;
 
   return clamp(color, 0., 1.);
 }
@@ -518,7 +488,7 @@ vec3 amberGradient (in float t) {
   return mix(color, pow(#ED4F2C, vec3(2.2)), smoothstep(0.75, 1.0, t));
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.5)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.01)
 
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.01;
@@ -566,14 +536,12 @@ vec3 secondRefraction (in vec3 rd) {
   return disp;
 }
 
-#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=0.125)
+#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=0.01)
 
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.5);
-  float i = smoothstep(0.0, 0.5, trap);
-  color = vec3(i);
   return color;
 }
 
@@ -607,14 +575,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 1;
-      const float repNUM_OF_LIGHTS = 1.0;// 0.33333;
+      const int NUM_OF_LIGHTS = 3;
+      const float repNUM_OF_LIGHTS = 0.33333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(1., .75, 1.)), #ffffff, 1.0);
-      // lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
-      // lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
+      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
 
-      float occ = calcAO(pos, nor);
+      float occ = 1.0; // calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
@@ -629,7 +597,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= saturate(0.0 + softshadow(pos, lightPos, 0.02, 1.75));
+        // dif *= saturate(0.0 + softshadow(pos, lightPos, 0.02, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -648,12 +616,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 0.75 * vec3(pow(specAll, 8.0));
+      color += 0.75 * vec3(pow(specAll, 8.0));
 
       // color += 0.025 * reflection(pos, ref);
-      // color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
+      color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
-      // color += 0.5 * dispersionStep1(nor, rayDirection, n2);
+      color += 0.5 * dispersionStep1(nor, rayDirection, n2);
       // color += 0.90 * dispersion(nor, rayDirection, n2);
 
       // Fog
@@ -698,92 +666,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec3 warpy (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec2 aUV = abs(uv);
-
-  const float period = 20.0;
-  const float transitionTime = 0.5 * 12.5;
-  float modTime = mod(0.5 * slowTime, 0.5 * period);
-  float mixTime = saturate((modTime - transitionTime) / (period - transitionTime));
-
-  float offset;
-  offset = 0.5 * length(uv);
-  // offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
-
-  vec2 x = 0.7 * (0.5 + 0.1 * sin(TWO_PI * (slowTime + offset))) * uv;
-  // vec2 x = 0.75 * uv;
-  x = abs(x);
-
-  float angle = PI * slowTime;
-  float c = cos(angle);
-  float si = sin(angle);
-  vec2 x2 = x * mat2(
-    c, si,
-    -si, c);
-
-  vec3 r = vec3(0);
-  vec3 r2 = vec3(0);
-  vec3 s = vec3(0);
-  vec3 s2 = vec3(0);
-  vec3 q = vec3(0);
-  vec3 q2 = vec3(0);
-
-
-  float n21 = vfbmWarp(vec3(x, modTime), q, s, r);
-  float n22 = vfbmWarp(vec3(x, (modTime - period)), q2, s2, r2);
-  float n = mix(n21, n22, mixTime);
-
-  vec3 color = vec3(n);
-
-  float qn = 0.5 * smoothstep(1.3, 1.5, mix(abs(q.x) + abs(q.y), abs(q2.x) + abs(q2.y), mixTime));
-
-  float sn = mix(s.y * s.y, s2.y * s2.y, mixTime);
-
-  // Lighting
-  vec3 nor = normalize( vec3( dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y  )  );
-  vec3 ref = reflect(nor, rd);
-
-  const vec3 light = normalize(vec3(-1, 1, 1));
-
-  float dif = dot(nor, light);
-  color *= dif;
-  float edge = saturate(dot(-rd, nor));
-  color *= edge;
-  color += 0.25 * pow(edge, 2.0) * (0.5 + 0.5 * cos(TWO_PI * (2.0 * edge + vec3(0.0, 0.33, 0.67))));
-
-  float spec = pow(clamp( dot(ref, (light)), 0., 1. ), 16.0);
-  color += spec;
-
-  return color;
-}
-vec2 glass (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec2 aUV = abs(uv);
-
-  const float period = 20.0;
-
-  float offset;
-  offset = 0.5 * length(uv);
-  // offset = 0.5 * (aUV.x + aUV.y); // Taxi metric
-
-  // vec2 x = 0.7 * (1.0 + 0.2 * sin(TWO_PI * (slowTime + offset))) * uv;
-  vec2 x = 3.0 * uv;
-
-  float angle = slowTime;
-  float c = cos(PI * angle);
-  float s = sin(PI * angle);
-  vec2 x2 = x * mat2(
-    c, s,
-    -s, c);
-
-  float modTime = mod(slowTime, period);
-  vec2 v = voronoi(x, 0.0001 * (0.75 * sin(TWO_PI * slowTime) + sin(PI * slowTime)));
-
-  return vec2(1.0 - v.x, v.y);
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = warpy(ro, rd, uv);
-  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
