@@ -27,20 +27,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.85
-const BLOOM_MIN_BRIGHTNESS = 0.975
+const BLOOM_WET = 0.55
+const BLOOM_MIN_BRIGHTNESS = 0.995
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'Glam-test3',
+    name: 'chroma-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -77,7 +77,7 @@ export default class App {
     if (!ext)
       throw new Error('derivatives not supported')
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     const preset = {
       offset: {
@@ -87,12 +87,12 @@ export default class App {
       },
       d: 5,
       scale: 1.01,
-      rot2angle: [0.652, 0.79, 0],
-      cameraAngles: [0, 0, 0]
+      rot2angle: [0, 0, 0],
+      cameraAngles: [0.4, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3)
+    this.cameraRo = vec3.fromValues(0, 0, 1.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
