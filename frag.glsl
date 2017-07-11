@@ -336,7 +336,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.05 * time + PI * 0.75;
+float gRAngle = TWO_PI * 0.10 * time + PI * 0.75;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -387,21 +387,29 @@ float sigmoid ( in float x ) {
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
-  vec3 outD = vec3(10000., 0., 0.);
-  float d = 10000.0;
+  vec3 d;
 
+  const float period = 10.0;
+  const float transitionTime = 2.0;
+  float modTime = mod(time, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  p *= globalRot;
   vec3 q = p;
-  q *= globalRot;
 
-  q += 0.50 * noise(2.0 * q + slowTime);
-  q += 0.5 * cos(3.0 * q.yzx + noise(q));
-  q -= 0.25 * noise(4.0 * q);
-  q += 0.125 * noise(8.0 * q);
+  vec3 q11 = q + 0.5000 * cos(2.0 * q.yzx + noise(q) + modTime);
+  vec3 q12 = q + 0.5000 * cos(2.0 * q.yzx + noise(q) + modTime - period);
 
-  d = length(q) - 2.0;
-  d *= 0.20;
+  q = mix(q11, q12, mixT);
 
-  return vec3(d, 1.0, 0.0);
+  q += 0.2500 * cos(4.0 * q.yzx + noise(q));
+  q += 0.1250 * cos(8.0 * q.yzx + noise(q));
+
+  d = vec3(0.25 * sdHexPrism(q, vec2(0.75)), 1.0, 0.0);
+
+  d = dMax(d, vec3(length(p) - 2.0, 1.0, 0.0));
+
+  return d;
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -488,7 +496,7 @@ vec3 amberGradient (in float t) {
   return mix(color, pow(#ED4F2C, vec3(2.2)), smoothstep(0.75, 1.0, t));
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.01)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=0.05)
 
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.01;
@@ -536,12 +544,13 @@ vec3 secondRefraction (in vec3 rd) {
   return disp;
 }
 
-#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=0.01)
+#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=0.05)
 
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.5);
+  vec3 color = background;
+  color = mix(color, #000000, isMaterialSmooth(m, 2.0));
   return color;
 }
 
@@ -618,15 +627,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0));
 
-      // color += 0.025 * reflection(pos, ref);
-      color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
+      color += 0.025 * reflection(pos, ref);
+      color += isMaterialSmooth(t.y, 1.0) * 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
 
-      color += 0.5 * dispersionStep1(nor, rayDirection, n2);
+      color += isMaterialSmooth(t.y, 1.0) * 0.5 * dispersionStep1(nor, rayDirection, n2);
       // color += 0.90 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      // color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      // color *= exp(-t.x * 0.005);
+      color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
