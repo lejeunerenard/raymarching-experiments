@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -88,7 +88,7 @@ float iqFBM (vec2 p) {
 
 float vfbm4 (vec2 p) {
   float f = 0.0;
-  float a = PI * 0.173 * (0.5 + 0.5 * sin(PI * 0.5 * slowTime));
+  float a = PI * 0.173;
   mat2 m = mat2(
     cos(a), sin(a),
     -sin(a), cos(a));
@@ -103,8 +103,8 @@ float vfbm4 (vec2 p) {
 
 float vfbm6 (vec2 p) {
   float f = 0.0;
-  const float a = 1.123;
-  const mat2 m = mat2(
+  float a = 1.123;
+  mat2 m = mat2(
     cos(a), sin(a),
     -sin(a), cos(a));
 
@@ -674,9 +674,82 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+float ncnoise2(in vec2 x) {
+  return smoothstep(-1.00, 1.00, cnoise2(x));
+}
+
+vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec2 oilUV = uv;
+
+  const float period = 20.0;
+  const float transitionTime = 2.0;
+  float modTime = mod(time, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  oilUV *= 0.8;
+
+  // Vertical stretch
+  oilUV.y *= 0.15;
+
+  // Sway horizontally offset by hieght
+  oilUV.x += 0.5 * ncnoise2(oilUV);
+  float shiftX1 = 0.3 * sin(PI * 0.2 * (modTime + 2.0 * uv.y));
+  float shiftX2 = 0.3 * sin(PI * 0.2 * (modTime - period + 2.0 * uv.y));
+  oilUV.x += mix(shiftX1, shiftX2, mixT);
+
+  oilUV.y += dot(oilUV, vec2(2)) + 2.0 * ncnoise2(5.0 * oilUV);
+
+  vec2 uvWarp = oilUV; //  + 0.5 * vec2(vfbm4(oilUV), vfbm4(oilUV + vec2(123.0, 23423.0)));
+
+  float n;
+  float n1 = vfbm6(uvWarp + .2 * modTime);
+  float n2 = vfbm6(uvWarp + .2 * (modTime - period));
+  n = mix(n1, n2, mixT);
+
+  vec3 nor = normalize( vec3( dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y  )  );
+  const vec3 light = vec3(1, 0, 1);
+  vec3 ref = reflect(nor, rd);
+
+  float v;
+  v = dot(nor, -rd);
+  // v = n;
+
+  // V modifiers
+  v *= 0.5;
+
+  vec3 color;
+
+  // B&W
+  // color = vec3(v);
+
+  // Spectrum
+  color = vec3(0.6, 0.5, 0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
+
+  // Dark base on red component of cosine palette
+  color *= 0.6 + 0.4 * cos(TWO_PI * (v + 0.15));
+
+  // Selectively darken based on red component of cosine palette
+  color *= 0.2 + 0.8 * smoothstep(-1.0, -0.95, cos(TWO_PI * (v + 0.25)));
+
+  // Specular
+  // color += 0.5 * pow(saturate(dot(ref, (lightPos))), 64.0);
+
+  // float l = length(color);
+  // if (l >= 1.732) {
+  //   color = #ff00ff;
+  // } else if (l <= 0.002) {
+  //   color = #00FF00;
+  // }
+
+  return vec4(color, 1.0);
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 t = march(ro, rd);
-  return shade(ro, rd, t, uv);
+  return oil(ro, rd, uv);
+
+  // vec4 t = march(ro, rd);
+  // return shade(ro, rd, t, uv);
 }
 
 void main() {

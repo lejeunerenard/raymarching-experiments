@@ -32,15 +32,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.55
-const BLOOM_MIN_BRIGHTNESS = 0.995
+const BLOOM_WET = 0.95
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'chroma-test1',
+    name: 'oil-waves-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
