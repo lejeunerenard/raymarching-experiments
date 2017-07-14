@@ -54,10 +54,14 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 #pragma glslify: analyse = require(gl-audio-analyser)
-#
+
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
-#
+
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
+
+float ncnoise2(in vec2 x) {
+  return smoothstep(-1.00, 1.00, cnoise2(x));
+}
 
 // 3D noise function (IQ)
 float noise(vec3 p) {
@@ -674,10 +678,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-float ncnoise2(in vec2 x) {
-  return smoothstep(-1.00, 1.00, cnoise2(x));
-}
-
 vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec2 oilUV = uv;
 
@@ -750,8 +750,60 @@ vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
   return vec4(color, 1.0);
 }
 
+vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
+  const float scale = 1.55;
+
+  const float period = 4.0;
+  const float transitionTime = 1.0;
+  float modTime = mod(slowTime, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  vec2 UV = uv;
+
+  float l = length(uv);
+  float start = saturate(0.5 * mod(l*l + 2.0 * slowTime, 2.0));
+  float tweak = 0.25 * smoothstep(start, start + 0.1, l) * (1.0 - smoothstep(start + 0.3, start + 0.4, l)); // band(l, start, start + 0.2);
+  uv *= 1.0 + tweak;
+
+  l = length(uv); // update
+
+  vec2 nP11 = uv + scale * vec2(
+    ncnoise2(10.4 * uv + vec2(123.4) + vec2(0, modTime)),
+    ncnoise2(10.3 * uv + vec2(834.4) + vec2(modTime, 0))
+  );
+  vec2 nP12 = uv + scale * vec2(
+    ncnoise2(10.4 * uv + vec2(123.4) + vec2(0, modTime - period)),
+    ncnoise2(10.3 * uv + vec2(834.4) + vec2(modTime - period, 0))
+  );
+  vec2 nP1 = mix(nP11, nP12, mixT);
+
+  vec2 nP2 = uv + scale * vec2(
+    ncnoise2(8.4 * nP1 + vec2(723.4)),
+    ncnoise2(9.4 * nP1 + vec2(992.4))
+  );
+
+  float v = ncnoise2(uv + scale * nP2);
+  v *= pow(v, 2.0);
+  v *= 0.5 + 0.5 * ncnoise2(2.0 * uv);
+
+  vec3 color;
+  color = vec3(v);
+
+  // Chromatic Shift
+  color -= saturate(vec3(tweak - 0.15, tweak - 0.10, tweak));
+
+  vec3 nor = normalize(vec3(UV, 1.0));
+  const vec3 light = normalize(vec3(1, 1, 1));
+  color *= 0.25 + 0.75 * dot(nor, light);
+
+  // Circle Mask
+  color += 10.0 * smoothstep(0.9, 0.91, l);
+
+  return vec4(color, 1.0);
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return oil(ro, rd, uv);
+  return noiseTexture(ro, rd, uv);
 
   // vec4 t = march(ro, rd);
   // return shade(ro, rd, t, uv);
@@ -792,5 +844,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

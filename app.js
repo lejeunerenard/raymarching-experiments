@@ -33,14 +33,14 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'starry-night-test1',
+    name: 'why-we-wait-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
