@@ -689,21 +689,23 @@ vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
   oilUV *= 0.8;
 
   // Vertical stretch
-  oilUV.y *= 0.15;
+  oilUV.y *= 0.30 + 0.05 * sin(PI * slowTime);
 
-  // Sway horizontally offset by hieght
-  oilUV.x += 0.5 * ncnoise2(oilUV);
-  float shiftX1 = 0.3 * sin(PI * 0.2 * (modTime + 2.0 * uv.y));
-  float shiftX2 = 0.3 * sin(PI * 0.2 * (modTime - period + 2.0 * uv.y));
-  oilUV.x += mix(shiftX1, shiftX2, mixT);
+  // Sway horizontally offset by height
+  float shiftX1 = ncnoise2(oilUV + 0.2 * modTime);
+  float shiftX2 = ncnoise2(oilUV + 0.2 * (modTime - period));
+  oilUV.x += 0.25 * mix(shiftX1, shiftX2, mixT);
 
-  oilUV.y += dot(oilUV, vec2(2)) + 2.0 * ncnoise2(5.0 * oilUV);
+  float noiseYOff;
+  float noiseYOff1 = ncnoise2(5.0 * oilUV + 0.1 * (modTime));
+  float noiseYOff2 = ncnoise2(5.0 * oilUV + 0.1 * (modTime - period));
+  oilUV.y += dot(oilUV, vec2(2)) + 1.5 * mix(noiseYOff1, noiseYOff2, mixT);
 
   vec2 uvWarp = oilUV; //  + 0.5 * vec2(vfbm4(oilUV), vfbm4(oilUV + vec2(123.0, 23423.0)));
 
   float n;
-  float n1 = vfbm6(uvWarp + .2 * modTime);
-  float n2 = vfbm6(uvWarp + .2 * (modTime - period));
+  float n1 = vfbm6(4.0 * uvWarp + .2 * modTime + ncnoise2(40.0 * uvWarp + vec2(2342.34, 234.534)));
+  float n2 = vfbm6(4.0 * uvWarp + .2 * (modTime - period) + ncnoise2(40.0 * uvWarp + vec2(2342.34, 234.534)));
   n = mix(n1, n2, mixT);
 
   vec3 nor = normalize( vec3( dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y  )  );
@@ -711,11 +713,11 @@ vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 ref = reflect(nor, rd);
 
   float v;
-  v = dot(nor, -rd);
-  // v = n;
+  // v = dot(nor, -rd);
+  v = n;
 
   // V modifiers
-  v *= 0.5;
+  v *= 1.6;
 
   vec3 color;
 
@@ -723,14 +725,17 @@ vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
   // color = vec3(v);
 
   // Spectrum
-  color = vec3(0.6, 0.5, 0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
+  color = 0.5 + vec3(0.6, 0.5, 0.5) * cos(TWO_PI * (v + vec3(0.15, 0.275, 0.67)));
   // color = 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
 
   // Dark base on red component of cosine palette
-  color *= 0.6 + 0.4 * cos(TWO_PI * (v + 0.15));
+  color *= 0.80 + 0.20 * cos(TWO_PI * (v + 0.15));
 
-  // Selectively darken based on red component of cosine palette
-  color *= 0.2 + 0.8 * smoothstep(-1.0, -0.95, cos(TWO_PI * (v + 0.25)));
+  // Lighten based on green
+  color += 0.20 * cos(TWO_PI * (v + 0.22));
+
+  // Red only colors
+  color.r *= 0.3 + min(1.0, length(color.gb));
 
   // Specular
   // color += 0.5 * pow(saturate(dot(ref, (lightPos))), 64.0);
