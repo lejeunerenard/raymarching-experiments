@@ -750,6 +750,23 @@ vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
   return vec4(color, 1.0);
 }
 
+float noiseRain (in vec2 uv, in float offset) {
+  uv *= 10.0 - offset;
+  uv.y *= 0.025 - 0.1 * offset;
+
+  float noiseScale = 10.0 + offset;
+  uv += 0.5000 * cos( 4.0 * uv + ncnoise2(noiseScale * uv + time));
+  uv += 0.2500 * cos( 8.0 * uv + ncnoise2(noiseScale * uv + time));
+  uv += 0.1250 * cos(16.0 * uv + ncnoise2(noiseScale * uv + time));
+  uv += 0.0625 * cos(32.0 * uv);
+
+  float v = ncnoise2(uv);
+  v *= pow(v, 2.0);
+  v *= 0.5 + 0.5 * ncnoise2(2.0 * uv);
+
+  return v;
+}
+
 vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   const float scale = 1.55;
 
@@ -760,44 +777,17 @@ vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec2 UV = uv;
 
-  float l = length(uv);
-  float start = saturate(0.5 * mod(l*l + 2.0 * slowTime, 2.0));
-  float tweak = 0.25 * smoothstep(start, start + 0.1, l) * (1.0 - smoothstep(start + 0.3, start + 0.4, l)); // band(l, start, start + 0.2);
-  uv *= 1.0 + tweak;
+  vec3 color = vec3(0);
 
-  l = length(uv); // update
+  uv += 0.5 + 0.5 * sin(PI * slowTime) * cnoise2(uv);
 
-  vec2 nP11 = uv + scale * vec2(
-    ncnoise2(10.4 * uv + vec2(123.4) + vec2(0, modTime)),
-    ncnoise2(10.3 * uv + vec2(834.4) + vec2(modTime, 0))
-  );
-  vec2 nP12 = uv + scale * vec2(
-    ncnoise2(10.4 * uv + vec2(123.4) + vec2(0, modTime - period)),
-    ncnoise2(10.3 * uv + vec2(834.4) + vec2(modTime - period, 0))
-  );
-  vec2 nP1 = mix(nP11, nP12, mixT);
+  color.r = noiseRain(1.000 * uv, 0.0);
+  color.g = noiseRain(1.020 * uv, 0.01 * uv.x + 0.05 * sin(slowTime));
+  color.b = noiseRain(1.075 * uv, 0.01 * uv.y + 0.05 * sin(slowTime));
 
-  vec2 nP2 = uv + scale * vec2(
-    ncnoise2(8.4 * nP1 + vec2(723.4)),
-    ncnoise2(9.4 * nP1 + vec2(992.4))
-  );
-
-  float v = ncnoise2(uv + scale * nP2);
-  v *= pow(v, 2.0);
-  v *= 0.5 + 0.5 * ncnoise2(2.0 * uv);
-
-  vec3 color;
-  color = vec3(v);
-
-  // Chromatic Shift
-  color -= saturate(vec3(tweak - 0.15, tweak - 0.10, tweak));
-
-  vec3 nor = normalize(vec3(UV, 1.0));
+  vec3 nor = normalize(vec3(uv, 1.0));
   const vec3 light = normalize(vec3(1, 1, 1));
   color *= 0.25 + 0.75 * dot(nor, light);
-
-  // Circle Mask
-  color += 10.0 * smoothstep(0.9, 0.91, l);
 
   return vec4(color, 1.0);
 }
@@ -844,5 +834,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += .02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += 0.01 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
