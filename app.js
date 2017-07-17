@@ -31,9 +31,9 @@ const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = false
+const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.7
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
