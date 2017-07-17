@@ -31,7 +31,7 @@ const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_WET = 1.0
 const BLOOM_MIN_BRIGHTNESS = 0.7
 
@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'Beyond-time-test1',
+    name: 'true-bit-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

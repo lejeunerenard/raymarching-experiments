@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -752,7 +752,7 @@ vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
 
 float noiseRain (in vec2 uv, in float offset) {
   uv *= 10.0 - offset;
-  uv.y *= 0.025 - 0.1 * offset;
+  uv.y *= 0.125 - 0.1 * offset;
 
   float noiseScale = 10.0 + offset;
   uv += 0.5000 * cos( 4.0 * uv + ncnoise2(noiseScale * uv + time));
@@ -767,6 +767,15 @@ float noiseRain (in vec2 uv, in float offset) {
   return v;
 }
 
+float gridMask (in vec2 uv, in float size) {
+  vec2 c = floor(uv / size) * size;
+
+  float mask = ncnoise2(0.3 / size * c);
+  mask *= mask; mask *= mask;
+
+  return step(4.0 * size, mask);
+}
+
 vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   const float scale = 1.55;
 
@@ -777,17 +786,30 @@ vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec2 UV = uv;
 
+  float size = 0.14;
+  vec2 c = floor(UV / size) * size;
+
+  float mask = gridMask(0.5 * UV + vec2(0.0, floor(slowTime / size)), size);
+  mask *= gridMask(1.1 * UV + floor(slowTime / 1.0), 1.0);
+
+  // Blob Mask
+  mask = saturate(smoothstep(0.91, 0.90, length(c) + 0.25 * ncnoise2(2.0 * c + time)) - mask);
+
+  uv.x += 20.0 * ncnoise2(c + 0.5 * slowTime) * mask;
+  vec2 c2 = floor(c / (size * size)) * size * size;
+  uv.x -= 10.0 * ncnoise2(c2 + 0.5 * slowTime) * mask;
+
   vec3 color = vec3(0);
 
   uv += 0.5 + 0.5 * sin(PI * slowTime) * cnoise2(uv);
 
-  color.r = noiseRain(1.000 * uv, 0.0);
-  color.g = noiseRain(1.020 * uv, 0.01 * uv.x + 0.05 * sin(slowTime));
-  color.b = noiseRain(1.075 * uv, 0.01 * uv.y + 0.05 * sin(slowTime));
+  color = vec3(noiseRain(1.000 * uv, 0.0));
 
-  vec3 nor = normalize(vec3(uv, 1.0));
-  const vec3 light = normalize(vec3(1, 1, 1));
-  color *= 0.25 + 0.75 * dot(nor, light);
+  // vec3 nor = normalize(vec3(uv, 1.0));
+  // const vec3 light = normalize(vec3(1, 1, 1));
+  // color *= 0.25 + 0.75 * dot(nor, light);
+
+  color = mix(#ffffff, color, mask);
 
   return vec4(color, 1.0);
 }
