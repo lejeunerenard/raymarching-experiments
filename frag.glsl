@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -462,7 +462,7 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.20;
+const float n2 = 1.50;
 const float amount = 0.10;
 
 vec3 textures (in vec3 rd) {
@@ -782,40 +782,46 @@ float gridMask (in vec2 uv, in float size) {
 #pragma glslify: hueToIOR = require(./dispersion-ray-direction)
 
 vec3 sineTexture (in vec3 rd) {
-  // return 0.5 + 0.5 * sin(rd);
-  return 0.5 + 0.5 * sin(TWO_PI * (0.75 * rd + vec3(0.0, 0.33, 0.67)));
+  return 0.5 + 0.5 * sin(rd);
 }
 
 vec3 dispersionColor (in float hue, in vec3 nor , in vec3 rd, in float n2) {
     float ior = hueToIOR(hue, n2, 1.0, amount);
-    vec3 refracted = refract(rd, nor, ior);
+    float ior2 = hueToIOR(hue, 1.0, n2, amount);
+    vec3 refracted1 = refract(rd, nor, ior);
+    vec3 refracted2 = refract(refracted1, vec3(0, 0, 1), ior2);
 
-    return sineTexture(refracted);
+    return sineTexture(refracted1);
 }
 
 vec3 intDispersion (in vec3 nor, in vec3 rd, in float n2) {
   vec3 color = vec3(0);
 
-  const int stepAmount = 5;
+  const int stepAmount = 20;
   for (int i = 0; i < 360; i += stepAmount) {
-    color += dispersionColor(float(i), nor, rd, n2);
+    color += float(stepAmount) * dispersionColor(float(i), nor, rd, n2);
   }
 
-  return color / (360.0 / float(stepAmount));
+  return color / 360.0;
 }
 
 vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   const float scale = 1.55;
 
   const float period = 4.0;
-  const float transitionTime = 1.0;
+  const float transitionTime = 0.025;
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
   vec2 UV = uv;
 
   vec3 q = vec3(0);
-  float n = vfbmWarp(vec3(0.5 * uv, 0.5 * sin(TWO_PI * 0.33333 * slowTime)), q);
+  vec3 q1 = vec3(0);
+  vec3 q2 = vec3(0);
+  float n11 = vfbmWarp(vec3(0.5 * uv, 0.33333 * modTime), q1);
+  float n12 = vfbmWarp(vec3(0.5 * uv, 0.33333 * (modTime - period)), q2);
+  float n = mix(n11, n12, mixT);
+  n *= 0.85;
 
   vec3 nor = normalize(vec3(dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y));
 
@@ -825,6 +831,8 @@ vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   const vec3 light = normalize(vec3(1, 1, 1));
   color *= saturate(0.25 + 0.75 * dot(nor, light));
   color += 0.5 * intDispersion(nor, rd, n2);
+
+  color *= 0.90 + 0.10 * cos(TWO_PI * (vec3(0.5 * UV, 0.0) + vec3(0.0, 0.33, 0.67)));
 
   return vec4(color, 1.0);
 }
