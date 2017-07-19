@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'bubblegum-sea-test2',
+    name: 'priomordial-surfer-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

@@ -782,7 +782,8 @@ float gridMask (in vec2 uv, in float size) {
 #pragma glslify: hueToIOR = require(./dispersion-ray-direction)
 
 vec3 sineTexture (in vec3 rd) {
-  return 0.5 + 0.5 * sin(rd);
+  // return 0.5 + 0.5 * sin(rd);
+  return hsv(vec3(0.75, 2, 2) * vec3(rd));
 }
 
 vec3 dispersionColor (in float hue, in vec3 nor , in vec3 rd, in float n2) {
@@ -809,19 +810,25 @@ vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   const float scale = 1.55;
 
   const float period = 4.0;
-  const float transitionTime = 0.025;
+  const float transitionTime = 1.5;
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
   vec2 UV = uv;
 
   vec3 q = vec3(0);
-  vec3 q1 = vec3(0);
-  vec3 q2 = vec3(0);
-  float n11 = vfbmWarp(vec3(0.5 * uv, 0.33333 * modTime), q1);
-  float n12 = vfbmWarp(vec3(0.5 * uv, 0.33333 * (modTime - period)), q2);
-  float n = mix(n11, n12, mixT);
-  n *= 0.85;
+  vec4 nUV1 = vec4(0.5 * uv, 0.33333 * modTime, ncnoise2(uv));
+  nUV1 += 0.250 * cos(2.0 * nUV1.yzwx);
+  nUV1 += 0.125 * cos(4.0 * nUV1.yzwx);
+
+  vec4 nUV2 = vec4(0.5 * uv, 0.33333 * (modTime - period), ncnoise2(uv));
+  nUV2 += 0.250 * cos(2.0 * nUV2.yzwx);
+  nUV2 += 0.125 * cos(4.0 * nUV2.yzwx);
+
+  vec4 nUV = mix(nUV1, nUV2, mixT);
+
+  float n = vfbmWarp(nUV.xyz, q);
+  // n *= 0.85;
 
   vec3 nor = normalize(vec3(dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y));
 
@@ -832,7 +839,7 @@ vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   color *= saturate(0.25 + 0.75 * dot(nor, light));
   color += 0.5 * intDispersion(nor, rd, n2);
 
-  color *= 0.90 + 0.10 * cos(TWO_PI * (vec3(0.5 * UV, 0.0) + vec3(0.0, 0.33, 0.67)));
+  color *= 0.75 + 0.25 * cos(TWO_PI * (vec3(0.5 * UV, 0.0) + vec3(0.0, 0.33, 0.67)));
 
   return vec4(color, 1.0);
 }
