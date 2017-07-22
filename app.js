@@ -27,7 +27,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 25
 const capturing = false
 
 const MANDELBOX = false
@@ -40,7 +40,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'priomordial-surfer-test2',
+    name: 'Vorfex-test3',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -81,18 +81,18 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 0,
-        y: 0,
-        z: 0
+        x: 1.111,
+        y: 0.449,
+        z: 0.449
       },
       d: 5,
-      scale: 1.01,
-      rot2angle: [0, 0, 0],
-      cameraAngles: [0.4, 0, 0]
+      scale: 2,
+      rot2angle: [0.209, 0, 0],
+      cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -110,7 +110,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -187,7 +187,7 @@ export default class App {
         self.cameraRo[2] = R * Math.sin(this.angle)
       })
 
-    cameraPosTween.start(0).repeat(Infinity)
+    // cameraPosTween.start(0).repeat(Infinity)
 
     // Camera rotation
     let camRotTween1 = new TWEEN.Tween([-1.579, 2.148, 1.57])
@@ -217,30 +217,30 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([1.899, 1.483, 2.315], 20 * 1000)
+      .to([0, 0.3, 0], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
-      .to([2.359, 1.483, 2.315], 20 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween3 = new TWEEN.Tween(this.rot2angle)
-      .to([1.059, 2.483, -0.315], 20 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween4 = new TWEEN.Tween(this.rot2angle)
-      .to([0.652, 0.79, 0], 20 * 1000)
+      .to([0.209, 0, 0], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
-    rotTween3.chain(rotTween4)
-    rotTween4.chain(rotTween1)
-    // rotTween1.start(0)
+    rotTween2.chain(rotTween1)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .to({ scale: 1.72 }, 10 * 1000)
+      .to({ scale: 5.91 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    // scaleTween1.start(0)
+    let scaleTween2 = new TWEEN.Tween(this)
+    scaleTween2
+      .delay(4 * 1000)
+      .to({ scale: 2 }, 10 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    scaleTween1.chain(scaleTween2)
+
+    scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)

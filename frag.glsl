@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -33,8 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
-#define maxDistance 20.0
+#define maxSteps 1024
+#define maxDistance 50.0
 
 #define slowTime time * .2
 
@@ -294,13 +294,14 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-// #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
+#define Iterations 5
+#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=14)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
-#define octaPreFold 6
+#define octaPreFold 2
 mat4 octaM = mat4(
 scale, 0., 0., 0.,
 0., scale, 0., 0.,
@@ -310,7 +311,7 @@ scale, 0., 0., 0.,
 0., 1., 0., 0.,
 0., 0.2, 1., 0.,
 0., 0., 0., 1.);
-// #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=octaM, trapCalc=trapCalc)
+#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=kifsM, trapCalc=trapCalc)
 // 
 // #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
@@ -402,14 +403,17 @@ vec3 map (in vec3 p) {
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
   p *= globalRot;
-  vec4 q = vec4(p, 0.0);
+  vec4 q = vec4(p, 1.0);
 
-  q += 0.25 * cos(3.05 * q.yzwx);
+  q += 0.2500 * cos(3.05 * q.yzwx + noise(q.xyz));
+  q += 0.1250 * cos(9.1 * q.yzwx);
+  q += 0.0625 * cos(27.3 * q.yzwx);
 
-  // d = vec3(sdCapsule(q.xyz, vec3(0.0, 0.5, 0.0), vec3(0.0, -0.5, 0.0), 0.25), 1.0, 0.0);
-  d = vec3(length(q) - 1.0, 1.0, 0.0);
-  d.x -= 0.00625 * cnoise3(5.0 * q.xyz);
-  d.x *= 0.5;
+  float minD = 0.0;
+  q.xyz = octahedronFold(q.xyz, minD);
+
+  d = vec3(sdBox(q.xyz, vec3(1)), 1.0, 0.0);
+  d.x *= 0.01;
 
   return d;
 }
@@ -462,8 +466,8 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.50;
-const float amount = 0.10;
+const float n2 = 1.30;
+const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -482,7 +486,7 @@ vec3 textures (in vec3 rd) {
   return clamp(color, 0., 1.);
 }
 
-vec3 scene (in vec3 rd) {
+vec3 scene (in vec3 rd, in float ior) {
   vec3 color = vec3(0.);
 
   rd = normalize(rd);
@@ -520,7 +524,7 @@ float dispersionMarch (in vec3 rayDirection) {
   return t;
 }
 
-vec3 secondRefraction (in vec3 rd) {
+vec3 secondRefraction (in vec3 rd, in float ior) {
   float d = 0.0;
 
   #if 1
@@ -545,7 +549,8 @@ vec3 secondRefraction (in vec3 rd) {
   reflectionPointNor = normalize(reflectionPointNor);
 
   // float sss = saturate(1.0 - pow(length(reflectionPoint - gPos) * 0.48, 10.0));
-  vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1);
+  vec3 disp = scene(refract(rd, reflectionPointNor, ior), ior);
+  disp *= min(1.5, 1.0 / d);
 
   return disp;
 }
@@ -845,10 +850,8 @@ vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return noiseTexture(ro, rd, uv);
-
-  // vec4 t = march(ro, rd);
-  // return shade(ro, rd, t, uv);
+  vec4 t = march(ro, rd);
+  return shade(ro, rd, t, uv);
 }
 
 void main() {
