@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -80,6 +80,9 @@ float noise(vec3 p) {
 // source: https://www.shadertoy.com/view/lsl3RH
 float noise( in vec2 x ) {
   return sin(1.5*x.x)*sin(1.5*x.y);
+}
+float sinoise3( in vec3 x ) {
+  return sin(1.5 * x.x) * sin(1.51 * x.y) * sin(1.52 * x.z * x.x);
 }
 
 float iqFBM (vec2 p) {
@@ -252,6 +255,24 @@ float udRoundBox( vec3 p, vec3 b, float r ) {
   return length(max(abs(p)-b,0.0))-r;
 }
 
+float length16 (in vec2 p) {
+  return pow(pow(p.x, 16.0) + pow(p.y, 16.0), 0.125);
+}
+float length8 (in vec2 p) {
+  return pow(p.x * p.x * p.x * p.x * p.x * p.x * p.x * p.x
++ p.y * p.y * p.y * p.y * p.y * p.y * p.y * p.y, 0.125);
+}
+float length8 (in vec3 p) {
+  return pow(p.x * p.x * p.x * p.x * p.x * p.x * p.x * p.x
++ p.y * p.y * p.y * p.y * p.y * p.y * p.y * p.y
++ p.z * p.z * p.z * p.z * p.z * p.z * p.z * p.z, 0.125);
+}
+
+float sdTorus88( vec3 p, vec2 t ) {
+  vec2 q = vec2(length16(p.xz)-t.x,p.y);
+  return length16(q)-t.y;
+}
+
 #pragma glslify: triprism = require(./model/tri-prism)
 
 float triPrismGuide ( in vec3 p, in vec2 h ) {
@@ -397,7 +418,7 @@ float sigmoid ( in float x ) {
 vec3 map (in vec3 p) {
   vec3 d;
 
-  const float period = 10.0;
+  const float period = 20.0;
   const float transitionTime = 2.0;
   float modTime = mod(time, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
@@ -405,15 +426,30 @@ vec3 map (in vec3 p) {
   p *= globalRot;
   vec4 q = vec4(p, 1.0);
 
-  q += 0.2500 * cos(3.05 * q.yzwx + noise(q.xyz));
+  vec4 q11 = 0.2500 * cos(3.05 * q.yzwx + noise(q.xyz) + modTime);
+  vec4 q12 = 0.2500 * cos(3.05 * q.yzwx + noise(q.xyz) + modTime - period);
+  q += mix(q11, q12, mixT);
+
   q += 0.1250 * cos(9.1 * q.yzwx);
   q += 0.0625 * cos(27.3 * q.yzwx);
 
+  q.z *= 2.0;
+
   float minD = 0.0;
-  q.xyz = octahedronFold(q.xyz, minD);
+  // q.xyz = octahedronFold(q.xyz, minD);
 
   d = vec3(sdBox(q.xyz, vec3(1)), 1.0, 0.0);
-  d.x *= 0.01;
+  d.x *= 0.1;
+
+  vec3 sqrP = p;
+  sqrP.xyz = sqrP.xzy;
+  sqrP *= rotationMatrix(vec3(0, 0, 1), PI * cos(PI * 0.5 * slowTime));
+  sqrP *= 0.75;
+  sqrP.y *= 2.0;
+  vec3 square = vec3(sdTorus88(sqrP, vec2(1.5, 0.0625)), 2.0, 0.0);
+  square.x *= 0.25;
+
+  d = dMin(square, d);
 
   return d;
 }
@@ -466,7 +502,7 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.30;
+const float n2 = 1.31;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -475,8 +511,8 @@ vec3 textures (in vec3 rd) {
   // float n = iqFBM(8.0 * rd + 2305.0);
   // float v = smoothstep(0.0, 1.0, n);
 
-  float n = cnoise3(0.75 * rd + 0.5 * sin(1.0 * rd));
-  float v = smoothstep(0.0, 0.9, n);
+  float n = sinoise3(5.0 * rd);
+  float v = smoothstep(-1.0, 1.0, n);
 
   // float n = dot(cos(rd), vec3(0.125));
   // float v = saturate(n);
@@ -561,7 +597,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = background;
-  color = vec3(0.3);
+  color = vec3(0.1);
+  color = mix(color, vec3(0), isMaterialSmooth(m, 2.0));
   return color;
 }
 
@@ -627,7 +664,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.2 * amb;
+        lin += 0.2 * amb * isMaterialSmooth(t.y, 2.0);
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
@@ -638,10 +675,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0));
 
-      // color += 0.025 * reflection(pos, ref);
-      color += 0.03125 * smoothstep(0.5, 1.0, clamp(matCap(ref), 0.5, 1.0));
-
-      color += 0.75 * dispersionStep1(nor, rayDirection, n2);
+      color += 0.5 * dispersionStep1(nor, rayDirection, n2);
       // color += 0.90 * dispersion(nor, rayDirection, n2);
 
       // Fog
