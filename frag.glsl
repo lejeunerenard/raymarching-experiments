@@ -111,6 +111,19 @@ float vfbm4 (vec2 p) {
   return f * 0.9375;
 }
 
+float vfbm4 (vec3 p) {
+  float f = 0.0;
+  const float a = 0.523;
+  mat3 m = rotationMatrix(vec3(1, 0, 0), a);
+
+  f += 0.500000 * noise( p ); p *= m * 2.02;
+  f += 0.250000 * noise( p ); p *= m * 2.03;
+  f += 0.125000 * noise( p ); p *= m * 2.01;
+  f += 0.062500 * noise( p ); p *= m * 2.025;
+
+  return f * 0.9375;
+}
+
 float vfbm6 (vec2 p) {
   float f = 0.0;
   float a = 1.123;
@@ -149,7 +162,7 @@ float iqFBM (vec3 p) {
   f += 0.500000*noise( p ); p = p*2.02;
   f += 0.250000*noise( p ); p = p*2.03;
   f += 0.125000*noise( p ); p = p*2.01;
-  f += 0.062500*noise( p ); p = p*2.025;
+  // f += 0.062500*noise( p ); p = p*2.025;
 
   return f * 1.066667;
 }
@@ -207,18 +220,24 @@ float vfbmWarp (vec3 p, out vec3 q, out vec3 s, vec3 r) {
   const float scale = 4.0;
 
   q = vec3(
-        vfbm6(p + vec3(0.0, 0.0, 0.0)),
-        vfbm6(p + vec3(3.2, 34.5, .234)),
-        vfbm6(p + vec3(7.0, 2.9, -2.42)));
+        vfbm4(p + vec3(0.0, 0.0, 0.0)),
+        vfbm4(p + vec3(3.2, 34.5, .234)),
+        vfbm4(p + vec3(7.0, 2.9, -2.42)));
 
-  s = vec3(
-        vfbm6(p + scale * q + vec3(23.9, 234.0, -193.0)),
-        vfbm6(p + scale * q + vec3(3.2, 852.0, 23.42)),
-        vfbm6(p + scale * q + vec3(7.0, -232.0, -2.42)));
+  // s = vec3(
+  //       vfbm4(p + scale * q + vec3(23.9, 234.0, -193.0)),
+  //       vfbm4(p + scale * q + vec3(3.2, 852.0, 23.42)),
+  //       vfbm4(p + scale * q + vec3(7.0, -232.0, -2.42)));
 
-  return vfbm6(p + scale * s);
+  return vfbm6(p + scale * q);
 }
 float vfbmWarp (vec3 p, out vec3 q) {
+  vec3 s = vec3(0);
+  vec3 r = vec3(0);
+  return vfbmWarp(p, q, r, s);
+}
+float vfbmWarp (vec3 p) {
+  vec3 q = vec3(0);
   vec3 s = vec3(0);
   vec3 r = vec3(0);
   return vfbmWarp(p, q, r, s);
@@ -423,33 +442,21 @@ vec3 map (in vec3 p) {
   float modTime = mod(time, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  p *= globalRot;
+  // p *= globalRot;
   vec4 q = vec4(p, 1.0);
 
-  vec4 q11 = 0.2500 * cos(3.05 * q.yzwx + noise(q.xyz) + modTime);
-  vec4 q12 = 0.2500 * cos(3.05 * q.yzwx + noise(q.xyz) + modTime - period);
-  q += mix(q11, q12, mixT);
-
-  q += 0.1250 * cos(9.1 * q.yzwx);
-  q += 0.0625 * cos(27.3 * q.yzwx);
-
-  q.z *= 2.0;
-
   float minD = 0.0;
-  // q.xyz = octahedronFold(q.xyz, minD);
 
-  d = vec3(sdBox(q.xyz, vec3(1)), 1.0, 0.0);
-  d.x *= 0.1;
+  vec3 nP = q.xyz;
+  // nP.x = abs(nP.x);
+  nP.x += 0.5 * vfbm4(4.0 * nP.xyz + time + 302.0);
+  nP.y += 0.5 * vfbm4(4.0 * nP.xyz + time + 942.0);
+  nP.z += 0.5 * vfbm4(4.0 * nP.xyz + time);
 
-  vec3 sqrP = p;
-  sqrP.xyz = sqrP.xzy;
-  sqrP *= rotationMatrix(vec3(0, 0, 1), PI * cos(PI * 0.5 * slowTime));
-  sqrP *= 0.75;
-  sqrP.y *= 2.0;
-  vec3 square = vec3(sdTorus88(sqrP, vec2(1.5, 0.0625)), 2.0, 0.0);
-  square.x *= 0.25;
-
-  d = dMin(square, d);
+  d = vec3(sdBox(q.xyz, vec3(1, 1, 0.1)), 1.0, 0.0);
+  d.x -= 0.1 * vfbm4(2.0 * nP.xyz + q.xyz + time);
+  // d.x -= 0.05 * vfbm4(4.0 * nP.xyz + q.xyz + time);
+  d.x *= 0.75;
 
   return d;
 }
@@ -502,22 +509,17 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.31;
+const float n2 = 1.11;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  // float n = iqFBM(8.0 * rd + 2305.0);
-  // float v = smoothstep(0.0, 1.0, n);
-
-  float n = sinoise3(5.0 * rd);
+  float spread = saturate(dot(rd, gRd));
+  float n = sinoise3(7.0 * rd + 2.0 * noise(gPos));
   float v = smoothstep(-1.0, 1.0, n);
 
-  // float n = dot(cos(rd), vec3(0.125));
-  // float v = saturate(n);
-
-  color = vec3(v);
+  color = vec3(v * spread);
 
   return clamp(color, 0., 1.);
 }
@@ -632,12 +634,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 1;
-      const float repNUM_OF_LIGHTS = 1.0; // 0.33333;
+      const int NUM_OF_LIGHTS = 3;
+      const float repNUM_OF_LIGHTS = 0.33333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(1., .75, 1.)), #ffffff, 1.0);
-      // lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
-      // lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
+      lights[0] = light(normalize(vec3(0., 0.2, 1.)), #ffffff, 1.0);
+      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
 
       float occ = 1.0; // calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -675,12 +677,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0));
 
-      color += 0.5 * dispersionStep1(nor, rayDirection, n2);
-      // color += 0.90 * dispersion(nor, rayDirection, n2);
+      // color += 0.5 * dispersionStep1(nor, rayDirection, n2);
+      color += 0.50 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      // color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      // color *= exp(-t.x * 0.005);
+      color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
