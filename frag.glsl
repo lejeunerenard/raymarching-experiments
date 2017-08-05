@@ -33,7 +33,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 512
 #define maxDistance 50.0
 
 #define slowTime time * .2
@@ -443,20 +443,28 @@ vec3 map (in vec3 p) {
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
   // p *= globalRot;
-  vec4 q = vec4(p, 1.0);
+  vec3 q = p;
 
   float minD = 0.0;
 
-  vec3 nP = q.xyz;
-  // nP.x = abs(nP.x);
-  nP.x += 0.5 * vfbm4(4.0 * nP.xyz + time + 302.0);
-  nP.y += 0.5 * vfbm4(4.0 * nP.xyz + time + 942.0);
-  nP.z += 0.5 * vfbm4(4.0 * nP.xyz + time);
+  d = vec3(length(q.xyz) - 1.0, 1.0, 0.0);
+  vec3 nP = 4.0 * q.xyz;
 
-  d = vec3(sdBox(q.xyz, vec3(1, 1, 0.1)), 1.0, 0.0);
-  d.x -= 0.1 * vfbm4(2.0 * nP.xyz + q.xyz + time);
-  // d.x -= 0.05 * vfbm4(4.0 * nP.xyz + q.xyz + time);
-  d.x *= 0.75;
+  vec3 ev1 = vec3(
+    noise(1.8 * q.xyz + 0.125 * sin(TWO_PI * 0.01 * time)),
+    noise(1.8 * q.xyz + 0.25 * sin(TWO_PI * 0.02 * time) + vec3(72.46, 9123.3, 348.234)),
+    noise(1.8 * q.xyz + 0.5 * sin(TWO_PI * 0.04 * time) + vec3(734.2, 234.53, 871.234)));
+
+  vec3 e = ev1; // mix(ev1, ev2, (modTime - transitionTime) / (period - transitionTime));
+
+  vec3 e2 = vec3(
+    noise(q.xyz + 3.0 * e.xyz),
+    noise(q.xyz + 3.0 * e.xyz + vec3(243.5, 6632.3, 12.4835)),
+    noise(q.xyz + 3.0 * e.xyz + vec3(92.34, 37.234, 99.3285)));
+
+  float n = cnoise3(vec3(10.0, 0.125, 0.25) * (nP + 9.0 * e2));
+  d.x += 0.02125 * n;
+  d.x *= 0.2;
 
   return d;
 }
@@ -599,8 +607,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = background;
-  color = vec3(0.1);
-  color = mix(color, vec3(0), isMaterialSmooth(m, 2.0));
+  color = vec3(0.85);
   return color;
 }
 
@@ -641,7 +648,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
       lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
 
-      float occ = 1.0; // calcAO(pos, nor);
+      float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
@@ -656,7 +663,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= saturate(0.0 + softshadow(pos, lightPos, 0.02, 1.75));
+        dif *= saturate(0.0 + softshadow(pos, lightPos, 0.02, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -666,7 +673,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.2 * amb * isMaterialSmooth(t.y, 2.0);
+        lin += 0.05 * amb;
 
         const float conserve = 1.0; // TODO figure out how to do this w/o grey highlights
         color +=
@@ -678,7 +685,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += 0.75 * vec3(pow(specAll, 8.0));
 
       // color += 0.5 * dispersionStep1(nor, rayDirection, n2);
-      color += 0.50 * dispersion(nor, rayDirection, n2);
+      color += 0.01 * dispersion(nor, rayDirection, n2);
 
       // Fog
       color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
@@ -715,174 +722,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color *= mix(vec4(1.), vec4(background, 1), length(uv) / 2.);
 
       // Glow
-      // vec3 glowColor = pow(#ffffff, vec3(2.2));
-      // color = mix(vec4(glowColor, 1.0), color, 1. - .99 * clamp(t.z / (1.5 * float(maxSteps)), 0., 1.));
+      vec3 glowColor = pow(#222222, vec3(2.2));
+      color = mix(vec4(glowColor, 1.0), color, 1. - .99 * clamp(t.z / (1.5 * float(maxSteps)), 0., 1.));
 
       return color;
     }
-}
-
-vec4 oil (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec2 oilUV = uv;
-
-  const float period = 20.0;
-  const float transitionTime = 2.0;
-  float modTime = mod(time, period);
-  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
-
-  oilUV *= 0.8;
-
-  // Vertical stretch
-  oilUV.y *= 0.30 + 0.05 * sin(PI * slowTime);
-
-  // Sway horizontally offset by height
-  float shiftX1 = ncnoise2(oilUV + 0.2 * modTime);
-  float shiftX2 = ncnoise2(oilUV + 0.2 * (modTime - period));
-  oilUV.x += 0.25 * mix(shiftX1, shiftX2, mixT);
-
-  float noiseYOff;
-  float noiseYOff1 = ncnoise2(5.0 * oilUV + 0.1 * (modTime));
-  float noiseYOff2 = ncnoise2(5.0 * oilUV + 0.1 * (modTime - period));
-  oilUV.y += dot(oilUV, vec2(2)) + 1.5 * mix(noiseYOff1, noiseYOff2, mixT);
-
-  vec2 uvWarp = oilUV; //  + 0.5 * vec2(vfbm4(oilUV), vfbm4(oilUV + vec2(123.0, 23423.0)));
-
-  float n;
-  float n1 = vfbm6(4.0 * uvWarp + .2 * modTime + ncnoise2(40.0 * uvWarp + vec2(2342.34, 234.534)));
-  float n2 = vfbm6(4.0 * uvWarp + .2 * (modTime - period) + ncnoise2(40.0 * uvWarp + vec2(2342.34, 234.534)));
-  n = mix(n1, n2, mixT);
-
-  vec3 nor = normalize( vec3( dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y  )  );
-  const vec3 light = vec3(1, 0, 1);
-  vec3 ref = reflect(nor, rd);
-
-  float v;
-  // v = dot(nor, -rd);
-  v = n;
-
-  // V modifiers
-  v *= 1.6;
-
-  vec3 color;
-
-  // B&W
-  // color = vec3(v);
-
-  // Spectrum
-  color = 0.5 + vec3(0.6, 0.5, 0.5) * cos(TWO_PI * (v + vec3(0.15, 0.275, 0.67)));
-  // color = 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0.0, 0.33, 0.67)));
-
-  // Dark base on red component of cosine palette
-  color *= 0.80 + 0.20 * cos(TWO_PI * (v + 0.15));
-
-  // Lighten based on green
-  color += 0.20 * cos(TWO_PI * (v + 0.22));
-
-  // Red only colors
-  color.r *= 0.3 + min(1.0, length(color.gb));
-
-  // Specular
-  // color += 0.5 * pow(saturate(dot(ref, (lightPos))), 64.0);
-
-  // float l = length(color);
-  // if (l >= 1.732) {
-  //   color = #ff00ff;
-  // } else if (l <= 0.002) {
-  //   color = #00FF00;
-  // }
-
-  return vec4(color, 1.0);
-}
-
-float noiseRain (in vec2 uv, in float offset) {
-  uv *= 10.0 - offset;
-  uv.y *= 0.125 - 0.1 * offset;
-
-  float noiseScale = 10.0 + offset;
-  uv += 0.5000 * cos( 4.0 * uv + ncnoise2(noiseScale * uv + time));
-  uv += 0.2500 * cos( 8.0 * uv + ncnoise2(noiseScale * uv + time));
-  uv += 0.1250 * cos(16.0 * uv + ncnoise2(noiseScale * uv + time));
-  uv += 0.0625 * cos(32.0 * uv);
-
-  float v = ncnoise2(uv);
-  v *= pow(v, 2.0);
-  v *= 0.5 + 0.5 * ncnoise2(2.0 * uv);
-
-  return v;
-}
-
-float gridMask (in vec2 uv, in float size) {
-  vec2 c = floor(uv / size) * size;
-
-  float mask = ncnoise2(0.3 / size * c);
-  mask *= mask; mask *= mask;
-
-  return step(4.0 * size, mask);
-}
-
-#pragma glslify: hueToIOR = require(./dispersion-ray-direction)
-
-vec3 sineTexture (in vec3 rd) {
-  // return 0.5 + 0.5 * sin(rd);
-  return hsv(vec3(0.75, 2, 2) * vec3(rd));
-}
-
-vec3 dispersionColor (in float hue, in vec3 nor , in vec3 rd, in float n2) {
-    float ior = hueToIOR(hue, n2, 1.0, amount);
-    float ior2 = hueToIOR(hue, 1.0, n2, amount);
-    vec3 refracted1 = refract(rd, nor, ior);
-    vec3 refracted2 = refract(refracted1, vec3(0, 0, 1), ior2);
-
-    return sineTexture(refracted1);
-}
-
-vec3 intDispersion (in vec3 nor, in vec3 rd, in float n2) {
-  vec3 color = vec3(0);
-
-  const int stepAmount = 20;
-  for (int i = 0; i < 360; i += stepAmount) {
-    color += float(stepAmount) * dispersionColor(float(i), nor, rd, n2);
-  }
-
-  return color / 360.0;
-}
-
-vec4 noiseTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
-  const float scale = 1.55;
-
-  const float period = 4.0;
-  const float transitionTime = 1.5;
-  float modTime = mod(slowTime, period);
-  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
-
-  vec2 UV = uv;
-
-  vec3 q = vec3(0);
-  vec4 nUV1 = vec4(0.5 * uv, 0.33333 * modTime, ncnoise2(uv));
-  nUV1 += 0.250 * cos(2.0 * nUV1.yzwx);
-  nUV1 += 0.125 * cos(4.0 * nUV1.yzwx);
-
-  vec4 nUV2 = vec4(0.5 * uv, 0.33333 * (modTime - period), ncnoise2(uv));
-  nUV2 += 0.250 * cos(2.0 * nUV2.yzwx);
-  nUV2 += 0.125 * cos(4.0 * nUV2.yzwx);
-
-  vec4 nUV = mix(nUV1, nUV2, mixT);
-
-  float n = vfbmWarp(nUV.xyz, q);
-  // n *= 0.85;
-
-  vec3 nor = normalize(vec3(dFdx(n)*resolution.x, 1.0, dFdy(n)*resolution.y));
-
-  vec3 color;
-  color = vec3(n);
-
-  const vec3 light = normalize(vec3(1, 1, 1));
-  color *= saturate(0.25 + 0.75 * dot(nor, light));
-  color += 0.5 * intDispersion(nor, rd, n2);
-
-  color *= 0.75 + 0.25 * cos(TWO_PI * (vec3(0.5 * UV, 0.0) + vec3(0.0, 0.33, 0.67)));
-
-  return vec4(color, 1.0);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {

@@ -32,15 +32,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.75
-const BLOOM_MIN_BRIGHTNESS = 0.5
+const BLOOM_WET = 1.7
+const BLOOM_MIN_BRIGHTNESS = 0.25
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'prototype-test1',
+    name: 'void-ship-test3',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -88,11 +88,11 @@ export default class App {
       d: 5,
       scale: 2,
       rot2angle: [0.209, 0, 0],
-      cameraAngles: [0, 0, 0]
+      cameraAngles: [0.385, 0.0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.25)
+    this.cameraRo = vec3.fromValues(0, 0.693, 1.629)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -100,7 +100,7 @@ export default class App {
     this.amberColor = [235, 147, 21];
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0005
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -110,7 +110,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -177,70 +177,59 @@ export default class App {
     // eps1.start(0)
 
     // Camera location animation
-    let ob = { angle: 0 }
-    const R = 20
+    let ob = {
+      x: self.cameraRo[0],
+      y: self.cameraRo[1],
+      z: self.cameraRo[2]
+    }
+    function updatePos () {
+      self.cameraRo[0] = this.x
+      self.cameraRo[1] = this.y
+      self.cameraRo[2] = this.z
+    }
+
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ angle: Math.PI * 2.0}, 10 * 1000)
-      .onUpdate(function () {
-        self.cameraRo[0] = R * Math.cos(this.angle)
-        self.cameraRo[2] = R * Math.sin(this.angle)
-      })
+      .to({ y: 0.127 }, 5 * 1000)
+      .onUpdate(updatePos)
 
-    // cameraPosTween.start(0).repeat(Infinity)
+    let cameraPosTween2 = new TWEEN.Tween({ x: 0, y: 0, z: 1.259 })
+    cameraPosTween2
+      .to({ z: 1.947 }, 10 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .onUpdate(updatePos)
+
+    cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween.start(0)
 
     // Camera rotation
-    let camRotTween1 = new TWEEN.Tween([-1.579, 2.148, 1.57])
-    camRotTween1
-      .to([-0.124, 0.917, 0.121], 10 * 1000)
-      .onUpdate(function () {
-        self.cameraAngles[0] = this[0]
-        self.cameraAngles[1] = this[1]
-        self.cameraAngles[2] = this[2]
-      })
-      .delay(10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let camRotTween2 = new TWEEN.Tween([0, 0, 0])
-    camRotTween2
-      .to([0, Math.PI / 2, 0], 5 * 1000)
-      .onUpdate(function () {
-        self.cameraAngles[0] = this[0]
-        self.cameraAngles[1] = this[1]
-        self.cameraAngles[2] = this[2]
-      })
-      .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(0 * 1000)
+    function updateRot () {
+      self.cameraAngles[0] = this[0]
+      self.cameraAngles[1] = this[1]
+      self.cameraAngles[2] = this[2]
+    }
 
-    // camRotTween1.chain(camRotTween2)
-    // camRotTween1.start(0)
+    let rotObj = [...this.cameraAngles]
+    let camRotTween1 = new TWEEN.Tween(rotObj)
+    camRotTween1
+      .to([0, 0, 0], 0.01 * 1000)
+      .onUpdate(updateRot)
+      .delay(5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
       .to([0, 0.3, 0], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-      .to([0.209, 0, 0], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
-    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
       .to({ scale: 5.91 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let scaleTween2 = new TWEEN.Tween(this)
-    scaleTween2
-      .delay(4 * 1000)
-      .to({ scale: 2 }, 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    scaleTween1.chain(scaleTween2)
-
-    scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
@@ -252,8 +241,6 @@ export default class App {
         -0.654
       ], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-
-    // offsetTween1.start(0)
   }
 
   setupAudio () {
@@ -448,7 +435,7 @@ export default class App {
     this.shader.uniforms.kifsM = this.kifsM(t)
   }
 
-  bloomBlur (gl) {
+  bloomBlur (gl, t) {
     let dim = this.getDimensions()
 
     // Brightness pass
@@ -487,8 +474,13 @@ export default class App {
     this.finalPass.uniforms.base = this.state[0].color[0].bind(3)
     this.finalPass.uniforms.buffer = this.state[1].color[0].bind(4)
     this.finalPass.uniforms.resolution = dim
+    this.finalPass.uniforms.time = this.getTime(t)
     this.finalPass.uniforms.wet = BLOOM_WET
     drawTriangle(gl)
+  }
+
+  getTime (t) {
+    return window.time || t / 1000
   }
 
   render (t) {
@@ -498,12 +490,12 @@ export default class App {
       this.state[0].bind()
     }
 
-    shader.uniforms.time = window.time || t / 1000
+    shader.uniforms.time = this.getTime(t)
     shader.uniforms.BLOOM = BLOOM
     manager.render(shader, t)
 
     if (BLOOM) {
-      this.bloomBlur(gl)
+      this.bloomBlur(gl, t)
     }
 
     capturing && capturer.capture(this.canvas)
