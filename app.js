@@ -32,15 +32,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.7
-const BLOOM_MIN_BRIGHTNESS = 0.25
+const BLOOM_WET = 1.9
+const BLOOM_MIN_BRIGHTNESS = 0.45
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'void-ship-test3',
+    name: 'new-neighbor-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -88,11 +88,11 @@ export default class App {
       d: 5,
       scale: 2,
       rot2angle: [0.209, 0, 0],
-      cameraAngles: [0.385, 0.0, 0]
+      cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.693, 1.629)
+    this.cameraRo = vec3.fromValues(0, 0, 2,)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -110,7 +110,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
