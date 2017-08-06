@@ -734,7 +734,59 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+float nsin( in float v ) {
+  return 0.5 + 0.5 * sin(v);
+}
+
+float diagonal (in vec2 uv, in float cutoffBase, in float time) {
+  float diagonalT = dot(uv, vec2(1));
+
+  float cutoff = cutoffBase;
+  float scale = nsin(PI * (time + diagonalT));
+  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
+
+  scale = nsin(TWO_PI * (time + diagonalT) + 2.0 * scale);
+  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
+
+  scale = nsin(PI * 3.0 * (time + diagonalT) + 2.0 * scale);
+  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
+
+  float v = nsin(PI * 5.0 * diagonalT + 2.0 * scale);
+  return smoothstep(0.5, 0.51, v);
+}
+
+vec4 weave (in vec3 ro, in vec3 rd, in vec2 uv) {
+  uv = abs(uv);
+  // uv.x = abs(uv.x);
+  uv.x += 0.125 * sin(2.0 * uv.y + PI * 0.5 * slowTime);
+  uv *= 2.0;
+
+  vec2 opposite = uv * vec2(-1, 1);
+
+  float t = slowTime + 0.1 * sin(TWO_PI * uv.x);
+
+  float r = diagonal(uv, 0.6, t);
+  r *= diagonal(opposite, 0.6, t);
+
+  float g = diagonal(uv, 0.5, t + 0.01 * uv.y + dot(uv, vec2(1)));
+  g *= diagonal(opposite, 0.5, t + 0.01 * uv.y + dot(uv, vec2(1)) + 0.01);
+
+  float b = diagonal(uv, 0.5, t + 0.01 * uv.y);
+  b *= diagonal(opposite, 0.5, t + 0.01 * uv.y + 0.01);
+
+  vec3 color = vec3(0);
+  color = vec3(r, g, b);
+  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1.0, 1.2, 1.5) * vec3(r, g, b) + vec3(0.0, 0.33, 0.67)));
+
+  vec2 q = vec2(0);
+  color *= 0.8 + 0.4 * fbmWarp(0.25 * uv, q);
+
+  return vec4(color, 1.0);
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return weave(ro, rd, uv);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

@@ -27,20 +27,20 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 30
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.9
-const BLOOM_MIN_BRIGHTNESS = 0.45
+const BLOOM_WET = 1.0
+const BLOOM_MIN_BRIGHTNESS = 0.2
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'new-neighbor-test2',
+    name: 'neon-kaleidoscope-test3',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
