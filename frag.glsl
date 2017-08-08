@@ -751,35 +751,51 @@ float diagonal (in vec2 uv, in float cutoffBase, in float time) {
   scale = nsin(PI * 3.0 * (time + diagonalT) + 2.0 * scale);
   scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
 
-  float v = nsin(PI * 5.0 * diagonalT + 2.0 * scale);
+  scale = nsin(PI * 5.0 * (time + diagonalT) + 2.0 * scale);
+  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
+
+  float v = nsin(PI * 7.0 * diagonalT + 2.0 * scale);
   return smoothstep(0.5, 0.51, v);
 }
 
 vec4 weave (in vec3 ro, in vec3 rd, in vec2 uv) {
   uv = abs(uv);
   // uv.x = abs(uv.x);
-  uv.x += 0.125 * sin(2.0 * uv.y + PI * 0.5 * slowTime);
-  uv *= 2.0;
+  uv.x += 0.25 * sin(2.0 * uv.y + PI * 0.5 * slowTime);
+  uv.y *= 1.0 + 0.1 * sin(PI * slowTime);
+  uv *= 1.0;
 
   vec2 opposite = uv * vec2(-1, 1);
 
   float t = slowTime + 0.1 * sin(TWO_PI * uv.x);
 
-  float r = diagonal(uv, 0.6, t);
-  r *= diagonal(opposite, 0.6, t);
+  float v1 = diagonal(uv, 0.9, t);
+  v1 *= diagonal(opposite, 0.2, t);
 
-  float g = diagonal(uv, 0.5, t + 0.01 * uv.y + dot(uv, vec2(1)));
-  g *= diagonal(opposite, 0.5, t + 0.01 * uv.y + dot(uv, vec2(1)) + 0.01);
+  float v2 = diagonal(uv, 0.5 + 0.2 * sin(PI * slowTime), t);
+  v2 *= diagonal(opposite, 0.5 + 0.2 * sin(PI * slowTime), t);
 
-  float b = diagonal(uv, 0.5, t + 0.01 * uv.y);
-  b *= diagonal(opposite, 0.5, t + 0.01 * uv.y + 0.01);
+  float l = length(uv);
+  float v3 = diagonal(uv, 0.7, t + l);
+  v3 *= diagonal(opposite, 0.7, t + l);
 
-  vec3 color = vec3(0);
-  color = vec3(r, g, b);
-  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1.0, 1.2, 1.5) * vec3(r, g, b) + vec3(0.0, 0.33, 0.67)));
+  vec3 color = vec3(0.05);
+  // color = vec3(r, g, b);
+  color = 0.5 + 0.5 * cos(TWO_PI * (dot(uv, vec2(0.5)) + vec3(0.0, 0.33, 0.67)));
+  color *= v1;
+
+  vec3 v2Color = 0.5 + 0.5 * cos(TWO_PI * (dot(opposite, vec2(0.5)) + uv.y + vec3(0.0, 0.33, 0.67)));
+  color += v2Color * v2;
+
+  vec3 v3Color = 0.5 + 0.5 * cos(TWO_PI * (1.01 * (dot(uv, vec2(0.5)) + 0.222 + uv.y) + vec3(0.0, 0.33, 0.67)));
+  color += v3Color * v3;
+
+  color *= 0.5;
 
   vec2 q = vec2(0);
   color *= 0.8 + 0.4 * fbmWarp(0.25 * uv, q);
+
+  color *= smoothstep(1.5, 1.0, l * 2.0);
 
   return vec4(color, 1.0);
 }

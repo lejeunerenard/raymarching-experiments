@@ -32,15 +32,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.2
+const BLOOM_WET = 1.75
+const BLOOM_MIN_BRIGHTNESS = 0.1
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'neon-kaleidoscope-test3',
+    name: 'shattered-dreams-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
