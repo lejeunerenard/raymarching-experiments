@@ -33,8 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
-#define maxDistance 50.0
+#define maxSteps 2048
+#define maxDistance 70.0
 
 #define slowTime time * .2
 
@@ -334,9 +334,9 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 5
-#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=14)
+#define Iterations 12
+// #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
+#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
@@ -435,45 +435,25 @@ float sigmoid ( in float x ) {
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
-  vec3 d;
+  vec3 d = vec3(maxDistance, 0, 0);
 
   const float period = 20.0;
   const float transitionTime = 2.0;
   float modTime = mod(time, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
   float minD = 0.0;
 
-  float phi = atan(q.y, q.x);
-  float theta = acos(q.z / length(q));
+  vec3 plane = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
+  d = dMin(d, plane);
 
-  q += 0.2500 * cos(  3.0 * q.yzx );
-  q += 0.1250 * cos(  9.0 * q.yzx );
-  q += 0.0625 * cos( 27.0 * q.yzx );
+  vec2 octD = octahedron(q);
+  vec3 oct = vec3(octD.x, 2, 0);
+  d = dMin(d, oct);
 
-  vec2 nP = cos(vec2(theta, (5.0 + 2.0 * sin(PI * slowTime)) * phi));
-  vec2 nP11 = cos(2.0 * nP.yx + 0.2 * modTime);
-  vec2 nP12 = cos(2.0 * nP.yx + 0.2 * (modTime - period));
-  nP += 0.50000 * mix(nP11, nP12, mixT);
-
-  nP += 0.25000 * cos(4.0 * nP.yx);
-
-  vec2 nP21 = cos(8.0 * nP.yx + 0.2 * modTime);
-  vec2 nP22 = cos(8.0 * nP.yx + 0.2 * (modTime - period));
-  nP += 0.12500 * mix(nP21, nP22, mixT);
-
-  nP += 0.06250 * cos(16.0 * nP.yx);
-  nP += 0.03125 * cos(32.0 * nP.yx);
-
-  float n = dot(nP, vec2(1));
-
-  float r = 1.0 + 0.25 * n;
-
-  d = vec3(length(q.xyz) - r, 1.0, 0.0);
-  d.x *= 0.05;
   return d;
 }
 
@@ -614,9 +594,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
-  // Iridescence
-  color += 0.95 * (0.5 + 0.5 * cos(TWO_PI * (vec3(2.2, 1.85, 1.5) * dot(-rd, nor) + vec3(0.0, 0.33, 0.67))));
+  vec3 color = pow(#95E6FF, vec3(2.2));
   return color;
 }
 
@@ -662,7 +640,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.00;
-      float specCo = 1.00;
+      float specCo = 0.75;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -672,7 +650,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= saturate(0.0 + softshadow(pos, lightPos, 0.02, 1.75));
+        dif *= saturate(softshadow(pos, lightPos, 0.05, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -682,7 +660,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.075 * amb;
+        lin += 0.025 * amb;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -690,10 +668,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.75 * vec3(pow(specAll, 8.0));
+      color += 0.75 * vec3(pow(specAll, 8.0)) * isMaterialSmooth(t.y, 2.0);
 
       // color += 0.25 * dispersionStep1(nor, rayDirection, n2);
-      // color += 0.1 * dispersion(nor, rayDirection, n2);
+      // color += 0.1 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 2.0);
 
       // Fog
       color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));

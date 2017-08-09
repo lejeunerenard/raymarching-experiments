@@ -29,4 +29,17 @@ void main() {
   // Gamma encode
   gl_FragColor = mix(vec4(background, 1.), result, baseColor.a);
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
+
+  const float startT = 2.0;
+  float mask = 1.0;
+
+// Shot 1
+  mask *= smoothstep(startT, startT + 1.0, time);
+  mask *= smoothstep(startT + 7.0, startT + 5.0, time) + step(startT + 8.0, time);
+
+// Shot 2
+  mask *= (1.0 - step(startT + 7.99, time)) + smoothstep(startT + 8.1, startT + 9.0, time);
+  mask *= smoothstep(startT + 15.0, startT + 14.0, time);
+
+  gl_FragColor.rgb *= mask;
 }

@@ -25,6 +25,8 @@ import { dampen } from './dampening'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
+const TWO_PI = 2 * Math.PI
+
 const fr = 60
 const captureTime = 0 * 5
 const secondsLong = 20
@@ -32,15 +34,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.00
-const BLOOM_MIN_BRIGHTNESS = 0.5
+const BLOOM_WET = 1.20
+const BLOOM_MIN_BRIGHTNESS = 0.25
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'start-fish-test2',
+    name: 'solid-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -77,22 +79,22 @@ export default class App {
     if (!ext)
       throw new Error('derivatives not supported')
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     const preset = {
       offset: {
-        x: 1.111,
-        y: 0.449,
-        z: 0.449
+        x: 1,
+        y: 0,
+        z: 0
       },
       d: 5,
       scale: 2,
-      rot2angle: [0.209, 0, 0],
+      rot2angle: [0.06, 0, 0],
       cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(0, 1.25, 1.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -100,7 +102,7 @@ export default class App {
     this.amberColor = [235, 147, 21];
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -110,7 +112,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -190,16 +192,23 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ y: 0.127 }, 5 * 1000)
+      .to({ y: 0.748, z: 0.934 }, 5 * 1000)
       .onUpdate(updatePos)
 
-    let cameraPosTween2 = new TWEEN.Tween({ x: 0, y: 0, z: 1.259 })
+    let cameraPosTween2 = new TWEEN.Tween({ x: 0, y: 0.748, z: 0.934 })
     cameraPosTween2
-      .to({ z: 1.947 }, 10 * 1000)
+      .to({ y: 0.576, z: 0.752 }, 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .onUpdate(updatePos)
+
+    let cameraPosTween3 = new TWEEN.Tween({ x: 0.326, y: 0.775, z: 0.752 })
+    cameraPosTween3
+      .to({ x: 1.016, z: 0.55 }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween2.chain(cameraPosTween3)
     cameraPosTween.start(0)
 
     // Camera rotation
@@ -217,13 +226,22 @@ export default class App {
       .delay(5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    camRotTween1.start(0)
+    // camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([0, 0.3, 0], 5 * 1000)
+      .to([0.777, 0.0, 0], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .delay(5 * 1000)
+      .to([0.226, 0.0, 5.849 - TWO_PI], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    rotTween1.chain(rotTween2)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -234,13 +252,15 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .delay(20 * 1000)
+      .delay(10 * 1000)
       .to([
-        1.441,
-        0.669,
-        -0.654
-      ], 20 * 1000)
+        1,
+        -0.069,
+        -0.026
+      ], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+
+    offsetTween1.start(0)
   }
 
   setupAudio () {
