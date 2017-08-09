@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -442,35 +442,38 @@ vec3 map (in vec3 p) {
   float modTime = mod(time, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
   float minD = 0.0;
 
-  vec3 nP = 10.0 * q;
-  nP.y *= 0.7;
-  nP += 0.50 * cos(0.7 * nP.yzx);
-  nP.xzy = twist(nP, 0.5 + 0.4 * sin(1.2 * q.y + PI * 0.2 * time));
+  float phi = atan(q.y, q.x);
+  float theta = acos(q.z / length(q));
 
-  float nP11 = noise(q + 2.0 * nP.zxy + 0.5 * modTime);
-  float nP12 = noise(q + 2.0 * nP.zxy + 0.5 * (modTime - period));
-  nP += 0.5 * mix(nP11, nP12, mixT);
-  // nP += 0.5 * noise(q + 2.0 * nP.zxy + slowTime);
+  q += 0.2500 * cos(  3.0 * q.yzx );
+  q += 0.1250 * cos(  9.0 * q.yzx );
+  q += 0.0625 * cos( 27.0 * q.yzx );
 
-  float nP21 = noise(q + 4.0 * nP.zxy + 0.5 * modTime);
-  float nP22 = noise(q + 4.0 * nP.zxy + 0.5 * (modTime - period));
-  nP += 0.25 * mix(nP21, nP22, mixT);
-  // nP += 0.25 * noise(q + 4.0 * nP.zxy + slowTime);
+  vec2 nP = cos(vec2(theta, (5.0 + 2.0 * sin(PI * slowTime)) * phi));
+  vec2 nP11 = cos(2.0 * nP.yx + 0.2 * modTime);
+  vec2 nP12 = cos(2.0 * nP.yx + 0.2 * (modTime - period));
+  nP += 0.50000 * mix(nP11, nP12, mixT);
 
-  float nP31 = noise(q + 8.0 * nP.zxy + 0.5 * modTime);
-  float nP32 = noise(q + 8.0 * nP.zxy + 0.5 * (modTime - period));
-  nP += 0.125 * mix(nP31, nP32, mixT);
-  // nP += 0.125 * noise(q + 8.0 * nP.zxy + slowTime);
+  nP += 0.25000 * cos(4.0 * nP.yx);
 
-  float r = 1.0 + 0.1 * noise(nP) + 0.05 * smoothstep(0.2, 1.0, sin(2.0 * q.y + PI * 0.2 * time)) + 0.5 * pow(max(0.0, -q.y), 5.0);
+  vec2 nP21 = cos(8.0 * nP.yx + 0.2 * modTime);
+  vec2 nP22 = cos(8.0 * nP.yx + 0.2 * (modTime - period));
+  nP += 0.12500 * mix(nP21, nP22, mixT);
+
+  nP += 0.06250 * cos(16.0 * nP.yx);
+  nP += 0.03125 * cos(32.0 * nP.yx);
+
+  float n = dot(nP, vec2(1));
+
+  float r = 1.0 + 0.25 * n;
 
   d = vec3(length(q.xyz) - r, 1.0, 0.0);
-  d.x *= 0.1;
+  d.x *= 0.05;
   return d;
 }
 
@@ -613,7 +616,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
   // Iridescence
-  color += 0.95 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1.5, 0.35, 1.2) * dot(-rd, nor) + vec3(0.0, 0.33, 0.67))));
+  color += 0.95 * (0.5 + 0.5 * cos(TWO_PI * (vec3(2.2, 1.85, 1.5) * dot(-rd, nor) + vec3(0.0, 0.33, 0.67))));
   return color;
 }
 
@@ -687,10 +690,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 0.75 * vec3(pow(specAll, 8.0));
+      color += 0.75 * vec3(pow(specAll, 8.0));
 
-      // color += 0.5 * dispersionStep1(nor, rayDirection, n2);
-      color += 0.1 * dispersion(nor, rayDirection, n2);
+      // color += 0.25 * dispersionStep1(nor, rayDirection, n2);
+      // color += 0.1 * dispersion(nor, rayDirection, n2);
 
       // Fog
       color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
@@ -734,75 +737,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-float nsin( in float v ) {
-  return 0.5 + 0.5 * sin(v);
-}
-
-float diagonal (in vec2 uv, in float cutoffBase, in float time) {
-  float diagonalT = dot(uv, vec2(1));
-
-  float cutoff = cutoffBase;
-  float scale = nsin(PI * (time + diagonalT));
-  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
-
-  scale = nsin(TWO_PI * (time + diagonalT) + 2.0 * scale);
-  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
-
-  scale = nsin(PI * 3.0 * (time + diagonalT) + 2.0 * scale);
-  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
-
-  scale = nsin(PI * 5.0 * (time + diagonalT) + 2.0 * scale);
-  scale = 1.0 + smoothstep(cutoff, cutoff + 0.01, scale);
-
-  float v = nsin(PI * 7.0 * diagonalT + 2.0 * scale);
-  return smoothstep(0.5, 0.51, v);
-}
-
-vec4 weave (in vec3 ro, in vec3 rd, in vec2 uv) {
-  uv = abs(uv);
-  // uv.x = abs(uv.x);
-  uv.x += 0.25 * sin(2.0 * uv.y + PI * 0.5 * slowTime);
-  uv.y *= 1.0 + 0.1 * sin(PI * slowTime);
-  uv *= 1.0;
-
-  vec2 opposite = uv * vec2(-1, 1);
-
-  float t = slowTime + 0.1 * sin(TWO_PI * uv.x);
-
-  float v1 = diagonal(uv, 0.9, t);
-  v1 *= diagonal(opposite, 0.2, t);
-
-  float v2 = diagonal(uv, 0.5 + 0.2 * sin(PI * slowTime), t);
-  v2 *= diagonal(opposite, 0.5 + 0.2 * sin(PI * slowTime), t);
-
-  float l = length(uv);
-  float v3 = diagonal(uv, 0.7, t + l);
-  v3 *= diagonal(opposite, 0.7, t + l);
-
-  vec3 color = vec3(0.05);
-  // color = vec3(r, g, b);
-  color = 0.5 + 0.5 * cos(TWO_PI * (dot(uv, vec2(0.5)) + vec3(0.0, 0.33, 0.67)));
-  color *= v1;
-
-  vec3 v2Color = 0.5 + 0.5 * cos(TWO_PI * (dot(opposite, vec2(0.5)) + uv.y + vec3(0.0, 0.33, 0.67)));
-  color += v2Color * v2;
-
-  vec3 v3Color = 0.5 + 0.5 * cos(TWO_PI * (1.01 * (dot(uv, vec2(0.5)) + 0.222 + uv.y) + vec3(0.0, 0.33, 0.67)));
-  color += v3Color * v3;
-
-  color *= 0.5;
-
-  vec2 q = vec2(0);
-  color *= 0.8 + 0.4 * fbmWarp(0.25 * uv, q);
-
-  color *= smoothstep(1.5, 1.0, l * 2.0);
-
-  return vec4(color, 1.0);
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return weave(ro, rd, uv);
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
