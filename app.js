@@ -22,7 +22,7 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import { dampen } from './dampening'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 0.75 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
@@ -42,7 +42,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dance-test1',
+    name: 'monument-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -79,7 +79,7 @@ export default class App {
     if (!ext)
       throw new Error('derivatives not supported')
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     const preset = {
       offset: {
@@ -89,12 +89,12 @@ export default class App {
       },
       d: 5,
       scale: 2,
-      rot2angle: [0.06, 0, 0],
+      rot2angle: [0.08, 0, 0],
       cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(0, 1.5, 2.7)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
