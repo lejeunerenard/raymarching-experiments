@@ -22,7 +22,7 @@ import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 import { dampen } from './dampening'
 
-const dpr = 0.75 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
@@ -42,7 +42,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'monument-test1',
+    name: 'ebb-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -79,7 +79,7 @@ export default class App {
     if (!ext)
       throw new Error('derivatives not supported')
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     const preset = {
       offset: {

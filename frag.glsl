@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -447,17 +447,29 @@ vec3 map (in vec3 p) {
 
   float minD = 0.0;
 
-  vec3 plane = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
-  plane.x -= 0.001 * noise(73.1 * q);
-  d = dMin(d, plane);
+  // vec3 plane = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
+  // plane.x -= 0.001 * noise(73.1 * q);
+  // d = dMin(d, plane);
 
-  float height = 1.75;
-  float flex = length(4.0 * (q - vec3(0, height * 0.75, 0))) - 0.5 * time;
-  q -= (0.0625 + 0.05 * (1.0 + sin(TWO_PI * flex))) * noise(
-    (8.0 + 0.025 * sin(PI * flex)) * q.yzx +
-    10.0 * noise(q.yzx + 6.0 * noise(q.zxy)));
+  q.y = sin(3.0 * q.y) + 0.5 * sin(2.0 * q.y);
 
-  vec3 s = vec3(sdBox(q - vec3(0, height * 0.5 + 0.1, 0), vec3(0.5, height, 0.5)), 0, 0);
+  q += 0.3 * cos( 2.0 * q.yzx +
+    noise(vec3(1, 1, 5) * q + slowTime + noise(q) * cnoise3(vec3(26.0, 7.0, 7.0) * q.yzx + 2.0 * time)) +
+    vec3(slowTime, sin(TWO_PI * slowTime), slowTime) +
+    1.5 * p.y
+  );
+
+  q *= 0.7;
+  q.x += 2.0 * sin(PI * slowTime + q.z);
+  q.x *= 0.1;
+  q.z *= 0.4;
+
+  q += 0.250000 * cos( 3.0 * q.yzx + cos(q.zxy));
+  q += 0.125000 * cos( 5.0 * q.yzx);
+  q += 0.062500 * cos( 7.0 * q.yzx + PI * slowTime);
+
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  // vec3 s = vec3(length(q) - 0.5, 0, 0);
   s.x *= 0.125;
   d = dMin(d, s);
 
@@ -601,8 +613,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.01);
-  color = mix(color, #888888, isMaterialSmooth(m, 1.0));
+  vec3 color = vec3(0.0);
+  color = 0.5 + 0.5 * cos(TWO_PI * ( vec3(1.25, 0.1, 1) * dot(nor, -rd) + vec3(0.0, 0.33, 0.67)));
+  color *= 1.3;
   return color;
 }
 
@@ -668,7 +681,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.025 * amb;
+        // lin += 0.025 * amb;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -682,8 +695,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.01 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      color *= exp(-t.x * 0.005);
+      // color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      // color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -763,5 +776,5 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // 'Film' Noise
-    gl_FragColor.rgb += 0.01 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += 0.01 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
