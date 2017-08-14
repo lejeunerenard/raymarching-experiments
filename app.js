@@ -35,7 +35,7 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.75
-const BLOOM_MIN_BRIGHTNESS = 0.55
+const BLOOM_MIN_BRIGHTNESS = 1.00
 
 let capturer = {}
 if (capturing) {
@@ -94,7 +94,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 1.5, 2.7)
+    this.cameraRo = vec3.fromValues(0, 2.0, 2.7)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
