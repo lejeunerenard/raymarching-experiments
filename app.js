@@ -28,21 +28,21 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 const TWO_PI = 2 * Math.PI
 
 const fr = 60
-const captureTime = 0 * 5
+const captureTime = 8 * 5
 const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = true
-const BLOOM_WET = 1.75
-const BLOOM_MIN_BRIGHTNESS = 1.00
+const BLOOM = false
+const BLOOM_WET = 3.00
+const BLOOM_MIN_BRIGHTNESS = 0.75
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'ebb-test1',
+    name: 'stokes-test4',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

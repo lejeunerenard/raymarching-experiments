@@ -727,7 +727,58 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec4 clouds (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec2 oUV = uv;
+
+  uv *= 0.75 + 0.25 * sin(PI * vec2(0.5, 0.75) * slowTime);
+  uv += 0.5 * sin(PI * vec2(0.5, 0.3333) * slowTime);
+
+  uv = 0.5 * (uv + 1.0);
+  uv *= 4.0;
+
+  const float period = 20.0;
+  const float transitionTime = 2.0;
+  float modTime = mod(time, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  float uv11 = vfbm4(2.0 * uv + vec2(sin(modTime), modTime));
+  float uv12 = vfbm4(2.0 * uv + vec2(sin(modTime - period), modTime - period));
+  float uv1 = mix(uv11, uv12, mixT);
+
+  uv += 0.5 * vec2(
+    vfbm4(2.0 * uv + cnoise2(2.0 * uv)),
+    uv1);
+
+  float uv21 = vfbm4(4.0 * uv + 2034.0 + vec2(sin(modTime), modTime));
+  float uv22 = vfbm4(4.0 * uv + 2034.0 + vec2(sin(slowTime - period), modTime - period));
+  float uv2 = mix(uv21, uv22, mixT);
+
+  uv += 0.25 * vec2(
+    vfbm4(4.0 * uv + 2034.0 + cnoise2(4.0 * uv)),
+    uv2);
+
+  float uv31 = vfbm4(8.0 * uv + 9.0 + vec2(sin(modTime), modTime));
+  float uv32 = vfbm4(8.0 * uv + 9.0 + vec2(sin(modTime - period), modTime - period));
+  float uv3 = mix(uv31, uv32, mixT);
+
+  uv += 0.125 * vec2(
+    vfbm4(8.0 * uv + 234.0 + cnoise2(8.0 * uv)),
+    uv3);
+
+  uv *= 0.25;
+
+  vec3 color = #29B1FC;
+  color = mix(color, 0.5 * #FD434C, smoothstep(0.0, 0.5, uv.x));
+  color = mix(color, 0.8 * #FFFC8F, smoothstep(0.5, 1.0, uv.x));
+
+  color = mix(color, 0.2 * #9643FD, smoothstep(0.0, -1.0, dot(uv, vec2(1, -1))));
+  color = mix(color, #FAAA3C, smoothstep(0.0, 1.0, dot(uv, vec2(1, -1))));
+
+  return vec4(color, 1);
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return clouds(ro, rd, uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
