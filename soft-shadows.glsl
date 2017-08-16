@@ -4,7 +4,7 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
     float t = mint;
     for( int i=0; i<16; i++ ) {
       vec3 h = map(ro + rd*t);
-      res = min( res, 8.0*h.x/t );
+      res = min( res, 32.0*h.x/t );
       t += clamp( h.x, 0.02, 0.10 );
       if( h.x<0.001 || t>tmax ) break;
     }

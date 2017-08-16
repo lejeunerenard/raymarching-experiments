@@ -447,22 +447,30 @@ vec3 map (in vec3 p) {
 
   float minD = 0.0;
 
-  vec3 qW = q;
-  qW.y -= 0.15 * sin(PI * (length(qW.xz) - time + 1.9));
+  for (int i = 0; i < 6; i++) {
+    vec3 dFrame = vec3(maxDistance, 0, 0);
+    float size = 0.4 + float(i) * 0.1;
 
-  vec3 plane = vec3(sdPlane(qW, vec4(0, 1, 0, 0)), 1, 0);
-  // plane.x -= 0.001 * noise(73.1 * qW);
-  plane.x -= 0.7 * abs(vfbm6(1.0 * qW + vec3(5.0 * sin(PI * 0.5 * slowTime), slowTime, -slowTime)));
-  plane.x -= 0.1 * vfbm6(qW + vec3(2.0 * cos(PI * 0.5 * slowTime), 0, slowTime + sin(TWO_PI * slowTime)));
-  d = dMin(d, plane);
+    // Space
+    vec3 qF = q;
+    qF *= rotationMatrix(normalize(vec3(0, 1, 0)), PI * saturate(1.0 * sin(PI * (slowTime + float(i) * 0.025))));
+    qF *= rotationMatrix(normalize(vec3(0, 1, 1)), PI * saturate(1.0 * sin(PI * (slowTime + float(i) * 0.025 + 0.25))));
 
-  float lift = 1.3 + 0.5 * sin(PI * (time + 0.3 * length(q.xz) - 0.1));
-  q.xz *= 1.0 + 0.1 * sin(PI * time - 0.5);
-  q.y *= 1.125;
+    vec3 outer = vec3(sdBox(qF, vec3(size)), 0, 0);
+    dFrame = dMin(dFrame, outer);
 
-  vec3 s = vec3(sdTorus(q - vec3(0, lift, 0), vec2(0.5, 0.25)), 0, 0);
-  s.x *= 0.5;
-  d = dMin(d, s);
+    vec3 inner = vec3(sdBox(qF, vec3(size * vec3(1.1, 0.9, 0.9))), 0, 0);
+    dFrame = dMax(dFrame, -inner);
+
+    inner = vec3(sdBox(qF, vec3(size * vec3(0.9, 1.1, 0.9))), 0, 0);
+    dFrame = dMax(dFrame, -inner);
+
+    inner = vec3(sdBox(qF, vec3(size * vec3(0.9, 0.9, 1.1))), 0, 0);
+    dFrame = dMax(dFrame, -inner);
+
+    // Intersect w/ main d
+    d = dMin(d, dFrame);
+  }
 
   return d;
 }
@@ -604,9 +612,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.01);
-  vec3 water = vec3(0.8);
-  color = mix(color, water, isMaterialSmooth(m, 1.0));
+  vec3 color = #FF50CC;
   return color;
 }
 
@@ -683,7 +689,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += 0.75 * vec3(pow(specAll, 8.0)) * isMaterialSmooth(t.y, 2.0);
 
       // color += 0.25 * dispersionStep1(nor, rayDirection, n2);
-      color += 0.5 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 0.0);
+      color += 0.125 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 0.0);
 
       // Fog
       // color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
@@ -727,58 +733,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec4 clouds (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec2 oUV = uv;
-
-  uv *= 0.75 + 0.25 * sin(PI * vec2(0.5, 0.75) * slowTime);
-  uv += 0.5 * sin(PI * vec2(0.5, 0.3333) * slowTime);
-
-  uv = 0.5 * (uv + 1.0);
-  uv *= 4.0;
-
-  const float period = 20.0;
-  const float transitionTime = 2.0;
-  float modTime = mod(time, period);
-  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
-
-  float uv11 = vfbm4(2.0 * uv + vec2(sin(modTime), modTime));
-  float uv12 = vfbm4(2.0 * uv + vec2(sin(modTime - period), modTime - period));
-  float uv1 = mix(uv11, uv12, mixT);
-
-  uv += 0.5 * vec2(
-    vfbm4(2.0 * uv + cnoise2(2.0 * uv)),
-    uv1);
-
-  float uv21 = vfbm4(4.0 * uv + 2034.0 + vec2(sin(modTime), modTime));
-  float uv22 = vfbm4(4.0 * uv + 2034.0 + vec2(sin(slowTime - period), modTime - period));
-  float uv2 = mix(uv21, uv22, mixT);
-
-  uv += 0.25 * vec2(
-    vfbm4(4.0 * uv + 2034.0 + cnoise2(4.0 * uv)),
-    uv2);
-
-  float uv31 = vfbm4(8.0 * uv + 9.0 + vec2(sin(modTime), modTime));
-  float uv32 = vfbm4(8.0 * uv + 9.0 + vec2(sin(modTime - period), modTime - period));
-  float uv3 = mix(uv31, uv32, mixT);
-
-  uv += 0.125 * vec2(
-    vfbm4(8.0 * uv + 234.0 + cnoise2(8.0 * uv)),
-    uv3);
-
-  uv *= 0.25;
-
-  vec3 color = #29B1FC;
-  color = mix(color, 0.5 * #FD434C, smoothstep(0.0, 0.5, uv.x));
-  color = mix(color, 0.8 * #FFFC8F, smoothstep(0.5, 1.0, uv.x));
-
-  color = mix(color, 0.2 * #9643FD, smoothstep(0.0, -1.0, dot(uv, vec2(1, -1))));
-  color = mix(color, #FAAA3C, smoothstep(0.0, 1.0, dot(uv, vec2(1, -1))));
-
-  return vec4(color, 1);
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return clouds(ro, rd, uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
