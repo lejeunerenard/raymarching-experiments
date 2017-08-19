@@ -447,26 +447,23 @@ vec3 map (in vec3 p) {
 
   float minD = 0.0;
 
-  for (int i = 0; i < 6; i++) {
+  q += 0.25 * cos(4.0 * q.yzx);
+  q += 0.125 * cos(8.0 * q.yzx);
+  q += 0.0625 * cos(16.0 * q.yzx);
+
+  float a = atan(q.y / q.x);
+  for (int i = 0; i < 8; i++) {
+    vec3 qF = q + vec3(0, 0, -1.0 + 0.25 * float(i));
     vec3 dFrame = vec3(maxDistance, 0, 0);
-    float size = 0.4 + float(i) * 0.1;
 
-    // Space
-    vec3 qF = q;
-    qF *= rotationMatrix(normalize(vec3(0, 1, 0)), PI * saturate(1.0 * sin(PI * (slowTime + float(i) * 0.025))));
-    qF *= rotationMatrix(normalize(vec3(0, 1, 1)), PI * saturate(1.0 * sin(PI * (slowTime + float(i) * 0.025 + 0.25))));
+    float mag = 8.0 + 2.0 * float(i) - 4.0 * mod(float(i), 2.0) - 8.0 * floor(mod(float(i), 3.0) / 3.0);
+    float r = 0.8 + - float(i) * 0.025 + + 0.125 * sin(mag * a + PI * (slowTime + q.z));
+    float r2 = 0.06; // + 0.05 * sin(2.0 * a);
 
-    vec3 outer = vec3(sdBox(qF, vec3(size)), 0, 0);
-    dFrame = dMin(dFrame, outer);
-
-    vec3 inner = vec3(sdBox(qF, vec3(size * vec3(1.1, 0.9, 0.9))), 0, 0);
-    dFrame = dMax(dFrame, -inner);
-
-    inner = vec3(sdBox(qF, vec3(size * vec3(0.9, 1.1, 0.9))), 0, 0);
-    dFrame = dMax(dFrame, -inner);
-
-    inner = vec3(sdBox(qF, vec3(size * vec3(0.9, 0.9, 1.1))), 0, 0);
-    dFrame = dMax(dFrame, -inner);
+    qF *= rotationMatrix(vec3(1, 0, 0), PI * 0.5);
+    vec3 t = vec3(sdTorus(qF, vec2(r, r2)), 0.0, 0.0);
+    t.x *= 0.1;
+    dFrame = dMin(dFrame, t);
 
     // Intersect w/ main d
     d = dMin(d, dFrame);
@@ -612,7 +609,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = #FF50CC;
+  vec3 color = vec3(0.5);
   return color;
 }
 
@@ -688,12 +685,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0)) * isMaterialSmooth(t.y, 2.0);
 
-      // color += 0.25 * dispersionStep1(nor, rayDirection, n2);
-      color += 0.125 * dispersion(nor, rayDirection, n2) * isMaterialSmooth(t.y, 0.0);
+      color += 0.125 * dispersionStep1(nor, rayDirection, n2);
+      // color += 0.125 * dispersion(nor, rayDirection, n2);
+
+      // Iridescence
+      color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (0.6 + 1.1 * saturate(dot(nor, -rayDirection)) + vec3(0.0, 0.33, 0.67))));
 
       // Fog
-      // color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      // color *= exp(-t.x * 0.005);
+      color = mix(background, color, clamp(1.0 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);

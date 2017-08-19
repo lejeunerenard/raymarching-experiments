@@ -42,7 +42,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'nested-test1',
+    name: 'time-warpz-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
