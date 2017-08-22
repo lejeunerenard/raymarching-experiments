@@ -451,20 +451,20 @@ vec3 map (in vec3 p) {
 
   q += 0.062500 * cos(3.0 * q.yzx + noise(q));
 
-  q += 0.031250 * cos(5.0 * q.yzx);
-  q += 0.015625 * cos(7.0 * q.yzx);
+  q += 0.031250 * cos(5.0 * q.yzx + noise(q));
+  q += 0.015625 * cos(7.0 * q.yzx + p.zxy);
 
   const vec3 axis1 = normalize(vec3(1, 1, 0));
   const vec3 axis2 = normalize(vec3(1, 1, 1));
-  for (float i = 0.0; i < 23.0; i++) {
+  for (float i = 0.0; i < 21.0; i++) {
     vec3 qR = q *
-      rotationMatrix(axis1, i * PI * (0.076923 + 0.1 * slowTime / i)) *
-      rotationMatrix(axis2, i * PI * (0.043478 + 0.1 * slowTime / i));
+      rotationMatrix(axis1, i * PI * (0.019608 + 0.5 * slowTime / i)) *
+      rotationMatrix(axis2, i * PI * (0.043478 + 0.5 * slowTime / i));
 
-    float r = 1.0 + 0.5 * sin(TWO_PI * (qR.x + slowTime));
+    float r = 1.0 + 0.05 * sin(TWO_PI * (qR.x + slowTime));
 
     vec3 t = vec3(sdTorus(qR, vec2(r, 0.01)), 0, 0);
-    t.x *= 0.125;
+    t.x *= 0.5;
     d = dSMin(d, t, 0.0005);
   }
 
@@ -611,7 +611,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0.5);
 
   // Iridescence
-  color += 4.0 * (0.5 + 0.5 * cos(TWO_PI * (0.2 + 0.4 * saturate(dot(nor, -rd)) + vec3(0.0, 0.33, 0.67))));
+  color += 4.0 * (0.5 + 0.5 * cos(TWO_PI * (0.65 + 0.6 * saturate(dot(nor, -rd)) + vec3(0.0, 0.33, 0.67))));
 
   return color;
 }
