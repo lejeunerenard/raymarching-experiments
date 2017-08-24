@@ -34,15 +34,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 5.00
-const BLOOM_MIN_BRIGHTNESS = 0.35
+const BLOOM_WET = 3.00
+const BLOOM_MIN_BRIGHTNESS = 0.40
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'eclipse-test1',
+    name: 'skeleton-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -94,7 +94,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 4.2)
+    this.cameraRo = vec3.fromValues(0, 0, 2.2)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
