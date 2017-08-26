@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -417,7 +417,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
-// #pragma glslify: ease = require(glsl-easings/bounce-in)
+#pragma glslify: ease = require(glsl-easings/elastic-in-out)
 #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
@@ -445,13 +445,18 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  // q += 0.06250 * cos(3.0 * q.yzx + PI * 0.5 * slowTime);
+  float surf = slowTime;
+  q.x += surf;
+  float sinScale = 2.0 + 1.0 * (ease(0.5 + 0.5 * sin(PI * slowTime)) - 0.5);
+  q += sinScale / pow(2.0, 2.0) * cos(2.0 * q.yzx + q.x);
+  q += sinScale / pow(2.0, 3.0) * cos(4.0 * q.yzx + noise(q));
+  q += sinScale / pow(2.0, 4.0) * cos(8.0 * q.yzx);
 
-  float twistY = PI * 0.5 * sin(PI * (slowTime + 0.25 * q.y));
-  q *= rotationMatrix(vec3(0,1,0), twistY);
+  float r = 0.5 + 0.2 * sin(dot(q, vec3(0.33)));
 
-  vec3 c = vec3(sdBox(q, vec3(0.5)), 0.0, 0.0);
-  c.x *= 0.5;
+  q.x -= surf;
+  vec3 c = vec3(sdCapsule(q, vec3(-1, 0, 0), vec3(1, 0, 0), r), 0.0, 0.0);
+  c.x *= 0.1;
   d = dMin(d, c);
 
   return d;
@@ -512,7 +517,7 @@ vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float spread = saturate(dot(rd, gRd));
-  float n = cnoise3(3.1 * rd + 1.5 * noise(gPos + 0.1 * sin(PI * slowTime)) + 0.01 * noise(vec3(30.0) * slowTime));
+  float n = cnoise3(2.1 * rd + 1.5 * noise(gPos + 0.1 * sin(PI * slowTime)) + 0.01 * noise(vec3(30.0) * slowTime));
   float v = smoothstep(-1.0, 1.0, n);
 
   color = vec3(v * spread);
@@ -594,7 +599,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.9);
+  vec3 color = vec3(0.0);
 
   return color;
 }
@@ -647,7 +652,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = diffuse(nor, lightPos);
+        float dif = 1.0; // diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -671,20 +676,22 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0)) * isMaterialSmooth(t.y, 2.0);
 
-      color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.4 * matCap(reflect(rayDirection, nor));
+
+      color += 0.8 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.25 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp(2.5 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      color *= exp(-t.x * 0.005);
+      // color = mix(background, color, clamp(2.5 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      // color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
       // Post process
-      vec3 colorBefore = color;
+      // vec3 colorBefore = color;
       colorMap(color);
-      color = mix(color, colorBefore, 0.5);
+      // color = mix(color, colorBefore, 0.5);
 
       // Debugging
       #ifdef debugMapCalls
