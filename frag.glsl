@@ -445,19 +445,27 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  float surf = slowTime;
-  q.x += surf;
-  float sinScale = 2.0 + 1.0 * (ease(0.5 + 0.5 * sin(PI * slowTime)) - 0.5);
-  q += sinScale / pow(2.0, 2.0) * cos(2.0 * q.yzx + q.x);
-  q += sinScale / pow(2.0, 3.0) * cos(4.0 * q.yzx + noise(q));
-  q += sinScale / pow(2.0, 4.0) * cos(8.0 * q.yzx);
+  // float surf = slowTime;
+  // q.x += surf;
 
-  float r = 0.5 + 0.2 * sin(dot(q, vec3(0.33)));
+  q.xy = abs(q.xy);
 
-  q.x -= surf;
-  vec3 c = vec3(sdCapsule(q, vec3(-1, 0, 0), vec3(1, 0, 0), r), 0.0, 0.0);
-  c.x *= 0.1;
-  d = dMin(d, c);
+  vec3 q1 = cos(2.0 * q.yzx + vec3(sin(PI * modTime), modTime, 0.0));
+  vec3 q2 = cos(2.0 * q.yzx + vec3(sin(PI * (modTime - period)), modTime - period, 0.0));
+
+  q += 0.5 * mix(q1, q2, mixT);
+
+  q += 0.250 * cos(4.0 * q.yzx + noise( q.yzx ));
+  q += 0.125 * cos(8.0 * q.yzx);
+
+  for (float i = 0.0; i < 5.0; i++) {
+    float r = 0.5;
+
+    // q.x -= surf;
+    vec3 c = vec3(sdCapsule(q - vec3(0, i - 2.0, 0), vec3(-2, 0, 0), vec3(2, 0, 0), r), i, 0.0);
+    c.x *= 0.1;
+    d = dMin(d, c);
+  }
 
   return d;
 }
@@ -518,7 +526,7 @@ vec3 textures (in vec3 rd) {
 
   float spread = saturate(dot(rd, gRd));
   float n = cnoise3(2.1 * rd + 1.5 * noise(gPos + 0.1 * sin(PI * slowTime)) + 0.01 * noise(vec3(30.0) * slowTime));
-  float v = smoothstep(-1.0, 1.0, n);
+  float v = smoothstep(-0.5, 1.0, n);
 
   color = vec3(v * spread);
 
@@ -599,7 +607,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.0);
+  vec3 color = vec3(1.0);
 
   return color;
 }
@@ -638,8 +646,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float repNUM_OF_LIGHTS = 0.33333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0., 0.2, 1.)), #ffffff, 1.0);
-      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ddddff, 1.0);
+      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffee, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #eeeeff, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -652,7 +660,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // diffuse(nor, lightPos);
+        float dif = diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -678,12 +686,20 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       color += 0.4 * matCap(reflect(rayDirection, nor));
 
-      color += 0.8 * dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispColor = vec3(0);
+
+      dispColor = mix(dispColor, #ff8888, isMaterialSmooth(t.y, 1.0));
+      dispColor = mix(dispColor, #88ff88, isMaterialSmooth(t.y, 2.0));
+      dispColor = mix(dispColor, #8888ff, isMaterialSmooth(t.y, 3.0));
+      dispColor = mix(dispColor, #ff88ff, isMaterialSmooth(t.y, 4.0));
+      dispColor = mix(dispColor, #88ffff, isMaterialSmooth(t.y, 5.0));
+
+      color += 1.0 * dispColor * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.25 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      // color = mix(background, color, clamp(2.5 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      // color *= exp(-t.x * 0.005);
+      color = mix(background, color, clamp(2.5 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -717,7 +733,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Glow
       // vec3 glowColor = pow(#ffffff, vec3(2.2));
-      // color = mix(vec4(glowColor, 1.0), color, 1. - .99 * pow(clamp(t.z / (1.1 * float(maxSteps)), 0., 1.), 2.0));
+      color = mix(vec4(glowColor, 1.0), color, 1. - .99 * pow(clamp(t.z / (1.1 * float(maxSteps)), 0., 1.), 2.0));
 
       return color;
     }
