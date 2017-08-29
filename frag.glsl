@@ -33,8 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
-#define maxDistance 70.0
+#define maxSteps 256
+#define maxDistance 10.0
 
 #define slowTime time * .2
 
@@ -415,7 +415,8 @@ float isMaterialSmooth( float m, float goal ) {
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+#pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
 // #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: ease = require(glsl-easings/elastic-in-out)
 #pragma glslify: voronoi = require(./voronoi)
@@ -445,27 +446,31 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  // float surf = slowTime;
-  // q.x += surf;
-
   q.xy = abs(q.xy);
 
-  vec3 q1 = cos(2.0 * q.yzx + vec3(sin(PI * modTime), modTime, 0.0));
-  vec3 q2 = cos(2.0 * q.yzx + vec3(sin(PI * (modTime - period)), modTime - period, 0.0));
+  q += 0.500 * cos(2.0 * q.yzx + vec3(sin(PI * slowTime), time, time + q.x));
+  q += 0.250 * cos(4.0 * q.yzx + noise(2.0 * q.zyx));
+  q += 0.124 * cos(8.0 * q.yzx);
 
-  q += 0.5 * mix(q1, q2, mixT);
+  vec3 grid = q;
+  vec3 index = pMod3(grid, vec3(0.5));
+  // index -= vec3(0, 0, 6);
 
-  q += 0.250 * cos(4.0 * q.yzx + noise( q.yzx ));
-  q += 0.125 * cos(8.0 * q.yzx);
+  float m = 0.5 + 0.5 * sin(TWO_PI * (
+    dot(abs(index), vec3(0.1)) +
+    slowTime
+  ));
+  m *= 3.0;
 
-  for (float i = 0.0; i < 5.0; i++) {
-    float r = 0.5;
+  m = step(0.5, noise(0.25 * index + slowTime));
+  m += step(0.5, noise(0.25 * index + slowTime + 234.04));
+  m += step(0.5, noise(0.25 * index + slowTime + 92.345));
+  vec3 b = vec3(sdBox(grid, vec3(0.0625)), m, 0.0);
+  d = dMin(d, b);
 
-    // q.x -= surf;
-    vec3 c = vec3(sdCapsule(q - vec3(0, i - 2.0, 0), vec3(-2, 0, 0), vec3(2, 0, 0), r), i, 0.0);
-    c.x *= 0.1;
-    d = dMin(d, c);
-  }
+  d.x = max(d.x, sdBox(q, vec3(1.75)));
+
+  d.x *= 0.3;
 
   return d;
 }
@@ -607,7 +612,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
+  vec3 color = vec3(0.01);
+
+  color = mix(color, #00FF00, isMaterialSmooth(m, 1.0));
 
   return color;
 }
@@ -646,25 +653,26 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float repNUM_OF_LIGHTS = 0.33333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0., 0.2, 1.)), #ffffff, 1.0);
-      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffee, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #eeeeff, 1.0);
+      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.8;
+      float specCo = 1.0 - smoothstep(0.99, 1.0, t.y);
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
+        dif = mix(dif, 1.0, isMaterialSmooth(t.y, 1.0));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= saturate(softshadow(pos, lightPos, 0.05, 1.75));
+        // dif *= saturate(softshadow(pos, lightPos, 0.05, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -684,29 +692,21 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0)) * isMaterialSmooth(t.y, 2.0);
 
-      color += 0.4 * matCap(reflect(rayDirection, nor));
+      // color += 0.4 * matCap(reflect(rayDirection, nor));
 
-      vec3 dispColor = vec3(0);
-
-      dispColor = mix(dispColor, #ff8888, isMaterialSmooth(t.y, 1.0));
-      dispColor = mix(dispColor, #88ff88, isMaterialSmooth(t.y, 2.0));
-      dispColor = mix(dispColor, #8888ff, isMaterialSmooth(t.y, 3.0));
-      dispColor = mix(dispColor, #ff88ff, isMaterialSmooth(t.y, 4.0));
-      dispColor = mix(dispColor, #88ffff, isMaterialSmooth(t.y, 5.0));
-
-      color += 1.0 * dispColor * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.25 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp(2.5 * (maxDistance-t.x) / maxDistance, 0., 1.));
-      color *= exp(-t.x * 0.005);
+      // color = mix(background, color, clamp(2.5 * (maxDistance-t.x) / maxDistance, 0., 1.));
+      // color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
       // Post process
       // vec3 colorBefore = color;
-      colorMap(color);
+      // colorMap(color);
       // color = mix(color, colorBefore, 0.5);
 
       // Debugging
@@ -733,7 +733,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Glow
       // vec3 glowColor = pow(#ffffff, vec3(2.2));
-      color = mix(vec4(glowColor, 1.0), color, 1. - .99 * pow(clamp(t.z / (1.1 * float(maxSteps)), 0., 1.), 2.0));
+      // color = mix(vec4(glowColor, 1.0), color, 1. - .99 * pow(clamp(t.z / (1.1 * float(maxSteps)), 0., 1.), 2.0));
 
       return color;
     }
@@ -784,13 +784,16 @@ void main() {
     // gl_FragColor.rgb *= mix(
     //   vec3(1),
     //   mix(
-    //     #6E0061,
-    //     #FF193C,
-    //     //mix(#FF193C, #ffffff, saturate(0.5 + dot(angle, uv.xy))),
+    //     #FF0000,
+    //     #0000FF,
     //     saturate(-0.25 + dot(angle, uv.xy)))
     //   , 0.65);
-    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
+    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.7 * brightness));
     // gl_FragColor.rgb *= 1.1;
+
+    // Go to white as it gets brighter
+    float brightness = length(gl_FragColor.rgb);
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.65 * brightness));
 
     // 'Film' Noise
     gl_FragColor.rgb += 0.02 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));

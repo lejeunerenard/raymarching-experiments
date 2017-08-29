@@ -34,15 +34,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 6.00
-const BLOOM_MIN_BRIGHTNESS = 0.85
+const BLOOM_WET = 5.00
+const BLOOM_MIN_BRIGHTNESS = 0.5
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'awaken-test2',
+    name: 'they-are-coming-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -94,7 +94,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3.0)
+    this.cameraRo = vec3.fromValues(0, 0, 5.0)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -467,7 +467,7 @@ export default class App {
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 32; i++) {
+    for (let i = 0; i < 4; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
