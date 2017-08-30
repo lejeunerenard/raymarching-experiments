@@ -16,12 +16,13 @@ vec4 marchRef (in vec3 rayOrigin, in vec3 rayDirection) {
 }
 vec3 reflection (in vec3 ro, in vec3 rd) {
   rd = normalize(rd);
-  vec4 t = marchRef(ro + rd * .09, rd);
+  vec4 t = marchRef(ro + rd * .01, rd);
   vec3 pos = ro + rd * t.x;
   vec3 color = vec3(0.);
   if (t.x > 0.) {
     vec3 nor = getNormal(pos, .0001);
     color = diffuseColor(pos, nor, rd, t.y, t.w);
+    color /= t.x * t.x + 0.8;
   }
 
   return color;
