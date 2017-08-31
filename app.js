@@ -35,14 +35,14 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 5.00
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.5
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'z-tile-test2',
+    name: 'N3ST-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
