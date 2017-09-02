@@ -35,14 +35,14 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.00
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distraction-test1',
+    name: 'obscure-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
