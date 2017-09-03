@@ -452,7 +452,7 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p - vec3(0, 0.7, 0.4);
 
-  q.z += 2.5 * circ(0.5 + 0.5 * sin(PI * slowTime + PI));
+  q.z += 2.5 * circ(0.5 + 0.5 * sin(PI * slowTime + 0.75 * PI));
 
   vec3 w = q;
   w += 0.500 * cos(2.0 * w.yzx + PI * vec3(sin(PI * slowTime), cos(PI * slowTime), time));
@@ -462,7 +462,7 @@ vec3 map (in vec3 p) {
 
   q = mix(q, w, saturate(0.25 * (-q.y + 0.2)));
 
-  vec3 s = vec3(sdCapsule(q, vec3(-0.7, 0, 0), vec3(0.7, 0, 0), 0.1), 0.0, 0.0);
+  vec3 s = vec3(sdCapsule(q, vec3(-0.7, 0, 0), vec3(0.7, 0, 0), 0.4), 0.0, 0.0);
   s.x *= 0.02;
   d = dMin(d, s);
 
