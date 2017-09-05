@@ -33,8 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 4096
-#define maxDistance 50.0
+#define maxSteps 2048
+#define maxDistance 30.0
 #define fogMaxDistance maxDistance
 
 #define slowTime time * .2
@@ -449,20 +449,22 @@ vec3 map (in vec3 p) {
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
   // p *= globalRot;
-  vec3 q = p - vec3(0, 0.7, 0.4);
+  vec3 q = p;
 
-  q.z += 2.5 * circ(0.5 + 0.5 * sin(PI * slowTime + 0.75 * PI));
+  float r = 0.4;
+  q += 0.400000 * cos( 5.0 * q.yzx + PI * vec3(0, 0.5 * slowTime, 0));
+  r *= sin(PI * dot(q, vec3(1)));
+  q += 0.250000 * cos( 7.0 * q.yzx + noise(q));
+  q += 0.125000 * cos(11.0 * q.yzx);
+  q += 0.062500 * cos(13.0 * q.yzx);
+  q += 0.015625 * cos(17.0 * q.yzx);
+  q += 0.007812 * cos(23.0 * q.yzx);
 
-  vec3 w = q;
-  w += 0.500 * cos(2.0 * w.yzx + PI * vec3(sin(PI * slowTime), cos(PI * slowTime), time));
-  w += 0.250 * cos(4.0 * w.yzx);
-  w += 0.125 * cos(8.0 * w.yzx);
-  w.y += (9.0 * w.x) * cnoise3(w);
+  float c = 0.6;
+  q.xzy = twist(q, PI * (3.0 * q.y + c));
 
-  q = mix(q, w, saturate(0.25 * (-q.y + 0.2)));
-
-  vec3 s = vec3(sdCapsule(q, vec3(-0.7, 0, 0), vec3(0.7, 0, 0), 0.4), 0.0, 0.0);
-  s.x *= 0.02;
+  vec3 s = vec3(sdCapsule(q, vec3(0, -c, 0), vec3(0, c, 0), abs(r)), 0.0, 0.0);
+  s.x *= 0.05;
   d = dMin(d, s);
 
   return d;
@@ -487,7 +489,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
 #pragma glslify: getNormal = require(./get-normal, map=map)
 vec3 getNormal2 (in vec3 p, in float eps) {
-  vec2 e = vec2(1.,0.) * .000015 * eps;
+  vec2 e = vec2(1.,0.) * 0.0002 * eps;
   return normalize(vec3(
     map(p + e.xyy).x - map(p - e.xyy).x,
     map(p + e.yxy).x - map(p - e.yxy).x,
@@ -605,8 +607,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
-  return saturate(color);
+  vec3 color = vec3(0.05);
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -671,7 +673,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.05 * amb;
+        // lin += 0.01 * amb;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -681,15 +683,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.75 * vec3(pow(specAll, 8.0));
 
-      color += 0.1 * matCap(reflect(rayDirection, nor));
-      // color += 0.1 * reflection(pos, reflect(rayDirection, nor));
+      color += 0.01 * matCap(reflect(rayDirection, nor));
+      color += 0.175 * reflection(pos, reflect(rayDirection, nor));
 
       // color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.1 * dispersion(nor, rayDirection, n2);
+      // color += 0.01 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));
-      color = mix(background, color, exp(-t.x*t.x * 0.45));
+      // color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));
+      // color = mix(background, color, exp(-t.x * 0.005));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -729,28 +731,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec3 linez (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  uv = abs(uv);
-
-  for (int j = 0; j < 4; j++) {
-    float i = (1.0 / (float(j) + 2.0)) * dot(uv, vec2(0.1));
-
-    const float period = 0.5;
-    float v = texture2D(audioTexture, vec2(i, 0)).r;
-    v = smoothstep(0.60 + (3.0 - float(j)) * 0.1, 1.0, v);
-
-    vec3 layer = v * (0.5 + 0.5 * cos(TWO_PI * ((7.0 * i + slowTime) + vec3(0., 0.33, 0.67))));
-    float brightness = length(layer);
-    color += pow(layer, vec3(1.0 - 0.5 * brightness));
-  }
-
-  return color * 0.7;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(linez(ro, rd, uv), 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -790,17 +771,17 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    float brightness = length(gl_FragColor.rgb);
-    vec2 angle = normalize(vec2(1.0, 1.0));
-    gl_FragColor.rgb *= mix(
-      vec3(1),
-      mix(
-        #330000,
-        #00aaaa,
-        saturate(-0.25 + dot(angle, uv.xy)))
-      , 0.22);
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
-    gl_FragColor.rgb *= 1.1;
+    // float brightness = length(gl_FragColor.rgb);
+    // vec2 angle = normalize(vec2(1.0, 1.0));
+    // gl_FragColor.rgb *= mix(
+    //   vec3(1),
+    //   mix(
+    //     #330000,
+    //     #00aaaa,
+    //     saturate(-0.25 + dot(angle, uv.xy)))
+    //   , 0.22);
+    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
+    // gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
     // float brightness = length(gl_FragColor.rgb);

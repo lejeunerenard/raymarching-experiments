@@ -43,7 +43,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'obscure-test1',
+    name: 'no-entry-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -103,7 +103,7 @@ export default class App {
     this.amberColor = [235, 147, 21];
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -155,8 +155,8 @@ export default class App {
     })
 
     this.stageReady = this.setupStage()
-    this.audioReady = this.setupAudio()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded, this.audioReady])
+    // this.audioReady = this.setupAudio()
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
   }
 
   getDimensions () {
