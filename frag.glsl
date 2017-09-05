@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -54,7 +54,6 @@ const vec3 un = vec3(1., -1., 0.);
 //#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 //#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
-//#pragma glslify: analyse = require(gl-audio-analyser)
 
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
 
@@ -730,7 +729,28 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec3 linez (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  uv = abs(uv);
+
+  for (int j = 0; j < 4; j++) {
+    float i = (1.0 / (float(j) + 2.0)) * dot(uv, vec2(0.1));
+
+    const float period = 0.5;
+    float v = texture2D(audioTexture, vec2(i, 0)).r;
+    v = smoothstep(0.60 + (3.0 - float(j)) * 0.1, 1.0, v);
+
+    vec3 layer = v * (0.5 + 0.5 * cos(TWO_PI * ((7.0 * i + slowTime) + vec3(0., 0.33, 0.67))));
+    float brightness = length(layer);
+    color += pow(layer, vec3(1.0 - 0.5 * brightness));
+  }
+
+  return color * 0.7;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(linez(ro, rd, uv), 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -770,17 +790,17 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    // float brightness = length(gl_FragColor.rgb);
-    // vec2 angle = normalize(vec2(1.0, 1.0));
-    // gl_FragColor.rgb *= mix(
-    //   vec3(1),
-    //   mix(
-    //     #330000,
-    //     #00aaaa,
-    //     saturate(-0.25 + dot(angle, uv.xy)))
-    //   , 0.22);
-    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
-    // gl_FragColor.rgb *= 1.1;
+    float brightness = length(gl_FragColor.rgb);
+    vec2 angle = normalize(vec2(1.0, 1.0));
+    gl_FragColor.rgb *= mix(
+      vec3(1),
+      mix(
+        #330000,
+        #00aaaa,
+        saturate(-0.25 + dot(angle, uv.xy)))
+      , 0.22);
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
+    gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
     // float brightness = length(gl_FragColor.rgb);

@@ -8,6 +8,7 @@ import ShaderVREffect from 'shader-vr-effect'
 import ShaderVROrbitControls from 'shader-vr-orbit-controls'
 import WebVRManager from 'shader-webvr-manager'
 
+import ndarray from 'ndarray'
 import fit from 'canvas-fit'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
@@ -34,8 +35,8 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.00
-const BLOOM_MIN_BRIGHTNESS = 0.7
+const BLOOM_WET = 5.00
+const BLOOM_MIN_BRIGHTNESS = 0.5
 
 let capturer = {}
 if (capturing) {
@@ -119,6 +120,13 @@ export default class App {
     let effect = new ShaderVREffect(gl)
     let controls = new ShaderVROrbitControls(gl)
 
+    // Audio
+    const audioWidth = 60 * 120
+    this.audioSamples = new Array(audioWidth)
+    this.audioTexArray = new Uint8Array(1 * audioWidth)
+    this.audioNday = ndarray(this.audioTexArray, [audioWidth, 1])
+    this.audioTex = createTexture(gl, this.audioNday)
+
     let params = {
       hideButton: true,
       isUndistorted: false
@@ -147,7 +155,8 @@ export default class App {
     })
 
     this.stageReady = this.setupStage()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
+    this.audioReady = this.setupAudio()
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded, this.audioReady])
   }
 
   getDimensions () {
@@ -267,8 +276,8 @@ export default class App {
     return new Promise((resolve, reject) => {
       SoundCloud({
         client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/tristen/opening-set-pt1-at-globus-house-of-waxx',
-        dark: true,
+        song: 'https://soundcloud.com/max-cooper/origins-1',
+        dark: false,
         getFonts: true
       }, (err, src, data, div) => {
         if (err) {
@@ -282,14 +291,19 @@ export default class App {
         audio.crossOrigin = 'Anonymous'
         audio.src = src
         audio.addEventListener('canplay', () => {
-          console.log('playing!')
-          this.analyser = Analyser(audio)
+          resolve()
+
+          this.audioCtx = new AudioContext()
+          let media = this.audioCtx.createMediaElementSource(audio)
+          this.analyser = this.audioCtx.createAnalyser()
+          this.analyser.smoothingTimeConstant = 0.85
+          media.connect(this.analyser)
+          this.analyser.connect(this.audioCtx.destination)
+          this.freqdata = new Uint8Array(this.analyser.frequencyBinCount)
           audio.play()
         })
 
         this.audio = audio
-
-        resolve()
 
         // Metadata related to the song
         // retrieved by the API.
@@ -439,8 +453,23 @@ export default class App {
     TWEEN.update(t)
 
     if (this.tMatCap) {
-      this.shader.uniforms.tMatCap = this.tMatCap.bind()
+      this.shader.uniforms.tMatCap = this.tMatCap.bind(0)
     }
+
+    // Update audio
+    if (this.analyser) {
+      this.audioSamples.pop()
+
+      this.analyser.getByteFrequencyData(this.freqdata)
+      let frequencies = this.freqdata
+      let sample = frequencies[0]
+      this.audioSamples.unshift(sample)
+
+      this.audioTexArray.set(this.audioSamples)
+      this.audioTex.setPixels(this.audioNday)
+      this.shader.uniforms.audioTexture = this.audioTex.bind(1)
+    }
+
     this.shader.uniforms.epsilon = this.epsilon
     this.shader.uniforms.amberColor = [this.amberColor[0] / 255, this.amberColor[1] / 255, this.amberColor[2] / 255]
 
