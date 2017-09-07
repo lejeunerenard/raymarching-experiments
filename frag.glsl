@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -340,12 +340,11 @@ float fCorner (vec2 p) {
 
 #define Iterations 12
 // #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
+// #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
-#define octaPreFold 2
 mat4 octaM = mat4(
 scale, 0., 0., 0.,
 0., scale, 0., 0.,
@@ -355,11 +354,11 @@ scale, 0., 0., 0.,
 0., 1., 0., 0.,
 0., 0.2, 1., 0.,
 0., 0., 0., 1.);
-#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=octaPreFold, kifsM=kifsM, trapCalc=trapCalc)
+#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=2, kifsM=kifsM, trapCalc=trapCalc)
 // 
 // #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
-#pragma glslify: twist = require(./twist)
+// #pragma glslify: twist = require(./twist)
 
 // The "Round" variant uses a quarter-circle to join the two objects smoothly:
 float fOpUnionRound(float a, float b, float r) {
@@ -419,7 +418,7 @@ float isMaterialSmooth( float m, float goal ) {
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
 // #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
@@ -452,37 +451,22 @@ vec3 map (in vec3 p) {
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
-  q += 0.125 * cos(3.0 * q.yzx + PI * 0.5 * slowTime);
+  float minD = 0.0;
+  q = octahedronFold(q, minD);
+  q.x = abs(q.x);
 
-  vec3 cQ = q;
-  // vec2 c = vec2(0); // pMod2(cQ.xz, vec2(0.4));
-  vec2 c = pMod2(cQ.xz, vec2(0.45));
+  q *= rotationMatrix(normalize(vec3(1, 0.5, 0)), PI * 0.25 * sin(PI * slowTime));
 
-  const float safety = 0.09;
-  vec2 nCQ = c + slowTime;
-  cQ *= rotationMatrix(vec3(1, 0, 0), 0.5 * cnoise2(nCQ));
-  cQ *= rotationMatrix(vec3(0, 0, 1), 0.5 * cnoise2(nCQ + vec2(1.923470, 43590.453)));
+  q += 0.250 * cos(3.0 * q.yzx + PI * 0.5 * slowTime);
+  q += 0.125 * cos(9.0 * q.yzx + noise(q));
+  q += 0.0625 * cos(27.0 * q.yzx + noise(q));
 
-  vec3 s = vec3(fCone(cQ, 0.2, 0.6), 0.0, 0.0);
-  s.x *= safety;
+  vec3 s = vec3(length(q) - 0.7 + 0.2 * sin(PI * 0.5 * slowTime), 0.0, 0.0);
+  s.x *= 0.05;
   d = dMin(d, s);
-
-  cQ = q - vec3(0.2, -0.1, 0.2);
-  c = pMod2(cQ.xz, vec2(0.45)) + vec2(3);
-
-  nCQ = c + slowTime;
-  cQ *= rotationMatrix(vec3(1, 0, 0), 0.5 * cnoise2(nCQ));
-  cQ *= rotationMatrix(vec3(0, 0, 1), 0.5 * cnoise2(nCQ + vec2(1.923470, 43590.453)));
-  s = vec3(fCone(cQ, 0.2, 0.6), 0.0, 0.0);
-  s.x *= safety;
-  d = dSMin(d, s, 0.005);
-
-  // Floor
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1.0, 0.0);
-  d = dMin(d, f);
 
   return d;
 }
@@ -625,9 +609,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
-  color = 0.5 + 0.5 * cos(TWO_PI * (0.6 * dot(nor, rd) + vec3(0.0, 0.28, 0.67) - vec3(0.1)));
-
-  color = mix(color, vec3(0.5), isMaterialSmooth(m, 1.0));
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.6 * dot(nor, rd) + vec3(0.0, 0.28, 0.67) - vec3(0.55)));
 
   return color;
 }
@@ -684,17 +666,17 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.4, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= saturate(softshadow(pos, lightPos, 0.15, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
         fre *= freCo * dif * occ;
         lin += fre;
-        lin += specCo * spec * (1. - fre) * (1.0 - isMaterialSmooth(t.y, 1.0));
+        lin += specCo * spec * (1. - fre);
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.03 * amb;
+        // lin += 0.03 * amb;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -704,11 +686,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 0.5 * vec3(pow(specAll, 8.0));
 
-      // color += 0.01 * matCap(reflect(rayDirection, nor));
-      color += 0.015 * reflection(pos, reflect(rayDirection, nor));
+      color += 0.01 * matCap(reflect(rayDirection, nor));
+      // color += 0.01 * reflection(pos, reflect(rayDirection, nor));
 
-      // color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.1 * dispersion(nor, rayDirection, n2);
+      // color += 0.1 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 0.05 * dispersion(nor, rayDirection, n2);
 
       // Fog
       color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));

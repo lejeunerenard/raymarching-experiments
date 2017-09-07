@@ -34,16 +34,16 @@ const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = false
+const BLOOM = true
 const BLOOM_WET = 5.00
-const BLOOM_MIN_BRIGHTNESS = 0.6
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'anenome-test2',
+    name: 'fecundity-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -85,11 +85,11 @@ export default class App {
     const preset = {
       offset: {
         x: 1,
-        y: 0,
-        z: 0
+        y: 0.78,
+        z: 0.669
       },
       d: 5,
-      scale: 2,
+      scale: 1.91,
       rot2angle: [0.08, 0, 0],
       cameraAngles: [0, 0, 0]
     }
@@ -103,7 +103,7 @@ export default class App {
     this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
