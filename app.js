@@ -34,16 +34,16 @@ const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_WET = 5.00
-const BLOOM_MIN_BRIGHTNESS = 0.5
+const BLOOM_MIN_BRIGHTNESS = 0.6
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'no-entry-test1',
+    name: 'anenome-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -95,15 +95,15 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(-1.25, 1.2, 1.25)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
     this.objectR = 1.36
-    this.amberColor = [235, 147, 21];
+    this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)

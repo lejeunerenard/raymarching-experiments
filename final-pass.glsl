@@ -29,12 +29,5 @@ void main() {
   // Gamma encode
   gl_FragColor = mix(vec4(background, 1.), result, baseColor.a);
 
-  // Post Graphics
-  vec2 UV = 2.0 * (uv - 0.5);
-  float line = smoothstep(0.026, 0.025, abs(dot(UV, vec2(-1, 1))));
-  line *= smoothstep(1.505, 1.5, abs(dot(UV, vec2(1))));
-  gl_FragColor = mix(gl_FragColor, vec4(#ffffff, 1.0), line);
-  // gl_FragColor = vec4(vec3(max(UV.x, UV.y)), 1.0);
-
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 }

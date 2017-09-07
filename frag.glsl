@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -33,8 +33,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
-#define maxDistance 30.0
+#define maxSteps 1024
+#define maxDistance 50.0
 #define fogMaxDistance maxDistance
 
 #define slowTime time * .2
@@ -265,6 +265,32 @@ float sdCapsule( vec3 p, vec3 a, vec3 b, float r ) {
     float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
     return length( pa - ba*h ) - r;
 }
+float sdCone( vec3 p, vec2 c ) {
+    // c must be normalized
+    float q = length(p.xy);
+    return dot(c,vec2(q,p.z));
+}
+
+// Cone with correct distances to tip and base circle. Y is up, 0 is in the middle of the base.
+float fCone(vec3 p, float radius, float height) {
+  vec2 q = vec2(length(p.xz), p.y);
+  vec2 tip = q - vec2(0.0, height);
+  vec2 mantleDir = normalize(vec2(height, radius));
+  float mantle = dot(tip, mantleDir);
+  float d = max(mantle, -q.y);
+  float projected = dot(tip, vec2(mantleDir.y, -mantleDir.x));
+
+  // distance to tip
+  if ((q.y > height) && (projected < 0.0)) {
+    d = max(d, length(tip));
+  }
+
+  // distance to base ring
+  if ((q.x > radius) && (projected > length(vec2(height, radius)))) {
+    d = max(d, length(q - vec2(radius, 0.0)));
+  }
+  return d;
+}
 
 float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
@@ -290,28 +316,6 @@ float length8 (in vec3 p) {
 float sdTorus88( vec3 p, vec2 t ) {
   vec2 q = vec2(length16(p.xz)-t.x,p.y);
   return length16(q)-t.y;
-}
-
-#pragma glslify: triprism = require(./model/tri-prism)
-
-float triPrismGuide ( in vec3 p, in vec2 h ) {
-  float outD = 1000.0;
-
-  float axis = sdCapsule(p, vec3(0.0, 0.0, -1.0), vec3(0.0, 0.0, 1.0), 0.0125);
-  outD = min(outD, axis);
-
-  float point1 = sdCapsule(p, vec3(0.0, 1.0, -1.0), vec3(0.0, 1.0, 1.0), 0.0125);
-  outD = min(outD, point1);
-
-  float p2Angle = TWO_PI * 0.3333;
-  float point2 = sdCapsule(p, vec3(sin(p2Angle), cos(p2Angle), -1.0), vec3(sin(p2Angle), cos(p2Angle), 1.0), 0.0125);
-  outD = min(outD, point2);
-
-  float p3Angle = -TWO_PI * 0.3333;
-  float point3 = sdCapsule(p, vec3(sin(p3Angle), cos(p3Angle), -1.0), vec3(sin(p3Angle), cos(p3Angle), 1.0), 0.0125);
-  outD = min(outD, point3);
-
-  return outD;
 }
 
 float sdHexPrism( vec3 p, vec2 h ) {
@@ -415,16 +419,16 @@ float isMaterialSmooth( float m, float goal ) {
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-#pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
-#pragma glslify: quad = require(glsl-easings/quintic-in-out)
-#pragma glslify: cub = require(glsl-easings/cubic-in-out)
-#pragma glslify: circ = require(glsl-easings/circular-in-out)
-#pragma glslify: quart = require(glsl-easings/quadratic-in-out)
-#pragma glslify: ease = require(glsl-easings/elastic-in-out)
-#pragma glslify: voronoi = require(./voronoi)
-#pragma glslify: band = require(./band-filter)
+#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+// #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
+// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+// #pragma glslify: quad = require(glsl-easings/quintic-in-out)
+// #pragma glslify: cub = require(glsl-easings/cubic-in-out)
+// #pragma glslify: circ = require(glsl-easings/circular-in-out)
+// #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
+// #pragma glslify: ease = require(glsl-easings/elastic-in-out)
+// #pragma glslify: voronoi = require(./voronoi)
+// #pragma glslify: band = require(./band-filter)
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
 // Logistic function
@@ -451,21 +455,34 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  float r = 0.4;
-  q += 0.400000 * cos( 5.0 * q.yzx + PI * vec3(0, 0.5 * slowTime, 0));
-  r *= sin(PI * dot(q, vec3(1)));
-  q += 0.250000 * cos( 7.0 * q.yzx + noise(q));
-  q += 0.125000 * cos(11.0 * q.yzx);
-  q += 0.062500 * cos(13.0 * q.yzx);
-  q += 0.015625 * cos(17.0 * q.yzx);
-  q += 0.007812 * cos(23.0 * q.yzx);
+  q += 0.125 * cos(3.0 * q.yzx + PI * 0.5 * slowTime);
 
-  float c = 0.6;
-  q.xzy = twist(q, PI * (3.0 * q.y + c));
+  vec3 cQ = q;
+  // vec2 c = vec2(0); // pMod2(cQ.xz, vec2(0.4));
+  vec2 c = pMod2(cQ.xz, vec2(0.45));
 
-  vec3 s = vec3(sdCapsule(q, vec3(0, -c, 0), vec3(0, c, 0), abs(r)), 0.0, 0.0);
-  s.x *= 0.05;
+  const float safety = 0.09;
+  vec2 nCQ = c + slowTime;
+  cQ *= rotationMatrix(vec3(1, 0, 0), 0.5 * cnoise2(nCQ));
+  cQ *= rotationMatrix(vec3(0, 0, 1), 0.5 * cnoise2(nCQ + vec2(1.923470, 43590.453)));
+
+  vec3 s = vec3(fCone(cQ, 0.2, 0.6), 0.0, 0.0);
+  s.x *= safety;
   d = dMin(d, s);
+
+  cQ = q - vec3(0.2, -0.1, 0.2);
+  c = pMod2(cQ.xz, vec2(0.45)) + vec2(3);
+
+  nCQ = c + slowTime;
+  cQ *= rotationMatrix(vec3(1, 0, 0), 0.5 * cnoise2(nCQ));
+  cQ *= rotationMatrix(vec3(0, 0, 1), 0.5 * cnoise2(nCQ + vec2(1.923470, 43590.453)));
+  s = vec3(fCone(cQ, 0.2, 0.6), 0.0, 0.0);
+  s.x *= safety;
+  d = dSMin(d, s, 0.005);
+
+  // Floor
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1.0, 0.0);
+  d = dMin(d, f);
 
   return d;
 }
@@ -489,7 +506,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
 #pragma glslify: getNormal = require(./get-normal, map=map)
 vec3 getNormal2 (in vec3 p, in float eps) {
-  vec2 e = vec2(1.,0.) * 0.0002 * eps;
+  vec2 e = vec2(1.,0.) * 0.01 * eps;
   return normalize(vec3(
     map(p + e.xyy).x - map(p - e.xyy).x,
     map(p + e.yxy).x - map(p - e.yxy).x,
@@ -607,7 +624,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.05);
+  vec3 color = vec3(1);
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.6 * dot(nor, rd) + vec3(0.0, 0.28, 0.67) - vec3(0.1)));
+
+  color = mix(color, vec3(0.5), isMaterialSmooth(m, 1.0));
+
   return color;
 }
 
@@ -646,34 +667,34 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0., 0.2, 1.)), #ffffff, 1.0);
       lights[1] = light(normalize(vec3(-1., .75, 0.5)), #ffffff, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #ffffff, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #ffffff, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 1.0;
+      float specCo = 0.8;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= saturate(softshadow(pos, lightPos, 0.15, 1.75));
+        dif *= max(0.4, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
         fre *= freCo * dif * occ;
         lin += fre;
-        lin += specCo * spec * (1. - fre);
+        lin += specCo * spec * (1. - fre) * (1.0 - isMaterialSmooth(t.y, 1.0));
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.01 * amb;
+        lin += 0.03 * amb;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -681,17 +702,17 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.75 * vec3(pow(specAll, 8.0));
+      color += 0.5 * vec3(pow(specAll, 8.0));
 
-      color += 0.01 * matCap(reflect(rayDirection, nor));
-      color += 0.175 * reflection(pos, reflect(rayDirection, nor));
+      // color += 0.01 * matCap(reflect(rayDirection, nor));
+      color += 0.015 * reflection(pos, reflect(rayDirection, nor));
 
       // color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.01 * dispersion(nor, rayDirection, n2);
+      // color += 0.1 * dispersion(nor, rayDirection, n2);
 
       // Fog
-      // color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));
-      // color = mix(background, color, exp(-t.x * 0.005));
+      color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));
+      color = mix(background, color, exp(-t.x * 0.005));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
