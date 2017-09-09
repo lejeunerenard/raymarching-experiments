@@ -15,13 +15,12 @@ import makeContext from 'gl-context'
 import { rot4 } from './utils'
 import CCapture from 'ccapture.js'
 import SoundCloud from 'soundcloud-badge'
-import Analyser from 'web-audio-analyser'
+// import Analyser from 'web-audio-analyser'
 import drawTriangle from 'a-big-triangle'
 
 import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
-import { dampen } from './dampening'
 
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
@@ -35,15 +34,15 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 5.00
-const BLOOM_MIN_BRIGHTNESS = 0.7
+const BLOOM_WET = 2.00
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'fecundity-test1',
+    name: 'confusion-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -103,7 +102,7 @@ export default class App {
     this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)
