@@ -29,20 +29,20 @@ const TWO_PI = 2 * Math.PI
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 40
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 2.00
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_WET = 4.00
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'confusion-test1',
+    name: 'dread-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -102,7 +102,7 @@ export default class App {
     this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0005
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -495,7 +495,7 @@ export default class App {
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 8; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
