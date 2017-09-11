@@ -451,20 +451,29 @@ vec3 map (in vec3 p) {
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
   float minD = 0.0;
 
-  q += 0.50 * cos(3.0 * q.yzx + PI * 0.25 * slowTime);
-  q.xzy = twist(q, q.y * 2.0);
-  q += 0.250 * cos(9.0 * q.yzx);
-  q += 0.1250 * cos(21.0 * q.yzx);
-  q += 0.0625 * cos(27.0 * q.yzx);
+  // q.x = abs(q.x);
+  q += 0.50 * cos(3.3 * q.yzx + PI * slowTime);
+  q += 0.45 * cos(5.0 * q.yzx);
+  q.xzy = twist(q, q.y * 1.1);
+  q += 0.40 * cos(7.0 * q.yzx);
 
-  vec3 s = vec3(length(q) - 1.0, 0.0, 0.0);
-  s.x *= 0.05;
+  gPos = q;
+
+  float r = 0.75 - 0.25 * vfbm4(8.0 * q);
+  vec3 s = vec3(length(q) - r, 0.0, 0.0);
   d = dMin(d, s);
+
+  float r2 = 0.75 - 0.25 * vfbm4(8.0 * q + 3.456);
+  vec3 s2 = vec3(length(q + vec3(1, -1, 0)) - r2, 1.0, 0.0);
+  d = dMin(d, s2);
+
+  // d.x *= 0.05;
+  d.x *= 0.15;
 
   return d;
 }
@@ -607,7 +616,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.75);
+  float v = smoothstep(0.0, 0.1, cos(PI * dot(vec2(9), gPos.xy)));
+  vec3 color = vec3(v);
+
+  float i2 = dot(gPos, vec3(1));
+  float darkness = 0.5 + 0.5 * cos(PI * i2);
+  vec3 color2 = #ff0001;
+  color2 += #001100 * (0.75 + 0.25 * cos(7.0 * PI * i2));
+  color2 *= darkness;
+
+  color = mix(color, color2, isMaterialSmooth(m, 1.0));
 
   return color;
 }
@@ -664,7 +682,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.75, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= max(0.7, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -687,7 +705,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.01 * matCap(reflect(rayDirection, nor));
       // color += 0.01 * reflection(pos, reflect(rayDirection, nor));
 
-      color += 0.09 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 0.09 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.05 * dispersion(nor, rayDirection, n2);
 
       // Fog
@@ -789,5 +807,5 @@ void main() {
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.65 * brightness));
 
     // 'Film' Noise
-    gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
