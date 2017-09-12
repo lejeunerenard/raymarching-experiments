@@ -750,7 +750,26 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec4 colorz (in vec2 uv) {
+  vec4 color = vec4(0);
+  float l,z=slowTime;
+  for(int i=0;i<3;i++) {
+    vec2 p=uv;
+    p.x*=resolution.x/resolution.y;
+    p *= 0.5;
+    z+=.0001;
+    l=length(p);
+    uv+=cos(p)/l*(sin(z)+1.0)*abs(sin(l*2.-z*2.));
+    uv+=0.50 * cos(2.0 * p)/l*(0.5 * sin(uv)+.5);
+    color[i]=.01/length(abs(mod(uv,1.)-.5));
+  }
+  color=vec4(color.rgb/l,slowTime);
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return colorz(uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
