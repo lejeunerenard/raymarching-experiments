@@ -29,12 +29,12 @@ const TWO_PI = 2 * Math.PI
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 60
+const secondsLong = 20
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 4.00
+const BLOOM_WET = 4.0
 const BLOOM_MIN_BRIGHTNESS = 0.6
 
 let capturer = {}
@@ -42,7 +42,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'einstein-rosen-bridge-test2',
+    name: 'undefined-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
