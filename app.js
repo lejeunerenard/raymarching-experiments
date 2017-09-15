@@ -34,16 +34,16 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.0
-const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 0.6
+const BLOOM_WET = 2.0
+const BLOOM_PASSES = 50
+const BLOOM_MIN_BRIGHTNESS = 0.4
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'oracle-test1',
+    name: 'radiance-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -95,7 +95,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.25, 2)
+    this.cameraRo = vec3.fromValues(0, 0.05, 1.65)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
