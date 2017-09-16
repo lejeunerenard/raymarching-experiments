@@ -447,37 +447,12 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   p *= globalRot;
-  vec3 q = p - vec3(0, 0.01, 0);
+  vec4 q = vec4(p, 1.0);
 
-  q.z += 0.0625 * sin(PI * 2.0 * slowTime);
-
-  pModPolar(q.xy, 5.0 + 2.0 * sin(PI * 2.0 * slowTime));
-
-  mPos = q;
-  // vec3 s = vec3(tetrahedron(q, 0.65) * 0.833333, 0.0, 0.0);
-  // vec3 s = vec3(sdBox(q, vec3(0.65)), 0.0, 0.0);
-
-  vec3 offset1 = vec3(0.5 + 0.25 * sin(PI * slowTime), 0, 0);
-  vec3 s = vec3(sdBox(q - offset1, vec3(0.25, 0.1, 0.1)), 0.0, 0.0);
-  // s.x *= 0.5;
-  d = dMin(d, s);
-
-  vec3 q2 = p - vec3(0, 0, 0.2);
-  q2 += 0.4 * cos(5.0 * q2.yzx);
-  pModPolar(q2.xy, 6.0 + 3.0 * cos(PI * 3.0 * slowTime));
-  vec3 offset2 = vec3(2.0 + 1.0 * sin(PI * slowTime), 0, 0);
-  vec3 b2 = vec3(sdBox(q2 - offset2, vec3(0.3, 0.1, 0.1)), 0.0, 0.0);
-  b2.x *= 0.5;
-  d = dMin(d, b2);
-
-  vec3 q3 = p - vec3(0, 0, 0.5);
-  q3 += 0.5 * cos(7.0 * q3.yzx);
-
-  pModPolar(q3.xy, 3.0 + 0.5 * sin(PI * 2.0 * slowTime));
-  vec3 offset3 = vec3(0.5 + 1.0 * sin(PI * slowTime), 0, 0);
-  vec3 b3 = vec3(sdBox(q3 - offset3, vec3(0.2, 0.1, 0.1)), 0.0, 0.0);
-  b3.x *= 0.2;
-  d = dMin(d, b3);
+  mPos = q.xyz;
+  vec3 s = vec3(sdBox(q.xyz, vec3(0.5)), 0.0, 0.0);
+  vec3 t = vec3(tetrahedron(q.xyz, 0.65) * 0.833333, 0.0, 0.0);
+  d = dMin(d, mix(s, t, 0.5 + 0.5 * sin(PI * slowTime)));
 
   return d;
 }
@@ -628,17 +603,13 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   for( int i = 0; i < STEPS; i++ ){
     vec3 p = ro + rd * .04  * float( i );
 
-    float nooise = cnoise3( 13.0 * p );
+    float n = cnoise3(7.5 * p);
+    lum += abs(sin((p.x + p.y + 0.1 * n) * 14.0));
 
-    lum += abs(sin( p.x * 7.0 + nooise) + sin( p.y * 7.0 ) + sin(p.z * 7.0));
-      color += hsv(vec3( lum / 10.0 - 0.3, 1. , 1. )) / (lum - 0.5);
+    color += hsv(vec3( lum / 20.0 - 0.3, 1. , 1. )) / (lum - 0.5);
   }
 
   color /= float(STEPS);
-
-  color = mix(color, vec3(0.01), isMaterialSmooth(m, 1.0));
-
-  color = background;
 
   return color;
 }
@@ -718,7 +689,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += 0.1 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
       // color += 0.5 * reflection(pos, reflect(rayDirection, nor));
 
-      color += 0.3 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.1 * dispersionStep1(nor, rayDirection, n2, n1);
       // color = dispersion(nor, rayDirection, n2, n1);
 
       // Fog

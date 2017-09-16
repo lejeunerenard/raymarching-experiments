@@ -35,15 +35,15 @@ const capturing = false
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 2.0
-const BLOOM_PASSES = 50
-const BLOOM_MIN_BRIGHTNESS = 0.4
+const BLOOM_PASSES = 2
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'that-beat-test1',
+    name: 'metamorphic-gem-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -95,7 +95,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.05, 2.0)
+    this.cameraRo = vec3.fromValues(0, 0.05, 1.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
