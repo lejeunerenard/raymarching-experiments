@@ -420,7 +420,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 // #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
@@ -449,14 +449,35 @@ vec3 map (in vec3 p) {
   p *= globalRot;
   vec3 q = p - vec3(0, 0.01, 0);
 
-  q.y += 0.0625 * sin(PI * 2.0 * slowTime);
+  q.z += 0.0625 * sin(PI * 2.0 * slowTime);
+
+  pModPolar(q.xy, 5.0 + 2.0 * sin(PI * 2.0 * slowTime));
 
   mPos = q;
   // vec3 s = vec3(tetrahedron(q, 0.65) * 0.833333, 0.0, 0.0);
   // vec3 s = vec3(sdBox(q, vec3(0.65)), 0.0, 0.0);
-  vec3 s = vec3(dodecahedral(q, 71.0, 0.65), 0.0, 0.0);
+
+  vec3 offset1 = vec3(0.5 + 0.25 * sin(PI * slowTime), 0, 0);
+  vec3 s = vec3(sdBox(q - offset1, vec3(0.25, 0.1, 0.1)), 0.0, 0.0);
   // s.x *= 0.5;
   d = dMin(d, s);
+
+  vec3 q2 = p - vec3(0, 0, 0.2);
+  q2 += 0.4 * cos(5.0 * q2.yzx);
+  pModPolar(q2.xy, 6.0 + 3.0 * cos(PI * 3.0 * slowTime));
+  vec3 offset2 = vec3(2.0 + 1.0 * sin(PI * slowTime), 0, 0);
+  vec3 b2 = vec3(sdBox(q2 - offset2, vec3(0.3, 0.1, 0.1)), 0.0, 0.0);
+  b2.x *= 0.5;
+  d = dMin(d, b2);
+
+  vec3 q3 = p - vec3(0, 0, 0.5);
+  q3 += 0.5 * cos(7.0 * q3.yzx);
+
+  pModPolar(q3.xy, 3.0 + 0.5 * sin(PI * 2.0 * slowTime));
+  vec3 offset3 = vec3(0.5 + 1.0 * sin(PI * slowTime), 0, 0);
+  vec3 b3 = vec3(sdBox(q3 - offset3, vec3(0.2, 0.1, 0.1)), 0.0, 0.0);
+  b3.x *= 0.2;
+  d = dMin(d, b3);
 
   return d;
 }
@@ -516,8 +537,8 @@ vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float spread = 1.0; // saturate(dot(rd, gRd));
-  // float n = smoothstep(0.75, 1.0, sin(25.0 * rd.x + 0.01 * noise(433.0 * rd)));
-  float n = cnoise3(4.25 * rd + 0.0125 * noise(433.0 * rd));
+  float n = smoothstep(0.75, 1.0, sin(25.0 * rd.x + 0.01 * noise(433.0 * rd)));
+  // float n = cnoise3(4.25 * rd + 0.0125 * noise(433.0 * rd));
   float v = n;
 
   color = vec3(v * spread);
