@@ -22,7 +22,7 @@ import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 0.3 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
@@ -36,7 +36,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 8.0
 const BLOOM_PASSES = 50
-const BLOOM_MIN_BRIGHTNESS = 0.5
+const BLOOM_MIN_BRIGHTNESS = 0.6
 
 let capturer = {}
 if (capturing) {
@@ -95,7 +95,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.05, 2.0)
+    this.cameraRo = vec3.fromValues(0, 0.05, 3.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -156,8 +156,8 @@ export default class App {
     })
 
     this.stageReady = this.setupStage()
-    // this.audioReady = this.setupAudio()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
+    this.audioReady = this.setupAudio()
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded, this.audioReady])
   }
 
   getDimensions () {
@@ -277,7 +277,7 @@ export default class App {
     return new Promise((resolve, reject) => {
       SoundCloud({
         client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/max-cooper/origins-1',
+        song: 'https://soundcloud.com/xlr8r/download-satoshi-tomiie-new-day-maayan-nidam-eggshells-remix?in=xlr8r/sets/xlr8rs-top-10-downloads-of-21',
         dark: false,
         getFonts: true
       }, (err, src, data, div) => {
@@ -297,7 +297,7 @@ export default class App {
           this.audioCtx = new AudioContext()
           let media = this.audioCtx.createMediaElementSource(audio)
           this.analyser = this.audioCtx.createAnalyser()
-          this.analyser.smoothingTimeConstant = 0.85
+          this.analyser.smoothingTimeConstant = 0
           media.connect(this.analyser)
           this.analyser.connect(this.audioCtx.destination)
           this.freqdata = new Uint8Array(this.analyser.frequencyBinCount)
@@ -463,9 +463,9 @@ export default class App {
 
       this.analyser.getByteFrequencyData(this.freqdata)
       let frequencies = this.freqdata
-      let sample = frequencies[0]
-      this.pulseGoal += sample
-      this.shader.uniforms.pulse += 0.1 * (this.pulseGoal - this.shader.uniforms.pulse)
+      let sample = frequencies[55]
+      this.pulseGoal += sample / 255
+      this.shader.uniforms.pulse += 0.95 * (this.pulseGoal - this.shader.uniforms.pulse)
       this.shader.uniforms.audioTexture = this.audioTex.bind(1)
     }
 

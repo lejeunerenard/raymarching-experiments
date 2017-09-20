@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -34,7 +34,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 64
+#define maxSteps 128
 #define maxDistance 100.0
 #define fogMaxDistance maxDistance
 
@@ -388,7 +388,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.05 * time + PI * 0.75;
+float gRAngle = TWO_PI * 0.025 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -451,18 +451,22 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
   mPos = q.xyz;
-  float d1 = dot(q.xy, vec2(3));
-  float d2 = dot(q.xy, vec2(1, -1));
-  float i = d1 + sin(PI * 0.5 * (d2 + slowTime)) + slowTime;
+  float d1 = dot(q.xyz, vec3(3));
+  float d2 = dot(q.xyz, vec3(1, -1, 1));
+  float i = d1 + sin(PI * 0.5 * (d2 + slowTime)) + slowTime + pulse + noise(q + vec3(pulse, slowTime, 0));
   float m = smoothstep(0.5, 0.525, sin(PI * i));
   float r = 1.0 - 0.05 * m;
-  vec3 s = vec3(length(q.xyz) - r, m, 0.0);
+  vec3 s = vec3(sdBox(q.xyz, vec3(r)), m, 0.0);
   s.x *= 0.8;
   d = dMin(d, s);
+
+  // Floor
+  vec3 f = vec3(sdPlane(q + vec3(0, 1, 0), vec4(0, 1, 0, 0)), 2.0, 0);
+  d = dMin(d, f);
 
   return d;
 }
@@ -604,11 +608,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = mix(vec3(0.001), theColor(pos.xy), m);
+  vec3 color = mix(vec3(0.0005), theColor(pos.xy), m);
   color *= 1.0 + 0.2 * (0.5 + 0.5 * sin(PI * time));
 
-  float brightness = length(color);
-  color = pow(color, vec3(1.0 - 0.3 * brightness));
+  float brightness = 2.1 * length(color);
+  color = pow(color, vec3(1.0 - 0.8 * brightness));
+
+  color = mix(color, vec3(0.01), isMaterialSmooth(m, 2.0));
 
   return color;
 }
@@ -671,7 +677,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0.7, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= max(0.7, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -692,14 +698,26 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += 1.0 * vec3(pow(specAll, 8.0));
 
       color += 0.1 * isMaterialSmooth(t.y, 0.0) * matCap(reflect(rayDirection, nor));
-      // color += 0.5 * reflection(pos, reflect(rayDirection, nor));
 
-      color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1) * isMaterialSmooth(t.y, 0.0);
+      vec3 reflectionColor = vec3(0);
+
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectionRd += 0.25 * -rayDirection.y * vec3(
+        noise(934.0 * reflectionRd),
+        noise(974.0 * reflectionRd + 234.34),
+        noise(894.0 * reflectionRd + 29243.534));
+      reflectionRd = normalize(reflectionRd);
+
+      reflectionColor += 1.0 * reflection(pos, reflectionRd) * isMaterialSmooth(t.y, 2.0);
+
+      color += reflectionColor;
+
+      color += 0.125 * dispersionStep1(nor, rayDirection, n2, n1) * isMaterialSmooth(t.y, 0.0);
       // color = dispersion(nor, rayDirection, n2, n1);
 
       // Fog
-      // color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));
-      // color = mix(background, color, exp(-t.x * t.x * 0.05));
+      color = mix(background, color, clamp((fogMaxDistance-t.x) / fogMaxDistance, 0., 1.));
+      color = mix(background, color, exp(-t.x * t.x * 0.05));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -732,11 +750,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      vec3 glowColor = pow(theColor(uv), vec3(2.2));
-      float i = 1. - .75 * pow(clamp(t.z / (0.95 * float(maxSteps)), 0., 1.), 2.0);
+      // vec3 glowColor = pow(theColor(uv), vec3(2.2));
+      // float i = 1. - .75 * pow(clamp(t.z / (0.95 * float(maxSteps)), 0., 1.), 2.0);
       // i *= isMaterialSmooth(t.y, 1.0);
 
-      color = mix(vec4(glowColor, 1.0), color, i);
+      // color = mix(vec4(glowColor, 1.0), color, i);
 
       return color;
     }
