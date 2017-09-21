@@ -22,7 +22,7 @@ import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 0.3 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
@@ -34,9 +34,9 @@ const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 8.0
-const BLOOM_PASSES = 50
-const BLOOM_MIN_BRIGHTNESS = 0.6
+const BLOOM_WET = 4.0
+const BLOOM_PASSES = 10
+const BLOOM_MIN_BRIGHTNESS = 0.5
 
 let capturer = {}
 if (capturing) {
@@ -95,7 +95,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.05, 3.5)
+    this.cameraRo = vec3.fromValues(0, 0.05, 4.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -103,7 +103,7 @@ export default class App {
     this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -121,10 +121,9 @@ export default class App {
     let controls = new ShaderVROrbitControls(gl)
 
     // Audio
-    const audioWidth = 60 * 120
-    this.audioSamples = new Array(audioWidth)
-    this.audioTexArray = new Uint8Array(1 * audioWidth)
-    this.audioNday = ndarray(this.audioTexArray, [audioWidth, 1])
+    this.audioFFT = 512
+    this.audioTexArray = new Uint8Array(1 * this.audioFFT)
+    this.audioNday = ndarray(this.audioTexArray, [this.audioFFT, 1])
     this.audioTex = createTexture(gl, this.audioNday)
     this.pulseGoal = 0
 
@@ -277,7 +276,7 @@ export default class App {
     return new Promise((resolve, reject) => {
       SoundCloud({
         client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/xlr8r/download-satoshi-tomiie-new-day-maayan-nidam-eggshells-remix?in=xlr8r/sets/xlr8rs-top-10-downloads-of-21',
+        song: 'https://soundcloud.com/xlr8r/download-skudge-traveller?in=xlr8r/sets/xlr8rs-top-10-downloads-of-21',
         dark: false,
         getFonts: true
       }, (err, src, data, div) => {
@@ -297,10 +296,10 @@ export default class App {
           this.audioCtx = new AudioContext()
           let media = this.audioCtx.createMediaElementSource(audio)
           this.analyser = this.audioCtx.createAnalyser()
-          this.analyser.smoothingTimeConstant = 0
+          // this.analyser.smoothingTimeConstant = 0.5
+          this.analyser.fftSize = this.audioFFT
           media.connect(this.analyser)
           this.analyser.connect(this.audioCtx.destination)
-          this.freqdata = new Uint8Array(this.analyser.frequencyBinCount)
           audio.play()
         })
 
@@ -459,13 +458,8 @@ export default class App {
 
     // Update audio
     if (this.analyser) {
-      this.audioSamples.pop()
-
-      this.analyser.getByteFrequencyData(this.freqdata)
-      let frequencies = this.freqdata
-      let sample = frequencies[55]
-      this.pulseGoal += sample / 255
-      this.shader.uniforms.pulse += 0.95 * (this.pulseGoal - this.shader.uniforms.pulse)
+      this.analyser.getByteTimeDomainData(this.audioTexArray)
+      this.audioTex.setPixels(this.audioNday)
       this.shader.uniforms.audioTexture = this.audioTex.bind(1)
     }
 
