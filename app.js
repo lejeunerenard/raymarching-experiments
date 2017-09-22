@@ -36,14 +36,14 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 4.0
 const BLOOM_PASSES = 2
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'great-ancient-test2',
+    name: 'flower-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -103,7 +103,7 @@ export default class App {
     this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
