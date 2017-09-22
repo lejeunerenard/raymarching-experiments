@@ -29,21 +29,21 @@ const TWO_PI = 2 * Math.PI
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 40
 const capturing = false
 
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 4.0
-const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.5
+const BLOOM_PASSES = 2
+const BLOOM_MIN_BRIGHTNESS = 0.8
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'unknown-test3',
+    name: 'great-ancient-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -95,7 +95,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.05, 4.5)
+    this.cameraRo = vec3.fromValues(0, 0.05, 2.5)
 
     // Object position
     this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
@@ -103,7 +103,7 @@ export default class App {
     this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -155,8 +155,8 @@ export default class App {
     })
 
     this.stageReady = this.setupStage()
-    this.audioReady = this.setupAudio()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded, this.audioReady])
+    // this.audioReady = this.setupAudio()
+    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
   }
 
   getDimensions () {
