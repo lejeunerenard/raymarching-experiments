@@ -4,21 +4,15 @@ import createShader from 'gl-shader'
 import createTexture from 'gl-texture2d'
 import createFBO from 'gl-fbo'
 
-import ShaderVREffect from 'shader-vr-effect'
-import ShaderVROrbitControls from 'shader-vr-orbit-controls'
-import WebVRManager from 'shader-webvr-manager'
-
 import ndarray from 'ndarray'
 import fit from 'canvas-fit'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
 import { rot4 } from './utils'
-import CCapture from 'ccapture.js'
 import SoundCloud from 'soundcloud-badge'
 // import Analyser from 'web-audio-analyser'
 import drawTriangle from 'a-big-triangle'
 
-import assign from 'object-assign'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
@@ -27,41 +21,11 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
 
-const fr = 60
-const captureTime = 0 * 5
-const secondsLong = 20
-const capturing = false
-
 const MANDELBOX = false
 const BLOOM = false
 const BLOOM_WET = 4.0
 const BLOOM_PASSES = 10
 const BLOOM_MIN_BRIGHTNESS = 1
-
-let capturer = {}
-if (capturing) {
-  capturer = new CCapture({
-    format: 'jpg',
-    framerate: fr,
-    name: 'false-test2',
-    autoSaveTime: 5,
-    quality: 95,
-    startTime: captureTime,
-    timeLimit: secondsLong,
-    verbose: true
-  })
-}
-
-let currentTime = captureTime * 1000
-window.capturer = capturer
-let winSetTimeout = window.setTimeout
-let winClearTimeout = window.clearTimeout
-let winSetInterval = window.setInterval
-let winclearInterval = window.clearInterval
-let winRequestAnimationFrame = window.requestAnimationFrame
-let winProfNow = window.performance.now
-
-// const PHI = (1+Math.sqrt(5))/2
 
 // Initialize shell
 export default class App {
@@ -117,9 +81,6 @@ export default class App {
 
     this.glInit(gl)
 
-    let effect = new ShaderVREffect(gl)
-    let controls = new ShaderVROrbitControls(gl)
-
     // Audio
     this.audioFFT = 512
     this.audioTexArray = new Uint8Array(1 * this.audioFFT)
@@ -127,22 +88,8 @@ export default class App {
     this.audioTex = createTexture(gl, this.audioNday)
     this.pulseGoal = 0
 
-    let params = {
-      hideButton: true,
-      isUndistorted: false
-    }
-    let manager = new WebVRManager({ domElement: canvas }, effect, params)
-
-    assign(this, {
-      canvas,
-      gl,
-      effect,
-      controls,
-      manager,
-      vrDisplay: undefined,
-      currentRAF: null,
-      running: false
-    })
+    // Capturing state
+    this.capturing = defined(options.capturing, false)
 
     let tMatCapImg = new Image()
     tMatCapImg.src = './env.jpg'
@@ -154,9 +101,16 @@ export default class App {
       }
     })
 
-    this.stageReady = this.setupStage()
     // this.audioReady = this.setupAudio()
-    this.loaded = Promise.all([this.stageReady, tMatCapImgLoaded])
+    this.loaded = Promise.all([tMatCapImgLoaded])
+
+    // Scene Rendering
+    this.sceneRender = defined(options.sceneRender, this.defaultSceneRender)
+
+    Object.assign(this, {
+      canvas,
+      gl
+    })
   }
 
   getDimensions () {
@@ -313,7 +267,7 @@ export default class App {
   }
 
   enableEvents () {
-    if (capturing) return
+    if (this.capturing) return
     this.resizeBound = this.resizeBound || this.resize.bind(this)
     window.addEventListener('resize', this.resizeBound, true)
     window.addEventListener('vrdisplaypresentchange', this.resizeBound, true)
@@ -378,25 +332,11 @@ export default class App {
     return _kifsM
   }
 
-  // Get the HMD, and if we're dealing with something that specifies
-  // stageParameters, rearrange the scene.
-  setupStage () {
-    return navigator.getVRDisplays().then((displays) => {
-      if (displays.length > 0) {
-        this.vrDisplay = displays[0]
-        this.effect.setVRDisplay(this.vrDisplay)
-        this.controls.setVRDisplay(this.vrDisplay)
-      }
-    })
-  }
-
   resize (e) {
-    let { effect, canvas } = this
-    let scale = 1
-    fit(canvas, window, dpr * scale)
+    let canvas = this.canvas
+    fit(canvas, window, dpr)
     let dim = this.getDimensions()
 
-    effect.setSize(scale * dim[0], scale * dim[1])
     this.state[0].shape = dim
     this.state[1].shape = dim
     this.state[2].shape = dim
@@ -407,9 +347,6 @@ export default class App {
 
     let dim = this.getDimensions()
 
-    t = capturing ? currentTime + 1000 / fr : t
-    currentTime = t
-
     this.shader.bind()
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -418,8 +355,6 @@ export default class App {
 
     this.update(t)
     this.render(t)
-
-    this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
   }
 
   getCamera (t) {
@@ -465,8 +400,6 @@ export default class App {
 
     this.shader.uniforms.epsilon = this.epsilon
     this.shader.uniforms.amberColor = [this.amberColor[0] / 255, this.amberColor[1] / 255, this.amberColor[2] / 255]
-
-    this.controls.update(this.shader)
 
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
@@ -525,8 +458,12 @@ export default class App {
     return window.time || t / 1000
   }
 
+  defaultSceneRender (_, t) {
+    drawTriangle(this.gl)
+  }
+
   render (t) {
-    let { shader, manager, gl } = this
+    let { shader, gl } = this
 
     if (BLOOM) {
       this.state[0].bind()
@@ -534,51 +471,22 @@ export default class App {
 
     shader.uniforms.time = this.getTime(t)
     shader.uniforms.BLOOM = BLOOM
-    manager.render(shader, t)
+    this.sceneRender(shader, t)
 
     if (BLOOM) {
       this.bloomBlur(gl, t)
     }
-
-    capturing && capturer.capture(this.canvas)
   }
 
   run () {
     this.canvas.style.display = null
     this.resize()
 
-    if (this.manager.mode !== WebVRManager.Modes.VR) {
-      this.manager.button.setVisibility(true)
-    }
-
     this.enableEvents()
-    this.manager.enableEvents()
-
-    this.running = true
-    capturing && capturer.start()
-    window.setTimeout = winSetTimeout
-    window.clearTimeout = winClearTimeout
-    window.setInterval = winSetInterval
-    window.clearInterval = winclearInterval
-    window.requestAnimationFrame = winRequestAnimationFrame
-    window.performance.now = winProfNow
-
-    this.loaded.then(() => {
-      if (this.vrDisplay && this.running && !this.currentRAF) {
-        this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
-      }
-    })
   }
 
   stop () {
     this.canvas.style.display = 'none'
-    this.manager.button.setVisibility(false)
-    if (this.currentRAF) {
-      this.vrDisplay.cancelAnimationFrame(this.currentRAF)
-      this.currentRAF = null
-    }
-    this.running = false
     this.disposeEvents()
-    this.manager.disposeEvents()
   }
 }

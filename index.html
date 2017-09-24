@@ -20,46 +20,5 @@ html, body {
     <script src="dat.gui.min.js"></script>
     <script src="node_modules/webvr-polyfill/build/webvr-polyfill.js"></script>
     <script src="bundle.js"></script>
-    <script>
-var app = new RayMarch()
-var gui = new dat.GUI()
-gui.remember(app)
-gui.closed = true
-
-var offsetF = gui.addFolder('Offset')
-offsetF.add(app.offset, '0', -5, 5).step(0.001).listen()
-offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
-offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
-
-gui.add(app, 'd', 0, 20).step(.01).listen()
-gui.add(app, 'scale', -6, 6).step(0.01).listen()
-gui.add(app, 'epsilon', 0.0000001, .05).step(0.0000001).listen()
-gui.addColor(app, 'amberColor').listen()
-
-var rotationF = gui.addFolder('Rotation')
-rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
-rotationF.add(app.rot2angle, '1', 0, 2 * Math.PI).step(0.001).listen()
-rotationF.add(app.rot2angle, '2', 0, 2 * Math.PI).step(0.001).listen()
-
-var cameraF = gui.addFolder('Camera')
-
-var cameraPosF = cameraF.addFolder('Position')
-cameraPosF.add(app.cameraRo, '0', -10, 10).step(0.001).listen()
-cameraPosF.add(app.cameraRo, '1', -10, 10).step(0.001).listen()
-cameraPosF.add(app.cameraRo, '2', -10, 10).step(0.001).listen()
-
-var cameraRotF = cameraF.addFolder('Rotation')
-cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
-cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
-cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
-
-var objF = gui.addFolder('Object')
-objF.add(app.objectPos, '0', -4, 4).step(0.001).listen()
-objF.add(app.objectPos, '1', -4, 4).step(0.001).listen()
-objF.add(app.objectPos, '2', -4, 4).step(0.001).listen()
-objF.add(app, 'objectR', 0.1, 3).step(0.001).listen()
-
-app.run()
-    </script>
   </body>
 </html>

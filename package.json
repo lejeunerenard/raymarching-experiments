@@ -45,11 +45,15 @@
   "eslintConfig": {
     "extends": "standard",
     "globals": {
-      "Audio": true
+      "Audio": true,
+      "AudioContext": true,
+      "Image": true,
+      "dat": true,
+      "WebVRManager": true
     }
   },
   "scripts": {
-    "start": "budo app.js:bundle.js --live -- --standalone RayMarch",
+    "start": "budo index.js:bundle.js --live",
     "build": "npm run build:bundle",
     "build:bundle": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
     "build:gallery": "npm run build:bundle; node bin/gallery.js",
