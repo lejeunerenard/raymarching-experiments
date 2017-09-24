@@ -33,16 +33,14 @@ export default class App {
     let canvas = document.createElement('canvas')
     document.body.appendChild(canvas)
     canvas.style.display = 'none'
-    // if (!isAndroid()) {
-    //   canvas.addEventListener('touchstart', function(e) { e.preventDefault() })
-    // }
 
     let gl = makeContext(canvas)
 
     // enable extensions
     var ext = gl.getExtension('OES_standard_derivatives')
-    if (!ext)
+    if (!ext) {
       throw new Error('derivatives not supported')
+    }
 
     this.LOOKAT = true
 
@@ -60,11 +58,6 @@ export default class App {
 
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0.05, 5)
-
-    // Object position
-    this.objectPos = vec3.fromValues(0.536, 0.183, 3.712)
-    this.objectR = 1.36
-    this.amberColor = [235, 147, 21]
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -399,13 +392,10 @@ export default class App {
     }
 
     this.shader.uniforms.epsilon = this.epsilon
-    this.shader.uniforms.amberColor = [this.amberColor[0] / 255, this.amberColor[1] / 255, this.amberColor[2] / 255]
 
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])
-    this.shader.uniforms.objectPos = this.objectPos
-    this.shader.uniforms.objectR = this.objectR
 
     this.shader.uniforms.kifsM = this.kifsM(t)
   }

@@ -13,7 +13,6 @@ precision highp float;
 varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
-uniform vec3 amberColor;
 uniform bool BLOOM;
 uniform vec3 cOffset;
 uniform vec3 cameraRo;
@@ -22,9 +21,6 @@ uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D tMatCap;
 uniform sampler2D audioTexture;
-
-uniform vec3 objectPos;
-uniform float objectR;
 
 // KIFS
 uniform mat4 kifsM;
