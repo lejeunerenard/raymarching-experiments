@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -29,8 +29,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 384
-#define maxDistance 20.0
+#define maxSteps 512
+#define maxDistance 50.0
 #define fogMaxDistance maxDistance
 
 #define slowTime time * .2
@@ -451,43 +451,28 @@ vec3 map (in vec3 p) {
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
   // p *= globalRot;
-  vec3 q = p;
+  vec4 q = vec4(p, 1);
 
-  vec3 qS = q;
-  qS += 0.500 * cos(2.0 * qS.yzx + slowTime);
-  qS += 0.250 * cos(5.0 * qS.yzx);
-  qS += 0.125 * cos(7.0 * qS.yzx);
+  // q.xzy = twist(q.xyz, 0.15 * q.z);
 
-  float cellSize = 0.5;
-  float bubbleRadius = cellSize * 0.235;
-  vec3 cellPosCenter = floor(qS / cellSize);
+  q.xy *= 1.2;
 
-  for (int x = -1; x < 2; x++)
-  for (int y = -1; y < 2; y++)
-  for (int z = -1; z < 2; z++) {
-    vec3 cellPos = cellPosCenter + vec3(x, y, z);
-    vec3 cellNoise = vec3(
-      noise(cellPos + slowTime),
-      noise(cellPos + 1230.23 + slowTime),
-      noise(cellPos + 8456.34 + slowTime));
-    vec3 pos = (cellPos + cellNoise) * cellSize;
-    float radius = bubbleRadius;
+  q.x = abs(q.x);
 
-    vec3 s = vec3(length(qS.xyz - pos) - radius, 0.0, 0.0);
-    // Union
-    d = dSMin(d, s, 0.5);
-  }
+  q.w = sin(PI * 2.0 * q.w);
 
-  // Crop spheres
-  float bound = sdBox(q.xyz, vec3(2.0));
-  d.x = max(d.x, bound);
+  q += 0.250000 * cos( 2.0 * q.yzwx + slowTime);
+  q += 0.125000 * cos( 3.0 * q.yzwx + 0.5 * cnoise3( vec3(3.5, 5.21, 7.2) * q.yzw));
+  q += 0.062500 * cos( 7.0 * q.yzwx);
+  q += 0.031250 * cos(11.0 * q.yzwx);
+  q += 0.015625 * cos(17.0 * q.yzwx);
+  q += 0.007812 * cos(23.0 * q.yzwx);
 
-  vec3 background = vec3(sdBox(q.xyz, vec3(5.0)), 0.0, 0.0);
-  float frontCrop = sdBox(q.xyz - vec3(0, 0, 3), vec3(2, 2, 5));
-  background.x = max(background.x, - frontCrop);
-  d = min(d, background);
-  d.x *= 0.5;
+  q.z += 0.25 * sin(PI * (length(q.xy) - slowTime));
 
+  vec3 f = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0, 0);
+  f.x *= 0.2;
+  d = dMin(d, f);
   return d;
 
 }
@@ -618,7 +603,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
+  // vec3 color = vec3(1);
+  vec3 color = mix(vec3(1), #FFFEEA, dot(-rd, nor));
   return color;
 }
 
@@ -660,9 +646,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.33333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.01, 0.2, 1.)), #FFAA72, 1.0);
-      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #2AFFFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0.01, 0.2, 1.)), #FF5F4A, 1.0);
+      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #FFAFFF, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #2FFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -676,10 +662,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.75, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= max(0.5, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -697,11 +683,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      // color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.05 * isMaterialSmooth(t.y, 0.0) * matCap(reflect(rayDirection, nor));
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      color += 0.1 * reflection(pos, reflectionRd) * isMaterialSmooth(t.y, 1.0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // color += 0.1 * reflection(pos, reflectionRd) * isMaterialSmooth(t.y, 1.0);
 
       // color += 0.125 * dispersionStep1(nor, rayDirection, n2, n1) * isMaterialSmooth(t.y, 0.0);
       // color += 0.1 * dispersion(nor, rayDirection, n2, n1);
@@ -803,8 +789,8 @@ void main() {
     // gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
-    // float brightness = length(gl_FragColor.rgb);
-    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.45 * brightness));
+    float brightness = length(gl_FragColor.rgb);
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.125 * brightness));
 
     // 'Film' Noise
     gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));

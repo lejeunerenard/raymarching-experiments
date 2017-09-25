@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'false-test2',
+    name: 'MILK-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

@@ -16,7 +16,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 0.75 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
