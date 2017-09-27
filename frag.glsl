@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -29,7 +29,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 50.0
 #define fogMaxDistance maxDistance
 
@@ -454,30 +454,24 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec4 q = vec4(p, 1);
 
-  // q.xzy = twist(q.xyz, 0.15 * q.z);
+  pModPolar(q.xy, 7.0);
+  q.y = abs(q.y);
+  // q.xyz *= rotationMatrix(vec3(0, 0, 1), sin(PI * 0.5 * slowTime));
 
-  q += 0.50000 * cos( 3.0 * q.yzwx + PI * 0.5 * slowTime);
-  q += 0.25000 * cos( 5.0 * q.yzwx);
-  q += 0.12500 * cos(11.0 * q.yzwx);
-  q += 0.06250 * cos(17.0 * q.yzwx);
+  q += 0.125 * sin(TWO_PI * length(q.xyz));
 
-  vec3 c = vec3(sdCapsule(q.xyz, vec3(-1, -0.5, 1), vec3(1, 1, -1), 0.2), 0, 0);
-  c.x *= 0.1;
-  d = dMin(d, c);
+  vec4 q1 = cos(3.0 * q.yzwx + vec4(modTime, modTime, sin(PI * 0.5 * (slowTime + sin(PI * slowTime))), 1.0));
+  vec4 q2 = cos(3.0 * q.yzwx + vec4(modTime - period, modTime - period, sin(PI * 0.5 * (slowTime + sin(PI * slowTime))), 1.0));
+  q += 0.25 * mix(q1, q2, mixT);
 
-  q = vec4(p, 1); // reset
+  q += 0.125 * cnoise4(5.0 * q.yzwx);
+  q += 0.0625 * cos(7.0 * q.yzwx + slowTime);
 
-  float q1 = cnoise4( 3.0 * q.yzwx + vec4(0.0, sin(PI * 0.5 * slowTime), 1.0, modTime));
-  float q2 = cnoise4( 3.0 * q.yzwx + vec4(0.0, sin(PI * 0.5 * slowTime), 1.0, modTime - period));
-  q += 0.5 * mix(q1, q2, mixT);
+  mPos = q.xyz;
 
-  q += 0.25000 * cos( 7.0 * q.yzwx);
-  q += 0.12500 * cos(11.0 * q.yzwx);
-
-  float r = 0.1 + 0.1 * sin(q.w);
-  vec3 c2 = vec3(sdCapsule(q.xyz, vec3(-1, 1, 1), vec3(1, -1, -0.5), r), 1, 0);
-  c2.x *= 0.05;
-  d = dMin(d, c2);
+  vec3 f = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0.0, 0.0);
+  f.x *= 0.25;
+  d = dMin(d, f);
 
   return d;
 }
@@ -608,10 +602,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  float m1I = dot(-rd, nor);
-  vec3 color = mix(vec3(1), #FFFEEA, m1I);
-  // vec3 color = 0.5 + 0.5 * cos(TWO_PI * (m1I + vec3(0.0, 0.33, 0.67)));
-  color = mix(color, vec3(0.0001), isMaterialSmooth(m, 1.0));
+  float i = smoothstep(0.0, 0.01, sin(2.0 * TWO_PI * dot(mPos, mPos)));
+  vec3 color = vec3(i);
+
   return color;
 }
 
@@ -669,10 +662,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.25, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= max(0.5, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -682,7 +675,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * isMaterialSmooth(t.y, 0.0);
+        lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -690,7 +683,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 1.0 * vec3(pow(specAll, 8.0));
+      color += 0.5 * vec3(pow(specAll, 8.0));
 
       // color += 0.05 * isMaterialSmooth(t.y, 0.0) * matCap(reflect(rayDirection, nor));
       // vec3 reflectionRd = reflect(rayDirection, nor);

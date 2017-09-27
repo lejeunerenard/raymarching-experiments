@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'not-this-test1',
+    name: 'samsara-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
