@@ -6,8 +6,8 @@ import ShaderVROrbitControls from 'shader-vr-orbit-controls'
 import App from './app'
 
 const fr = 60
-const captureTime = 0 * 5
-const secondsLong = 20
+const captureTime = 1 * 5
+const secondsLong = 15
 const capturing = false
 
 let app = new App()
@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'samsara-test1',
+    name: 'introspection-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
