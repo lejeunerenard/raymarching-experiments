@@ -29,9 +29,9 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
-#define maxDistance 50.0
-#define fogMaxDistance maxDistance
+#define maxSteps 3600
+#define maxDistance 100.0
+#define fogMaxDistance 50.0
 
 #define slowTime time * .2
 
@@ -423,7 +423,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: ease = require(glsl-easings/elastic-in-out)
 // #pragma glslify: voronoi = require(./voronoi)
-// #pragma glslify: band = require(./band-filter)
+#pragma glslify: band = require(./band-filter)
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
 // Logistic function
@@ -445,6 +445,7 @@ vec3 theColor (vec2 uv) {
 vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
+  float minD = maxDistance;
 
   const float period = 20.0;
   const float transitionTime = 2.0;
@@ -456,29 +457,42 @@ vec3 map (in vec3 p) {
 
   float a = atan(q.x, q.y);
   float l = length(q.xy);
-  pModPolar(q.xy, 9.0);
+
+  pModPolar(q.xy, 5.0);
   q.y = abs(q.y);
 
-  q.xyz *= rotationMatrix(vec3(0, 0, 1), sin(PI * 0.5 * (slowTime + 1.0 * l)));
+  mat3 rot = rotationMatrix(vec3(0, 0, 1), sin(PI * 0.5 * (slowTime + 1.0 * l)));
 
   q += vec4(0.1, 0.1, 0.2, 0.05);
   foldNd(q.xyz, normalize(vec3(-5.0, 1.0 + 1.0 * sin(PI * slowTime), 1.0)));
   q *= 1.5;
   q -= vec4(0.1, 0.1, 0.2, 0.05);
   q += 0.25 * cos(5.0 * q.zwxy);
+  q.xyz *= rot;
 
-  foldNd(q.xyz, normalize(vec3(-5.0, 0.5 + 0.5 * sin(PI * slowTime), 1.0)));
+  foldNd(q.xyz, normalize(vec3(5.0, -(0.5 + 0.5 * sin(PI * slowTime)), -1.0)));
   q *= 1.5;
   q -= vec4(0.1, 0.1, 0.2, 0.05);
   q += 0.25 * cos(7.0 * q.zwxy);
+  q.xyz *= rot;
 
-  foldNd(q.xyz, normalize(vec3(-5.0, 0.25 + 0.25 * sin(PI * slowTime), 1.0)));
-  q += 0.25 * cos(9.0 * q.zwxy);
+  foldNd(q.xyz, normalize(vec3(-5.0, 1.0 + 1.0 * sin(PI * slowTime), 1.0)));
+  q *= 1.5;
+  q -= vec4(0.1, 0.1, 0.2, 0.05);
+  q += 0.25 * cos(5.0 * q.zwxy);
+  q.xyz *= rot;
+
+  foldNd(q.xyz, normalize(vec3(5.0, -(0.5 + 0.5 * sin(PI * slowTime)), -1.0)));
+  q *= 1.5;
+  q -= vec4(0.1, 0.1, 0.2, 0.05);
+  q += 0.25 * cos(7.0 * q.zwxy);
+  q.xyz *= rot;
 
   mPos = q.xyz;
 
   vec3 f = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0.0, 0.0);
-  f.x *= 0.05;
+
+  f.x *= 0.01;
   d = dMin(d, f);
 
   return d;
@@ -540,7 +554,7 @@ vec3 textures (in vec3 rd) {
 
   float spread = 1.0; // saturate(dot(rd, gRd));
   // float n = smoothstep(0.75, 1.0, sin(25.0 * rd.x + 0.01 * noise(433.0 * rd)));
-  float n = cnoise3(4.25 * rd + 0.0125 * noise(433.0 * rd));
+  float n = cnoise3(2.25 * rd + 0.0125 * noise(433.0 * rd));
   float v = n;
 
   color = vec3(v * spread);
@@ -610,7 +624,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.7);
+  vec3 color = vec3(1);
+
+  color = vec3(0.01 + smoothstep(0.2, 0.21, band(dot(nor, -rd), 0.5, 0.8)));
 
   return color;
 }
@@ -653,9 +669,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.33333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.01, 0.2, 1.)), #FF5F4A, 1.0);
-      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #FFAFFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #2FFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0.01, 0.2, 1.)), #FFFFFF, 1.0);
+      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #FFFFFF, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -669,10 +685,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= max(0.0, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -685,23 +701,23 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         // lin += 0.5 * amb * diffuseColor;
 
         color +=
-          saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
-          + saturate(lights[i].intensity * lin * mix(diffuseColor, #ffffff, 0.4));
+          saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor);
+          // + saturate(lights[i].intensity * lin * mix(diffuseColor, #ffffff, 0.4));
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.5 * vec3(pow(specAll, 8.0));
+      // color += 0.5 * vec3(pow(specAll, 8.0));
 
       // color += 0.05 * isMaterialSmooth(t.y, 0.0) * matCap(reflect(rayDirection, nor));
       // vec3 reflectionRd = reflect(rayDirection, nor);
       // color += 0.1 * reflection(pos, reflectionRd) * isMaterialSmooth(t.y, 1.0);
 
       // color += 0.125 * dispersionStep1(nor, rayDirection, n2, n1) * isMaterialSmooth(t.y, 0.0);
-      color += 0.5 * dispersion(nor, rayDirection, n2, n1);
+      // color += 0.03125 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
-      // color = mix(background, color, (fogMaxDistance-t.x) / fogMaxDistance);
-      // color = mix(background, color, exp(-t.x * t.x * 0.005));
+      color = mix(background, color, (fogMaxDistance - 0.5 * t.x) / fogMaxDistance);
+      color = mix(background, color, exp(-t.x * 0.005));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -798,6 +814,8 @@ void main() {
     // Go to white as it gets brighter
     float brightness = length(gl_FragColor.rgb);
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.125 * brightness));
+
+    gl_FragColor.rgb *= 1.375;
 
     // 'Film' Noise
     gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
