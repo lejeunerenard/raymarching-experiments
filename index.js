@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'tower-of-babel-test1',
+    name: 'digital-sea-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

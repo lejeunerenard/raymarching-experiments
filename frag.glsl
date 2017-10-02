@@ -29,7 +29,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 20.0
 #define fogMaxDistance maxDistance
 
@@ -401,7 +401,7 @@ float sdCylinder( vec3 p, vec3 c )
 
 // p as usual, e exponent (p in the paper), r radius or something like that
 // #pragma glslify: octahedral = require(./model/octahedral)
-#pragma glslify: dodecahedral = require(./model/dodecahedral)
+// #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
 bool isMaterial( float m, float goal ) {
@@ -416,7 +416,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 // #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
@@ -424,7 +424,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: ease = require(glsl-easings/elastic-in-out)
 // #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
-#pragma glslify: tetrahedron = require(./model/tetrahedron)
+// #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
 // Logistic function
 float sigmoid ( in float x ) {
@@ -455,15 +455,27 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec4 q = vec4(p, 1);
 
-  q += 0.2 * cos(11.7 * q.yzwx + PI * 0.5 * vec4(slowTime, 0, q.z, sin(PI * 0.5 * slowTime)));
-  q += 0.1 * cos(13.17 * q.yzwx + PI * 0.5 * slowTime);
+  vec3 nP = 4.0 * q.xyz;
 
-  q.xzy = twist(q.xyz, 0.7 * q.y);
+  vec3 ev1 = vec3(
+    noise(1.8 * q.xyz + sin(PI * 0.5 * slowTime)),
+    noise(1.8 * q.xyz + sin(PI * 0.5 * slowTime + 1.5) + vec3(72.46, 9123.3, 348.234)),
+    noise(1.8 * q.xyz + sin(PI * 0.5 * slowTime + 4.5) + vec3(734.2, 234.53, 871.234)));
+
+  vec3 e = ev1;
+
+  vec3 e2 = vec3(
+    noise(q.xyz + 3.0 * e.xyz),
+    noise(q.xyz + 3.0 * e.xyz + vec3(243.5, 6632.3, 12.4835)),
+    noise(q.xyz + 3.0 * e.xyz + vec3(92.34, 37.234, 99.3285)));
+
+  float n = noise(vec3(7.0, 0.125, 0.25) * (nP + 5.0 * e2));
+  q.z += 0.02125 * n;
 
   mPos = q.xyz;
 
-  vec3 f = vec3(sdBox(q.xyz, vec3(0.25, 1.0, 0.25)) - 0.01, 0.0, 0.0);
-  f.x *= 0.2;
+  vec3 f = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0.0, n);
+  f.x *= 0.4;
   d = dMin(d, f);
 
   return d;
@@ -525,7 +537,7 @@ vec3 textures (in vec3 rd) {
 
   float spread = 1.0; // saturate(dot(rd, gRd));
   // float n = smoothstep(0.75, 1.0, sin(25.0 * rd.x + 0.01 * noise(433.0 * rd)));
-  float n = cnoise3(4.25 * rd + 0.0125 * noise(433.0 * rd));
+  float n = cnoise3(7.25 * rd + 0.0125 * noise(433.0 * rd));
   float v = n;
 
   color = vec3(v * spread);
@@ -595,10 +607,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: gradient = require(./gradient)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  float mI = dot(nor, -rd);
-  vec3 color = vec3(mI);
+  vec3 color = vec3(0);
 
-  color -= 0.2 * vec3(cnoise3(391.523 * pos));
+  color = mix(color, vec3(0, 1, 1), smoothstep(0.75, 0.81, trap));
+  color = mix(color, vec3(1, 0, 1), smoothstep(0.185, 0.175, trap));
 
   return color;
 }
@@ -649,15 +661,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 0.2;
+      float specCo = 0.25;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
         float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         dif *= max(0.0, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
@@ -670,7 +682,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        // lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -681,11 +693,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.05 * isMaterialSmooth(t.y, 0.0) * matCap(reflect(rayDirection, nor));
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      color += 0.1 * reflection(pos, reflectionRd) * isMaterialSmooth(t.y, 1.0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // color += 0.1 * reflection(pos, reflectionRd) * isMaterialSmooth(t.y, 1.0);
 
       // color += 0.125 * dispersionStep1(nor, rayDirection, n2, n1) * isMaterialSmooth(t.y, 0.0);
-      color += 0.1 * dispersion(nor, rayDirection, n2, n1);
+      color += 0.025 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -784,8 +796,8 @@ void main() {
     // gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
-    // float brightness = length(gl_FragColor.rgb);
-    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.125 * brightness));
+    float brightness = length(gl_FragColor.rgb);
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.35 * brightness));
 
     // 'Film' Noise
     gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
