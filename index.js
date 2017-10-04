@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'digital-sea-test2',
+    name: 'warm-phaze-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

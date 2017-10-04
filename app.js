@@ -22,10 +22,10 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_WET = 8.0
 const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 0.15
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
 export default class App {

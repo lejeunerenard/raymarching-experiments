@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -455,27 +455,8 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec4 q = vec4(p, 1);
 
-  vec3 nP = 4.0 * q.xyz;
-
-  vec3 ev1 = vec3(
-    noise(1.8 * q.xyz + sin(PI * 0.5 * slowTime)),
-    noise(1.8 * q.xyz + sin(PI * 0.5 * slowTime + 1.5) + vec3(72.46, 9123.3, 348.234)),
-    noise(1.8 * q.xyz + sin(PI * 0.5 * slowTime + 4.5) + vec3(734.2, 234.53, 871.234)));
-
-  vec3 e = ev1;
-
-  vec3 e2 = vec3(
-    noise(q.xyz + 3.0 * e.xyz),
-    noise(q.xyz + 3.0 * e.xyz + vec3(243.5, 6632.3, 12.4835)),
-    noise(q.xyz + 3.0 * e.xyz + vec3(92.34, 37.234, 99.3285)));
-
-  float n = noise(vec3(7.0, 0.125, 0.25) * (nP + 5.0 * e2));
-  q.z += 0.02125 * n;
-
   mPos = q.xyz;
-
-  vec3 f = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0.0, n);
-  f.x *= 0.4;
+  vec3 f = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0.0, 0.0);
   d = dMin(d, f);
 
   return d;
@@ -743,7 +724,72 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+float nsin (in float t) {
+  return 0.5 + 0.5 * sin(TWO_PI * t);
+}
+
+vec3 colorIntersections (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float period = 20.0;
+  const float transitionTime = 2.0;
+  float modTime = mod(time, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  uv += 0.1250 * cos(3.00 * uv.yx);
+
+  // float x1 = abs(uv.x + noise(uv + 0.2 * modTime));
+  // float x2 = abs(uv.x + noise(uv + 0.2 * (modTime - period)));
+  float x1 = noise(uv + 0.2 * modTime);
+  float x2 = noise(uv + 0.2 * (modTime - period));
+  uv.x += mix(x1, x2, mixT);
+
+  // uv.x += noise(uv + slowTime);
+
+  uv += 0.06250 * cos(5.00 * uv.yx);
+  uv += 0.03125 * cos(7.00 * uv.yx);
+
+  color += #FF0000 * nsin(
+    (1.0 + 0.2 * sin(PI * (uv.y + noise(2.0 * uv)))) * uv.x);
+  color += #00FFFF * smoothstep(0.0, 0.8, nsin(
+        (1.0 + 0.4 * sin(PI * 0.5 * (slowTime + uv.x))) * dot(uv, vec2(1))
+        + sin(PI * 0.5 * slowTime)));
+
+  color += #FFFF00 * nsin(
+    (0.9 + 0.1 * sin(PI * (uv.y + noise(2.2 * uv)))) * uv.x
+    + 0.123852);
+  color += #0000FF * smoothstep(0.0, 0.8, nsin(
+        (1.05 + 0.3 * sin(PI * 0.5 * (slowTime + uv.x))) * dot(uv, vec2(1))
+        + sin(PI * 0.5 * slowTime) + 1.283402));
+
+  // color += #FF00FF * nsin(
+  //   (1.7 + 0.2 * sin(PI * (uv.y + noise(2.0 * uv)))) * uv.x
+  //   + 3.283402);
+  // color += #00FF00 * smoothstep(0.0, 0.8, nsin(
+  //       (1.2 + 0.4 * sin(PI * 0.5 * (slowTime + uv.x))) * dot(uv, vec2(1))
+  //       + sin(PI * 0.5 * slowTime) + 1023.732402));
+
+  // color *= 0.5 + 0.5 * nsin(dot(uv, vec2(1)));
+
+  // color = sqrt(color);
+  // color /= 1.414214; // sqrt(2)
+  // color /= 1.732051; // sqrt(3)
+
+  color *= 0.5;
+
+  color -= 0.05 + 0.05 * cos(TWO_PI * (
+    vec3(
+      noise(uv),
+      noise(1.4 * uv + 2394.349),
+      noise(2.3 * uv + 94.349)
+    ) * dot(uv, vec2(-1, 1)) + vec3(0, 0.33, 0.67)));
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(colorIntersections(ro, rd, uv), 1);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -796,9 +842,9 @@ void main() {
     // gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
-    float brightness = length(gl_FragColor.rgb);
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.35 * brightness));
+    // float brightness = length(gl_FragColor.rgb);
+    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.35 * brightness));
 
     // 'Film' Noise
-    gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
