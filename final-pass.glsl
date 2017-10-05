@@ -9,8 +9,8 @@ uniform sampler2D base;
 uniform sampler2D buffer;
 uniform float wet;
 
-#pragma glslify: import(./background)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
+#pragma glslify: import(./background)
 
 void main() {
   const vec3 gamma = vec3(2.2);

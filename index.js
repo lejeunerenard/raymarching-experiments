@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'warm-phaze-test1',
+    name: 'wonder-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

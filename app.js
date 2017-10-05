@@ -22,10 +22,10 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
-const BLOOM = false
-const BLOOM_WET = 8.0
-const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM = true
+const BLOOM_WET = 12.0
+const BLOOM_PASSES = 50
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -57,7 +57,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1)
+    this.cameraRo = vec3.fromValues(0, 0.2, 1.1)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
