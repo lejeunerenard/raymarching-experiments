@@ -14,6 +14,6 @@ vec3 getBackground (in vec2 uv) {
 
   coord += 0.5 * n;
 
-  return mix(#777777, #EEEEEE, coord);
+  return mix(#84D0FF, #C8E4FF, coord);
 }
 vec3 background = vec3(0.);

@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'wonder-test1',
+    name: 'molten-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -105,6 +105,12 @@ if (capturing) {
   offsetF.add(app.offset, '0', -5, 5).step(0.001).listen()
   offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
   offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
+
+  let offsetC = gui.addFolder('Offset C')
+  offsetC.add(app.offsetC, '0', -5, 5).step(0.001).listen()
+  offsetC.add(app.offsetC, '1', -5, 5).step(0.001).listen()
+  offsetC.add(app.offsetC, '2', -5, 5).step(0.001).listen()
+  offsetC.add(app.offsetC, '3', -5, 5).step(0.001).listen()
 
   gui.add(app, 'd', 0, 20).step(0.01).listen()
   gui.add(app, 'scale', -6, 6).step(0.01).listen()

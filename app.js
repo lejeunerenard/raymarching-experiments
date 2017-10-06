@@ -42,7 +42,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     const preset = {
       offset: {
@@ -53,14 +53,15 @@ export default class App {
       d: 5,
       scale: 1.91,
       rot2angle: [0.08, 0, 0],
-      cameraAngles: [0, 0, 0]
+      cameraAngles: [0, -0.629, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.2, 1.1)
+    this.cameraRo = vec3.fromValues(-0.34, 0.598, 0.758)
+    this.offsetC = [0.007, 0.183, -0.274, 0.703]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -398,6 +399,7 @@ export default class App {
     this.shader.uniforms.cameraMatrix = (updates[1])
 
     this.shader.uniforms.kifsM = this.kifsM(t)
+    this.shader.uniforms.offsetC = this.offsetC
   }
 
   bloomBlur (gl, t) {

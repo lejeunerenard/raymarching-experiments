@@ -16,6 +16,7 @@ uniform float time;
 uniform bool BLOOM;
 uniform vec3 cOffset;
 uniform vec3 cameraRo;
+uniform vec4 offsetC;
 uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
@@ -29,7 +30,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 20.0
 #define fogMaxDistance maxDistance
 
@@ -441,6 +442,27 @@ vec3 theColor (vec2 uv) {
   return mix(#10FFFF, #03E8A8, uv.y);
 }
 
+#define jTrap 14
+float julia (in vec3 p, in vec4 c) {
+    vec4 z = vec4(p, 0.);
+
+    float dz2 = 1.;
+    float mz2 = dot(z,z);
+    for (int i = 0; i < jTrap; i++) {
+        // ∆z[n+1]^2 = 4z[n]^2∆z[n]^2
+        dz2 *= 4. * mz2;
+
+        // [n+1] = z[n]^2 + c
+        z = vec4(z.x*z.x - dot(z.yzw, z.yzw),
+               2.*z.x*z.yzw) + c;
+
+        mz2 = dot(z,z);
+        if (mz2 > 4.) break;
+    }
+
+  return 0.25 * sqrt(mz2 / dz2) * log(mz2);
+}
+
 // Return value is (distance, material, orbit trap)
 vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
@@ -455,18 +477,15 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  vec3 q1 = cos( 5.1 * q.yzx + vec3(0.0, modTime, modTime + sin(modTime)));
-  vec3 q2 = cos( 5.1 * q.yzx + vec3(0.0, modTime - period, modTime - period + sin(modTime - period)));
+  // q += 0.25000 * mix(q1, q2, mixT);
+  // q += 0.12500 * cos( 7.1 * q.yzx);
+  // q += 0.06250 * cos(11.1 * q.yzx);
+  // q += 0.03125 * cos(13.1 * q.yzx);
 
-  q += 0.25000 * mix(q1, q2, mixT);
-  q += 0.12500 * cos( 7.1 * q.yzx);
-  q += 0.06250 * cos(11.1 * q.yzx);
-  q += 0.03125 * cos(13.1 * q.yzx);
+  mPos = q.xyz;
 
-  mPos = 5.0 * q.xyz;
-
-  vec3 f = vec3(sdTorus(q.xzy, vec2(0.375, 0.15)), 0.0, 0.0);
-  f.x *= 0.1;
+  vec4 c = offsetC + vec4(0, 0.2 * sin(PI * 0.5 * slowTime), 0, 0);
+  vec3 f = vec3(julia(q, c), 0.0, 0.0);
   d = dMin(d, f);
 
   return d;
