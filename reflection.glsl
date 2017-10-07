@@ -22,7 +22,7 @@ vec3 reflection (in vec3 ro, in vec3 rd) {
   if (t.x > 0.) {
     vec3 nor = getNormal(pos, .0001);
     color = diffuseColor(pos, nor, rd, t.y, t.w);
-    color /= t.x * t.x + 0.8;
+    color /= pow(t.x, 1.75);
   }
 
   return color;

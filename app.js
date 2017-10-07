@@ -23,9 +23,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 8.0
-const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_WET = 6.0
+const BLOOM_PASSES = 90
+const BLOOM_MIN_BRIGHTNESS = 0.55
 
 // Initialize shell
 export default class App {
@@ -53,11 +53,11 @@ export default class App {
       d: 5,
       scale: 1.91,
       rot2angle: [0.08, 0, 0],
-      cameraAngles: [-0.004, -0.157, -0.107]
+      cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.387, 1.443)
+    this.cameraRo = vec3.fromValues(0, 1.0, 1.8)
     this.offsetC = [0.3, 0.183, -0.274, 0.582]
 
     // Ray Marching Parameters

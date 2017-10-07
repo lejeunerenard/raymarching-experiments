@@ -27,8 +27,9 @@ void main() {
 
   vec4 result = wet * bufferColor + baseColor;
 
-  // Gamma encode
-  gl_FragColor = mix(vec4(background, 1.), result, baseColor.a);
+  // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
+  gl_FragColor = vec4(background + result.rgb, 1.);
 
+  // Gamma encode
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 }
