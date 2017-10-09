@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_PASSES = 80
-const BLOOM_MIN_BRIGHTNESS = 0.50
+const BLOOM_PASSES = 2
+const BLOOM_MIN_BRIGHTNESS = 0.90
 
 // Initialize shell
 export default class App {
@@ -61,7 +61,7 @@ export default class App {
     this.offsetC = [0.3, 0.183, -0.274, 0.582]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)

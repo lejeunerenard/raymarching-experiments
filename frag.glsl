@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -30,7 +30,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 384
+#define maxSteps 256
 #define maxDistance 50.0
 #define fogMaxDistance maxDistance
 
@@ -481,37 +481,25 @@ vec3 map (in vec3 p) {
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  p *= globalRot;
-  vec3 q = p;
+  // p *= globalRot;
+  vec4 q = vec4(p, 0.0);
 
-  vec3 qRot = q;
+  const vec3 axis = normalize(vec3(1, 0.5, 1));
+  for (int i = 0; i < 3; i++) {
+    float factor = 1.0 / float(i + 1);
 
-  vec3 cosT = PI * 0.5 * vec3(-slowTime, 0.0, slowTime);
-  qRot += 0.2500 * cos( 3.0 * qRot.yzx + cosT);
-  qRot += 0.1250 * cos( 7.0 * qRot.yzx + cosT);
-  qRot += 0.0625 * cos(11.0 * qRot.yzx + cosT);
-  float a = atan(qRot.x, qRot.y);
+    q += factor * cos(pow(2.1, float(i + 1)) * q.yzwx);
 
-  qRot *= rotationMatrix(normalize(vec3(1, 1, 1)), PI + a);
+    q.xyz *= rotationMatrix(axis, PI * pow(0.1, float(i)) + PI * 0.5 * slowTime);
 
-  // q = qRot;
-  // q = mix(q, qRot, nsin(q.y + 1.0));
-  q = mix(q, qRot, q.y + 1.0);
-
-  float l = length(q.xy);
-  a = atan(q.x, q.y);
-  a -= PI * slowTime;
+    q.xyz += 0.25 * factor * noise(pow(2.0, float(i + 1)) * q.zyx);
+  }
 
   mPos = q.xyz;
 
-  float rMod = sin(TWO_PI * 27.0 * l + 13.0 * a) + noise(vec2(9.0 * l, sin(4.0 * a)));
-  vec3 c = vec3(sdTorus(q.xzy, vec2(0.5, 0.2 + 0.0125 * rMod)), 0.0, rMod);
-  c.x *= 0.075;
-  d = dMin(d, c);
-
-  // Crop
-  float s = length(p) - 0.8;
-  d.x = max(d.x, s);
+  vec3 b = vec3(sdBox(q.xzy, vec3(0.5)), 0.0, 0.0);
+  b.x *= 0.125;
+  d = dMin(d, b);
 
   return d;
 }
@@ -644,7 +632,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  float dNor1 = dot(nor, vec3(1)) + 0.1 * noise(4293.0 * mPos);
+  float dNor1 = dot(nor, vec3(1));
   color += #FF0000 * nsin(vec3(
     1.1 * dNor1 + 0.03423,
     1.0 * dNor1 + 0.20343,
@@ -654,18 +642,18 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
     1.00 * dNor1 + 0.732,
     1.05 * dNor1 + 0.2348));
 
-  trap *= 0.2;
+  float dNor2 = dot(nor, mPos);
+  color += #8888FF * nsin(vec3(
+    1.1 * dNor2 + 0.03423,
+    1.0 * dNor2 + 0.20343,
+    0.9 * dNor2 + 0.23034));
+  color += #888800 * nsin(vec3(
+    1.15 * dNor2 + 0.93,
+    1.00 * dNor2 + 0.732,
+    1.05 * dNor2 + 0.2348));
 
-  color += #FFFF00 * nsin(vec3(
-    1.05 * trap + 3.23490,
-    1.00 * trap + 2.82734,
-    0.95 * trap + 7.234034));
-  color += #0000FF * nsin(vec3(
-    1.05 * trap + 2.9376034,
-    1.00 * trap + 1.9376034,
-    0.95 * trap + 6.9376034));
 
-  return color;
+  return color * 1.0;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -735,7 +723,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.2 * amb * diffuseColor;
+        lin += 0.25 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -753,7 +741,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += reflectColor;
 
       // color += 0.015625 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.25 * dispersion(nor, rayDirection, n2, n1);
+      // color += 0.25 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
@@ -791,9 +779,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      vec3 glowColor = vec3(1);
-      float i = 1. - 0.9 * pow(clamp(t.z / float(maxSteps), 0., 1.), 9.0);
-      color = mix(vec4(glowColor, 1.0), color, i);
+      // vec3 glowColor = vec3(1);
+      // float i = 1. - 0.9 * pow(clamp(t.z / float(maxSteps), 0., 1.), 9.0);
+      // color = mix(vec4(glowColor, 1.0), color, i);
 
       return color;
     }
