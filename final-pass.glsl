@@ -25,10 +25,11 @@ void main() {
   vec4 bufferColor  = texture2D(buffer, uv);
   bufferColor.rgb = pow(bufferColor.rgb, gamma);
 
-  vec4 result = wet * bufferColor + baseColor;
+  vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
+  gl_FragColor = wet * bufferColor + result;
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
-  gl_FragColor = vec4(background + result.rgb, 1.);
+  // gl_FragColor = vec4(background + result.rgb, 1.);
 
   // Gamma encode
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);

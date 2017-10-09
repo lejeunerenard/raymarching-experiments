@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'the-red-pill-test1',
+    name: 'bifrost-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

@@ -17,11 +17,11 @@ void main() {
   // float brightnessStandard = dot(colorLinear.rgb, vec3(0.2126, 0.7152, 0.0722));
   // ITU BT.601
   // source: http://stackoverflow.com/a/596243/630490
-  // float brightnessPerceived = dot(colorLinear.rgb, vec3(0.299, 0.587, 0.114));
+  float brightnessPerceived = dot(colorLinear.rgb, vec3(0.299, 0.587, 0.114));
 
-  float selectiveBrightness = 1.414214 - length(colorLinear.rgb - #FF0000);
+  // float selectiveBrightness = 1.414214 - length(colorLinear.rgb - #FF0000);
 
-  float brightness = selectiveBrightness;
+  float brightness = brightnessPerceived;
 
   if (brightness >= minBright) {
     gl_FragColor = vec4(color.rgb, 1.0);

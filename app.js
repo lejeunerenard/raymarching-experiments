@@ -23,9 +23,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 6.0
-const BLOOM_PASSES = 90
-const BLOOM_MIN_BRIGHTNESS = 0.55
+const BLOOM_WET = 1.0
+const BLOOM_PASSES = 80
+const BLOOM_MIN_BRIGHTNESS = 0.50
 
 // Initialize shell
 export default class App {
@@ -42,7 +42,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     const preset = {
       offset: {
@@ -57,11 +57,11 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 1.0, 1.8)
+    this.cameraRo = vec3.fromValues(0, 0, 1.35)
     this.offsetC = [0.3, 0.183, -0.274, 0.582]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
