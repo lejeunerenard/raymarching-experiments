@@ -1,4 +1,10 @@
-#define RGBCMY 1
+#ifndef PI
+#define PI 3.1415926536
+#define TWO_PI 6.2831853072
+#endif
+
+// #define RGBCMY 1
+#define REFR_INTEGRAL 1
 // #define HUE 1
 // #pragma glslify: hsv = require(glsl-hsv2rgb)
 
@@ -6,6 +12,15 @@
 #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
+vec3 intRefract (in vec3 l, in vec3 n, in float r1, in float r2) {
+  float sqrt1minusC = sqrt(1.0 - dot(l, -n));
+  return 0.5 * (
+      (r2 * refract(l, n, r2)
+        - n * asin(sqrt1minusC * r2) / sqrt1minusC)
+    -
+      (r1 * refract(l, n, r1)
+        - n * asin(sqrt1minusC * r1) / sqrt1minusC));
+}
 
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 lightColor) {
   const float between = amount;
@@ -64,6 +79,23 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
   #else
 
+  #ifdef REFR_INTEGRAL
+  float r1 = hue2IOR(0.0, greenIOR, n1, between);
+  float r2 = hue2IOR(240.0, greenIOR, n1, between);
+  // float r1 = (n2 - amount) / n1;
+  // float r2 = (n2 + amount) / n1;
+  vec3 intRefracted = intRefract(eye, nor, r1, r2);
+  // intRefracted = 0.5 + 0.5 * cos(TWO_PI * (intRefracted + vec3(0, 0.33, 0.67)));
+  // intRefracted = 0.5 + 0.5 * cos(intRefracted);
+  vec3 color = scene(intRefracted, r1);
+  // vec3 color = intRefracted;
+
+  float R = color.r;
+  float G = color.g;
+  float B = color.b;
+
+  #else
+
   float redIORRatio = hue2IOR(0.0, greenIOR, n1, between);
   float greenIORRatio = hue2IOR(120.0, greenIOR, n1, between);
   float blueIORRatio = hue2IOR(240.0, greenIOR, n1, between);
@@ -79,6 +111,7 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
   float R = r;
   float G = g;
   float B = b;
+  #endif
   #endif
   #endif
 

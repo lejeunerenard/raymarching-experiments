@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 20
 const capturing = false
 
 let app = new App()
@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'delight-test2',
+    name: 'rainbow-requiem-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
