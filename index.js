@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'failed-transmutation-test1',
+    name: 'delight-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
