@@ -429,6 +429,9 @@ float isMaterialSmooth( float m, float goal ) {
 float nsin (in float t) {
   return 0.5 + 0.5 * sin(TWO_PI * t);
 }
+vec2 nsin (in vec2 t) {
+  return 0.5 + 0.5 * sin(TWO_PI * t);
+}
 vec3 nsin (in vec3 t) {
   return 0.5 + 0.5 * sin(TWO_PI * t);
 }
@@ -482,12 +485,17 @@ vec3 map (in vec3 p) {
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
+
+  q += 0.200 * cos( 7.0 * q.yzx + vec3(slowTime, 0, -slowTime));
+  q += 0.100 * cos(11.0 * q.yzx);
+  q += 0.050 * cos(13.0 * q.yzx);
 
   mPos = q.xyz;
 
-  vec3 o = vec3(julia(q.xyz, offsetC + vec4(0, 1.225 * nsin(0.5 * slowTime + 0.75), 0, 0)), 0.0, 0.0);
+  vec3 o = vec3(sdBox(q.xyz, vec3(0.75)), 0.0, 0.0);
+  o.x *= 0.25;
   d = dMin(d, o);
 
   return d;
@@ -625,39 +633,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 #pragma glslify: gradient = require(./gradient)
 
+vec3 glitchTexture(in vec3 ro, in vec3 rd, in vec2 uv);
+
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  vec3 rRd = vec3(
-    noise(pos),
-    noise(1.01 * pos + 0.123),
-    noise(0.97 * pos + 0.739));
+  color = mix(glitchTexture(pos, rd, mPos.xy), glitchTexture(pos, rd, mPos.xz),
+    saturate(dot(nor, normalize(vec3(1, 0, 1)))));
 
-  float mI = dot(nor, -rd);
-  color += #FF0000 * nsin(vec3(
-    1.05 * mI + 0.123,
-    1.00 * mI + 0.382,
-    0.99 * mI + 0.282
-  ));
-  color += #00FFFF * nsin(vec3(
-    1.09 * mI + 0.223,
-    1.01 * mI + 0.482,
-    0.97 * mI + 0.382
-  ));
-
-  float mI2 = dot(rd, rRd);
-  color += #FF00FF * nsin(vec3(
-    1.11 * mI2 + 0.123,
-    1.30 * mI2 + 0.582,
-    1.01 * mI2 + 0.282
-  ));
-  color += #00FF00 * nsin(vec3(
-    0.89 * mI2 + 0.523,
-    1.01 * mI2 + 0.482,
-    0.97 * mI2 + 0.382
-  ));
-
-  return color * 0.5;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -727,7 +711,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.125 * amb * diffuseColor;
+        // lin += 0.125 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -735,7 +719,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.5 * vec3(pow(specAll, 8.0));
+      // color += 0.5 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
 
@@ -744,13 +728,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 1.0 * reflection(pos, reflectionRd);
       // color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
-      color += 1.00 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 1.00 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
-      color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      color = mix(background, color, exp(-t.x * 0.01));
+      // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
+      // color = mix(background, color, exp(-t.x * 0.01));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -791,7 +775,69 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec3 glitchTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float period = 4.0;
+  const float transitionTime = 0.25;
+  float modTime = mod(slowTime, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  float v = 0.0;
+
+  uv = abs(0.5 * uv);
+  foldNd(uv, normalize(vec2(0.824, 0.2384)));
+  foldNd(uv, normalize(vec2(noise(uv), noise(1.1 * uv + 0.234))));
+
+  float size1 = noise(3.1 * uv + 0.75 * vec2(modTime, -modTime));
+  float size2 = noise(3.1 * uv + 0.75 * vec2(modTime - period, -modTime + period));
+  float size = 0.5 + 0.1 * mix(size1, size2, mixT);
+
+  uv += 1.0 * noise(2.0432 * floor((50.0 * uv + size * 0.5) / size));
+
+  // Rotation
+  float angle = 0.01 * PI;
+  float s = sin(angle);
+  float c = cos(angle);
+  mat2 rot = mat2(c, s, -s, c);
+
+  uv += 0.200 * noise( 3.0 * uv.yx);
+  uv *= rot;
+  uv *= 0.91;
+
+  uv += 0.100 * noise( 5.0 * uv.yx);
+  uv *= rot;
+  uv *= 0.91;
+
+  uv += 0.050 * noise( 7.0 * uv.yx);
+  uv *= rot;
+  uv *= 0.91;
+
+  uv += 0.025 * noise(11.0 * uv.yx);
+  uv *= rot;
+  uv *= 0.91;
+
+  float p = 3.0 * noise(5.0 * uv);
+  float noiseOffset1 = vfbm4(5.0 * uv + 234923.0 + modTime);
+  float noiseOffset2 = vfbm4(5.0 * uv + 234923.0 + modTime - period);
+
+  float noiseOffset = 20.0 * mix(noiseOffset1, noiseOffset2, mixT);
+
+  v = cos(p * dot(uv, vec2(1)) + noiseOffset);
+  v *= smoothstep(0.25, 1.0, vfbmWarp(vec3(304. * uv, 0)));
+
+  color = vec3(v);
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+  color.r = glitchTexture(ro, rd, uv + vec2(0)).r;
+  color.g = glitchTexture(ro, rd, uv + 0.005 * uv).g;
+  color.b = glitchTexture(ro, rd, uv + 0.010 * uv).b;
+
+  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'probability-density-test2',
+    name: '8bit-mandala-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
