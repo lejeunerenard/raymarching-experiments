@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -30,7 +30,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 32
+#define maxSteps 1024
 #define maxDistance 50.0
 #define fogMaxDistance maxDistance
 
@@ -449,7 +449,8 @@ vec3 theColor (vec2 uv) {
   return mix(#10FFFF, #03E8A8, uv.y);
 }
 
-#define jTrap 9
+// 14
+#define jTrap 17
 float julia (in vec3 p, in vec4 c) {
     vec4 z = vec4(p, 0.);
 
@@ -484,13 +485,9 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.2500 * cos(2.0 * q.yzx + PI * 0.5 * slowTime);
-  q += 0.1250 * cos(3.0 * q.yzx + PI * 0.5 * slowTime);
-  q += 0.0625 * cos(5.0 * q.yzx + PI * 0.5 * slowTime);
-
   mPos = q.xyz;
 
-  vec3 o = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0.0, 0.0);
+  vec3 o = vec3(julia(q.xyz, offsetC + vec4(0, 1.225 * nsin(0.5 * slowTime + 0.75), 0, 0)), 0.0, 0.0);
   d = dMin(d, o);
 
   return d;
@@ -649,18 +646,16 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   ));
 
   float mI2 = dot(rd, rRd);
-  color += #00FFFF * nsin(vec3(
+  color += #FF00FF * nsin(vec3(
     1.11 * mI2 + 0.123,
     1.30 * mI2 + 0.582,
     1.01 * mI2 + 0.282
   ));
-  color += #FF0000 * nsin(vec3(
+  color += #00FF00 * nsin(vec3(
     0.89 * mI2 + 0.523,
     1.01 * mI2 + 0.482,
     0.97 * mI2 + 0.382
   ));
-
-  color *= 1.0 - smoothstep(0.999, 1.00, abs(sin(20.0 * dot(mPos.xy, vec2(1)))));
 
   return color * 0.5;
 }
@@ -700,12 +695,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 2;
-      const float repNUM_OF_LIGHTS = 0.5;
+      const int NUM_OF_LIGHTS = 3;
+      const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0.5, -0.5, 1.)), #FFFFFF, 1.0);
       lights[1] = light(normalize(vec3(-1., .75, 0.5)), #FFFFFF, 1.0);
-      // lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -722,7 +717,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.0, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        dif *= max(0.5, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -732,7 +727,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.25 * amb * diffuseColor;
+        lin += 0.125 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -740,7 +735,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 0.5 * vec3(pow(specAll, 8.0));
+      color += 0.5 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
 
