@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: '8bit-mandala-test2',
+    name: 'dispersion-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

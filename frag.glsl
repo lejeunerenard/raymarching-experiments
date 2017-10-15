@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -485,17 +485,17 @@ vec3 map (in vec3 p) {
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
-  q += 0.200 * cos( 7.0 * q.yzx + vec3(slowTime, 0, -slowTime));
-  q += 0.100 * cos(11.0 * q.yzx);
-  q += 0.050 * cos(13.0 * q.yzx);
+  q += 0.02500 * cos(5.0 * q.yzx);
+  q += 0.01250 * cos(11.0 * q.yzx);
+  q += 0.00725 * cos(19.0 * q.yzx + PI * 0.5 * slowTime);
 
   mPos = q.xyz;
 
-  vec3 o = vec3(sdBox(q.xyz, vec3(0.75)), 0.0, 0.0);
-  o.x *= 0.25;
+  vec3 o = vec3(sdBox(q.xyz, vec3(0.25)) - (0.1 + 0.002 * noise(20.0 * q)), 0.0, 0.0);
+  o.x *= 0.75;
   d = dMin(d, o);
 
   return d;
@@ -549,25 +549,29 @@ void colorMap (inout vec3 color) {
 #pragma glslify: debugColor = require(./debug-color-clip)
 
 const float n1 = 1.0;
-const float n2 = 1.7;
-const float amount = 0.25;
+const float n2 = 1.6;
+const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.0; // saturate(dot(rd, gRd));
-  // float n = smoothstep(0.75, 1.0, sin(25.0 * rd.x + 0.01 * noise(433.0 * rd)));
-  // float n = cnoise3(3.25 * rd + 0.0125 * noise(433.0 * rd));
-  // float v = n;
+  const float period = 4.0;
+  const float transitionTime = 0.25;
+  float modTime = mod(slowTime, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  // color = vec3(v * spread);
+  float spread = saturate(0.3 + dot(rd, gRd));
+  // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
-  rd *= 0.25;
+  float startPoint = 0.1;
+  vec3 spaceScaling = vec3(3.25, 3.25, 5.0);
 
-  color = vec3(
-    cnoise3(3.25 * rd + 0.0125 * noise(433.0 * rd)),
-    cnoise3(2.75 * rd + 0.0125 * noise(279.0 * rd)),
-    cnoise3(5.11 * rd + 0.0125 * noise(623.0 * rd)));
+  float n1 = cnoise3(spaceScaling * rd + startPoint + 0.5 * modTime + 0.0125 * noise(933.0 * rd));
+  float n2 = cnoise3(spaceScaling * rd + startPoint + 0.5 * (modTime - period) + 0.0125 * noise(933.0 * rd));
+  float n = mix(n1, n2, mixT);
+  float v = n;
+
+  color = vec3(v * spread);
 
   return clamp(color, 0., 1.);
 }
@@ -636,11 +640,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 glitchTexture(in vec3 ro, in vec3 rd, in vec2 uv);
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
-
-  color = mix(glitchTexture(pos, rd, mPos.xy), glitchTexture(pos, rd, mPos.xz),
-    saturate(dot(nor, normalize(vec3(1, 0, 1)))));
-
+  vec3 color = background;
   return color;
 }
 
@@ -658,11 +658,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.28 * t.x);
-      nor += 0.05 * vec3(
-          cnoise3(690.0 * mPos),
-          cnoise3(870.0 * mPos + 234.634),
-          cnoise3(910.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // nor += 0.05 * vec3(
+      //     cnoise3(690.0 * mPos),
+      //     cnoise3(870.0 * mPos + 234.634),
+      //     cnoise3(910.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -679,29 +679,29 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 3;
+      const int NUM_OF_LIGHTS = 1;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.5, -0.5, 1.)), #FFFFFF, 1.0);
-      lights[1] = light(normalize(vec3(-1., .75, 0.5)), #FFFFFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(-1, 0.5, 1.)), #FFFFFF, 1.0);
+      // lights[1] = light(normalize(vec3(-1., .75, 0.5)), #FFFFFF, 1.0);
+      // lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float dif = 1.; // diffuse(nor, lightPos);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
+        // dif *= max(0.5, saturate(softshadow(pos, lightPos, 0.15, 1.75)));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -719,7 +719,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 0.5 * vec3(pow(specAll, 8.0));
+      color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
 
@@ -728,7 +728,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 1.0 * reflection(pos, reflectionRd);
       // color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
-      // color += 1.00 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.75 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
@@ -832,12 +832,6 @@ vec3 glitchTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-  color.r = glitchTexture(ro, rd, uv + vec2(0)).r;
-  color.g = glitchTexture(ro, rd, uv + 0.005 * uv).g;
-  color.b = glitchTexture(ro, rd, uv + 0.010 * uv).b;
-
-  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -894,5 +888,5 @@ void main() {
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
     // 'Film' Noise
-    gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }
