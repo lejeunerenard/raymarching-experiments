@@ -25,7 +25,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
 const BLOOM_PASSES = 50
-const BLOOM_MIN_BRIGHTNESS = 0.85
+const BLOOM_MIN_BRIGHTNESS = 0.69
 
 // Initialize shell
 export default class App {
@@ -42,7 +42,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     const preset = {
       offset: {
@@ -53,14 +53,11 @@ export default class App {
       d: 5,
       scale: 1.91,
       rot2angle: [0.08, 0, 0],
-      cameraAngles: [-0.179, 0.451, 0.698]
-      // cameraAngles: [0.082, 0.634, 0.587]
+      cameraAngles: [-0.621, -0.469, -0.298]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1)
-    // this.cameraRo = vec3.fromValues(-0.125, 0.25, 0.482)
-    // this.cameraRo = vec3.fromValues(-0.095, 0.231, 0.482)
+    this.cameraRo = vec3.fromValues(-0.768, 0.743, 1.223)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
     this.color = [0, 0.33, 0.67]
     this.paletteSpeed = [1, 1, 1]

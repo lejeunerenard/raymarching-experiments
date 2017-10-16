@@ -7,8 +7,10 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 4
 const capturing = false
+
+const FOV = 50
 
 let app = new App()
 
@@ -17,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'bound-test1',
+    name: 'twist-n-shout-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -48,6 +50,7 @@ if (capturing) {
   let vrDisplay, effect, controls, currentRAF, manager
 
   effect = new ShaderVREffect(app.gl)
+  effect.fov = FOV
   controls = new ShaderVROrbitControls(app.gl)
 
   let params = {
@@ -149,6 +152,7 @@ if (capturing) {
   let vrDisplay, effect, controls, currentRAF, manager
 
   effect = new ShaderVREffect(app.gl)
+  effect.fov = FOV
   controls = new ShaderVROrbitControls(app.gl)
 
   let params = {
