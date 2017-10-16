@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_PASSES = 30
-const BLOOM_MIN_BRIGHTNESS = 0.72
+const BLOOM_PASSES = 50
+const BLOOM_MIN_BRIGHTNESS = 0.85
 
 // Initialize shell
 export default class App {
@@ -42,7 +42,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     const preset = {
       offset: {
@@ -58,10 +58,12 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-0.188, 0.303, 0.461)
+    this.cameraRo = vec3.fromValues(0, 0, 1)
     // this.cameraRo = vec3.fromValues(-0.125, 0.25, 0.482)
     // this.cameraRo = vec3.fromValues(-0.095, 0.231, 0.482)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
+    this.color = [0, 0.33, 0.67]
+    this.paletteSpeed = [1, 1, 1]
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.000001
@@ -403,6 +405,8 @@ export default class App {
 
     this.shader.uniforms.kifsM = this.kifsM(t)
     this.shader.uniforms.offsetC = this.offsetC
+    this.shader.uniforms.paletteOffset = this.color
+    this.shader.uniforms.paletteSpeed = this.paletteSpeed
   }
 
   bloomBlur (gl, t) {

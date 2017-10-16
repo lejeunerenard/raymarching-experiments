@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -17,6 +17,8 @@ uniform bool BLOOM;
 uniform vec3 cOffset;
 uniform vec3 cameraRo;
 uniform vec4 offsetC;
+uniform vec3 paletteOffset;
+uniform vec3 paletteSpeed;
 uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
@@ -48,7 +50,7 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: cnoise4 = require(glsl-noise/classic/4d)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
-//#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
+#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 //#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
@@ -238,6 +240,37 @@ float vfbmWarp (vec3 p) {
   vec3 s = vec3(0);
   vec3 r = vec3(0);
   return vfbmWarp(p, q, r, s);
+}
+float vfbmWarp (vec2 p, out vec2 q, out vec2 s, vec2 r) {
+  const float scale = 4.0;
+  const float angle = 0.1 * PI;
+  const float si = sin(angle);
+  const float c = cos(angle);
+  const mat2 rot = mat2(c, si, -si, c);
+
+  q = vec2(
+        vfbm4(p + vec2(0.0, 0.0)),
+        vfbm4(p + vec2(3.2, 34.5)));
+  q *= rot;
+
+  s = vec2(
+        vfbm4(p + scale * q + vec2(23.9, 234.0)),
+        vfbm4(p + scale * q + vec2(7.0, -232.0)));
+  s *= rot;
+
+  r = vec2(
+        vfbm4(p + scale * s + vec2(23.9, 234.0)),
+        vfbm4(p + scale * s + vec2(7.0, -232.0)));
+  r *= rot;
+
+  return vfbm6(p + scale * r);
+}
+float vfbmWarp (vec2 p) {
+  vec2 q = vec2(0);
+  vec2 s = vec2(0);
+  vec2 r = vec2(0);
+
+  return vfbmWarp(p, q, s, r);
 }
 
 #pragma glslify: import(./background)
@@ -488,13 +521,15 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.02500 * cos(5.0 * q.yzx);
-  q += 0.01250 * cos(11.0 * q.yzx);
-  q += 0.00725 * cos(19.0 * q.yzx + PI * 0.5 * slowTime);
+  // q += 0.062500 * cos(1.0 * q.yzx);
+  q += 0.031250 * cos(2.0 * q.yzx);
+  q += 0.15625 * cos(5.0 * q.yzx + PI * 0.5 * slowTime);
+  q.xzy = twist(q, q.y);
+  q += 0.007812 * cos(7.0 * q.yzx + PI * 0.5 * slowTime);
 
   mPos = q.xyz;
 
-  vec3 o = vec3(sdBox(q.xyz, vec3(0.25)) - (0.1 + 0.002 * noise(20.0 * q)), 0.0, 0.0);
+  vec3 o = vec3(sdTorus(q.xyz, vec2(0.3, 0.1)), 0.0, 0.0);
   o.x *= 0.75;
   d = dMin(d, o);
 
@@ -548,9 +583,19 @@ void colorMap (inout vec3 color) {
 #pragma glslify: rgb2hsv = require(./rgb2hsv.glsl)
 #pragma glslify: debugColor = require(./debug-color-clip)
 
+// IQ's
+vec3 hsb2rgb( in vec3 c ){
+    vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),
+                             6.0)-3.0)-1.0, 
+                     0.0, 
+                     1.0 );
+    rgb = rgb*rgb*(3.0-2.0*rgb);
+    return c.z * mix(vec3(1.0), rgb, c.y);
+}
+
 const float n1 = 1.0;
-const float n2 = 1.6;
-const float amount = 0.1;
+const float n2 = 1.5;
+const float amount = 0.5;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -560,15 +605,16 @@ vec3 textures (in vec3 rd) {
   float modTime = mod(slowTime, period);
   float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
 
-  float spread = saturate(0.3 + dot(rd, gRd));
+  float spread = 1.0 - saturate(dot(rd, gRd));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
-  float startPoint = 0.1;
-  vec3 spaceScaling = vec3(3.25, 3.25, 5.0);
+  float startPoint = 0.8;
+  vec3 spaceScaling = vec3(0.7, 0.7, 0.9);
 
-  float n1 = cnoise3(spaceScaling * rd + startPoint + 0.5 * modTime + 0.0125 * noise(933.0 * rd));
-  float n2 = cnoise3(spaceScaling * rd + startPoint + 0.5 * (modTime - period) + 0.0125 * noise(933.0 * rd));
+  float n1 = vfbm4(spaceScaling * rd + startPoint + 0.5 * modTime + 0.0125 * noise(933.0 * rd));
+  float n2 = vfbm4(spaceScaling * rd + startPoint + 0.5 * (modTime - period) + 0.0125 * noise(933.0 * rd));
   float n = mix(n1, n2, mixT);
+  n = smoothstep(0.35, 0.9, n);
   float v = n;
 
   color = vec3(v * spread);
@@ -658,11 +704,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.28 * t.x);
-      // nor += 0.05 * vec3(
-      //     cnoise3(690.0 * mPos),
-      //     cnoise3(870.0 * mPos + 234.634),
-      //     cnoise3(910.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      nor += 0.05 * vec3(
+          cnoise3(690.0 * mPos),
+          cnoise3(870.0 * mPos + 234.634),
+          cnoise3(910.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -690,8 +736,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.2;
+      float specCo = 0.9;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -706,7 +752,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
         // Specular Lighting
         fre *= freCo * dif * occ;
-        lin += fre * isMaterialSmooth(t.y, 0.0);
+        lin += fre;
         lin += specCo * spec * (1. - fre);
         specAll += specCo * spec * (1. - fre);
 
@@ -728,7 +774,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 1.0 * reflection(pos, reflectionRd);
       // color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
-      color += 1.75 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.70 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
@@ -831,7 +877,140 @@ vec3 glitchTexture (in vec3 ro, in vec3 rd, in vec2 uv) {
   return color;
 }
 
+#pragma glslify: rainbow = require(./color-map/rainbow)
+
+vec3 fakeDispersion (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  vec2 uv2 = uv;
+  // uv2 += 0.20 * cos( 2.0 * uv2.yx + slowTime);
+  // uv2 += 0.10 * cos( 7.0 * uv2.yx);
+  // uv2 += 0.05 * cos(11.0 * uv2.yx);
+  // uv2.y *= 0.25;
+  // uv2 *= 4.0;
+
+  float i = 0.0;
+  i = dot(uv2, vec2(1, -1));
+
+  //color = rainbow(mod(i, 1.0)).rgb;
+  color = hsb2rgb(vec3(i, 1.0, 1.0));
+
+  // Crop
+  // float diagLeftTop = dot(uv, vec2(0.5, -0.5));
+  // color *= 1.0 - smoothstep(0.4, 0.41, abs(dot(uv, vec2(0.5))) + 0.25 * diagLeftTop);
+
+  // if (v >= 1.0) {
+  //   color = #ff00ff;
+  // } else if (v <= 0.0) {
+  //   color = #00FF00;
+  // }
+
+  return color;
+}
+
+vec3 fakeDispersion2 (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  vec2 uv2 = uv;
+  uv2 += 0.20 * cos( 2.0 * uv2.yx + slowTime);
+  uv2 += 0.10 * cos( 7.0 * uv2.yx);
+  uv2 += 0.05 * cos(11.0 * uv2.yx);
+
+  float diagLeftTop = dot(uv2, vec2(0.5, -0.5));
+  float v = diagLeftTop + 0.5 + 0.0125 * snoise2(804.9 * uv2) + 0.1 * vfbmWarp(vec2(1.0, 0.1) * uv2);
+  color = 0.5 + 0.5 * cos(TWO_PI * (paletteSpeed * v + paletteOffset));
+
+  color = mix(vec3(0), color, 0.5 + 0.5 * vfbmWarp(vec2(1.0, 0.1) * uv2));
+
+  // Crop
+  diagLeftTop = dot(uv, vec2(0.5, -0.5));
+  color *= 1.0 - smoothstep(0.4, 0.41, abs(dot(uv, vec2(0.5))) + 0.25 * diagLeftTop);
+
+  // if (v >= 1.0) {
+  //   color = #ff00ff;
+  // } else if (v <= 0.0) {
+  //   color = #00FF00;
+  // }
+
+  return color;
+}
+vec3 fakeDispersion3 (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  vec2 uv2 = uv;
+  uv2 += 0.20 * cos( 2.0 * uv2.yx + slowTime);
+  uv2 += 0.10 * cos( 7.0 * uv2.yx);
+  uv2 += 0.05 * cos(11.0 * uv2.yx);
+  uv2.y *= 0.25;
+  //uv2 *= 2.0;
+
+  float dI = dot(rd, vec3(uv2, 0));
+  color += #ff00ff * vec3(
+    nsin(1.0 * dI + 0.00 + slowTime),
+    nsin(1.1 * dI + 0.12 + slowTime),
+    nsin(1.2 * dI + 0.40 + slowTime));
+  color += #00FF00 * vec3(
+    nsin(0.8 * dI + 0.00),
+    nsin(1.5 * dI + 0.12),
+    nsin(0.9 * dI + 0.40));
+
+  float dI2 = dot(uv2, vec2(1));
+  color += #0000ff * vec3(
+    nsin(1.0 * dI2 + 0.00 + 0.81 * slowTime),
+    nsin(1.1 * dI2 + 0.12 + 0.23 * slowTime),
+    nsin(1.2 * dI2 + 0.40 + 1.01 * slowTime));
+  color += #00FFFF * vec3(
+    nsin(0.8 * dI2 + 0.00),
+    nsin(1.5 * dI2 + 0.12),
+    nsin(0.9 * dI2 + 0.40));
+
+  color *= 0.7;
+
+  // Crop
+  // float diagLeftTop = dot(uv, vec2(0.5, -0.5));
+  // color *= 1.0 - smoothstep(0.4, 0.41, abs(dot(uv, vec2(0.5))) + 0.25 * diagLeftTop);
+
+  // if (v >= 1.0) {
+  //   color = #ff00ff;
+  // } else if (v <= 0.0) {
+  //   color = #00FF00;
+  // }
+
+  return color;
+}
+vec3 fakeDispersion4 (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  vec2 uv2 = uv;
+  uv2 += 0.20 * cos( 2.0 * uv2.yx + slowTime);
+  uv2 += 0.10 * cos( 7.0 * uv2.yx);
+  uv2 += 0.05 * cos(11.0 * uv2.yx);
+  uv2.y *= 0.25;
+  uv2 *= 4.0;
+
+  const int bands = 6;
+
+  for (int i = 0; i < bands; i++) {
+    float h = float(i) / float(bands);
+    color += smoothstep(-0.2, 0.8, cnoise3(vec3(uv2, h * 3.00))) * hsv(vec3(h, 1., 1.));
+  }
+  color /= 0.3 * float(bands);
+
+  // Crop
+  // float diagLeftTop = dot(uv, vec2(0.5, -0.5));
+  // color *= 1.0 - smoothstep(0.4, 0.41, abs(dot(uv, vec2(0.5))) + 0.25 * diagLeftTop);
+
+  // if (v >= 1.0) {
+  //   color = #ff00ff;
+  // } else if (v <= 0.0) {
+  //   color = #00FF00;
+  // }
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  // return vec4(fakeDispersion(ro, rd, uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -888,5 +1067,5 @@ void main() {
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
     // 'Film' Noise
-    // gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

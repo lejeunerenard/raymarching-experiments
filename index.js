@@ -17,7 +17,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dispersion-test1',
+    name: 'bound-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -115,6 +115,16 @@ if (capturing) {
   gui.add(app, 'd', 0, 20).step(0.01).listen()
   gui.add(app, 'scale', -6, 6).step(0.01).listen()
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
+
+  let colorF = gui.addFolder('Color')
+  colorF.add(app.color, '0', 0, 1).step(0.001).listen()
+  colorF.add(app.color, '1', 0, 1).step(0.001).listen()
+  colorF.add(app.color, '2', 0, 1).step(0.001).listen()
+
+  let paletteSpeed = gui.addFolder('Palette Speed')
+  paletteSpeed.add(app.paletteSpeed, '0', 0, 1).step(0.001).listen()
+  paletteSpeed.add(app.paletteSpeed, '1', 0, 1).step(0.001).listen()
+  paletteSpeed.add(app.paletteSpeed, '2', 0, 1).step(0.001).listen()
 
   let rotationF = gui.addFolder('Rotation')
   rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
