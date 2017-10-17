@@ -24,7 +24,7 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_PASSES = 50
+const BLOOM_PASSES = 20
 const BLOOM_MIN_BRIGHTNESS = 0.69
 
 // Initialize shell
@@ -42,7 +42,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     const preset = {
       offset: {
@@ -57,7 +57,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-0.768, 0.743, 1.223)
+    this.cameraRo = vec3.fromValues(1, 1, 1)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
     this.color = [0, 0.33, 0.67]
     this.paletteSpeed = [1, 1, 1]
