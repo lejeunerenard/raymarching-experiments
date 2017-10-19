@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'sands-of-time-test1',
+    name: 'longing-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
