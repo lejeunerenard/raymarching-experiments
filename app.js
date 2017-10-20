@@ -47,23 +47,21 @@ export default class App {
     const preset = {
       offset: {
         x: 1,
-        y: 0.78,
-        z: 0.669
+        y: 0.793,
+        z: 1.111
       },
       d: 5,
-      scale: 1.91,
-      rot2angle: [0.08, 0, 0],
+      scale: 1.31,
+      rot2angle: [0.348, 4.812, 0.568],
       cameraAngles: [-0.621, -0.469, -0.298]
     }
 
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
-    this.color = [0, 0.33, 0.67]
-    this.paletteSpeed = [1, 1, 1]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -73,7 +71,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -168,7 +166,7 @@ export default class App {
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween3)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -190,33 +188,32 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([0.777, 0.0, 0], 5 * 1000)
+      .to([0.348, 6.126, 2.107], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .delay(5 * 1000)
-      .to([0.226, 0.0, 5.849 - TWO_PI], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    // rotTween2
+    //   .delay(5 * 1000)
+    //   .to([0.226, 0.0, 5.849 - TWO_PI], 5 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
+    // rotTween1.chain(rotTween2)
     rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .to({ scale: 5.91 }, 10 * 1000)
+      .to({ scale: 5.91 }, 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .delay(10 * 1000)
       .to([
-        1,
-        -0.069,
-        -0.026
-      ], 5 * 1000)
+        0.008,
+        1.467,
+        1.876
+      ], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.start(0)

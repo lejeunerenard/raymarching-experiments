@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 30
 const capturing = false
 
 const FOV = 50
@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'longing-test1',
+    name: 'polite-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -109,25 +109,15 @@ if (capturing) {
   offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
   offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
 
-  let offsetC = gui.addFolder('Offset C')
-  offsetC.add(app.offsetC, '0', -5, 5).step(0.001).listen()
-  offsetC.add(app.offsetC, '1', -5, 5).step(0.001).listen()
-  offsetC.add(app.offsetC, '2', -5, 5).step(0.001).listen()
-  offsetC.add(app.offsetC, '3', -5, 5).step(0.001).listen()
+  // let offsetC = gui.addFolder('Offset C')
+  // offsetC.add(app.offsetC, '0', -5, 5).step(0.001).listen()
+  // offsetC.add(app.offsetC, '1', -5, 5).step(0.001).listen()
+  // offsetC.add(app.offsetC, '2', -5, 5).step(0.001).listen()
+  // offsetC.add(app.offsetC, '3', -5, 5).step(0.001).listen()
 
   gui.add(app, 'd', 0, 20).step(0.01).listen()
   gui.add(app, 'scale', -6, 6).step(0.01).listen()
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
-
-  let colorF = gui.addFolder('Color')
-  colorF.add(app.color, '0', 0, 1).step(0.001).listen()
-  colorF.add(app.color, '1', 0, 1).step(0.001).listen()
-  colorF.add(app.color, '2', 0, 1).step(0.001).listen()
-
-  let paletteSpeed = gui.addFolder('Palette Speed')
-  paletteSpeed.add(app.paletteSpeed, '0', 0, 1).step(0.001).listen()
-  paletteSpeed.add(app.paletteSpeed, '1', 0, 1).step(0.001).listen()
-  paletteSpeed.add(app.paletteSpeed, '2', 0, 1).step(0.001).listen()
 
   let rotationF = gui.addFolder('Rotation')
   rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
