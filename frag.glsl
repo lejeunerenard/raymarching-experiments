@@ -764,8 +764,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.5 * reflection(pos, reflectionRd);
       // color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
-      color += 0.1 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.40 * dispersion(nor, rayDirection, n2, n1);
+      // color += 0.1 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.10 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog

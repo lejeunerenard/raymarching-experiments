@@ -13,6 +13,8 @@ vec3 octahedronFold (in vec3 p, inout float minD) {
     foldInv(p.xy);
     foldInv(p.xz);
 
+    p += 0.0625 * cos(2.0 * p.yzx);
+
     // Stretch
     p = (vec4(p, 1.) * kifsM).xyz;
 
