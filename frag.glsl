@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 50.0
 #define fogMaxDistance maxDistance
 
@@ -521,12 +521,25 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = vec3(p);
 
-  vec3 o = vec3(octahedron(q), 0.0);
-  mPos = q.xyz;
+  vec3 o = vec3(length(q) - (0.5 + 0.1 * cnoise3(3.0 * q)), 0.0, 0.0);
   d = dMin(d, o);
+
+  q.xzy = q.xyz; // Rotate for torus
+
+  q.xyz += 0.1 * noise(4.0 * q.yzx + slowTime);
+  q.xyz *= rotationMatrix(normalize(vec3(
+          sin(PI * 0.5 * slowTime),
+          sin(PI * 0.75 * (slowTime + 7453.234534)),
+          sin(PI * 1.0 * (slowTime + 29427.3490)))), slowTime);
+
+  mPos = q.xyz;
+
+  vec3 t = vec3(sdTorus(q, vec2(0.45, 0.2 + 0.100 * sin(PI * 4.0 * (q + slowTime + noise(q))))), 0.0, 0.0);
+  d = dMax(d, -t);
+  d.x *= 0.25;
 
   return d;
 }
@@ -589,8 +602,8 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-const float n2 = 1.3;
-const float amount = 0.05;
+const float n2 = 1.4;
+const float amount = 0.075;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -599,7 +612,7 @@ vec3 textures (in vec3 rd) {
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.8;
-  vec3 spaceScaling = vec3(3.234);
+  vec3 spaceScaling = vec3(4.234);
 
   float n = cnoise3(spaceScaling * rd + startPoint + 0.0125 * noise(933.0 * rd));
   n = smoothstep(0.35, 0.9, n);
@@ -676,6 +689,31 @@ vec3 glitchTexture(in vec3 ro, in vec3 rd, in vec2 uv);
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
+  float dI = dot(nor, -rd);
+  color += #FF0F00 * nsin(vec3(
+    1.05 * dI,
+    1.1 * dI + 23.4349,
+    4.1 * dI + 2913.923));
+  color += #00F0FF * nsin(vec3(
+    1.0 * dI,
+    1.3 * dI + 23.0349,
+    4.1 * dI + 2914.023));
+
+  float dP = dot(pos, mPos);
+
+  color += #00FFFF * nsin(vec3(
+    3.1 * dP,
+    1.1 * dP + 23.4349,
+    4.1 * dP + 2913.923));
+  color += #FF0000 * nsin(vec3(
+    2.9 * dP + 0.1,
+    1.3 * dP + 23.0349,
+    4.1 * dP + 2914.023));
+
+  color += 0.5 + 0.5 * cos(TWO_PI * dI + vec3(0, 0.33, 0.67));
+
+  color *= 0.5;
+
   return color;
 }
 
@@ -714,12 +752,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 1;
-      const float repNUM_OF_LIGHTS = 1.0; // 0.333333;
+      const int NUM_OF_LIGHTS = 3;
+      const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0.25, .25, 0.5)), #FFFFFF, 1.0);
-      // lights[1] = light(normalize(vec3(0.25, .25, 0.5)), #FFFFFF, 1.0);
-      // lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
+      lights[1] = light(normalize(vec3(0.25, .25, 0.5)), #FFFFFF, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -737,7 +775,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.0, softshadow(pos, lightPos, 0.1, 1.75));
+        dif *= max(0.5, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -747,7 +785,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.1 * amb * diffuseColor;
+        lin += 0.3 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -759,18 +797,18 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.01 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.5 * reflection(pos, reflectionRd);
-      // color += reflectColor * isMaterialSmooth(t.y, 1.0);
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.5 * reflection(pos, reflectionRd);
+      color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
       // color += 0.1 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.10 * dispersion(nor, rayDirection, n2, n1);
+      // color += 5.0 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
-      color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      color = mix(background, color, exp(-t.x * 0.00001));
+      // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
+      // color = mix(background, color, exp(-t.x * 0.00001));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -867,13 +905,13 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    vec2 absUV = abs(uv);
-    float vignette = smoothstep(0.6, 1.2, max(absUV.x, absUV.y));
-    vignette *= vignette;
-    gl_FragColor.a += vignette;
-    vignette = 1.0 - vignette;
-    gl_FragColor.rgb *= vec3(vignette);
+    // vec2 absUV = abs(uv);
+    // float vignette = smoothstep(0.6, 1.2, max(absUV.x, absUV.y));
+    // vignette *= vignette;
+    // gl_FragColor.a += vignette;
+    // vignette = 1.0 - vignette;
+    // gl_FragColor.rgb *= vec3(vignette);
 
     // 'Film' Noise
-    gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    // gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
 }

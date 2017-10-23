@@ -8,8 +8,8 @@
 // #define HUE 1
 // #pragma glslify: hsv = require(glsl-hsv2rgb)
 
-// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
