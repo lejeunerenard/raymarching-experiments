@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.2
+const BLOOM_PASSES = 20
+const BLOOM_MIN_BRIGHTNESS = 0.6
 
 // Initialize shell
 export default class App {
@@ -393,6 +393,7 @@ export default class App {
 
     this.shader.uniforms.epsilon = this.epsilon
 
+    this.cameraRo = vec3.fromValues(0.05 * Math.sin(t / 1000 / 3), 0.1 * Math.sin(t / 1000 / 2), 1.7)
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])
