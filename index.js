@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'xibalba-test1',
+    name: 'brrrrrr-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

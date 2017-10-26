@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 1024
 #define maxDistance 50.0
 #define fogMaxDistance 30.0
 
@@ -522,10 +522,17 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
-  vec3 q = vec3(p) - vec3(0, 0, 3.0 * time);
+  vec3 q = vec3(p) - vec3(0, 0, time);
+
+  q += 0.50000 * cos( 2.0 * q.yzx + vec3(slowTime, -slowTime, 0.0) + 7.0 * q.z);
+  q += 0.25000 * cos( 5.0 * q.yzx + vec3(slowTime, -slowTime, 0.0) + q.z);
+  q += 0.12500 * cos( 7.0 * q.yzx + vec3(slowTime, -slowTime, 0.0) + q.z);
+  q += 0.06250 * cos(11.0 * q.yzx + vec3(slowTime, -slowTime, 0.0));
+  q += 0.03125 * cos(17.0 * q.yzx + vec3(slowTime, -slowTime, 0.0));
 
   mPos = q.xyz;
-  vec3 o = vec3(1.0 - length(q.xy) + 0.1 * cnoise3(2.0 * q + slowTime), 0.0, 0.0);
+  vec3 o = vec3(3.0 - length(q.xy) + 0.25 * noise(4.0 * q), 0.0, 0.0);
+  o.x *= 0.04;
   d = dMin(d, o);
 
   return d;
@@ -676,26 +683,17 @@ vec3 glitchTexture(in vec3 ro, in vec3 rd, in vec2 uv);
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  float lum = 0.1;
+  float md1 = dot(nor, -rd);
+  float md2 = dot(nor, pos);
 
-  vec3 ro = mPos;
-  rd = refract(nor, rd, n1 / n2);
-  #define STEPS 25
-  for( int i = 0; i < STEPS; i++ ){
-    vec3 p = ro + rd * .005 * float( i );
-
-    vec3 q;
-    vec3 r;
-
-    float n = vfbmWarp(2.0 * p + vec3(slowTime, -slowTime, noise(p + slowTime)), q, r);
-    lum += 2.0
-      * abs(cnoise3(p.xyz + q + 0.6 * sin(n * vec3(2.0, 2.0, 1.) + p.yzx + r)));
-
-    color += hsv(vec3( lum / 7.5 + 0.015 * mPos.z, 1. , 1. )) / lum;
-  }
-
-  color /= float(STEPS);
-  color = pow(color, vec3(2.00));
+  color += #FF00FF * vec3(
+    nsin(1.0 * md1 + 0.0),
+    nsin(1.2 * md1 + 0.4),
+    nsin(1.1 * md1 + 0.2));
+  color += #00FF00 * vec3(
+    nsin(0.8 * md1 + 0.15),
+    nsin(1.1 * md1 + 0.40),
+    nsin(1.4 * md1 + 0.30));
 
   return color;
 }
@@ -714,11 +712,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.28 * t.x);
-      // nor += 0.07 * vec3(
-      //     cnoise3(590.0 * mPos),
-      //     cnoise3(770.0 * mPos + 234.634),
-      //     cnoise3(310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      nor += 0.07 * vec3(
+          cnoise3(590.0 * mPos),
+          cnoise3(770.0 * mPos + 234.634),
+          cnoise3(310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -746,7 +744,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
+      float freCo = 1.0;
       float specCo = 1.0;
       float disperCo = 0.5;
 
@@ -754,11 +752,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float dif = diffuse(nor, lightPos);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.75, softshadow(pos, lightPos, 0.1, 1.75));
+        dif *= max(0.2, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -776,7 +774,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      // color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
 
@@ -785,7 +783,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.5 * reflection(pos, reflectionRd);
       // color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
-      // color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 5.0 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
