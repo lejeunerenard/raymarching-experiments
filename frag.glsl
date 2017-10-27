@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 384
 #define maxDistance 50.0
 #define fogMaxDistance 30.0
 
@@ -447,10 +447,10 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
-// #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+#pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
+// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
@@ -522,18 +522,25 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
-  vec3 q = vec3(p) - vec3(0, 0, time);
-
-  q += 0.50000 * cos( 2.0 * q.yzx + vec3(slowTime, -slowTime, 0.0) + 7.0 * q.z);
-  q += 0.25000 * cos( 5.0 * q.yzx + vec3(slowTime, -slowTime, 0.0) + q.z);
-  q += 0.12500 * cos( 7.0 * q.yzx + vec3(slowTime, -slowTime, 0.0) + q.z);
-  q += 0.06250 * cos(11.0 * q.yzx + vec3(slowTime, -slowTime, 0.0));
-  q += 0.03125 * cos(17.0 * q.yzx + vec3(slowTime, -slowTime, 0.0));
+  vec3 q = vec3(p);
 
   mPos = q.xyz;
-  vec3 o = vec3(3.0 - length(q.xy) + 0.25 * noise(4.0 * q), 0.0, 0.0);
-  o.x *= 0.04;
-  d = dMin(d, o);
+
+  pModPolar(q.xy, 6.0);
+  q.xy = abs(q.xy);
+
+  q.xyz += 0.5 * cos(2.0 * q.yzx);
+  q.xyz += 0.25 * cos(5.0 * q.yzx);
+  q.xyz += 0.125 * cos(7.0 * q.yzx);
+
+  for (int i = 0; i < 5; i++) {
+    vec3 qLocal = q + vec3(0, 0, 0.1 * float(i));
+    qLocal.y += (0.25 + 0.1 * float(i)) * cos(2.0 * PI * ((1.0 + 0.05 * float(i)) * qLocal.x - 0.5 * slowTime));
+
+    vec3 o = vec3(sdCapsule(qLocal.xyz, vec3(-1, 0, 0), vec3(1, 0, 0), 0.025), 0.0, 0.0);
+    d = dMin(d, o);
+  }
+  d.x *= 0.1;
 
   return d;
 }
@@ -667,7 +674,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.1);
   dNor = reflectionPointNor;
 
-  float sss = max(0.0, 1.0 - 1.25 * length(reflectionPoint - gPos));
+  vec3 delta = reflectionPoint - gPos;
+  float sss = max(0.0, 1.0 - 2.0 * pow(length(delta), 0.5));
   // vec3 disp = scene(refract(rd, reflectionPointNor, ior), ior);
   // disp *= min(1.0, 1.0 / (d * d * 5.0));
 
@@ -681,19 +689,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 glitchTexture(in vec3 ro, in vec3 rd, in vec2 uv);
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
-
-  float md1 = dot(nor, -rd);
-  float md2 = dot(nor, pos);
-
-  color += #FF00FF * vec3(
-    nsin(1.0 * md1 + 0.0),
-    nsin(1.2 * md1 + 0.4),
-    nsin(1.1 * md1 + 0.2));
-  color += #00FF00 * vec3(
-    nsin(0.8 * md1 + 0.15),
-    nsin(1.1 * md1 + 0.40),
-    nsin(1.4 * md1 + 0.30));
+  vec3 color = vec3(background);
 
   return color;
 }
@@ -712,7 +708,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.28 * t.x);
-      nor += 0.07 * vec3(
+      nor += 0.09 * vec3(
           cnoise3(590.0 * mPos),
           cnoise3(770.0 * mPos + 234.634),
           cnoise3(310.0 * mPos + 23.4634));
@@ -745,18 +741,18 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 1.0;
+      float specCo = 0.7;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float dif = max(0.5, diffuse(nor, lightPos));
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.2, softshadow(pos, lightPos, 0.1, 1.75));
+        // dif *= max(0.9, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -766,7 +762,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.3 * amb * diffuseColor;
+        lin += 0.95 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -783,8 +779,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.5 * reflection(pos, reflectionRd);
       // color += reflectColor * isMaterialSmooth(t.y, 1.0);
 
-      color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 5.0 * dispersion(nor, rayDirection, n2, n1);
+      color += 0.125 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
