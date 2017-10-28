@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.6
-const BLOOM_PASSES = 2
-const BLOOM_MIN_BRIGHTNESS = 1.00
+const BLOOM_PASSES = 8
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
 export default class App {

@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'tradition-test1',
+    name: 'cave-of-wonders-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
