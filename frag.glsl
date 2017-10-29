@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -449,7 +449,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 // #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-// #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
+#pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
@@ -522,22 +522,24 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
-  vec3 q = vec3(p) - vec3(0, 0, time);
 
-  q *= rotationMatrix(vec3(0, 0, 1), PI * 0.125 * sin(PI * (slowTime + 0.2 * q.z)));
+  vec3 q = vec3(p);
 
-  vec3 nP = vec3(
-    noise(2.0 * q + 0.0),
-    noise(2.4 * q + 1.4),
-    noise(2.6 * q + 6.9));
-  nP *= 2.0;
-  nP.xy *= 0.25;
-  float n = 1.0 * vfbm4(nP);
-
+  pMod3(q, vec3(0.052));
   mPos = q.xyz;
-  vec3 o = vec3(1.0 - length(q.xy) - n, 0.0, 0.0);
-  o.x *= 0.5;
-  d = dMin(d, o);
+  vec3 b = vec3(sdBox(q.xyz, vec3(0.025)), 0.0, 0.0);
+  d = dMin(d, b);
+
+  // Fractal Mask
+  vec3 fQ = vec3(p);
+  fQ.xy = abs(fQ.xy);
+
+  fQ += 0.100 * cos( 5.0 * fQ.yzx);
+  fQ += 0.050 * cos( 7.0 * fQ.yzx);
+  fQ += 0.025 * cos(11.0 * fQ.yzx);
+
+  vec2 o = octahedron(fQ);
+  d.x = max(d.x, o.x);
 
   return d;
 }
@@ -795,8 +797,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.5 * reflection(pos, reflectionRd);
-      // color += reflectColor * isMaterialSmooth(t.y, 1.0);
+      // reflectColor += 0.01 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // color += 0.125 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
@@ -901,12 +903,12 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    // vec2 absUV = abs(uv);
-    // float vignette = smoothstep(0.6, 1.2, max(absUV.x, absUV.y));
-    // vignette *= vignette;
-    // gl_FragColor.a += vignette;
-    // vignette = 1.0 - vignette;
-    // gl_FragColor.rgb *= vec3(vignette);
+    vec2 absUV = abs(uv);
+    float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
+    vignette *= vignette;
+    gl_FragColor.a += vignette;
+    vignette = 1.0 - vignette;
+    gl_FragColor.rgb *= vec3(vignette);
 
     // 'Film' Noise
     gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));

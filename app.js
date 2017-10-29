@@ -25,7 +25,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.6
 const BLOOM_PASSES = 8
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -44,7 +44,8 @@ export default class App {
 
     this.LOOKAT = true
 
-    const preset = {
+    this.presets = {}
+    const thingy = {
       offset: {
         x: 1,
         y: 0.876,
@@ -55,6 +56,22 @@ export default class App {
       rot2angle: [0.264, 0.86, 0.671],
       cameraAngles: [-0.621, -0.469, -0.298]
     }
+    this.presets.thingy = thingy
+
+    const nova = {
+      offset: {
+        x: 1.993,
+        y: 0.552,
+        z: -1.205
+      },
+      d: 5,
+      scale: 1.01,
+      rot2angle: [0.264, 0.313, 5.225],
+      cameraAngles: [-0.621, -0.469, -0.298]
+    }
+    this.presets.nova = nova
+
+    const preset = this.presets.nova
 
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0, 4)
@@ -71,7 +88,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -188,7 +205,7 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([0.71, this.rot2angle[1], this.rot2angle[2]], 30 * 1000)
+      .to([this.rot2angle[0], this.rot2angle[1], this.rot2angle[2]], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     // let rotTween2 = new TWEEN.Tween(this.rot2angle)
@@ -198,13 +215,14 @@ export default class App {
     //   .easing(TWEEN.Easing.Quadratic.InOut)
 
     // rotTween1.chain(rotTween2)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .to({ scale: 5.91 }, 30 * 1000)
+      .to({ scale: 1.5 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+    scaleTween1.start(0).repeat(2)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
@@ -393,7 +411,7 @@ export default class App {
 
     this.shader.uniforms.epsilon = this.epsilon
 
-    this.cameraRo = vec3.fromValues(0.05 * Math.sin(t / 1000 / 3), 0.1 * Math.sin(t / 1000 / 2), 1.7)
+    this.cameraRo = vec3.fromValues(0.01 * Math.sin(Math.PI * t / 1000 / 5), 0.05 * Math.sin(Math.PI * t / 1000 / 2), 1.7)
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])
