@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'nova-test1',
+    name: 'recursiverse-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

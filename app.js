@@ -23,9 +23,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.6
-const BLOOM_PASSES = 8
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_WET = 1.0
+const BLOOM_PASSES = 20
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 // Initialize shell
 export default class App {
@@ -74,7 +74,7 @@ export default class App {
     const preset = this.presets.nova
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 4)
+    this.cameraRo = vec3.fromValues(0, 0, 1.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -88,7 +88,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -411,7 +411,7 @@ export default class App {
 
     this.shader.uniforms.epsilon = this.epsilon
 
-    this.cameraRo = vec3.fromValues(0.01 * Math.sin(Math.PI * t / 1000 / 5), 0.05 * Math.sin(Math.PI * t / 1000 / 2), 1.7)
+    // this.cameraRo = vec3.fromValues(0.01 * Math.sin(Math.PI * t / 1000 / 5), 0.05 * Math.sin(Math.PI * t / 1000 / 2), 1.7)
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])

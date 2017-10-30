@@ -2,7 +2,7 @@
 
 vec3 getBackground (in vec2 uv) {
   float coord = 1.0 * uv.y;
-  return #ffffff;
+  return #000000;
   return mix(#FF8E4A, #FF5D6A, coord);
 }
 vec3 background = vec3(0.);

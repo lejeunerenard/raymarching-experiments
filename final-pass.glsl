@@ -12,6 +12,14 @@ uniform float wet;
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: import(./background)
 
+void colorMap (inout vec3 color) {
+  float l = length(vec4(color, 1.));
+  // Light
+  color = mix(#043210, color, 1. - l * .0625);
+  // Dark
+  color = mix(#ef78FF, color, clamp(exp(l) * .325, 0., 1.));
+}
+
 void main() {
   const vec3 gamma = vec3(2.2);
   const vec3 gammaEnc = vec3(0.454545);
@@ -30,6 +38,11 @@ void main() {
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
   // gl_FragColor = vec4(background + result.rgb, 1.);
+
+  // Post process
+  vec3 colorBefore = gl_FragColor.rgb;
+  colorMap(gl_FragColor.rgb);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.5);
 
   // Gamma encode
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
