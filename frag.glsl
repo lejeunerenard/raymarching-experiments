@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 50.0
 #define fogMaxDistance 30.0
 
@@ -384,7 +384,7 @@ scale, 0., 0., 0.,
 0., 1., 0., 0.,
 0., 0.2, 1., 0.,
 0., 0., 0., 1.);
-// #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=2, kifsM=kifsM, trapCalc=trapCalc)
+#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=4, kifsM=kifsM, trapCalc=trapCalc)
 // 
 // #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
@@ -432,11 +432,18 @@ float sdCylinder( vec3 p, vec3 c )
 {
   return length(p.xz-c.xy)-c.z;
 }
+float sdCappedCylinder( vec3 p, vec2 h )
+{
+  vec2 d = abs(vec2(length(p.xz),p.y)) - h;
+  return min(max(d.x,d.y),0.0) + length(max(d,0.0));
+}
 
 // p as usual, e exponent (p in the paper), r radius or something like that
 #pragma glslify: octahedral = require(./model/octahedral)
 // #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
+
+#pragma glslify: sdTriPrism = require(./model/tri-prism)
 
 bool isMaterial( float m, float goal ) {
   return m < goal + 1. && m > goal - .1;
@@ -461,6 +468,8 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
+
+// Starts at 0.5 goes towards 1.0
 float nsin (in float t) {
   return 0.5 + 0.5 * sin(TWO_PI * t);
 }
@@ -524,16 +533,48 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = vec3(p);
 
-  q.xyz += 0.500000 * cos( 5.0 * q.yzx + vec3(slowTime, time, -slowTime));
-  q.xyz += 0.250000 * cos( 7.0 * q.yzx + vec3(slowTime, time, -slowTime));
-  q.xyz += 0.125000 * cos(11.0 * q.yzx + vec3(slowTime, time, -slowTime));
+  vec3 qWarp = q;
 
-  float r = 0.4;
+  float fakeD = maxDistance;
+  qWarp.xyz = octahedronFold(qWarp.xyz, fakeD);
+
+  q = mix(q, qWarp, smoothstep(-1., 1., 1.1 * sin(TWO_PI * (0.25 * slowTime + 0.25))));
 
   mPos = q.xyz;
-  vec3 b = vec3(length(q.xyz) - r, 0.0, 0.0);
-  b.x *= 0.1;
-  d = dMin(d, b);
+
+  const float thickness = 0.01;
+
+  vec3 s = vec3(sdCappedCylinder(q.xzy, vec2(0.3, thickness)), 0.0, 0.0);
+  d = dMin(d, s);
+
+  float sCrop = sdCappedCylinder(q.xzy - vec3(0, 0.0, 0.2), vec2(0.35, 0.1));
+  d.x = max(d.x, -sCrop);
+
+  const vec2 triDimensions = vec2(0.095, thickness);
+  // Eyes
+  vec3 eQ = q.xyz;
+  eQ.x = abs(eQ.x);
+  eQ *= rotationMatrix(vec3(0, 0, 1), 0.1);
+  vec3 e = vec3(sdTriPrism(eQ - vec3(0.2, 0.25, 0), triDimensions), 0, 0);
+  d = dMin(d, e);
+
+  // Nose
+  vec3 n = vec3(sdTriPrism(q.xyz - vec3(0, 0.06, 0), triDimensions), 0, 0);
+  d = dMin(d, n);
+
+  // Teeth
+  const vec3 teethSize = vec3(0.04, 0.04, 0.5);
+  vec3 tQ = q.xyz;
+  tQ.x = abs(tQ.x);
+  tQ *= rotationMatrix(vec3(0, 0, 1), -0.2);
+  float t = sdBox(tQ - vec3(0.14, -0.14, 0), teethSize);
+  d.x = max(d.x, -t);
+
+  q.x *= 0.9;
+  float t2 = sdBox(q - vec3(0, -0.30, 0), teethSize);
+  d.x = max(d.x, -t2);
+
+  d *= 0.1;
 
   return d;
 }
@@ -693,14 +734,6 @@ vec3 gradient (in float t) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  float i = dot(nor, -rd) + 0.05 * noise(8349. * pos);
-  color = gradient(i);
-  color -= 0.1 * vfbm4(99.0 * pos);
-
-  color *= smoothstep(0.5, 0.7, vfbm6(873.0 * pos));
-
-  color += 0.1 * saturate(nor.y);
-
   return color;
 }
 
@@ -739,19 +772,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 color;
         float intensity;
       };
-      const int NUM_OF_LIGHTS = 3;
-      const float repNUM_OF_LIGHTS = 0.333333;
+      const int NUM_OF_LIGHTS = 1;
+      const float repNUM_OF_LIGHTS = 1.0; // 0.333333;
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0.25, .25, 0.5)), #FFFFFF, 1.0);
-      lights[1] = light(normalize(vec3(0.25, .25, 0.5)), #FFFFFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
+      // lights[1] = light(normalize(vec3(0.25, .25, 0.5)), #FFFFFF, 1.0);
+      // lights[2] = light(normalize(vec3(-0.75, 1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 0.1;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -772,7 +805,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.3 * amb * diffuseColor;
+        // lin += 0.3 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -823,9 +856,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      // vec3 glowColor = vec3(1);
-      // float i = 1. - 0.9 * pow(clamp(t.z / float(maxSteps), 0., 1.), 9.0);
-      // color = mix(vec4(glowColor, 1.0), color, i);
+      float i = 1. - 0.9 * pow(clamp(t.z / (0.75 * float(maxSteps)), 0., 1.), 2.0) - 0.025 * vfbm4(1.59 * (4.0 * uv + vec2(0.05 * t.z, 2.0 * slowTime)));
+
+      const vec3 pumpkinColor = vec3(0.8, 0.2725, 0);
+      vec3 glowColor = mix(#FFFFFF, pumpkinColor, smoothstep(0.0, 0.4, i));
+      glowColor = mix(glowColor, vec3(0.8, 0, 0), smoothstep(0.5, 0.7, i));
+      glowColor = mix(glowColor, vec3(0), smoothstep(0.7, 0.8, i));
+
+      color = mix(vec4(glowColor, 1.0), color, i);
 
       return color;
     }

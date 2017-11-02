@@ -23,9 +23,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 2.0
-const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 0.1
+const BLOOM_WET = 4.0
+const BLOOM_PASSES = 50
+const BLOOM_MIN_BRIGHTNESS = 0.8
 
 // Initialize shell
 export default class App {
@@ -71,7 +71,20 @@ export default class App {
     }
     this.presets.nova = nova
 
-    const preset = this.presets.nova
+    const jackOLatern = {
+      offset: {
+        x: 1.038,
+        y: -1.195,
+        z: 0.524
+      },
+      d: 5,
+      scale: 1.52,
+      rot2angle: [0.264, 0.313, 5.225],
+      cameraAngles: [-0.621, -0.469, -0.298]
+    }
+    this.presets.jackOLatern = jackOLatern
+
+    const preset = this.presets.jackOLatern
 
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0, 1.5)
