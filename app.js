@@ -23,9 +23,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 4.0
-const BLOOM_PASSES = 50
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_WET = 0.5
+const BLOOM_PASSES = 40
+const BLOOM_MIN_BRIGHTNESS = 0.5
 
 // Initialize shell
 export default class App {
@@ -84,14 +84,27 @@ export default class App {
     }
     this.presets.jackOLatern = jackOLatern
 
-    const preset = this.presets.jackOLatern
+    const fractalGem1 = {
+      offset: {
+        x: 1.441,
+        y: 0.89,
+        z: 0.228
+      },
+      d: 5,
+      scale: 1.13,
+      rot2angle: [0, 0, 0],
+      cameraAngles: [-0.621, -0.469, -0.298]
+    }
+    this.presets.fractalGem1 = fractalGem1
+
+    const preset = this.presets.fractalGem1
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)

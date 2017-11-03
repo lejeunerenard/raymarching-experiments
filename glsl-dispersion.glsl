@@ -3,13 +3,14 @@
 #define TWO_PI 6.2831853072
 #endif
 
-#define RGBCMY 1
+// #define RGBCMY 1
 // #define REFR_INTEGRAL 1
-// #define HUE 1
-// #pragma glslify: hsv = require(glsl-hsv2rgb)
+#define HUE 1
+#define HUE_NUM 90
+#pragma glslify: hsv = require(glsl-hsv2rgb)
 
-#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
@@ -56,23 +57,17 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
   #else
 
   #ifdef HUE
-  float ior1 = hue2IOR(0.0, greenIOR, n1, between);
-  float ior2 = hue2IOR(90.0, greenIOR, n1, between);
-  float ior3 = hue2IOR(180.0, greenIOR, n1, between);
-  float ior4 = hue2IOR(240.0, greenIOR, n1, between);
-
-  vec3 ior1Refract = refract(eye, nor, ior1);
-  vec3 ior2Refract = refract(eye, nor, ior2);
-  vec3 ior3Refract = refract(eye, nor, ior3);
-  vec3 ior4Refract = refract(eye, nor, ior4);
-
+  const float hueStep = 360.0 / float(HUE_NUM);
   vec3 color = vec3(0.);
-  color += hsv(vec3(0.0, 1.0, 1.0)) * scene(ior1Refract, ior1);
-  color += hsv(vec3(90.0, 1.0, 1.0)) * scene(ior2Refract, ior2);
-  color += hsv(vec3(180.0, 1.0, 1.0)) * scene(ior3Refract, ior3);
-  color += hsv(vec3(240.0, 1.0, 1.0)) * scene(ior4Refract, ior4);
 
-  color *= 0.25;
+  for (int i = 0; i < HUE_NUM; i++) {
+    float hue = float(i) * hueStep;
+    float ior = hue2IOR(hue, greenIOR, n1, between);
+    vec3 iorRefract = refract(eye, nor, ior);
+    color += hsv(vec3(hue * 0.002778, 1.0, 1.0)) * scene(iorRefract, ior);
+  }
+
+  color /= float(HUE_NUM);
 
   float R = color.r;
   float G = color.g;
