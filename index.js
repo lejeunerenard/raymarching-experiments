@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'their-totem-test1',
+    name: 'aurora-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 768
 #define maxDistance 50.0
 #define fogMaxDistance 30.0
 
@@ -348,6 +348,10 @@ float sdTorus88( vec3 p, vec2 t ) {
   return length16(q)-t.y;
 }
 
+float sdEllipsoid( in vec3 p, in vec3 r ) {
+    return (length( p/r ) - 1.0) * min(min(r.x,r.y),r.z);
+}
+
 float sdHexPrism( vec3 p, vec2 h ) {
     vec3 q = abs(p);
     return max(q.z-h.y,max((q.x*0.866025+q.y*0.5),q.y)-h.x);
@@ -389,6 +393,16 @@ scale, 0., 0., 0.,
 // #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
 #pragma glslify: twist = require(./twist)
+#
+void opCheapBend (inout vec3 p, float a) {
+    float c = cos(a*p.y);
+    float s = sin(a*p.y);
+    mat2 m = mat2(c,-s,s,c);
+    p = vec3(m*p.xy,p.z);
+}
+void opCheapBend (inout vec3 p) {
+  opCheapBend(p, 20.0);
+}
 
 // The "Round" variant uses a quarter-circle to join the two objects smoothly:
 float fOpUnionRound(float a, float b, float r) {
@@ -417,7 +431,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.025 * time;
+float gRAngle = TWO_PI * 0.05 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -531,14 +545,16 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   p *= globalRot;
-  vec3 q = vec3(p);
+  vec3 q = vec3(p.zyx);
 
-  q += 0.12500 * cos( 7.0 * q.yzx + slowTime);
-  q += 0.06250 * cos(11.0 * q.yzx);
-  q += 0.03125 * cos(17.0 * q.yzx);
+  q *= rotationMatrix(vec3(0, 1, 0), q.x);
+  q += 0.100 * cos(11.0 * q.yzx + vec3(slowTime, 0, 0));
+  q += 0.050 * cos(13.0 * q.yzx);
+  q += 0.025 * cos(17.0 * q.yzx);
 
-  vec3 o = vec3(sdBox(q, vec3(0.2, 0.5, 0.2)) - 0.01, 0, 0);
-  o.x *= 0.1;
+  float r1 = 0.3;
+  vec3 o = vec3(sdEllipsoid(q, vec3(r1, r1, 0.75)), 0, 0);
+  o.x *= 0.3;
   d = dMin(d, o);
 
   return d;
@@ -600,18 +616,20 @@ const float amount = 0.1;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.0 - 1.0 * saturate(dot(-rd, gNor));
+  float spread = 1.0; - 1.0 * saturate(dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.8;
 
-  vec3 spaceScaling = vec3(2.234, 2.234, 1.2);
-  float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.5, 1.00, n);
+  // vec3 spaceScaling = vec3(2.234, 2.234, 1.2);
+  // float n = ncnoise3(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.5, 1.00, n);
 
   // vec3 spaceScaling = vec3(1.0);
   // float n = vfbmWarp(spaceScaling * rd + startPoint);
   // n = smoothstep(0.65, 0.85, n);
+
+  float n = smoothstep(0.3, 1.0, rd.x);
 
   float v = n;
 
@@ -753,8 +771,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.3;
+      float freCo = 0.05;
+      float specCo = 0.2;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -762,7 +780,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
         float dif = 1.0; // max(0.5, diffuse(nor, lightPos));
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 128.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         // dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
@@ -792,7 +810,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.01 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      color += 4.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 3.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.25 * dispersion(nor, rayDirection, n2, n1);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
