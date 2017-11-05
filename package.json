@@ -53,7 +53,7 @@
     }
   },
   "scripts": {
-    "start": "budo index.js:bundle.js --live",
+    "start": "budo index.js:bundle.js --live -H `ipconfig getifaddr en0`",
     "build": "npm run build:bundle",
     "build:bundle": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
     "build:gallery": "npm run build:bundle; node bin/gallery.js",
