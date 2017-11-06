@@ -15,9 +15,9 @@ uniform float wet;
 void colorMap (inout vec3 color) {
   float l = length(vec4(color, 1.));
   // Light
-  color = mix(#9F6747, color, 1. - l * .003125);
+  color = mix(#00b3c8, color, 1. - l * .05125);
   // Dark
-  color = mix(#00b3c8, color, clamp(exp(l) * .925, 0., 1.));
+  color = mix(#9F6747, color, clamp(exp(l) * .255, 0., 1.));
 }
 
 void main() {
