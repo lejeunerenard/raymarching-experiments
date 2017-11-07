@@ -6,7 +6,8 @@
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
 #define HUE 1
-#define HUE_NUM 5
+#define HUE_NUM 100
+#define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 // #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
@@ -57,17 +58,22 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
   #else
 
   #ifdef HUE
-  const float hueStep = 360.0 / float(HUE_NUM);
+  const float hueStep = 1.0 / float(HUE_NUM);
   vec3 color = vec3(0.);
 
   for (int i = 0; i < HUE_NUM; i++) {
     float hue = float(i) * hueStep;
-    float ior = hue2IOR(hue, greenIOR, n1, between);
+    float ior = hue2IOR(360.0 * hue, greenIOR, n1, between);
     vec3 iorRefract = refract(eye, nor, ior);
-    color += hsv(vec3(hue * 0.002778, 1.0, 1.0)) * scene(iorRefract, ior);
+
+    #ifdef COS_HUE
+    color += (0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0., 0.33, 0.67)))) * scene(iorRefract, ior);
+    #else
+    color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior);
+    #endif
   }
 
-  color /= float(HUE_NUM);
+  color *= hueStep;
 
   float R = color.r;
   float G = color.g;

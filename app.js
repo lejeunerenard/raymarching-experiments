@@ -16,16 +16,16 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 2 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.25
-const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 1.0
+const BLOOM_WET = 1.00
+const BLOOM_PASSES = 40
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 // Initialize shell
 export default class App {
@@ -123,7 +123,7 @@ export default class App {
     const preset = this.presets.something
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.3)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -137,7 +137,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 

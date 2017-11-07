@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 128
 #define maxDistance 50.0
 #define fogMaxDistance 80.0
 
@@ -545,11 +545,14 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
-  vec3 q = vec3(p.zyx);
+  vec3 q = 2.0 * p;
 
-  vec3 o = vec3(dodecahedron(q), 0);
-  o.x *= 0.7;
-  d = dMin(d, o);
+  q += 0.1 * cos(7.0 * q.yzx);
+
+  q.z += 0.05 * cos(20.0 * q.x + 3.3 * cnoise3(vec3(4, 1, 1) * q));
+  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  s.x *= 0.7;
+  d = dMin(d, s);
 
   return d;
 }
@@ -604,7 +607,7 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-const float n2 = 1.35;
+const float n2 = 1.5;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -623,7 +626,7 @@ vec3 textures (in vec3 rd) {
   // float n = vfbmWarp(spaceScaling * rd + startPoint);
   // n = smoothstep(0.65, 0.85, n);
 
-  float n = smoothstep(0.3, 1.0, rd.x);
+  float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
   float v = n;
 
@@ -714,7 +717,7 @@ vec3 gradient (in float t) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.75);
+  vec3 color = vec3(background);
 
   return color;
 }
@@ -757,23 +760,23 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFEEEE, 3.0);
-      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #EEFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFFFFF, 1.0);
+      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #FFFFFF, 1.0);
       lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.3;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = diffuse(nor, lightPos);
+        float dif = 1.; // diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -787,7 +790,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.2 * amb * diffuseColor;
+        // lin += 0.2 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -795,7 +798,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      // color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * isMaterialSmooth(t.y, 1.0) * matCap(reflect(rayDirection, nor));
 
@@ -804,8 +807,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.01 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 3.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.25 * dispersion(nor, rayDirection, n2, n1);
+      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 3.0 * dispersion(nor, rayDirection, n2, n1);
+      // color = scene(rayDirection, 1.0);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
@@ -850,6 +854,18 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
+}
+
+vec3 grey (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  vec3 q = vec3(0);
+  vec3 r = vec3(0);
+  color += smoothstep(0.6, 1.0, vfbmWarp(2.0 * vec3(uv + 2.0 * vfbm4(uv), slowTime), q, r));
+
+  color += 0.3 * noise(6934.0 * vec3(uv, slowTime));
+
+  return color;
 }
 
 void main() {
@@ -904,12 +920,21 @@ void main() {
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
     vec2 absUV = abs(uv);
-    float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
-    vignette *= vignette;
-    gl_FragColor.a += vignette;
-    vignette = 1.0 - vignette;
-    gl_FragColor.rgb *= vec3(vignette);
+
+    // float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
+    // vignette *= vignette;
+    // gl_FragColor.a += vignette;
+    // vignette = 1.0 - vignette;
+    // gl_FragColor.rgb *= vec3(vignette);
+
+    // Crop
+    float maskRainbow = 1. - smoothstep(0., 0.00001, uv.x);
+    gl_FragColor.rgb *= maskRainbow;
+
+    float maskGrey = smoothstep(0., 0.00001, uv.x);
+    gl_FragColor.rgb += maskGrey * grey(uv);
 
     // 'Film' Noise
-    gl_FragColor.rgb += 0.015 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+    gl_FragColor.rgb += 0.030 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
+
 }
