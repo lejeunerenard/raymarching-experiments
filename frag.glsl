@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 512
 #define maxDistance 50.0
 #define fogMaxDistance 80.0
 
@@ -545,13 +545,16 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
-  vec3 q = 2.0 * p;
+  vec3 q = p;
 
-  q += 0.1 * cos(7.0 * q.yzx);
+  q += 0.1000 * cos( 7.0 * q.yzx + 0.5 * slowTime);
+  q *= rotationMatrix(normalize(vec3(1, 2, 1)), 0.1);
+  q += 0.0900 * cos(11.0 * q.yzx);
+  q *= rotationMatrix(normalize(vec3(1, 2, 1)), 0.1);
 
-  q.z += 0.05 * cos(20.0 * q.x + 3.3 * cnoise3(vec3(4, 1, 1) * q));
+  q.z += 0.06 * cos(21.3 * q.x + 5.3 * cnoise3(vec3(4, 1, 1) * q));
   vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
-  s.x *= 0.7;
+  s.x *= 0.1;
   d = dMin(d, s);
 
   return d;
@@ -607,7 +610,7 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-const float n2 = 1.5;
+const float n2 = 1.8;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -926,13 +929,6 @@ void main() {
     // gl_FragColor.a += vignette;
     // vignette = 1.0 - vignette;
     // gl_FragColor.rgb *= vec3(vignette);
-
-    // Crop
-    float maskRainbow = 1. - smoothstep(0., 0.00001, uv.x);
-    gl_FragColor.rgb *= maskRainbow;
-
-    float maskGrey = smoothstep(0., 0.00001, uv.x);
-    gl_FragColor.rgb += maskGrey * grey(uv);
 
     // 'Film' Noise
     gl_FragColor.rgb += 0.030 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));

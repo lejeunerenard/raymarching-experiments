@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: '8b1be5-test1',
+    name: 'squeeze-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

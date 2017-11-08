@@ -16,16 +16,16 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 2 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.00
-const BLOOM_PASSES = 40
-const BLOOM_MIN_BRIGHTNESS = 0.7
+const BLOOM_WET = 1.0
+const BLOOM_PASSES = 20
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
 export default class App {
