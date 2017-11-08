@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -854,21 +854,33 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 t = march(ro, rd);
-  return shade(ro, rd, t, uv);
-}
-
-vec3 grey (in vec2 uv) {
+vec3 lines (in vec2 uv) {
   vec3 color = vec3(0);
+
+  uv = abs(uv);
 
   vec3 q = vec3(0);
   vec3 r = vec3(0);
-  color += smoothstep(0.6, 1.0, vfbmWarp(2.0 * vec3(uv + 2.0 * vfbm4(uv), slowTime), q, r));
-
-  color += 0.3 * noise(6934.0 * vec3(uv, slowTime));
+  float v = vfbmWarp(vec3(uv + dot(uv, vec2(1)), slowTime), q, r);
+  v = band(v, 0.75, 0.85);
+  color = vec3(v);
 
   return color;
+}
+vec3 lines (in vec3 rd, in float ior) {
+  return lines(rd.xy);
+}
+
+vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  color += #FF0000 * lines(uv);
+  color += #00FF00 * lines(1.0075 * uv);
+  color += #0000FF * lines(1.0150 * uv);
+
+  return vec4(color, 1.0);
+  vec4 t = march(ro, rd);
+  return shade(ro, rd, t, uv);
 }
 
 void main() {
@@ -929,8 +941,4 @@ void main() {
     // gl_FragColor.a += vignette;
     // vignette = 1.0 - vignette;
     // gl_FragColor.rgb *= vec3(vignette);
-
-    // 'Film' Noise
-    gl_FragColor.rgb += 0.030 * (cnoise2((500. + 60.1 * time) * uv + sin(uv + time)) + cnoise2((500. + 300.0 * time) * uv + 253.5));
-
 }

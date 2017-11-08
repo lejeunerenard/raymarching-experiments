@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 1.0
-const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_PASSES = 40
+const BLOOM_MIN_BRIGHTNESS = 0.8
 
 // Initialize shell
 export default class App {
@@ -488,6 +488,7 @@ export default class App {
       this.bloom.uniforms.buffer = brightLayer.bind(1)
       this.bloom.uniforms.resolution = dim
       this.bloom.uniforms.direction = [1, 0]
+      this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
 
       // Vertical Blur
@@ -497,6 +498,7 @@ export default class App {
       this.bloom.uniforms.buffer = prev.bind(2)
       this.bloom.uniforms.resolution = dim
       this.bloom.uniforms.direction = [0, 1]
+      this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
     }
 
