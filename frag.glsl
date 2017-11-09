@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 50.0
 #define fogMaxDistance 80.0
 
@@ -547,13 +547,36 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.1000 * cos( 7.0 * q.yzx + 0.5 * slowTime);
-  q *= rotationMatrix(normalize(vec3(1, 2, 1)), 0.1);
-  q += 0.0900 * cos(11.0 * q.yzx);
-  q *= rotationMatrix(normalize(vec3(1, 2, 1)), 0.1);
+  // Wave offset
+  q.y += 0.5 * sin(p.x + PI * 0.5 * slowTime) + 0.25 * sin(1.5 * p.x + PI * slowTime);
 
-  q.z += 0.06 * cos(21.3 * q.x + 5.3 * cnoise3(vec3(4, 1, 1) * q));
-  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  float a = q.x + sin(2.0 * q.x) + exp(noise(p + time));
+  q.yz + vec2(
+    cos(a),
+    sin(a));
+
+  float a2 = q.x + sin(1.2 * q.y + noise(q + time));
+  q.yz + vec2(
+    cos(a2),
+    sin(a2));
+
+  // Tapper
+  q.yz *= 1.0 + pow(abs(0.2 * q.x), 2.0);
+
+  q.yzx = twist(q.yxz, -0.75 * q.x + 0.35 * noise(2.0 * vec3(0.0, q.yz)));
+
+  vec3 s = vec3(sdCapsule(q, vec3(-5, 0, 0), vec3(5, 0, 0), 1.5), 0, 0);
+
+  // Distortions
+  vec3 noiseP = 10.0 * q;
+  noiseP.x *= 0.05;
+  noiseP.x += 0.5 * time;
+  s.x += 0.1 * noise(noiseP);
+
+  float center = length(noiseP.yz);
+  float m = floor(360.0 * max(nsin(slowTime + 0.05 * center), center - 10.0)) * 0.002778;
+  s.z = m;
+
   s.x *= 0.1;
   d = dMin(d, s);
 
@@ -720,9 +743,14 @@ vec3 gradient (in float t) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
 
-  return color;
+  // float v = noise(vec3(14401, 32297, 78317) * pos);
+  // color = hsv(vec3(trap, 1, 1));
+  color = 0.5 + 0.5 * cos(TWO_PI * (trap + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (0.8 * dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+
+  return color * 0.8;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -771,19 +799,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 1.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = 1.; // diffuse(nor, lightPos);
+        float dif = diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.3, softshadow(pos, lightPos, 0.1, 1.75));
+        dif *= max(0.5, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -793,7 +821,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.2 * amb * diffuseColor;
+        lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -811,7 +839,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += reflectColor;
 
       // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 3.0 * dispersion(nor, rayDirection, n2, n1);
+      // color += 3.0 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
@@ -845,40 +873,16 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      float i = 1. - 1.0 * pow(clamp(t.z / 128.0, 0., 1.), 2.0);
+      // float i = 1. - 1.0 * pow(clamp(t.z / 128.0, 0., 1.), 2.0);
 
-      vec3 glowColor = #EEEEEE;
-      color = mix(vec4(glowColor, 1.0), color, i);
+      // vec3 glowColor = #EEEEEE;
+      // color = mix(vec4(glowColor, 1.0), color, i);
 
       return color;
     }
 }
 
-vec3 lines (in vec2 uv) {
-  vec3 color = vec3(0);
-
-  uv = abs(uv);
-
-  vec3 q = vec3(0);
-  vec3 r = vec3(0);
-  float v = vfbmWarp(vec3(uv + dot(uv, vec2(1)), slowTime), q, r);
-  v = band(v, 0.75, 0.85);
-  color = vec3(v);
-
-  return color;
-}
-vec3 lines (in vec3 rd, in float ior) {
-  return lines(rd.xy);
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  color += #FF0000 * lines(uv);
-  color += #00FF00 * lines(1.0075 * uv);
-  color += #0000FF * lines(1.0150 * uv);
-
-  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

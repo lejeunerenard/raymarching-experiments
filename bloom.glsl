@@ -3,7 +3,7 @@ precision highp float;
 uniform vec2 resolution;
 uniform vec2 direction;
 uniform sampler2D buffer;
-#define VARIABLE_BLOOM 1
+// #define VARIABLE_BLOOM 1
 
 #pragma glslify: blur = require(glsl-fast-gaussian-blur/13)
 #ifdef VARIABLE_BLOOM
