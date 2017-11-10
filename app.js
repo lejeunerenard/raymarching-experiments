@@ -19,13 +19,14 @@ import { vec3, mat4 } from 'gl-matrix'
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
-const TWO_PI = 2 * Math.PI
+// const TWO_PI = 2 * Math.PI
+const PHI = (1 + Math.sqrt(5)) / 2
 
-const MANDELBOX = false
+const MANDELBOX = true
 const BLOOM = true
-const BLOOM_WET = 8.0
-const BLOOM_PASSES = 60
-const BLOOM_MIN_BRIGHTNESS = 0.6
+const BLOOM_WET = 1.0
+const BLOOM_PASSES = 10
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 // Initialize shell
 export default class App {
@@ -42,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const thingy = {
@@ -120,14 +121,50 @@ export default class App {
       cameraAngles: [-0.621, -0.469, -0.298]
     }
 
-    const preset = this.presets.something
+    this.presets.tatted = {
+      offset: {
+        x: 0.326,
+        y: 2.61,
+        z: 0.716
+      },
+      d: 5,
+      scale: 1.28,
+      rot2angle: [0.111, 0.385, 0.481],
+      cameraAngles: [-0.621, -0.469, -0.298]
+    }
+
+    this.presets.dodecSierpinski = {
+      offset: {
+        x: 1,
+        y: 1,
+        z: 1
+      },
+      d: 5,
+      scale: PHI * PHI,
+      rot2angle: [0, 0, 0],
+      cameraAngles: [-0.621, -0.469, -0.298]
+    }
+
+    this.presets.mandelbox2 = {
+      offset: {
+        x: 0,
+        y: 0,
+        z: 0
+      },
+      d: 5,
+      scale: 2.11,
+      rot2angle: [1.703, 0, 0],
+      cameraAngles: [-0.203, -0.009, 0]
+    }
+
+    const preset = this.presets.mandelbox2
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-5.17, 0, 5.72)
+    this.cameraRo = vec3.fromValues(0, 2.3, 3.35)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -137,7 +174,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -240,16 +277,10 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .delay(5 * 1000)
-      .to([0.389, 1.166, 0], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTweenReturn = new TWEEN.Tween(this.rot2angle)
-    rotTweenReturn
-      .to([...this.rot2angle], 10 * 1000)
+      .to([4.496, 0, 0], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTweenReturn)
-    // rotTween1.start(0)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -262,7 +293,7 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     scaleTween1.chain(scaleTweenReturn)
-    scaleTween1.start(0)
+    // scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
@@ -279,7 +310,7 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.chain(offsetTweenReturn)
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
   }
 
   setupAudio () {

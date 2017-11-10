@@ -6,7 +6,7 @@ float C1 = abs(s - 1.);
 float C2 = pow(abs(s), float(1 - trap));
 
 float trapCalc (in vec4 z) {
-  return (length(z.xyz) - C1) / z.w;
+  return dot(z, vec4(1)) / z.w;
 }
 
 #pragma glslify: fold = require(./folds)

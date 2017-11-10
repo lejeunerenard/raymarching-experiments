@@ -21,8 +21,6 @@ vec3 dodecahedronFold (in vec3 p, inout float minD) {
 
     axis = vec3(-_PHI1_, _PHI2_, _1PHI_);
     foldNd(p, axis);
-    p += 0.10 * cos( 5.0 * p.yzx);
-    p += 0.05 * cos(11.0 * p.yzx);
 
     axis = vec3(_1PHI_, -_PHI1_, _PHI2_);
     foldNd(p, axis);

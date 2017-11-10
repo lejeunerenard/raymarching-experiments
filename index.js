@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 60
+const secondsLong = 30
 const capturing = false
 
 const FOV = 50
@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'parasitic-test1',
+    name: 'forbidden-city-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -127,9 +127,9 @@ if (capturing) {
   let cameraF = gui.addFolder('Camera')
 
   let cameraPosF = cameraF.addFolder('Position')
-  cameraPosF.add(app.cameraRo, '0', -10, 10).step(0.001).listen()
-  cameraPosF.add(app.cameraRo, '1', -10, 10).step(0.001).listen()
-  cameraPosF.add(app.cameraRo, '2', -10, 10).step(0.001).listen()
+  cameraPosF.add(app.cameraRo, '0', -20, 20).step(0.01).listen()
+  cameraPosF.add(app.cameraRo, '1', -20, 20).step(0.01).listen()
+  cameraPosF.add(app.cameraRo, '2', -20, 20).step(0.01).listen()
 
   let cameraRotF = cameraF.addFolder('Rotation')
   cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
