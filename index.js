@@ -6,8 +6,8 @@ import ShaderVROrbitControls from 'shader-vr-orbit-controls'
 import App from './app'
 
 const fr = 60
-const captureTime = 0 * 5
-const secondsLong = 30
+const captureTime = 1 * 5
+const secondsLong = 10
 const capturing = false
 
 const FOV = 50
@@ -19,8 +19,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'forbidden-city-test1',
-    autoSaveTime: 5,
+    name: 'roll-n-break-test4',
+    // autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
     timeLimit: secondsLong,

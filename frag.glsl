@@ -475,7 +475,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
-// #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
+#pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 // #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
@@ -547,9 +547,48 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  vec2 m = mandelbox(q);
-  vec3 s = vec3(m.x, 0, m.y);
+  float modTime = 5.0 * nsin(time * 0.1);
+  float expansionTime = smoothstep(1.0, 5.0, modTime);
+  float baseSize = 0.1 + 0.1 * 1.5 * expansionTime;
+  float size = baseSize + 4.0 * nsin(0.75 + 0.5 * expansionTime);
+  float halfSize = size * 0.5;
+  float joinSize = halfSize * 3.0;
+
+  // Adjust to expansion
+  q.y += 6.0 * nsin(0.75 + 0.5 * expansionTime);
+  q.x -= 0.25 * expansionTime;
+
+  // --- Roll around ---
+  float rollTime = quart(smoothstep(0., 1.0, modTime));
+
+  // Translation
+  q.x += 0.5 * rollTime - 0.25;
+
+  // Vertical
+  q.y -= joinSize + (1.414214 - 1.0) * joinSize * abs(sin(TWO_PI * rollTime));
+
+  // Rotation
+  q *= rotationMatrix(vec3(0, 0, 1), -rollTime * PI);
+
+
+  vec3 modQ = q;
+  vec3 c = pMod3(modQ, vec3(size));
+  c = abs(c);
+  vec3 s = vec3(sdBox(modQ, vec3(min(baseSize * 0.5, halfSize))), 0, 0);
+  s.x *= 0.5;
   d = dMin(d, s);
+
+  float crop = sdBox(q, vec3(joinSize));
+  d.x = max(d.x, crop);
+
+  // Absolute Crop
+  crop = sdBox(p, vec3(1.2));
+  d.x = max(d.x, crop);
+
+  // Floor
+  vec3 qF = p;
+  vec3 f = vec3(sdPlane(qF, vec4(0, 1, 0, 0)), 1, 0);
+  d = dMin(d, f);
 
   return d;
 }
@@ -604,8 +643,8 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-const float n2 = 1.5;
-const float amount = 0.1;
+const float n2 = 1.3;
+const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -716,13 +755,7 @@ vec3 gradient (in float t) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  float i = trap;
-  float i3 = dot(nor, -rd);
-
-  float v = i * 0.2 + i3 * 0.5 + 0.2;
-  color = 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0, 0.33, 0.67)));
-
-  return color * 1.5;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -771,7 +804,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.2;
       float specCo = 0.5;
       float disperCo = 0.5;
 
@@ -793,7 +826,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.1 * amb * diffuseColor;
+        lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -801,7 +834,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      // color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
@@ -810,8 +843,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.001 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.4 * dispersion(nor, rayDirection, n2, n1);
+      color += 0.2 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
