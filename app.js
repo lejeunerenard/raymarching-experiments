@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = true
 const BLOOM = true
-const BLOOM_WET = 1.0
+const BLOOM_WET = 4.0
 const BLOOM_PASSES = 20
-const BLOOM_MIN_BRIGHTNESS = 1.0
+const BLOOM_MIN_BRIGHTNESS = 0.4
 
 // Initialize shell
 export default class App {
@@ -43,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     this.presets = {}
     const thingy = {
@@ -158,10 +158,10 @@ export default class App {
     }
 
     const preset = this.presets.mandelbox2
-    preset.cameraAngles = [-0.724, -0.724, -0.543]
+    // preset.cameraAngles = [-0.724, -0.724, -0.543]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-1.15, 0.93, 0.8)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
