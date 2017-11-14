@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'neon-obscura-test1',
+    name: 'torment-test1',
     // autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

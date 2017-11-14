@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 40.0
 #define fogMaxDistance 90.0
 
@@ -547,13 +547,15 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.2 * cos(3.0 * q.yzx + PI * vec3(-2, slowTime + sin(PI * slowTime), slowTime));
-  q += 0.2 * cnoise3(3.0 * q.yzx);
-  q += 0.1 * cos(7.0 * q.yzx);
-  q += 0.1 * cnoise3(7.0 * q.yzx);
+  q += 0.20 * cos(5.0 * q.yzx + PI * vec3(-2.123, slowTime + sin(PI * slowTime), slowTime));
+  q += 0.20 * cnoise3(5.0 * q.yzx);
+  q += 0.10 * cos(7.0 * q.yzx);
+  q += 0.10 * cnoise3(7.0 * q.yzx);
+  q += 0.05 * cos(11.0 * q.yzx);
+  q += 0.05 * cnoise3(11.0 * q.yzx);
 
-  vec3 s = vec3(length(q) - 0.5, 0, 0);
-  s.x *= 0.4;
+  vec3 s = vec3(length(q) - 0.75, 0, 0);
+  s.x *= 0.2;
   d = dMin(d, s);
 
   return d;
@@ -721,27 +723,7 @@ vec3 gradient (in float t) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(background);
 
-  float l = 1.0;
-  vec3 ro = mPos + pos;
-  rd = refract(nor, rd, n1 / n2);
-
-  #define STEPS 10
-  for (int i = 0; i < STEPS; i++) {
-    vec3 p = ro + rd * 0.01 * float(i);
-
-    l += abs(
-      dot(vec2(1), sin(5.1 * p.xy + vec2(0, PI) + PI * sin(0.5 * PI * (slowTime + 2.0 * p.yz))))
-      + vfbmWarp(1.3 * p)
-    );
-
-    float v = (l + 2.0 * slowTime) * 0.075;
-    // color += (0.5 + 0.5 * cos(TWO_PI * (v + vec3(0, 0.33, 0.67)))) / l;
-    color += hsv(vec3(v, 1., 1.)) / l;
-  }
-
-  color /= float(STEPS);
-
-  return 1.5 * pow(color, vec3(2.5));
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -829,7 +811,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.001 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 0.2 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.2 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
@@ -840,8 +822,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
-
-      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
