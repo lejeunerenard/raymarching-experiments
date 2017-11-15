@@ -7,7 +7,7 @@
 // #define REFR_INTEGRAL 1
 #define HUE 1
 #define HUE_NUM 30
-#define COS_HUE 1
+// #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
 // #pragma glslify: hue2IOR = require(./dispersion-ray-direction)

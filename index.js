@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'torment-test1',
+    name: 'CLUSTR-test1',
     // autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

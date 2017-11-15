@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 40.0
 #define fogMaxDistance 90.0
 
@@ -544,19 +544,21 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
-  q += 0.20 * cos(5.0 * q.yzx + PI * vec3(-2.123, slowTime + sin(PI * slowTime), slowTime));
-  q += 0.20 * cnoise3(5.0 * q.yzx);
-  q += 0.10 * cos(7.0 * q.yzx);
-  q += 0.10 * cnoise3(7.0 * q.yzx);
-  q += 0.05 * cos(11.0 * q.yzx);
-  q += 0.05 * cnoise3(11.0 * q.yzx);
+  for (int i = -3; i < 3; i++) {
+    for (int j = -3; j < 3; j++) {
+      vec3 c = vec3(i, j, 0);
 
-  vec3 s = vec3(length(q) - 0.75, 0, 0);
-  s.x *= 0.2;
-  d = dMin(d, s);
+      float r = mod(17.359 * dot(c.xy, vec2(1)), 11.937);
+
+      vec3 qB = q * rotationMatrix(normalize(vec3(1, 3, 2)), PI * r);
+
+      vec3 b = vec3(sdBox(qB + c, vec3(0.25, 0.25, 1.0)), 0, 0);
+      d = dMin(d, b);
+    }
+  }
 
   return d;
 }
@@ -721,7 +723,7 @@ vec3 gradient (in float t) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(1);
 
   return color;
 }
@@ -806,12 +808,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.001 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
-      color += 0.2 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
