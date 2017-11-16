@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'CLUSTR-test1',
+    name: 'Bridge-test2',
     // autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
