@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -32,9 +32,9 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
-#define maxDistance 150.0
-#define fogMaxDistance 150.0
+#define maxSteps 64
+#define maxDistance 50.0
+#define fogMaxDistance 50.0
 
 #define slowTime time * .2
 
@@ -547,17 +547,21 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  q.xy += 0.4 * cos(3.0 * q.yx + PI * 0.25 * time);
+  const vec3 axis = normalize(vec3(0., 1., 0.1));
+  const int width = 25;
+  const float thickness = 0.025;
 
-  float taper = -5.0 * smoothstep(0.1, 3.0 * maxDistance, -q.z);
+  for (int i = 0; i < 1; i++)
+  for (int j = -width; j < width; j++) {
+    vec3 originOffset = vec3(0.1 * float(j), 0, i);
+    originOffset.y = 0.25 * sin(PI * 1.0 * (originOffset.x + slowTime + float(i) * 0.5));
+    vec3 relQ = q + originOffset;
+    relQ *= rotationMatrix(axis, PI * (mod(31. * dot(vec2(1), originOffset.xz), 23.) * 0.043478 + 0.0625 * smoothstep(0.5, 1.0, sin(PI * (slowTime + originOffset.x)))));
 
-  float r = 5.0 + taper;
-
-  vec3 t = vec3(r - length(q.xy), 0, 0);
-  d = dMin(d, t);
-
-  // vec3 s = vec3(length(p + vec3(0, 0, 10)) - 1.0, 1, 0);
-  // d = dMin(d, s);
+    float h = 4.0 - 1.0 * smoothstep(0., 0.5, noise(37.713 * originOffset));
+    vec3 b = vec3(sdBox(relQ, vec3(0.05, h, 0.05)), 0, 0);
+    d = dMin(d, b);
+  }
 
   return d;
 }
@@ -722,30 +726,9 @@ vec3 gradient (in float t) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  const float speed = 20.0;
-
-  float prevN = 0.0;
-  for (int i = 0; i < 60; i++) {
-    vec3 nP = (pos + vec3(0, 0, (speed + float(i) * 2.0) * -time)) * vec3(2, 2, 0.01);
-    float n = cnoise3(nP + vec3(prevN, float(i) * 1.93, float(i * i)));
-    prevN = n;
-    n = smoothstep(0.55, 1.0, n);
-
-    float hue = mod(float(i) * 23.17, 13.151); // 'Random' value
-    hue += 0.2 * pos.z; // shift w/ depth
-
-    hue *= 0.07604; // Resize from [0, 13.151] to [0,1]
-
-    vec3 layer = n * hsv(vec3(hue, 1, 1));
-    layer += 0.85 * n * n;
-    color += 0.5 * layer;
-  }
-
-  color = mix(color, vec3(1), isMaterialSmooth(m, 1.0));
-
-  return 8.0 * pow(color, vec3(2.0));
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -833,7 +816,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.25 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
       // color += 0.005 + 0.005 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
@@ -933,8 +916,7 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    vec2 absUV = abs(uv);
-
+    // vec2 absUV = abs(uv);
     // float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
     // vignette *= vignette;
     // gl_FragColor.a += vignette;

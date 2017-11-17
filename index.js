@@ -19,8 +19,8 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'Bridge-test2',
-    // autoSaveTime: 5,
+    name: 'shimmer-test1',
+    autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
     timeLimit: secondsLong,
