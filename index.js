@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'shimmer-test1',
+    name: 'surge-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
