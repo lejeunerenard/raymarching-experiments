@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -540,6 +540,8 @@ vec3 travel (in float t) {
 
 // Return value is (distance, material, orbit trap)
 vec3 mPos = vec3(0);
+float amountV = 0.05;
+float n2 = 1.3;
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
@@ -549,12 +551,14 @@ vec3 map (in vec3 p) {
 
   mPos = q;
 
+  vec3 absQ = abs(q);
   vec3 nQ = vec3(
-      cnoise3(1.0 * q + 0.00000 + slowTime),
-      cnoise3(1.2 * q + 234.534 + slowTime),
-      cnoise3(1.3 * q + 934.534 + slowTime));
-  q.z += 0.1 * cnoise3(vec3(5, 5, 0.5) * nQ + 23495.340);
+      noise(1.0 * absQ + 0.00000 + slowTime),
+      noise(1.2 * absQ + 234.534 + slowTime),
+      noise(1.3 * absQ + 934.534 + slowTime));
+  q.z += 0.2 * cnoise3(vec3(5, 5, 0.5) * (nQ + absQ) + 23495.340);
 
+  n2 = 1.3 + 0.5 * cnoise3(5.0 * q);
   vec3 b = vec3(sdBox(q, vec3(1, 1, 0.1)) - 0.01, 0, 0);
   b.x *= 0.4;
   d = dMin(d, b);
@@ -612,7 +616,7 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-const float n2 = 1.3;
+// float n2 = 1.3;
 const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
@@ -649,7 +653,7 @@ vec3 scene (in vec3 rd, in float ior) {
   return color;
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amount)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amountV)
 
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.001;
@@ -722,10 +726,7 @@ vec3 gradient (in float t) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
-  float dI = dot(nor, -rd);
-  dI *= dI;
-  color = 0.6 + 0.45 * cos(TWO_PI * (0.6 * dI + 0.05 + vec3(0, 0.33, 0.67)));
+  vec3 color = vec3(background);
   return color;
 }
 
@@ -773,7 +774,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
-      const float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
+      float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
       float specCo = 1.0;
@@ -805,19 +806,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 2.0 * vec3(pow(specAll, 8.0));
+      color += 1.0 * vec3(pow(specAll, 8.0));
 
-      color += 0.01 * matCap(reflect(rayDirection, nor));
+      // color += 0.01 * matCap(reflect(rayDirection, nor));
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 0.25 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
-      color += 0.1 + 0.1 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
+      // color += 0.1 + 0.1 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
       color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
