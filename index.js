@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'exo-skeleton-test1',
+    name: 'space-graph-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

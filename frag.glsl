@@ -549,18 +549,10 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   vec3 q = p;
 
-  mPos = q;
-
-  vec3 absQ = abs(q);
-  vec3 nQ = vec3(
-      noise(1.0 * absQ + 0.00000 + slowTime),
-      noise(1.2 * absQ + 234.534 + slowTime),
-      noise(1.3 * absQ + 934.534 + slowTime));
-  q.z += 0.2 * cnoise3(vec3(5, 5, 0.5) * (nQ + absQ) + 23495.340);
-
-  n2 = 1.3 + 0.5 * cnoise3(5.0 * q);
-  vec3 b = vec3(sdBox(q, vec3(1, 1, 0.1)) - 0.01, 0, 0);
-  b.x *= 0.4;
+  float r = 1.0;
+  r += cnoise3(3.0 * q.yzx + slowTime);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x *= 0.2;
   d = dMin(d, b);
 
   return d;
@@ -725,8 +717,32 @@ vec3 gradient (in float t) {
   return color;
 }
 
+// source:
+// http://learningwebgl.com/blog/?p=2858
+float crossHatching (in vec3 color) {
+  float v = 1.0;
+  float l = color.x;
+
+  float period = 0.021;
+  float limit = period * 0.2;
+  if (mod(dot(fragCoord.xy, vec2(1)), period) <= limit && l > 1.0) {
+    v = 0.0;
+  }
+  if (mod(dot(fragCoord.xy, vec2(1, -1)), period) <= limit && l > 0.75) {
+    v = 0.0;
+  }
+  if (mod(dot(fragCoord.xy, vec2(1)) - 5.0, period) <= limit && l > 0.5) {
+    v = 0.0;
+  }
+  if (mod(dot(fragCoord.xy, vec2(1, -1)) - 5.0, period) <= limit && l > 0.3465) {
+    v = 0.0;
+  }
+
+  return 1.0 - v;
+}
+
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(1);
   return color;
 }
 
@@ -770,7 +786,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       light lights[NUM_OF_LIGHTS];
       lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFFFFF, 1.0);
       lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #FFFFFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #FF8888, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
@@ -784,11 +800,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.75, diffuse(nor, lightPos));
+        float dif = diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
+        dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -798,7 +814,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        // lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -815,7 +831,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      color += 0.5 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 0.75 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
       // color = scene(rayDirection, 1.0);
       // color += 0.1 + 0.1 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
@@ -826,6 +842,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
+
+      color = vec3(crossHatching(color));
 
       // Debugging
       #ifdef debugMapCalls
