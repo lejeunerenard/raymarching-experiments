@@ -11,6 +11,7 @@ uniform sampler2D buffer;
 uniform float wet;
 
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
+#pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: import(./background)
 
 void colorMap (inout vec3 color) {

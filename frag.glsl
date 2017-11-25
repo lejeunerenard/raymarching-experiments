@@ -273,6 +273,7 @@ float vfbmWarp (vec2 p) {
   return vfbmWarp(p, q, s, r);
 }
 
+vec3 hsv(vec3 c);
 #pragma glslify: import(./background)
 
 // Orbit Trap
@@ -547,14 +548,29 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
+  // Scaling
+  q.xz *= 3.0 + 3.0 * saturate(0.25 * (q.y + 2.2));
+  q.y *= 0.6;
 
-  float r = 1.0;
-  r += cnoise3(3.0 * q.yzx + slowTime);
-  vec3 b = vec3(length(q) - r, 0, 0);
-  b.x *= 0.2;
-  d = dMin(d, b);
+  float rate = 2.3 * time;
+  float r = 4.0;
+  for (int i = 0; i < 9; i++) {
+    vec3 pQ = q;
+    pQ.xz += 0.5 * cos(1.5 * q.yx + 0.9 * float(i));
+    float rMod = noise(vec2(i, 2.1 * mod(float(i), 2.) + 1.0));
+    float a = TWO_PI * noise(vec2(1.9 * mod(float(i), 2.) + 1.0, 1.7 * float(i)) + 23.23);
+
+    pQ.xz += r * rMod * vec2(cos(a), sin(a));
+
+    // Move up over time
+    pQ.y -= mod(rate - float(i) * 2.21, 10.0) - 5.0;
+
+    vec3 b = vec3(octahedral(pQ, 30.0, 0.5), 0, 0);
+    b.x *= 0.2;
+    d = dMin(d, b);
+  }
 
   return d;
 }
@@ -743,7 +759,7 @@ float crossHatching (in vec3 color) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(1.5);
   return color;
 }
 
@@ -794,14 +810,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 1.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = diffuse(nor, lightPos);
+        float dif = max(0.6, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -815,7 +831,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.5 * amb * diffuseColor;
+        lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -838,13 +854,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 0.1 + 0.1 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
-      color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      color = mix(background, color, exp(-t.x * 0.01));
+      // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
+      // color = mix(background, color, exp(-t.x * 0.01));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
-
-      color = vec3(crossHatching(color));
 
       // Debugging
       #ifdef debugMapCalls
@@ -878,50 +892,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec3 texture1 (in vec2 uv) {
-  vec3 color = vec3(0);
-
-  uv *= 0.25;
-  vec2 nP = uv + vec2(
-      cnoise2(2.0 * uv + 1423.),
-      cnoise2(5.0 * uv)) + slowTime;
-  nP += 0.4 * cos(4.0 * nP.yx + uv);
-  nP += 0.2 * cos(8.0 * nP.yx + uv);
-
-  nP = nP + uv + vec2(
-      cnoise2(1.0 * nP + 123423.),
-      cnoise2(3.0 * nP));
-
-  float v = cnoise3(vec3(10.0 * (uv + nP), slowTime));
-  float c = v + cnoise2(0.1 * nP);
-  v = smoothstep(0.1, 0.11, v);
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (c + vec3(0, 0.33, 0.67)));
-  color *= v;
-  color += 0.5 + 0.5 * cos(TWO_PI * (0.5 * c + vec3(0, 0.33, 0.67)));
-
-  float n2 = smoothstep(0.3, 0.31, sin(TWO_PI * cnoise2(9.0 * (uv.yx + uv + sin(nP)) + slowTime + 543.35)));
-  vec2 aUv = abs(uv);
-
-  vec3 beforeColor = color;
-
-  float modTime = mod(slowTime, 3.0);
-
-  // To B&W
-  float r = 0.1 * bounce(smoothstep(0.0, 0.5, modTime)) + 0.9 * bounce(smoothstep(0.75, 1.25, modTime));
-  color = mix(color, vec3(1), 1.0 - smoothstep(r * 1.075, r * 1.075 + 0.0001, max(aUv.x, aUv.y)));
-  color = mix(color, vec3(n2), 1.0 - smoothstep(r, r + 0.0001, max(aUv.x, aUv.y)));
-
-  // To Color
-  float r2 = 0.1 * bounce(smoothstep(1.5, 2.0, modTime)) + 0.9 * bounce(smoothstep(2.25, 2.75, modTime));
-  color = mix(color, vec3(1), 1.0 - smoothstep(r2 * 1.075, r2 * 1.075 + 0.0001, max(aUv.x, aUv.y)));
-  color = mix(color, beforeColor, 1.0 - smoothstep(r2, r2 + 0.0001, max(aUv.x, aUv.y)));
-
-  return color;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(texture1(uv), 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
