@@ -23,7 +23,7 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = true
-const BLOOM = true
+const BLOOM = false
 const BLOOM_WET = 1.0
 const BLOOM_PASSES = 1
 const BLOOM_MIN_BRIGHTNESS = 1.00

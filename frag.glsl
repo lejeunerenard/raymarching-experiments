@@ -474,6 +474,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
+#pragma glslify: bounce = require(glsl-easings/bounce-out)
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
 #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
@@ -877,7 +878,50 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec3 texture1 (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  uv *= 0.25;
+  vec2 nP = uv + vec2(
+      cnoise2(2.0 * uv + 1423.),
+      cnoise2(5.0 * uv)) + slowTime;
+  nP += 0.4 * cos(4.0 * nP.yx + uv);
+  nP += 0.2 * cos(8.0 * nP.yx + uv);
+
+  nP = nP + uv + vec2(
+      cnoise2(1.0 * nP + 123423.),
+      cnoise2(3.0 * nP));
+
+  float v = cnoise3(vec3(10.0 * (uv + nP), slowTime));
+  float c = v + cnoise2(0.1 * nP);
+  v = smoothstep(0.1, 0.11, v);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (c + vec3(0, 0.33, 0.67)));
+  color *= v;
+  color += 0.5 + 0.5 * cos(TWO_PI * (0.5 * c + vec3(0, 0.33, 0.67)));
+
+  float n2 = smoothstep(0.3, 0.31, sin(TWO_PI * cnoise2(9.0 * (uv.yx + uv + sin(nP)) + slowTime + 543.35)));
+  vec2 aUv = abs(uv);
+
+  vec3 beforeColor = color;
+
+  float modTime = mod(slowTime, 3.0);
+
+  // To B&W
+  float r = 0.1 * bounce(smoothstep(0.0, 0.5, modTime)) + 0.9 * bounce(smoothstep(0.75, 1.25, modTime));
+  color = mix(color, vec3(1), 1.0 - smoothstep(r * 1.075, r * 1.075 + 0.0001, max(aUv.x, aUv.y)));
+  color = mix(color, vec3(n2), 1.0 - smoothstep(r, r + 0.0001, max(aUv.x, aUv.y)));
+
+  // To Color
+  float r2 = 0.1 * bounce(smoothstep(1.5, 2.0, modTime)) + 0.9 * bounce(smoothstep(2.25, 2.75, modTime));
+  color = mix(color, vec3(1), 1.0 - smoothstep(r2 * 1.075, r2 * 1.075 + 0.0001, max(aUv.x, aUv.y)));
+  color = mix(color, beforeColor, 1.0 - smoothstep(r2, r2 + 0.0001, max(aUv.x, aUv.y)));
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(texture1(uv), 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
