@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = true
 const BLOOM = true
-const BLOOM_WET = 1
-const BLOOM_PASSES = 2
-const BLOOM_MIN_BRIGHTNESS = 1.0
+const BLOOM_WET = 8
+const BLOOM_PASSES = 50
+const BLOOM_MIN_BRIGHTNESS = 0.25
 
 // Initialize shell
 export default class App {
@@ -183,7 +183,7 @@ export default class App {
     // preset.cameraAngles = [-0.724, -0.724, -0.543]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -275,10 +275,21 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ y: 0.748, z: 0.934 }, 5 * 1000)
+      .to({ x: -0.025 }, 5 * 1000)
       .onUpdate(updatePos)
 
-    // cameraPosTween.start(0)
+    let cameraPosTween2 = new TWEEN.Tween(ob)
+    cameraPosTween2
+      .to({ x: 0.025 }, 10 * 1000)
+      .onUpdate(updatePos)
+    let cameraPosTweenReturn = new TWEEN.Tween(ob)
+    cameraPosTweenReturn
+      .to({ x: 0 }, 5 * 1000)
+      .onUpdate(updatePos)
+
+    cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween2.chain(cameraPosTweenReturn)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {

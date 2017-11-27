@@ -547,13 +547,46 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
+  // p.y -= 0.5;
+  // p.z += 3.0;
   vec3 q = p;
 
-  pModPolar(q.xy, 6.0);
+  vec3 cameraRd = normalize(cameraRo - q);
 
-  vec2 o = octahedron(q);
-  vec3 b = vec3(o.x, 0, 0);
-  d = dMin(d, b);
+  vec3 s = vec3(length(q) - 0.5, 0, 0);
+  d = dMin(d, s);
+
+  q.z -= 0.3;
+  vec3 s2 = vec3(length(q) - 0.4, 1, 0);
+  d = dMin(d, s2);
+
+  q.z -= 0.2 + 0.04 * sin(PI * (time + 0.25));
+  vec3 s3 = vec3(length(q) - 0.28, 0, 0);
+  d = dMin(d, s3);
+
+  q.z -= 0.3 + 0.08 * sin(PI * time);
+  vec3 s4 = vec3(length(q) - 0.175, 1, 0);
+  d = dMin(d, s4);
+
+  q.z -= 0.3 + 0.08 * sin(PI * (time - 0.25));
+  vec3 s5 = vec3(length(q) - 0.08, 0, 0);
+  d = dMin(d, s5);
+
+  q.z -= 0.3 + 0.08 * sin(PI * (time - 0.5));
+  vec3 s6 = vec3(length(q) - 0.03, 1, 0);
+  d = dMin(d, s6);
+
+  vec3 bQ = p + vec3(0, 1.0, 0);
+  vec3 b1 = vec3(sdBox(bQ, vec3(0.25, 1.0, 0.25)), 0, 0);
+  d = dMin(d, b1);
+
+  bQ.yz += vec2(0.3, -0.3);
+  vec3 b2 = vec3(sdBox(bQ, vec3(0.175, 1.0, 0.175)), 1, 0);
+  d = dMin(d, b2);
+
+  bQ.yz += vec2(-0.15, -0.2);
+  vec3 b3 = vec3(sdBox(bQ, vec3(0.1, 0.75, 0.1)), 0, 0);
+  d = dMin(d, b3);
 
   return d;
 }
@@ -743,10 +776,10 @@ float crossHatching (in vec3 color) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
-  float mainI = 1. - dot(nor, normalize(cameraRo));
-  color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * mainI + vec3(0, 0.33, 0.67)));
-  float rdI = 2.0 * dot(nor, -rd);
-  color += 0.6 * (0.5 + 0.5 * cos(TWO_PI * (rdI + 0.2 + vec3(0., 0.33, 0.67))));
+
+  vec3 glowColor = 0.5 + 0.5 * cos(TWO_PI * (0.1 * pos.y + vec3(0, 0.33, 0.67)));
+  color = mix(color, glowColor, isMaterialSmooth(m, 0.0));
+
   return color;
 }
 
@@ -764,11 +797,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      nor += 0.3 * vec3(
-          cnoise3(390.0 * mPos),
-          cnoise3(570.0 * mPos + 234.634),
-          cnoise3(110.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // nor += 0.3 * vec3(
+      //     cnoise3(390.0 * mPos),
+      //     cnoise3(570.0 * mPos + 234.634),
+      //     cnoise3(110.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -796,8 +829,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -808,7 +841,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
+        // dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -836,7 +869,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += reflectColor;
 
       // color += 1.3 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.4 * dispersion(nor, rayDirection, n2, n1);
+      // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -844,6 +877,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
+
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -868,10 +903,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      // float i = 1. - 1.0 * pow(clamp(t.z / 128.0, 0., 1.), 2.0);
+      float i = 0.5 * pow(saturate(t.z / 64.0), 2.0);
 
-      // vec3 glowColor = #EEEEEE;
-      // color = mix(vec4(glowColor, 1.0), color, i);
+      vec3 glowColor = #EEEEEE;
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -917,15 +952,15 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    float brightness = length(gl_FragColor.rgb);
-    vec2 angle = normalize(vec2(0.0, 1.0));
-    gl_FragColor.rgb *= mix(
-      vec3(1),
-      mix(
-        #FF1111,
-        #00aaaa,
-        saturate(-0.25 + dot(angle, uv.xy)))
-      , 0.3);
+    // float brightness = length(gl_FragColor.rgb);
+    // vec2 angle = normalize(vec2(0.0, 1.0));
+    // gl_FragColor.rgb *= mix(
+    //   vec3(1),
+    //   mix(
+    //     #FF1111,
+    //     #00aaaa,
+    //     saturate(-0.25 + dot(angle, uv.xy)))
+    //   , 0.3);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
     // gl_FragColor.rgb *= 1.1;
 
