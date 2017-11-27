@@ -11,7 +11,6 @@ uniform sampler2D buffer;
 uniform float wet;
 
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
-#pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: import(./background)
 
 void colorMap (inout vec3 color) {
@@ -42,9 +41,9 @@ void main() {
   // gl_FragColor = vec4(background + result.rgb, 1.);
 
   // Post process
-  // vec3 colorBefore = gl_FragColor.rgb;
-  // colorMap(gl_FragColor.rgb);
-  // gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.3);
+  vec3 colorBefore = gl_FragColor.rgb;
+  colorMap(gl_FragColor.rgb);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.3);
 
   // Gamma encode
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);

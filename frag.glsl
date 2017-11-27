@@ -373,9 +373,9 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 20
-#pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-// #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
+#define Iterations 3
+// #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
+#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
@@ -389,11 +389,11 @@ scale, 0., 0., 0.,
 0., 1., 0., 0.,
 0., 0.2, 1., 0.,
 0., 0., 0., 1.);
-#pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=3, kifsM=kifsM, trapCalc=trapCalc)
+// #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=3, kifsM=kifsM, trapCalc=trapCalc)
 // 
 // #pragma glslify: fold = require(./folds)
-#pragma glslify: foldNd = require(./foldNd)
-#pragma glslify: twist = require(./twist)
+// #pragma glslify: foldNd = require(./foldNd)
+// #pragma glslify: twist = require(./twist)
 #
 void opCheapBend (inout vec3 p, float a) {
     float c = cos(a*p.y);
@@ -542,35 +542,16 @@ vec3 travel (in float t) {
 
 // Return value is (distance, material, orbit trap)
 vec3 mPos = vec3(0);
-float amountV = 0.05;
-float n2 = 1.3;
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
   p *= globalRot;
   vec3 q = p;
-  // Scaling
-  q.xz *= 3.0 + 3.0 * saturate(0.25 * (q.y + 2.2));
-  q.y *= 0.6;
 
-  float rate = 2.3 * time;
-  float r = 4.0;
-  for (int i = 0; i < 9; i++) {
-    vec3 pQ = q;
-    pQ.xz += 0.5 * cos(1.5 * q.yx + 0.9 * float(i));
-    float rMod = noise(vec2(i, 2.1 * mod(float(i), 2.) + 1.0));
-    float a = TWO_PI * noise(vec2(1.9 * mod(float(i), 2.) + 1.0, 1.7 * float(i)) + 23.23);
-
-    pQ.xz += r * rMod * vec2(cos(a), sin(a));
-
-    // Move up over time
-    pQ.y -= mod(rate - float(i) * 2.21, 10.0) - 5.0;
-
-    vec3 b = vec3(octahedral(pQ, 30.0, 0.5), 0, 0);
-    b.x *= 0.2;
-    d = dMin(d, b);
-  }
+  vec2 o = octahedron(q);
+  vec3 b = vec3(o.x, 0, 0);
+  d = dMin(d, b);
 
   return d;
 }
@@ -625,7 +606,7 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-// float n2 = 1.3;
+const float n2 = 1.33;
 const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
@@ -636,7 +617,7 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.8;
 
-  vec3 spaceScaling = vec3(2.234, 2.234, 1.2);
+  vec3 spaceScaling = vec3(5.234, 5.234, 1.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
   n = smoothstep(0.5, 1.00, n);
 
@@ -662,7 +643,7 @@ vec3 scene (in vec3 rd, in float ior) {
   return color;
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amountV)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amount)
 
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.001;
@@ -759,7 +740,7 @@ float crossHatching (in vec3 color) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.5);
+  vec3 color = vec3(background);
   return color;
 }
 
@@ -777,11 +758,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      nor += 0.1 * vec3(
-          cnoise3(590.0 * mPos),
-          cnoise3(770.0 * mPos + 234.634),
-          cnoise3(310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      /// nor += 0.1 * vec3(
+      ///     cnoise3(590.0 * mPos),
+      ///     cnoise3(770.0 * mPos + 234.634),
+      ///     cnoise3(310.0 * mPos + 23.4634));
+      /// nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -809,37 +790,37 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.0;
+      float freCo = 0.5;
+      float specCo = 1.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.6, diffuse(nor, lightPos));
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float dif = 1.0; // max(0.9, diffuse(nor, lightPos));
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * dif * occ;
+        fre *= freCo; // * dif * occ;
         lin += fre;
         lin += specCo * spec * (1. - fre);
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        // lin += 0.5 * amb * diffuseColor;
 
         color +=
-          saturate((occ * dif * lights[i].intensity) * lights[i].color * diffuseColor)
+          saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
           + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, #ffffff, 0.4));
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      color += 0.75 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
@@ -848,10 +829,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 0.75 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.3 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
-      // color = scene(rayDirection, 1.0);
-      // color += 0.1 + 0.1 * sin(TWO_PI * (dot(nor, -rayDirection) + vec3(0, 0.33, 0.67)));
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -948,10 +927,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    // vec2 absUV = abs(uv);
-    // float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
-    // vignette *= vignette;
-    // gl_FragColor.a += vignette;
-    // vignette = 1.0 - vignette;
-    // gl_FragColor.rgb *= vec3(vignette);
+    vec2 absUV = abs(uv);
+    float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
+    vignette *= vignette;
+    gl_FragColor.a += vignette;
+    vignette = 1.0 - vignette;
+    gl_FragColor.rgb *= vec3(vignette);
 }
