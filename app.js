@@ -167,12 +167,23 @@ export default class App {
       rot2angle: [0.138, 0, 0],
       cameraAngles: [-0.203, -0.009, 0]
     }
+    this.presets.kaleidoGem = {
+      offset: {
+        x: 0.339,
+        y: 0.635,
+        z: 0.017
+      },
+      d: 5,
+      scale: 2.02,
+      rot2angle: [0.301, 0, 0],
+      cameraAngles: [-0.203, -0.009, 0]
+    }
 
-    const preset = this.presets.fractalGem2
+    const preset = this.presets.kaleidoGem
     // preset.cameraAngles = [-0.724, -0.724, -0.543]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3.5)
+    this.cameraRo = vec3.fromValues(0, 0, 3)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -289,15 +300,24 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([Math.PI, 0.4, 0], 5 * 1000)
+      .to([0.687, 0.264, 0.715], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([this.rot2angle[0] + Math.PI * 2, 0, 0], 5 * 1000)
+      .to([0.25, 1.362, 0.234], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([1.265, 0.844, 0], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTweenReturn = new TWEEN.Tween(this.rot2angle)
+    rotTweenReturn
+      .to([this.rot2angle[0], 0, 0], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTweenReturn)
     rotTween1.start(0)
 
     // Scale Tween
@@ -316,19 +336,21 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
+      .delay(5 * 1000)
       .to([
-        0.965,
-        1.111,
-        0.571
+        0.411,
+        -0.037,
+        -0.256
       ], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let offsetTweenReturn = new TWEEN.Tween(this.offset)
     offsetTweenReturn
-      .to([...this.offset], 10 * 1000)
+      .delay(5 * 1000)
+      .to([...this.offset], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.chain(offsetTweenReturn)
-    // offsetTween1.start(0)
+    offsetTween1.start(0)
   }
 
   setupAudio () {

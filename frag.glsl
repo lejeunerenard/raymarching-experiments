@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 2048
 #define maxDistance 50.0
 #define fogMaxDistance 50.0
 
@@ -373,7 +373,7 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 3
+#define Iterations 4
 // #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
@@ -546,8 +546,10 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
+
+  pModPolar(q.xy, 6.0);
 
   vec2 o = octahedron(q);
   vec3 b = vec3(o.x, 0, 0);
@@ -740,7 +742,11 @@ float crossHatching (in vec3 color) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
+  float mainI = 1. - dot(nor, normalize(cameraRo));
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * mainI + vec3(0, 0.33, 0.67)));
+  float rdI = 2.0 * dot(nor, -rd);
+  color += 0.6 * (0.5 + 0.5 * cos(TWO_PI * (rdI + 0.2 + vec3(0., 0.33, 0.67))));
   return color;
 }
 
@@ -758,11 +764,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      /// nor += 0.1 * vec3(
-      ///     cnoise3(590.0 * mPos),
-      ///     cnoise3(770.0 * mPos + 234.634),
-      ///     cnoise3(310.0 * mPos + 23.4634));
-      /// nor = normalize(nor);
+      nor += 0.3 * vec3(
+          cnoise3(390.0 * mPos),
+          cnoise3(570.0 * mPos + 234.634),
+          cnoise3(110.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -790,7 +796,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 1.0;
       float specCo = 1.0;
       float disperCo = 0.5;
 
@@ -799,7 +805,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
         float dif = 1.0; // max(0.9, diffuse(nor, lightPos));
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 128.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
@@ -812,7 +818,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.5 * amb * diffuseColor;
+        lin += 0.35 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -820,7 +826,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.75 * vec3(pow(specAll, 8.0));
+      color += 2.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
@@ -829,8 +835,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      color += 1.3 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
+      // color += 1.3 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.4 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -911,15 +917,15 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    // float brightness = length(gl_FragColor.rgb);
-    // vec2 angle = normalize(vec2(0.0, 1.0));
-    // gl_FragColor.rgb *= mix(
-    //   vec3(1),
-    //   mix(
-    //     #330000,
-    //     #00aaaa,
-    //     saturate(-0.25 + dot(angle, uv.xy)))
-    //   , 0.12);
+    float brightness = length(gl_FragColor.rgb);
+    vec2 angle = normalize(vec2(0.0, 1.0));
+    gl_FragColor.rgb *= mix(
+      vec3(1),
+      mix(
+        #FF1111,
+        #00aaaa,
+        saturate(-0.25 + dot(angle, uv.xy)))
+      , 0.3);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
     // gl_FragColor.rgb *= 1.1;
 

@@ -13,13 +13,14 @@ const capturing = false
 const FOV = 50
 
 let app = new App()
+window.app = app
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'transcendental-geode-test1',
+    name: 'mirrors-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
