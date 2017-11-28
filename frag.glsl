@@ -34,7 +34,7 @@ uniform vec3 offset;
 uniform float epsilon;
 #define maxSteps 2048
 #define maxDistance 50.0
-#define fogMaxDistance 50.0
+#define fogMaxDistance 20.0
 
 #define slowTime time * .2
 
@@ -481,7 +481,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 // #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
-// #pragma glslify: voronoi = require(./voronoi)
+#pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
@@ -550,43 +550,13 @@ vec3 map (in vec3 p) {
   // p.y -= 0.5;
   // p.z += 3.0;
   vec3 q = p;
+  q.z -= time;
+  q *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI * sin(PI * 0.5 * (0.1 * q.z + slowTime)));
 
-  vec3 cameraRd = normalize(cameraRo - q);
-
-  vec3 s = vec3(length(q) - 0.5, 0, 0);
+  mPos = q;
+  vec3 s = vec3(1.0 - length(q.xy), 0, 0);
+  // vec3 s = vec3(length(q) - 0.5, 0, 0);
   d = dMin(d, s);
-
-  q.z -= 0.3;
-  vec3 s2 = vec3(length(q) - 0.4, 1, 0);
-  d = dMin(d, s2);
-
-  q.z -= 0.2 + 0.04 * sin(PI * (time + 0.25));
-  vec3 s3 = vec3(length(q) - 0.28, 0, 0);
-  d = dMin(d, s3);
-
-  q.z -= 0.3 + 0.08 * sin(PI * time);
-  vec3 s4 = vec3(length(q) - 0.175, 1, 0);
-  d = dMin(d, s4);
-
-  q.z -= 0.3 + 0.08 * sin(PI * (time - 0.25));
-  vec3 s5 = vec3(length(q) - 0.08, 0, 0);
-  d = dMin(d, s5);
-
-  q.z -= 0.3 + 0.08 * sin(PI * (time - 0.5));
-  vec3 s6 = vec3(length(q) - 0.03, 1, 0);
-  d = dMin(d, s6);
-
-  vec3 bQ = p + vec3(0, 1.0, 0);
-  vec3 b1 = vec3(sdBox(bQ, vec3(0.25, 1.0, 0.25)), 0, 0);
-  d = dMin(d, b1);
-
-  bQ.yz += vec2(0.3, -0.3);
-  vec3 b2 = vec3(sdBox(bQ, vec3(0.175, 1.0, 0.175)), 1, 0);
-  d = dMin(d, b2);
-
-  bQ.yz += vec2(-0.15, -0.2);
-  vec3 b3 = vec3(sdBox(bQ, vec3(0.1, 0.75, 0.1)), 0, 0);
-  d = dMin(d, b3);
 
   return d;
 }
@@ -774,12 +744,30 @@ float crossHatching (in vec3 color) {
   return 1.0 - v;
 }
 
+vec3 simpleGradient (in float t) {
+  t = mod(t, 1.0);
+  vec3 color = mix(#FF00FF, #00FFFF, smoothstep(0., 0.5, t));
+  color = mix(color, #FF00FF, smoothstep(0.5, 1.0, t));
+
+  return color;
+}
+
+#pragma glslify: cellular = require(./cellular-tile)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.0);
+  vec3 q = 0.375 * mPos;
+  float v = cellular(q);
+  v = band(v, 0.2, 0.22);
 
-  vec3 glowColor = 0.5 + 0.5 * cos(TWO_PI * (0.1 * pos.y + vec3(0, 0.33, 0.67)));
-  color = mix(color, glowColor, isMaterialSmooth(m, 0.0));
+  float i = 0.2 * mPos.z;
+  color += v * simpleGradient(i);
 
+  float v2 = cellular(0.9 * q + 0.5);
+  v2 = band(v2, 0.2, 0.22);
+  color += v2 * simpleGradient(i + 0.25);
+
+  // Fake Fog
+  color *= saturate(1. - smoothstep(-3.0, -12.0, pos.z));
   return color;
 }
 
@@ -871,14 +859,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += 1.3 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
 
+      color = diffuseColor;
+
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      // color = mix(background, color, exp(-t.x * 0.01));
+      // color = mix(background, color, exp(-t.x * 0.25));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
-
-      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
