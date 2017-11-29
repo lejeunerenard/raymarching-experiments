@@ -900,7 +900,42 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec3 distancefield2D (in vec2 uv) {
+  uv *= 0.5;
+
+  uv += 0.0500 * cos( 3.0 * uv.yx + vec2(slowTime + sin(PI * 0.5 * slowTime), -slowTime));
+  uv += 0.0250 * cos( 7.0 * uv.yx + vec2(slowTime + sin(PI * 0.5 * slowTime), -slowTime));
+  uv += 0.0125 * cos(13.0 * uv.yx + vec2(slowTime + sin(PI * 0.5 * slowTime), -slowTime));
+
+  float angle = atan(uv.y, uv.x) + PI;
+  float radius = length(uv);
+  float a = angle + sin(PI * 0.125 * time + radius);
+  uv = radius * vec2(
+      cos(a),
+      sin(a));
+
+  vec2 q = vec2(0);
+  vec2 s = vec2(0);
+  vec2 u = vec2(0);
+
+  float n = cnoise2(s + slowTime);
+
+  float w = fbmWarp(uv, q, s, u);
+  float r = 0.3 + w + 0.1 * n;
+  // float v = length(uv) - r;
+  float v = min(abs(uv.x), abs(uv.y)) - r;
+  v = smoothstep(0.0, 0.1, v);
+  // v += 0.01 * vfbm6(23530.0 * uv);
+  return vec3(v);
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+  color.r = distancefield2D(1.009 * uv).r;
+  color.g = distancefield2D(1.000 * uv).r;
+  color.b = distancefield2D(0.991 * uv).r;
+
+  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -956,10 +991,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    vec2 absUV = abs(uv);
-    float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
-    vignette *= vignette;
-    gl_FragColor.a += vignette;
-    vignette = 1.0 - vignette;
-    gl_FragColor.rgb *= vec3(vignette);
+    // vec2 absUV = abs(uv);
+    // float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
+    // vignette *= vignette;
+    // gl_FragColor.a += vignette;
+    // vignette = 1.0 - vignette;
+    // gl_FragColor.rgb *= vec3(vignette);
 }
