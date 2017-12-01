@@ -901,19 +901,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 }
 
 vec3 distancefield2D (in vec2 uv) {
-  uv *= 0.5;
-
-  uv += 0.0500 * cos( 3.0 * uv.yx + vec2(slowTime + sin(PI * 0.5 * slowTime), -slowTime));
-  uv += 0.0250 * cos( 7.0 * uv.yx + vec2(slowTime + sin(PI * 0.5 * slowTime), -slowTime));
-  uv += 0.0125 * cos(13.0 * uv.yx + vec2(slowTime + sin(PI * 0.5 * slowTime), -slowTime));
-
-  float angle = atan(uv.y, uv.x) + PI;
-  float radius = length(uv);
-  float a = angle + sin(PI * 0.125 * time + radius);
-  uv = radius * vec2(
-      cos(a),
-      sin(a));
-
   vec2 q = vec2(0);
   vec2 s = vec2(0);
   vec2 u = vec2(0);
@@ -921,19 +908,27 @@ vec3 distancefield2D (in vec2 uv) {
   float n = cnoise2(s + slowTime);
 
   float w = fbmWarp(uv, q, s, u);
-  float r = 0.3 + w + 0.1 * n;
+
+  float r = 0.3; //  + w + 0.1 * n;
   // float v = length(uv) - r;
-  float v = min(abs(uv.x), abs(uv.y)) - r;
-  v = smoothstep(0.0, 0.1, v);
-  // v += 0.01 * vfbm6(23530.0 * uv);
+  // float v = min(abs(uv.x), abs(uv.y)) - r;
+  // float v = max(abs(uv.x), abs(uv.y)) - r;
+
+  vec2 o = uv;
+  uv += 0.1500 * cos( 5.0 * uv.yx + PI * 0.5 * slowTime);
+  uv += 0.0750 * cos( 7.0 * uv.yx);
+  uv += 0.0375 * cos( 9.0 * uv.yx);
+
+  float p = 40.0 * (1.0 + 0.5 * vfbm4(1.0 * uv + 0.25 * slowTime));
+  float v = sin(TWO_PI * p * uv.x);
+
+  v = smoothstep(0.0, 0.001, v);
   return vec3(v);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
-  color.r = distancefield2D(1.009 * uv).r;
-  color.g = distancefield2D(1.000 * uv).r;
-  color.b = distancefield2D(0.991 * uv).r;
+  color = distancefield2D(uv);
 
   return vec4(color, 1.0);
   vec4 t = march(ro, rd);
