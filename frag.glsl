@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -469,19 +469,19 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
-#pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-#pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
-#pragma glslify: quad = require(glsl-easings/quintic-in-out)
+// #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
+#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+// #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
+// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+// #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
-#pragma glslify: bounce = require(glsl-easings/bounce-out)
+// #pragma glslify: bounce = require(glsl-easings/bounce-out)
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
-#pragma glslify: quart = require(glsl-easings/quadratic-in-out)
+// #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 // #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
-#pragma glslify: voronoi = require(./voronoi)
+// #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
 
@@ -901,29 +901,40 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 }
 
 vec3 distancefield2D (in vec2 uv) {
-  vec2 q = vec2(0);
-  vec2 s = vec2(0);
-  vec2 u = vec2(0);
+  const float edge = 0.01;
+  float d = 1.0;
 
-  float n = cnoise2(s + slowTime);
+  vec2 p = 0.25 * uv;
+  // p += 0.05;
+  vec2 i = pMod2(p, vec2(0.1));
 
-  float w = fbmWarp(uv, q, s, u);
+  p *= 22.0 + 2.0 * sin(PI * 0.5 * time + dot(vec2(1), uv));
 
-  float r = 0.3; //  + w + 0.1 * n;
-  // float v = length(uv) - r;
-  // float v = min(abs(uv.x), abs(uv.y)) - r;
-  // float v = max(abs(uv.x), abs(uv.y)) - r;
+  const float offsetR = 4.0;
+  vec2 off = vec2(
+      offsetR * sin(PI * 0.5 * slowTime),
+      offsetR * cos(PI * 0.5 * slowTime));
+  // off = vec2(time);
 
-  vec2 o = uv;
-  uv += 0.1500 * cos( 5.0 * uv.yx + PI * 0.5 * slowTime);
-  uv += 0.0750 * cos( 7.0 * uv.yx);
-  uv += 0.0375 * cos( 9.0 * uv.yx);
+  float randomAngle = 0.25 * PI * noise(0.25 * (i) + off);
+  // float angle = mix(randomAngle, 0.0, nsin(time));
+  float angle = randomAngle;
+  p *= rotMat2(angle);
 
-  float p = 40.0 * (1.0 + 0.5 * vfbm4(1.0 * uv + 0.25 * slowTime));
-  float v = sin(TWO_PI * p * uv.x);
+  p = abs(p);
 
-  v = smoothstep(0.0, 0.001, v);
-  return vec3(v);
+  // Capped cross
+  float r = 0.1;
+  float height = 0.41;
+  float mx = max(p.x, p.y);
+  float v = min(p.x, p.y) - r + smoothstep(height, height + edge, mx) * mx;
+
+  v = smoothstep(0.0, edge, v);
+  d = min(d, v);
+
+  d = 1.0 - d;
+  d += 0.025;
+  return vec3(d);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
