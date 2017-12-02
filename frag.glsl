@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -36,7 +36,9 @@ uniform float epsilon;
 #define maxDistance 50.0
 #define fogMaxDistance 20.0
 
-#define slowTime time * .2
+// #define slowTime time * 0.2
+// v3
+#define slowTime time * 0.06666667
 
 vec3 gPos = vec3(0.0);
 vec3 gNor = vec3(0.0);
@@ -904,42 +906,140 @@ vec3 distancefield2D (in vec2 uv) {
   const float edge = 0.01;
   float d = 1.0;
 
-  vec2 p = 0.25 * uv;
-  // p += 0.05;
-  vec2 i = pMod2(p, vec2(0.1));
+  vec2 p = uv;
 
-  p *= 22.0 + 2.0 * sin(PI * 0.5 * time + dot(vec2(1), uv));
+  pMod2(p, vec2(0.5));
 
-  const float offsetR = 4.0;
-  vec2 off = vec2(
-      offsetR * sin(PI * 0.5 * slowTime),
-      offsetR * cos(PI * 0.5 * slowTime));
-  // off = vec2(time);
+  p += 0.25;
+  p *= 2.0;
 
-  float randomAngle = 0.25 * PI * noise(0.25 * (i) + off);
-  // float angle = mix(randomAngle, 0.0, nsin(time));
-  float angle = randomAngle;
-  p *= rotMat2(angle);
-
-  p = abs(p);
-
-  // Capped cross
-  float r = 0.1;
-  float height = 0.41;
-  float mx = max(p.x, p.y);
-  float v = min(p.x, p.y) - r + smoothstep(height, height + edge, mx) * mx;
-
-  v = smoothstep(0.0, edge, v);
+  float r = 0.125;
+  // float v = max(p.x, p.y) - r;
+  float v = p.y;
   d = min(d, v);
 
-  d = 1.0 - d;
-  d += 0.025;
+  // d = smoothstep(0.0, edge, d);
+  // d = 1.0 - d;
   return vec3(d);
+}
+
+vec3 gridColor (in vec2 p, in float seed, in vec3 color1, in vec3 color2) {
+  vec3 color = vec3(0);
+
+  vec2 nOff = 0.25 * cos(PI * vec2(
+        0.5 * slowTime + 0.5,
+        0.5 * slowTime + 1.0));
+  // nOff = vec2(0.5 * slowTime);
+  // nOff = vec2(0);
+  float a = TWO_PI * noise(1.812 * vec2(seed) + nOff);
+  p *= rotMat2(a);
+
+  pMod2(p, vec2(0.5));
+  p += 0.25;
+  p *= 2.0;
+
+  float v = 0.25 * p.y + 0.45 * seed;
+  v += 0.025 * vfbm6(vec2(seed + 74.234 * p));
+
+  // color += 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0, 0.33, 0.67)));
+  color += hsv(vec3(v, 1.0, 1.0));
+
+  color += color1 * vec3(
+      nsin((1.00 + 0.1 * seed) * v + 0.0),
+      nsin((1.10 + 0.1 * seed) * v + 0.1),
+      nsin((1.02 + 0.1 * seed) * v + 0.2));
+  color += color2 * vec3(
+      nsin((1.10 + 0.1 * seed) * v + 0.40),
+      nsin((2.20 + 0.1 * seed) * v + 0.70),
+      nsin((1.02 + 0.1 * seed) * v + 0.60));
+  color *= 0.59;
+
+  return color;
+}
+vec3 shatter (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  uv = abs(uv); // v2
+
+  uv += 0.10 * cos(5.0 * uv.yx);
+  uv += 0.05 * cos(7.0 * uv.yx);
+
+  uv += 0.200 * noise( 3.0 * uv.yx);
+  vec2 nOff = 3.0 * cos(PI * vec2(
+        0.5 * slowTime,
+        0.5 * slowTime + 0.5));
+  uv += 0.100 * noise( 9.0 * uv.yx + nOff);
+  uv += 0.050 * noise(27.0 * uv.yx);
+  uv += 0.025 * noise(16.0 * uv.yx);
+
+  float fI = 0.0;
+  vec2 p = vec2(0);
+  vec2 off = vec2(0);
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 234.5434)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #FF00FF, #00FF00);
+  fI += 1.0;
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 934.9434)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #FFFF00, #0000FF);
+  fI += 1.0;
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 2349.34)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #00FFFF, #FF0000);
+  fI += 1.0;
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 2349.34)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #88FF8F, #770070);
+  fI += 1.0;
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 2349.34)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #F2842F, #0D7BD0);
+  fI += 1.0;
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 2349.34)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #AB7390, #548C6F);
+  fI += 1.0;
+
+  p = uv;
+  off = 1.0 * vec2(
+      noise(vec2(fI)),
+      noise(vec2(fI + 2349.34)));
+  p += off;
+  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #12BC8A, #ED4375);
+  fI += 1.0;
+
+  color /= fI * 1.05;
+
+  return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
-  color = distancefield2D(uv);
+  color = shatter(uv);
 
   return vec4(color, 1.0);
   vec4 t = march(ro, rd);
