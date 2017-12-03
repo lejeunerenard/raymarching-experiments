@@ -22,11 +22,11 @@ const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
 
-const MANDELBOX = true
+const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.5
-const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_WET = 3.0
+const BLOOM_PASSES = 8
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
 export default class App {
@@ -183,7 +183,7 @@ export default class App {
     // preset.cameraAngles = [-0.724, -0.724, -0.543]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2)
+    this.cameraRo = vec3.fromValues(-1.9, 1.9, 1.9)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters

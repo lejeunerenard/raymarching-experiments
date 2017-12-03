@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 1280
 #define maxDistance 50.0
 #define fogMaxDistance 20.0
 
@@ -485,7 +485,9 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
 // #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
-#pragma glslify: tetrahedron = require(./model/tetrahedron)
+
+// #pragma glslify: tetrahedron = require(./model/tetrahedron)
+#pragma glslify: cellular = require(./cellular-tile)
 
 // Starts at 0.5 goes towards 1.0
 float nsin (in float t) {
@@ -549,15 +551,21 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   // p *= globalRot;
-  // p.y -= 0.5;
-  // p.z += 3.0;
   vec3 q = p;
-  q.z -= time;
-  q *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI * sin(PI * 0.5 * (0.1 * q.z + slowTime)));
+
+  float cell = cellular(q + slowTime);
 
   mPos = q;
-  vec3 s = vec3(1.0 - length(q.xy), 0, 0);
-  // vec3 s = vec3(length(q) - 0.5, 0, 0);
+  vec3 s = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+
+  const float r = 1.0;
+  float bound = sdBox(q, vec3(r));
+
+  // float wave = smoothstep(0., 1.0, sin(TWO_PI * (length(q.xz) - time)));
+  float cellDisplacement = 0.6 * cell * smoothstep(0.01875, 0.0, bound);
+  // cellDisplacement *= wave;
+  s.x -= cellDisplacement;
+  s.x *= 0.1;
   d = dMin(d, s);
 
   return d;
@@ -613,7 +621,7 @@ vec3 hsb2rgb( in vec3 c ){
 }
 
 const float n1 = 1.0;
-const float n2 = 1.33;
+const float n2 = 1.1;
 const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
@@ -754,22 +762,8 @@ vec3 simpleGradient (in float t) {
   return color;
 }
 
-#pragma glslify: cellular = require(./cellular-tile)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.0);
-  vec3 q = 0.375 * mPos;
-  float v = cellular(q);
-  v = band(v, 0.2, 0.22);
-
-  float i = 0.2 * mPos.z;
-  color += v * simpleGradient(i);
-
-  float v2 = cellular(0.9 * q + 0.5);
-  v2 = band(v2, 0.2, 0.22);
-  color += v2 * simpleGradient(i + 0.25);
-
-  // Fake Fog
-  color *= saturate(1. - smoothstep(-3.0, -12.0, pos.z));
+  vec3 color = vec3(1);
   return color;
 }
 
@@ -787,7 +781,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      // nor += 0.3 * vec3(
+      // nor += 0.1 * vec3(
       //     cnoise3(390.0 * mPos),
       //     cnoise3(570.0 * mPos + 234.634),
       //     cnoise3(110.0 * mPos + 23.4634));
@@ -811,37 +805,37 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFFFFF, 1.0);
-      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #FFFFFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, -1.0, 1.0)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFAAAA, 0.8);
+      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #FFFFFF, 0.8);
+      lights[2] = light(normalize(vec3(-0.75, 0.1, 1.0)), #AAFFFF, 0.75);
 
       float occ = calcAO(pos, nor);
-      float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0  );
+      float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.5;
+      float specCo = 1.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // max(0.9, diffuse(nor, lightPos));
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float dif = max(0.5, diffuse(nor, lightPos));
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0.8, softshadow(pos, lightPos, 0.1, 1.75));
+        dif *= max(0.8, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo; // * dif * occ;
+        fre *= freCo * occ;
         lin += fre;
         lin += specCo * spec * (1. - fre);
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.35 * amb * diffuseColor;
+        lin += 0.30 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -849,7 +843,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 2.0 * vec3(pow(specAll, 8.0));
+      color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
@@ -858,10 +852,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 1.3 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.4 * dispersion(nor, rayDirection, n2, n1);
-
-      color = diffuseColor;
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -902,146 +894,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec3 distancefield2D (in vec2 uv) {
-  const float edge = 0.01;
-  float d = 1.0;
-
-  vec2 p = uv;
-
-  pMod2(p, vec2(0.5));
-
-  p += 0.25;
-  p *= 2.0;
-
-  float r = 0.125;
-  // float v = max(p.x, p.y) - r;
-  float v = p.y;
-  d = min(d, v);
-
-  // d = smoothstep(0.0, edge, d);
-  // d = 1.0 - d;
-  return vec3(d);
-}
-
-vec3 gridColor (in vec2 p, in float seed, in vec3 color1, in vec3 color2) {
-  vec3 color = vec3(0);
-
-  vec2 nOff = 0.25 * cos(PI * vec2(
-        0.5 * slowTime + 0.5,
-        0.5 * slowTime + 1.0));
-  // nOff = vec2(0.5 * slowTime);
-  // nOff = vec2(0);
-  float a = TWO_PI * noise(1.812 * vec2(seed) + nOff);
-  p *= rotMat2(a);
-
-  pMod2(p, vec2(0.5));
-  p += 0.25;
-  p *= 2.0;
-
-  float v = 0.25 * p.y + 0.45 * seed;
-  v += 0.025 * vfbm6(vec2(seed + 74.234 * p));
-
-  // color += 0.5 + 0.5 * cos(TWO_PI * (v + vec3(0, 0.33, 0.67)));
-  color += hsv(vec3(v, 1.0, 1.0));
-
-  color += color1 * vec3(
-      nsin((1.00 + 0.1 * seed) * v + 0.0),
-      nsin((1.10 + 0.1 * seed) * v + 0.1),
-      nsin((1.02 + 0.1 * seed) * v + 0.2));
-  color += color2 * vec3(
-      nsin((1.10 + 0.1 * seed) * v + 0.40),
-      nsin((2.20 + 0.1 * seed) * v + 0.70),
-      nsin((1.02 + 0.1 * seed) * v + 0.60));
-  color *= 0.59;
-
-  return color;
-}
-vec3 shatter (in vec2 uv) {
-  vec3 color = vec3(0);
-
-  uv = abs(uv); // v2
-
-  uv += 0.10 * cos(5.0 * uv.yx);
-  uv += 0.05 * cos(7.0 * uv.yx);
-
-  uv += 0.200 * noise( 3.0 * uv.yx);
-  vec2 nOff = 3.0 * cos(PI * vec2(
-        0.5 * slowTime,
-        0.5 * slowTime + 0.5));
-  uv += 0.100 * noise( 9.0 * uv.yx + nOff);
-  uv += 0.050 * noise(27.0 * uv.yx);
-  uv += 0.025 * noise(16.0 * uv.yx);
-
-  float fI = 0.0;
-  vec2 p = vec2(0);
-  vec2 off = vec2(0);
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 234.5434)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #FF00FF, #00FF00);
-  fI += 1.0;
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 934.9434)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #FFFF00, #0000FF);
-  fI += 1.0;
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 2349.34)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #00FFFF, #FF0000);
-  fI += 1.0;
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 2349.34)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #88FF8F, #770070);
-  fI += 1.0;
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 2349.34)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #F2842F, #0D7BD0);
-  fI += 1.0;
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 2349.34)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #AB7390, #548C6F);
-  fI += 1.0;
-
-  p = uv;
-  off = 1.0 * vec2(
-      noise(vec2(fI)),
-      noise(vec2(fI + 2349.34)));
-  p += off;
-  color = 0.5 * color + (color + 1.0) * gridColor(p, fI, #12BC8A, #ED4375);
-  fI += 1.0;
-
-  color /= fI * 1.05;
-
-  return color;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-  color = shatter(uv);
-
-  return vec4(color, 1.0);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
