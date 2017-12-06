@@ -1,5 +1,4 @@
 vec4 mandelboxFold (in vec4 z, inout float minD) {
-  float k = 1.0;
   vec4 z0 = vec4(z.xyz, 1.);
 
   float minRadius2 = minRadius * minRadius;
@@ -18,7 +17,6 @@ vec4 mandelboxFold (in vec4 z, inout float minD) {
     z.xyzw = z*scalevec + z0;
 
     minD = min(minD, trapCalc(z));
-    k *= 1.1;
   }
 
   return z;

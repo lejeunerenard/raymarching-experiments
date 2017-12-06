@@ -550,23 +550,56 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
   float cosT = PI * 0.2 * time;
   q += 0.500000 * cos(  2.0 * q.yzx + vec3(0, cosT, 0));
   q += 0.250000 * cos(  4.0 * q.yzx + vec3(cosT, 0, 0));
-  q += 0.125000 * cos(  8.0 * q.yzx );
-  q += 0.062500 * cos( 16.0 * q.yzx );
-  q += 0.031250 * cos( 32.0 * q.yzx );
+  q += 0.125000 * cos(  8.0 * q.yzx + vec3(0, 0, cosT) );
+  q += 0.062500 * cos( 16.0 * q.yzx + vec3(-cosT, 0, 0) );
+  q += 0.031250 * cos( 32.0 * q.yzx + vec3(0, -cosT, 0) );
   q += 0.015625 * cos( 64.0 * q.yzx );
   q += 0.007812 * cos(128.0 * q.yzx );
+  q += 0.003906 * cos(256.0 * q.yzx );
+
+  vec4 z = vec4(q, 1.0);
+  // Ball fold
+  float r2 = dot(z.xyz, z.xyz);
+  const float minRadius2 = 2.0;
+  z.xyz *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
+
+  // Box Fold
+  const float foldLimit = 2.0;
+  z.xyz = clamp(z.xyz, -foldLimit, foldLimit) * 2. - z.xyz;
+
+  z.xyz *= 2.0;
+
+  // Ball fold
+  r2 = dot(z.xyz, z.xyz);
+  z.xyz *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
+
+  // Box Fold
+  z.xyz = clamp(z.xyz, -foldLimit, foldLimit) * 2. - z.xyz;
+
+  z.xyz *= 2.0;
+
+  // Ball fold
+  r2 = dot(z.xyz, z.xyz);
+  z.xyzw *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
+
+  q = z.xyz / z.w;
+  q.xyz *= 0.5;
 
   mPos = p;
   float r = 1.0 + 0.5 * sin(PI * q.x);
   vec3 b = vec3(sdCapsule(q, vec3(1, 0, 0), vec3(-1, 0, 0), r), 0.0, 0.0);
-  b.x *= 0.1;
+  b.x *= 0.025;
   d = dMin(d, b);
+
+  vec3 qS = p;
+  float s = length(qS) - 1.0;
+  d.x = max(d.x, s);
 
   return d;
 }
@@ -776,7 +809,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   // I Adjustments
   i = sqrt(i);
-  i -= 0.1;
+  i -= 0.85;
   i *= 0.95;
 
   i2 = sqrt(i2);
@@ -852,7 +885,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * occ;
+        fre *= freCo * dif * occ;
         lin += fre;
         lin += specCo * spec * (1. - fre);
         specAll += specCo * spec * (1. - fre);
