@@ -34,11 +34,11 @@ uniform vec3 offset;
 uniform float epsilon;
 #define maxSteps 1280
 #define maxDistance 50.0
-#define fogMaxDistance (0.5 * maxDistance)
+#define fogMaxDistance (0.8 * maxDistance)
 
-// #define slowTime time * 0.2
+#define slowTime time * 0.2
 // v3
-#define slowTime time * 0.06666667
+// #define slowTime time * 0.06666667
 
 vec3 gPos = vec3(0.0);
 vec3 gNor = vec3(0.0);
@@ -553,53 +553,21 @@ vec3 map (in vec3 p) {
   p *= globalRot;
   vec3 q = p;
 
-  float cosT = PI * 0.2 * time;
-  q += 0.500000 * cos(  2.0 * q.yzx + vec3(0, cosT, 0));
-  q += 0.250000 * cos(  4.0 * q.yzx + vec3(cosT, 0, 0));
-  q += 0.125000 * cos(  8.0 * q.yzx + vec3(0, 0, cosT) );
-  q += 0.062500 * cos( 16.0 * q.yzx + vec3(-cosT, 0, 0) );
-  q += 0.031250 * cos( 32.0 * q.yzx + vec3(0, -cosT, 0) );
-  q += 0.015625 * cos( 64.0 * q.yzx );
-  q += 0.007812 * cos(128.0 * q.yzx );
-  q += 0.003906 * cos(256.0 * q.yzx );
+  float cosT = PI * slowTime;
+  for (int i = 0; i < 7; i++) {
+    q += 0.1 * cos( pow(2.0, float(i)) * q.yzx + cosT);
 
-  vec4 z = vec4(q, 1.0);
-  // Ball fold
-  float r2 = dot(z.xyz, z.xyz);
-  const float minRadius2 = 2.0;
-  z.xyz *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
-
-  // Box Fold
-  const float foldLimit = 2.0;
-  z.xyz = clamp(z.xyz, -foldLimit, foldLimit) * 2. - z.xyz;
-
-  z.xyz *= 2.0;
-
-  // Ball fold
-  r2 = dot(z.xyz, z.xyz);
-  z.xyz *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
-
-  // Box Fold
-  z.xyz = clamp(z.xyz, -foldLimit, foldLimit) * 2. - z.xyz;
-
-  z.xyz *= 2.0;
-
-  // Ball fold
-  r2 = dot(z.xyz, z.xyz);
-  z.xyzw *= clamp(max(minRadius2/r2, minRadius2), 0., 1.);
-
-  q = z.xyz / z.w;
-  q.xyz *= 0.5;
+    vec3 t = abs(q);
+    q.x = min(t.x, min(t.y, t.z)) - 0.01;
+    q.y = 0.3333 * dot(t, vec3(1));
+    q.z = max(t.x, max(t.y, t.z)) + 0.1;
+  }
 
   mPos = p;
   float r = 1.0 + 0.5 * sin(PI * q.x);
-  vec3 b = vec3(sdCapsule(q, vec3(1, 0, 0), vec3(-1, 0, 0), r), 0.0, 0.0);
-  b.x *= 0.025;
+  vec3 b = vec3(sdBox(q, vec3(r)), 0.0, 0.0);
+  b.x *= 0.05;
   d = dMin(d, b);
-
-  vec3 qS = p;
-  float s = length(qS) - 1.0;
-  d.x = max(d.x, s);
 
   return d;
 }
@@ -808,9 +776,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   i *= 0.5;
 
   // I Adjustments
-  i = sqrt(i);
-  i -= 0.85;
-  i *= 0.95;
+  // i = sqrt(i);
+  i -= 0.40;
+  i *= 0.75;
 
   i2 = sqrt(i2);
   i2 += 0.1;
@@ -877,11 +845,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.0, diffuse(nor, lightPos));
+        float dif = max(0.3, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.0, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -909,11 +877,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += reflectColor;
 
       // color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.1 * dispersion(nor, rayDirection, n2, n1);
+      color += 0.2 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      color = mix(background, color, exp(-t.x * 0.1));
+      color = mix(background, color, exp(-t.x * 0.001));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
