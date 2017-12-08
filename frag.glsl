@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -551,23 +551,30 @@ vec3 map (in vec3 p) {
   float minD = maxDistance;
 
   p *= globalRot;
-  vec3 q = p;
+  vec4 q = vec4(p, 1.0);
+
+  q = abs(q);
 
   float cosT = PI * slowTime;
-  for (int i = 0; i < 7; i++) {
-    q += 0.1 * cos( pow(2.0, float(i)) * q.yzx + cosT);
-
-    vec3 t = abs(q);
-    q.x = min(t.x, min(t.y, t.z)) - 0.01;
-    q.y = 0.3333 * dot(t, vec3(1));
-    q.z = max(t.x, max(t.y, t.z)) + 0.1;
-  }
+  q += 0.500000 * cos( 3.0 * q.yzwx + vec4(cosT, -cosT, 0, 0));
+  q += 0.250000 * cos( 5.0 * q.yzwx + vec4(cosT, 0, 0, -cosT));
+  q += 0.125000 * cos( 7.0 * q.yzwx + vec4(0, cosT + sin(cosT), -cosT, 0));
+  q += 0.062500 * cos(11.0 * q.yzwx + vec4(-cosT, 0, 0, cosT + cos(cosT)));
+  q += 0.031250 * cos(13.0 * q.yzwx + vec4(-cosT, 0, cosT, 0));
+  q += 0.015625 * cos(17.0 * q.yzwx + vec4(cosT, 0, cosT, 0));
+  q += 0.007812 * cos(23.0 * q.yzwx + vec4(-cosT, cosT, 0, 0));
 
   mPos = p;
-  float r = 1.0 + 0.5 * sin(PI * q.x);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0.0, 0.0);
-  b.x *= 0.05;
+  float r = 0.9 + 0.5 * sin(PI * q.x);
+  vec3 b = vec3(length(q.xyz) - r, 0.0, 0.0);
   d = dMin(d, b);
+
+  float cell = cellular(p + sin(0.5 * cosT));
+  float c = sdBox(p, vec3(1));
+  c -= 0.6 * cell;
+  d.x = max(d.x, c);
+
+  d.x *= 0.05;
 
   return d;
 }
@@ -776,9 +783,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   i *= 0.5;
 
   // I Adjustments
-  // i = sqrt(i);
-  i -= 0.40;
-  i *= 0.75;
+  i = sqrt(i);
+  i -= 0.92;
+  i *= 1.1;
 
   i2 = sqrt(i2);
   i2 += 0.1;
