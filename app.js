@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.75
-const BLOOM_PASSES = 1
-const BLOOM_MIN_BRIGHTNESS = 1.0
+const BLOOM_WET = 2.0
+const BLOOM_PASSES = 10
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -197,9 +197,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.334
-    this.angle2C = -0.343
-    this.angle3C = 0.446
+    this.angle1C = -0.192
+    this.angle2C = -0.757
+    this.angle3C = 1.114
 
     // this.setupAnimation(preset)
 

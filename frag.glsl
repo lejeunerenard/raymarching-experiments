@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -34,7 +34,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 50.0
 #define fogMaxDistance (0.8 * maxDistance)
 
@@ -557,18 +557,26 @@ vec3 map (in vec3 p) {
 
   float cosT = PI * slowTime;
 
-  q += 0.400000 * cos( 5.0 * q.yzx + vec3(cosT, 0, 0));
-  q += 0.200000 * cos( 7.0 * q.yzx + vec3(0, cosT, 0));
-  q += 0.100000 * cos(11.0 * q.yzx + vec3(0, 0, -cosT));
-  q += 0.050000 * cos(13.0 * q.yzx + vec3(cosT, cosT - sin(cosT), 0));
-  q += 0.025000 * cos(17.0 * q.yzx);
-  q += 0.012500 * cos(23.0 * q.yzx);
+  q.y *= 0.75;
+  q.y -= 0.2;
+  q += 0.200000 * cos( 1.3 * q.yzx + vec3(cosT, 0, 0));
+  q += 0.200000 * cos( 1.5 * q.yzx + vec3(0, cosT, 0));
+  q += 0.100000 * cos( 1.7 * q.yzx + vec3(0, 0, -cosT));
+  q += 0.050000 * cos( 2.1 * q.yzx + vec3(cosT, cosT - sin(cosT), 0));
+  q += 0.025000 * cos( 2.3 * q.yzx);
+  q += 0.012500 * cos( 2.7 * q.yzx);
+
+  vec3 nQ = vec3(1.0, 0.1, 0.9) * q;
+  q += vec3(0.025, 0.025, 0.025) * vec3(
+      cnoise2(4.1 * nQ.yx),
+      cnoise2(2.7 * nQ.zy),
+      cnoise2(6.7 * nQ.zx));
 
   mPos = p;
 
   const float r = 1.0;
   vec3 s = vec3(length(q.xyz) - r, 0, 0);
-  s.x *= 0.1;
+  s.x *= 0.5;
   d = dMin(d, s);
 
   return d;
@@ -824,9 +832,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFAAAA, 1.0);
-      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #AAAAFF, 1.0);
-      lights[2] = light(normalize(vec3(-0.75, 0.1, 1.0)), #AAFFAA, 1.0);
+      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FF9999, 1.0);
+      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #99FFFF, 1.0);
+      lights[2] = light(normalize(vec3(-0.75, 0.1, 1.0)), #99FF99, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -872,7 +880,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += reflectColor;
 
       // color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.4 * dispersion(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -969,10 +977,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    // vec2 absUV = abs(uv);
-    // float vignette = smoothstep(0.6, 1.4, max(absUV.x, absUV.y));
-    // vignette *= vignette;
-    // gl_FragColor.a += vignette;
-    // vignette = 1.0 - vignette;
-    // gl_FragColor.rgb *= vec3(vignette);
+    vec2 absUV = abs(uv);
+    float vignette = smoothstep(0.7, 1.4, max(absUV.x, absUV.y));
+    vignette *= vignette;
+    gl_FragColor.a += vignette;
+    vignette = 1.0 - vignette;
+    gl_FragColor.rgb *= vec3(vignette);
 }
