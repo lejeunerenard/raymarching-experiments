@@ -26,7 +26,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0.75
 const BLOOM_PASSES = 1
-const BLOOM_MIN_BRIGHTNESS = 0.1
+const BLOOM_MIN_BRIGHTNESS = 1.0
 
 // Initialize shell
 export default class App {
@@ -196,6 +196,10 @@ export default class App {
     this.scale = preset.scale
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
+
+    this.angle1C = 0.334
+    this.angle2C = -0.343
+    this.angle3C = 0.446
 
     // this.setupAnimation(preset)
 
@@ -545,8 +549,10 @@ export default class App {
 
     this.shader.uniforms.kifsM = this.kifsM(t)
     this.shader.uniforms.offsetC = this.offsetC
-    this.shader.uniforms.paletteOffset = this.color
-    this.shader.uniforms.paletteSpeed = this.paletteSpeed
+
+    this.shader.uniforms.angle1C = this.angle1C
+    this.shader.uniforms.angle2C = this.angle2C
+    this.shader.uniforms.angle3C = this.angle3C
   }
 
   bloomBlur (gl, t) {

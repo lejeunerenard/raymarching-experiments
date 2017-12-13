@@ -17,13 +17,15 @@ uniform bool BLOOM;
 uniform vec3 cOffset;
 uniform vec3 cameraRo;
 uniform vec4 offsetC;
-uniform vec3 paletteOffset;
-uniform vec3 paletteSpeed;
 uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
 uniform sampler2D tMatCap;
 uniform sampler2D audioTexture;
+
+uniform float angle1C;
+uniform float angle2C;
+uniform float angle3C;
 
 // KIFS
 uniform mat4 kifsM;
@@ -550,18 +552,23 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
+
   float cosT = PI * slowTime;
+
+  q += 0.400000 * cos( 5.0 * q.yzx + vec3(cosT, 0, 0));
+  q += 0.200000 * cos( 7.0 * q.yzx + vec3(0, cosT, 0));
+  q += 0.100000 * cos(11.0 * q.yzx + vec3(0, 0, -cosT));
+  q += 0.050000 * cos(13.0 * q.yzx + vec3(cosT, cosT - sin(cosT), 0));
+  q += 0.025000 * cos(17.0 * q.yzx);
+  q += 0.012500 * cos(23.0 * q.yzx);
 
   mPos = p;
 
-  float r = 1.0;
-  float offset = 0.;
+  const float r = 1.0;
   vec3 s = vec3(length(q.xyz) - r, 0, 0);
-  s.x -= cnoise3(1.10 * q.xyz + slowTime);
-  float cell = cellular(p + sin(0.5 * cosT));
-  s.x -= cell;
+  s.x *= 0.1;
   d = dMin(d, s);
 
   return d;
@@ -761,28 +768,20 @@ vec3 simpleGradient (in float t) {
 #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
-  // World space
-  float i = dot(nor, normalize(cameraRo));
+  vec3 color = vec3(1);
+  vec3 lookup = vec3(0, 0, 1.732051);
 
-  // View dependent
-  float i2 = dot(nor, -rd);
-  i += i2;
-  i *= 0.5;
+  float angleX = angle1C * dot(nor, -rd);
+  lookup *= rotationMatrix(normalize(vec3(1, 1, 0)), angleX);
 
-  // I Adjustments
-  i = sqrt(i);
-  i -= 0.92;
-  i *= 1.1;
+  float angleY = angle2C * dot(pos, nor);
+  lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), angleY);
 
-  i2 = sqrt(i2);
-  i2 += 0.1;
+  float angleZ = angle3C * cnoise3(nor);
+  lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), angleZ);
 
-  color += hsb2rgb(vec3(i, 1.0, 1.0));
-  // color += rainbow(i).rgb;
+  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
 
-  // color += 0.5 + 0.5 * cos(TWO_PI * (i2 + vec3(0, 0.33, 0.67)));
-  // color *= 0.5;
   return color;
 }
 
@@ -800,10 +799,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
+      const float bumpsScale = 0.7;
       nor += 0.1 * vec3(
-          cnoise3(490.0 * mPos),
-          cnoise3(670.0 * mPos + 234.634),
-          cnoise3(310.0 * mPos + 23.4634));
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
       nor = normalize(nor);
       gNor = nor;
 
@@ -840,7 +840,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.3, diffuse(nor, lightPos));
+        float dif = max(0.4, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -866,13 +866,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.125 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.015625 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.2 * dispersion(nor, rayDirection, n2, n1);
+      color += 0.4 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);

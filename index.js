@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'exfoliate-test1',
+    name: 'ornament-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -119,6 +119,11 @@ if (capturing) {
   gui.add(app, 'd', 0, 20).step(0.01).listen()
   gui.add(app, 'scale', -6, 6).step(0.01).listen()
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
+
+  let angleCF = gui.addFolder('Angle Coefficients')
+  angleCF.add(app, 'angle1C', -Math.PI, Math.PI).step(0.001).listen()
+  angleCF.add(app, 'angle2C', -Math.PI, Math.PI).step(0.001).listen()
+  angleCF.add(app, 'angle3C', -Math.PI, Math.PI).step(0.001).listen()
 
   let rotationF = gui.addFolder('Rotation')
   rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
