@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'utterly-changed-into-fire-test1',
+    name: 'exfoliate-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

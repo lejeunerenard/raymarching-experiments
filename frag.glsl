@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -32,7 +32,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1280
+#define maxSteps 512
 #define maxDistance 50.0
 #define fogMaxDistance (0.8 * maxDistance)
 
@@ -550,31 +550,19 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  p *= globalRot;
-  vec4 q = vec4(p, 1.0);
-
-  q = abs(q);
-
+  // p *= globalRot;
+  vec3 q = p;
   float cosT = PI * slowTime;
-  q += 0.500000 * cos( 3.0 * q.yzwx + vec4(cosT, -cosT, 0, 0));
-  q += 0.250000 * cos( 5.0 * q.yzwx + vec4(cosT, 0, 0, -cosT));
-  q += 0.125000 * cos( 7.0 * q.yzwx + vec4(0, cosT + sin(cosT), -cosT, 0));
-  q += 0.062500 * cos(11.0 * q.yzwx + vec4(-cosT, 0, 0, cosT + cos(cosT)));
-  q += 0.031250 * cos(13.0 * q.yzwx + vec4(-cosT, 0, cosT, 0));
-  q += 0.015625 * cos(17.0 * q.yzwx + vec4(cosT, 0, cosT, 0));
-  q += 0.007812 * cos(23.0 * q.yzwx + vec4(-cosT, cosT, 0, 0));
 
   mPos = p;
-  float r = 0.9 + 0.5 * sin(PI * q.x);
-  vec3 b = vec3(length(q.xyz) - r, 0.0, 0.0);
-  d = dMin(d, b);
 
+  float r = 1.0;
+  float offset = 0.;
+  vec3 s = vec3(length(q.xyz) - r, 0, 0);
+  s.x -= cnoise3(1.10 * q.xyz + slowTime);
   float cell = cellular(p + sin(0.5 * cosT));
-  float c = sdBox(p, vec3(1));
-  c -= 0.6 * cell;
-  d.x = max(d.x, c);
-
-  d.x *= 0.05;
+  s.x -= cell;
+  d = dMin(d, s);
 
   return d;
 }
@@ -690,7 +678,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   #if 1
   d = dispersionMarch(rd);
   #else
-  const int samples = 50;
+  const int samples = 20;
   for (int i = 0; i < samples; i++) {
     vec3 lightDir = rd;
     lightDir += 0.1 * vec3(
