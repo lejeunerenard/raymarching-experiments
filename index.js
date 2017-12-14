@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'ALEPH-test2',
+    name: 'opulent-waters-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

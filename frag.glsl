@@ -552,31 +552,26 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
+  p.xy *= 0.25;
+
   p *= globalRot;
   vec3 q = p;
 
   float cosT = PI * slowTime;
+  q += 0.200000 * cos(11.3 * q.yzx + vec3(cosT, 0, 0));
+  q += 0.100000 * cos(23.1 * q.yzx + vec3(0, -cosT, cosT));
 
-  q.y *= 0.75;
-  q.y -= 0.2;
-  q += 0.200000 * cos( 1.3 * q.yzx + vec3(cosT, 0, 0));
-  q += 0.200000 * cos( 1.5 * q.yzx + vec3(0, cosT, 0));
-  q += 0.100000 * cos( 1.7 * q.yzx + vec3(0, 0, -cosT));
-  q += 0.050000 * cos( 2.1 * q.yzx + vec3(cosT, cosT - sin(cosT), 0));
-  q += 0.025000 * cos( 2.3 * q.yzx);
-  q += 0.012500 * cos( 2.7 * q.yzx);
-
-  vec3 nQ = vec3(1.0, 0.1, 0.9) * q;
-  q += vec3(0.025, 0.025, 0.025) * vec3(
+  vec3 nQ = vec3(3.0, 0.1, 2.9) * q;
+  q += vec3(0.025) * vec3(
       cnoise2(4.1 * nQ.yx),
       cnoise2(2.7 * nQ.zy),
       cnoise2(6.7 * nQ.zx));
 
   mPos = p;
 
-  const float r = 1.0;
+  float r = 1.0 + 0.2 * dot(vec3(1), sin(2.1 * q + nQ));
   vec3 s = vec3(length(q.xyz) - r, 0, 0);
-  s.x *= 0.5;
+  s.x *= 0.1;
   d = dMin(d, s);
 
   return d;
@@ -773,7 +768,7 @@ vec3 simpleGradient (in float t) {
   return color;
 }
 
-#pragma glslify: rainbow = require(./color-map/rainbow)
+// #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
@@ -788,7 +783,8 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   float angleZ = angle3C * cnoise3(nor);
   lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), angleZ);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  color = saturate(lookup);
 
   return color;
 }
@@ -807,7 +803,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 0.7;
+      const float bumpsScale = 2.0;
       nor += 0.1 * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -849,10 +845,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
         float dif = max(0.4, diffuse(nor, lightPos));
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -862,7 +858,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.05 * amb * diffuseColor;
+        lin += 0.05 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -880,7 +876,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += reflectColor;
 
       // color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 1.0 * dispersion(nor, rayDirection, n2, n1);
+      color += 1.5 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
