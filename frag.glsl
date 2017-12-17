@@ -55,6 +55,7 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
+#pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 //#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
@@ -556,18 +557,19 @@ vec3 map (in vec3 p) {
   vec3 q = p;
 
   float cosT = PI * slowTime;
-  q += 0.200000 * cos( 5.0 * q.yzx + vec3(-cosT, cosT, 0));
-  q += 0.100000 * cos( 7.0 * q.yzx + vec3(0, -cosT, 0));
-  q += 0.050000 * cos(11.0 * q.yzx + vec3(cosT, cosT, -cosT));
-  q += 0.025000 * cos(13.0 * q.yzx + vec3(-cosT, cosT, 0));
-  q += 0.012500 * cos(17.0 * q.yzx );
-  q += 0.006250 * cos(23.0 * q.yzx );
+
+  vec3 nQ = vec3(
+      noise(2.0 * q.yzx),
+      noise(2.0 * q.yzx + 3.013),
+      noise(2.0 * q.yzx + 38.32));
+
+  nQ.x *= 0.25;
 
   mPos = p;
 
-  float r = 1.4;
+  float r = 1.0 + 0.5 * cnoise3(q + 2.0 * nQ.yzx);
   vec3 s = vec3(sdBox(q.xyz, vec3(r)), 0, 0);
-  s.x *= 0.35;
+  s.x *= 0.3;
   d = dMin(d, s);
 
   return d;
@@ -737,33 +739,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(background);
-  const float ep = 0.001;
-  const float thickness = 0.975;
-
-  pos *= 1.0;
-
-  vec3 offset = vec3(0);
-  float t = slowTime + length(pos);
-  offset = vec3(-t, t, t);
-
-  const float scale = 2.0;
-  const float nScale = 0.5;
-
-  float v = dot(pos - offset, vec3(scale));
-  v += nScale * noise(3.01 * pos);
-  v = nsin(v);
-  v = smoothstep(thickness, thickness + ep, v);
-
-  // Diag
-  float v2 = dot(pos - offset, 1.4 * vec3(-scale, scale, -scale));
-  v2 += nScale * noise(5.29 * pos);
-  v2 = nsin(v2);
-  v2 = smoothstep(thickness, thickness + ep, v2);
-  v = max(v, v2);
-
-  color = mix(background, vec3(1), v);
-  color = background;
-
   return color;
 }
 
@@ -814,7 +789,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.25;
+      float freCo = 0.00;
       float specCo = 1.00;
       float disperCo = 0.5;
 
@@ -848,12 +823,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
-      color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 5.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.1 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
@@ -895,7 +870,45 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec3 lines (in vec2 uv) {
+  vec3 color = background;
+
+  const float ep = 0.015;
+  const float thickness = 0.99;
+  const float scale = 18.0;
+
+  const float period = 4.0;
+  const float transitionTime = 0.25;
+  float modTime = mod(slowTime, period);
+  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
+
+  vec2 q = uv;
+  q *= scale;
+
+  float mul1 = ncnoise2(2.0 * uv.yx + modTime);
+  float mul2 = ncnoise2(2.0 * uv.yx + (modTime - period));
+  q *= 1.0 + 0.3 * mix(mul1, mul2, mixT);
+
+  q += 0.5000000 * cnoise2(2.0 * uv.yx);
+  q += 0.2500000 * cnoise2(4.0 * uv.yx);
+  q += 0.1250000 * cnoise2(8.0 * uv.yx);
+
+  float v = 0.0;
+  v += smoothstep(thickness, thickness + ep, sin(PI * q.y));
+  v += smoothstep(thickness, thickness + ep, sin(PI * q.x));
+
+  color = mix(color, vec3(0.99), saturate(v));
+
+  vec2 absUv = abs(uv);
+  const float r = 0.75;
+
+  color = mix(color, vec3(1), smoothstep(0.0, ep / scale, max(absUv.x, absUv.y) - r));
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(lines(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -951,10 +964,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    vec2 absUV = abs(uv);
-    float vignette = smoothstep(0.7, 1.4, max(absUV.x, absUV.y));
-    vignette *= vignette;
-    gl_FragColor.a += vignette;
-    vignette = 1.0 - vignette;
-    gl_FragColor.rgb *= vec3(vignette);
+    // vec2 absUV = abs(uv);
+    // float vignette = smoothstep(0.7, 1.4, max(absUV.x, absUV.y));
+    // vignette *= vignette;
+    // gl_FragColor.a += vignette;
+    // vignette = 1.0 - vignette;
+    // gl_FragColor.rgb *= vec3(vignette);
 }

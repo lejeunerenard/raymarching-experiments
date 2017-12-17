@@ -4,6 +4,7 @@
 
 precision highp float;
 
+varying vec2 fragCoord;
 uniform vec2 resolution;
 uniform float time;
 uniform sampler2D base;
@@ -26,7 +27,8 @@ void main() {
   const vec3 gammaEnc = vec3(0.454545);
 
   vec2 uv = vec2(gl_FragCoord.xy / resolution.xy);
-  background = getBackground(uv);
+  vec2 uvBackground = fragCoord.xy;
+  background = getBackground(uvBackground);
 
   vec4 baseColor = texture2D(base, uv);
   baseColor.rgb = pow(baseColor.rgb, gamma);
@@ -41,13 +43,13 @@ void main() {
   // gl_FragColor = vec4(background + result.rgb, 1.);
 
   // Post process
-  // vec3 colorBefore = gl_FragColor.rgb;
-  // colorMap(gl_FragColor.rgb);
-  // gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.85);
+  vec3 colorBefore = gl_FragColor.rgb;
+  colorMap(gl_FragColor.rgb);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.90);
 
   // Gamma encode
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 
   // 'Film' Noise
-  gl_FragColor.rgb += 0.03 * (cnoise2(560. * uv + sin(uv + time) + 200.0 * vec2(time, 0.0)) + cnoise2(800. * uv + 253.5 * vec2(0., time)));
+  gl_FragColor.rgb += 0.05 * (cnoise2(560. * uv + sin(uv + time) + 200.0 * vec2(time, 0.0)) + cnoise2(800. * uv + 253.5 * vec2(0., time)));
 }
