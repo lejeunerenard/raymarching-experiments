@@ -558,18 +558,14 @@ vec3 map (in vec3 p) {
 
   float cosT = PI * slowTime;
 
-  vec3 nQ = vec3(
-      noise(2.0 * q.yzx),
-      noise(2.0 * q.yzx + 3.013),
-      noise(2.0 * q.yzx + 38.32));
-
-  nQ.x *= 0.25;
+  q += 0.2000000 * cos( 3.0 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
+  q += 0.1000000 * cos( 7.0 * q.yzx + vec3(0, cosT, cosT));
 
   mPos = p;
 
-  float r = 1.0 + 0.5 * cnoise3(q + 2.0 * nQ.yzx);
-  vec3 s = vec3(sdBox(q.xyz, vec3(r)), 0, 0);
-  s.x *= 0.3;
+  float r = 1.0 + vfbmWarp(q);
+  vec3 s = vec3(sdCapsule(q.xyz, vec3(-1, 0, 0), vec3(1, 0, 0), r), 0, 0);
+  s.x *= 0.2;
   d = dMin(d, s);
 
   return d;
@@ -738,7 +734,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(1);
   return color;
 }
 
@@ -781,15 +777,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FFFFFF, 1.0);
-      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FF9999, 1.0);
+      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #99FFFF, 1.0);
       lights[2] = light(normalize(vec3(-0.75, 0.1, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.00;
+      float freCo = 0.20;
       float specCo = 1.00;
       float disperCo = 0.5;
 
@@ -797,11 +793,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // max(0.4, diffuse(nor, lightPos));
+        float dif = max(0.4, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -811,7 +807,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.05 * amb * diffuseColor;
+        lin += 0.1 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -870,45 +866,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec3 lines (in vec2 uv) {
-  vec3 color = background;
-
-  const float ep = 0.015;
-  const float thickness = 0.99;
-  const float scale = 18.0;
-
-  const float period = 4.0;
-  const float transitionTime = 0.25;
-  float modTime = mod(slowTime, period);
-  float mixT = saturate((modTime - transitionTime) / (period - transitionTime));
-
-  vec2 q = uv;
-  q *= scale;
-
-  float mul1 = ncnoise2(2.0 * uv.yx + modTime);
-  float mul2 = ncnoise2(2.0 * uv.yx + (modTime - period));
-  q *= 1.0 + 0.3 * mix(mul1, mul2, mixT);
-
-  q += 0.5000000 * cnoise2(2.0 * uv.yx);
-  q += 0.2500000 * cnoise2(4.0 * uv.yx);
-  q += 0.1250000 * cnoise2(8.0 * uv.yx);
-
-  float v = 0.0;
-  v += smoothstep(thickness, thickness + ep, sin(PI * q.y));
-  v += smoothstep(thickness, thickness + ep, sin(PI * q.x));
-
-  color = mix(color, vec3(0.99), saturate(v));
-
-  vec2 absUv = abs(uv);
-  const float r = 0.75;
-
-  color = mix(color, vec3(1), smoothstep(0.0, ep / scale, max(absUv.x, absUv.y) - r));
-
-  return color;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(lines(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
