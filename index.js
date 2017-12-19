@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'gesso-test1',
+    name: 'dichroic-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

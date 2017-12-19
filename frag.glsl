@@ -553,20 +553,27 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
   float cosT = PI * slowTime;
 
-  q += 0.2000000 * cos( 3.0 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
-  q += 0.1000000 * cos( 7.0 * q.yzx + vec3(0, cosT, cosT));
+  vec2 c = pMod2(q.xy, vec2(0.6));
+  q.zy = q.yz;
+
+  float a = cnoise3(vec3(0.5 * c, slowTime));
+  q *= rotationMatrix(normalize(vec3(1, 0.5, 1)), PI * a);
 
   mPos = p;
 
-  float r = 1.0 + vfbmWarp(q);
-  vec3 s = vec3(sdCapsule(q.xyz, vec3(-1, 0, 0), vec3(1, 0, 0), r), 0, 0);
-  s.x *= 0.2;
+  vec3 s = vec3(sdCappedCylinder(q.xyz, vec2(0.25,0.01)), 0, 0);
   d = dMin(d, s);
+
+  vec3 cQ = p;
+  float crop = sdBox(cQ.xyz, vec3(1.5));
+  d.x = max(d.x, crop);
+
+  d.x *= 0.6;
 
   return d;
 }
@@ -735,6 +742,21 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
+
+  vec3 lookup = vec3(1, 1, 1);
+
+  float i1 = dot(nor, -rd);
+  lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), angle1C * i1);
+
+  float i2 = dot(nor, pos);
+  lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), angle2C * i2);
+
+  float i3 = cnoise3(pos);
+  lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), angle3C * i3);
+
+  // Get the color
+  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+
   return color;
 }
 
@@ -785,7 +807,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.20;
+      float freCo = 0.50;
       float specCo = 1.00;
       float disperCo = 0.5;
 
@@ -819,12 +841,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
-      // color += 5.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 5.0 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 0.1 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
