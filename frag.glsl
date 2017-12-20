@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -34,7 +34,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 50.0
 #define fogMaxDistance (0.5 * maxDistance)
 
@@ -474,7 +474,7 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
-// #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
+#pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
 // #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
@@ -558,20 +558,19 @@ vec3 map (in vec3 p) {
 
   float cosT = PI * slowTime;
 
-  vec2 c = pMod2(q.xy, vec2(0.6));
-  q.zy = q.yz;
+  // q.zy = q.yz;
 
-  float a = cnoise3(vec3(0.5 * c, slowTime));
-  q *= rotationMatrix(normalize(vec3(1, 0.5, 1)), PI * a);
+  q += 0.200 * cos( 2.0 * q.yzx + vec3(cosT, -cosT, 0) );
+  q += 0.100 * cos( 3.0 * q.yzx + vec3(cosT, -cosT, 0) );
+  q += 0.050 * cos( 5.0 * q.yzx );
+  q += 0.025 * cos( 7.0 * q.yzx );
 
   mPos = p;
 
-  vec3 s = vec3(sdCappedCylinder(q.xyz, vec2(0.25,0.01)), 0, 0);
-  d = dMin(d, s);
+  float r = 1.0 + 0.2 * abs(dot(q, q));
 
-  vec3 cQ = p;
-  float crop = sdBox(cQ.xyz, vec3(1.5));
-  d.x = max(d.x, crop);
+  vec3 s = vec3(length(q.xyz) - r, 0, 0);
+  d = dMin(d, s);
 
   d.x *= 0.6;
 
@@ -751,7 +750,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   float i2 = dot(nor, pos);
   lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), angle2C * i2);
 
-  float i3 = cnoise3(pos);
+  float i3 = cnoise3(0.5 * pos + m);
   lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), angle3C * i3);
 
   // Get the color
@@ -775,11 +774,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 2.0;
-      // nor += 0.1 * vec3(
+      // nor += 0.05 * vec3(
       //     cnoise3(bumpsScale * 490.0 * mPos),
       //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
       //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -846,8 +845,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       reflectColor += 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
-      color += 5.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      // color += 0.1 * dispersion(nor, rayDirection, n2, n1);
+      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
