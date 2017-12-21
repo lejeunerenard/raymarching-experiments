@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'enigma-test1',
+    name: 'mystery-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

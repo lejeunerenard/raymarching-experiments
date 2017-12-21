@@ -398,8 +398,8 @@ scale, 0., 0., 0.,
 // 
 // #pragma glslify: fold = require(./folds)
 // #pragma glslify: foldNd = require(./foldNd)
-// #pragma glslify: twist = require(./twist)
-#
+#pragma glslify: twist = require(./twist)
+
 void opCheapBend (inout vec3 p, float a) {
     float c = cos(a*p.y);
     float s = sin(a*p.y);
@@ -560,19 +560,20 @@ vec3 map (in vec3 p) {
 
   // q.zy = q.yz;
 
-  q += 0.200 * cos( 2.0 * q.yzx + vec3(cosT, -cosT, 0) );
-  q += 0.100 * cos( 3.0 * q.yzx + vec3(cosT, -cosT, 0) );
-  q += 0.050 * cos( 5.0 * q.yzx );
-  q += 0.025 * cos( 7.0 * q.yzx );
+  q += 0.200 * cos( 5.0 * q.yzx + vec3(cosT, -cosT, 0) );
+  q += 0.100 * cos( 7.0 * q.yzx + vec3(-cosT, cosT + sin(cosT), 0) );
+  q.xzy = twist(q.xyz, q.y);
+  q += 0.050 * cos(11.0 * q.yzx + vec3(0, cosT, -cosT + cos(cosT + cos(cosT))));
+  q += 0.025 * cos(13.0 * q.yzx );
 
   mPos = p;
 
-  float r = 1.0 + 0.2 * abs(dot(q, q));
+  float r = 0.8;
 
   vec3 s = vec3(length(q.xyz) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.6;
+  d.x *= 0.3;
 
   return d;
 }
@@ -756,7 +757,10 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   // Get the color
   color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
 
-  return color;
+  // Add background back in
+  color = mix(color, background, pow(i1, 0.25));
+
+  return color * color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -806,9 +810,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.50;
-      float specCo = 1.00;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
+
+      float angle = 1.0 - dot(nor, -rayDirection);
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
@@ -828,7 +834,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.1 * amb * diffuseColor;
+        // lin += 0.1 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -840,13 +846,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.01 * matCap(reflect(rayDirection, nor));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 1.0 * dispersion(nor, rayDirection, n2, n1);
+      color += angle * angle * angle * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -854,6 +860,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
+
+      color = pow(color, vec3(0.35));
+      color *= angle * angle * angle * angle * angle;
 
       // Debugging
       #ifdef debugMapCalls
