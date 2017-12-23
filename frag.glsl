@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -560,20 +560,20 @@ vec3 map (in vec3 p) {
 
   // q.zy = q.yz;
 
-  q += 0.200 * cos( 5.0 * q.yzx + vec3(cosT, -cosT, 0) );
-  q += 0.100 * cos( 7.0 * q.yzx + vec3(-cosT, cosT + sin(cosT), 0) );
+  q += 0.200 * noise( 5.0 * q.yzx + slowTime);
+  q += 0.100 * noise( 7.0 * q.yzx - slowTime);
   q.xzy = twist(q.xyz, q.y);
-  q += 0.050 * cos(11.0 * q.yzx + vec3(0, cosT, -cosT + cos(cosT + cos(cosT))));
-  q += 0.025 * cos(13.0 * q.yzx );
+  q += 0.050 * noise(11.0 * q.yzx );
+  q += 0.250 * noise(13.0 * q.yzx );
 
   mPos = p;
 
-  float r = 0.8;
+  float r = 1.7;
 
   vec3 s = vec3(length(q.xyz) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.3;
+  d.x *= 0.0375;
 
   return d;
 }
