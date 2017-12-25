@@ -34,7 +34,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 512
 #define maxDistance 50.0
 #define fogMaxDistance (0.5 * maxDistance)
 
@@ -474,10 +474,10 @@ float isMaterialSmooth( float m, float goal ) {
 }
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
-#pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+// #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
+// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 // #pragma glslify: bounce = require(glsl-easings/bounce-out)
@@ -553,27 +553,35 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
+
+  q.yx = q.xy;
+
+  float c = pModPolar(q.xy, 6.0);
 
   float cosT = PI * slowTime;
 
-  // q.zy = q.yz;
-
-  q += 0.200 * noise( 5.0 * q.yzx + slowTime);
-  q += 0.100 * noise( 7.0 * q.yzx - slowTime);
-  q.xzy = twist(q.xyz, q.y);
-  q += 0.050 * noise(11.0 * q.yzx );
-  q += 0.250 * noise(13.0 * q.yzx );
-
   mPos = p;
 
-  float r = 1.7;
-
-  vec3 s = vec3(length(q.xyz) - r, 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(1, 0.05, 0.05)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.0375;
+  q.y = abs(q.y);
+
+  vec3 q2 = q;
+
+  q.x -= 0.45;
+  q *= rotationMatrix(vec3(0, 0, 1), -PI * 0.25);
+  vec3 s2 = vec3(sdBox(q, vec3(0.5, 0.05, 0.05)), 0, 0);
+  d = dMin(d, s2);
+
+  q2.x -= 0.65;
+  q2 *= rotationMatrix(vec3(0, 0, 1), -PI * 0.25);
+  vec3 s3 = vec3(sdBox(q2, vec3(0.35, 0.045, 0.05)), 0, 0);
+  d = dMin(d, s3);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -630,13 +638,13 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.8;
 
-  // vec3 spaceScaling = vec3(7.234, 9.234, 3.2);
-  // float n = ncnoise3(spaceScaling * rd + startPoint);
-  // n = smoothstep(0.5, 1.00, n);
+  vec3 spaceScaling = vec3(3.234, 5.234, 1.2);
+  float n = ncnoise3(spaceScaling * rd + startPoint);
+  n = smoothstep(0.5, 1.00, n);
 
-  vec3 spaceScaling = vec3(0.25);
-  float n = vfbmWarp(spaceScaling * rd + startPoint);
-  n = smoothstep(0.65, 0.85, n);
+  // vec3 spaceScaling = vec3(0.25);
+  // float n = vfbmWarp(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.65, 0.85, n);
 
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
@@ -741,26 +749,23 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = background;
 
   vec3 lookup = vec3(1, 1, 1);
 
-  float i1 = dot(nor, -rd);
-  lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), angle1C * i1);
+  // float i1 = dot(nor, -rd);
+  // lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), angle1C * i1);
 
-  float i2 = dot(nor, pos);
-  lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), angle2C * i2);
+  // float i2 = dot(nor, pos);
+  // lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), angle2C * i2);
 
-  float i3 = cnoise3(0.5 * pos + m);
-  lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), angle3C * i3);
+  // float i3 = cnoise3(0.5 * pos + m);
+  // lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), angle3C * i3);
 
-  // Get the color
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  // // Get the color
+  // color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
 
-  // Add background back in
-  color = mix(color, background, pow(i1, 0.25));
-
-  return color * color;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -810,8 +815,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 0.5;
       float disperCo = 0.5;
 
       float angle = 1.0 - dot(nor, -rayDirection);
@@ -820,11 +825,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.4, diffuse(nor, lightPos));
+        float dif = 1.0; // max(0.4, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -851,8 +856,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.1 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += angle * angle * angle * dispersion(nor, rayDirection, n2, n1);
+      color += 3.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 2.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -860,9 +865,6 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
-
-      color = pow(color, vec3(0.35));
-      color *= angle * angle * angle * angle * angle;
 
       // Debugging
       #ifdef debugMapCalls
