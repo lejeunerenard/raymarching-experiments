@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'snowflake-test1',
+    name: 'joy-to-the-world-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

@@ -16,7 +16,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 0.5 * Math.min(2, defined(window.devicePixelRatio, 1))
 const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 // const TWO_PI = 2 * Math.PI
@@ -183,7 +183,7 @@ export default class App {
     // preset.cameraAngles = [-0.724, -0.724, -0.543]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.9)
+    this.cameraRo = vec3.fromValues(0, 0, 4.56)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -197,9 +197,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.524
-    this.angle2C = -0.342
-    this.angle3C = 0.397
+    this.angle1C = 1.391
+    this.angle2C = -0.549
+    this.angle3C = 0.351
 
     // this.setupAnimation(preset)
 
