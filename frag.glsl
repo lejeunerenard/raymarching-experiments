@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -553,14 +553,8 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
-  q.y = -p.y;
-
-  // Bob
-  q.y += 0.125 * sin(TWO_PI * slowTime);
-
-  q.y -= 0.6;
 
   float cosT = PI * slowTime;
 
@@ -574,14 +568,6 @@ vec3 map (in vec3 p) {
 
   vec3 s = vec3(sdHexPrism(q.xzy, vec2(r, l)), 0, 0);
   d = dMin(d, s);
-
-  // q = p; // Reset
-  q.y += 0.6;
-  const float r2 = 1.0;
-  vec3 c = vec3(sdBox(q, vec3(r2, 1.60, r2)), 1, 0);
-  d = dMax(d, c);
-
-  d.x *= 0.8;
 
   return d;
 }
@@ -783,11 +769,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 2.0;
-      nor += 0.05 * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // nor += 0.05 * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -898,7 +884,55 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+vec3 colorz (in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+  vec2 p = uv;
+
+  pModPolar(uv, 6.0);
+  uv.y = abs(uv.y);
+
+  // Scale
+  uv *= 2.0;
+
+  float cosT = PI * slowTime;
+
+  uv += 0.50000 * cos( 2.0 * uv.yx + vec2(cosT, -cosT));
+  uv += 0.25000 * cos( 3.0 * uv.yx + vec2(0, cosT + 0.25 * sin(cosT)));
+  uv += 0.12500 * cos( 5.0 * uv.yx );
+  uv += 0.06250 * cos( 7.0 * uv.yx );
+  uv += 0.03125 * cos(11.0 * uv.yx );
+
+  uv += cnoise3(vec3(uv * vec2(1, 7), time));
+
+  float v = cnoise3(vec3(uv, slowTime));
+
+  vec3 nor = vec3(
+      cnoise3(vec3(uv + vec2(0.01, 0), slowTime)) - cnoise3(vec3(uv - vec2(0.01, 0), slowTime)),
+      cnoise3(vec3(uv + vec2(0, 0.01), slowTime)) - cnoise3(vec3(uv - vec2(0, 0.01), slowTime)),
+      v);
+  nor = normalize(nor);
+
+  vec3 lookup = vec3(1.732051, 0, 0);
+
+  float dI = dot(nor, -rd);
+
+  lookup *= rotationMatrix(normalize(vec3(1, 3, 2)), angle1C * PI * dI);
+
+  float dI2 = dot(p, nor.xy);
+  lookup *= rotationMatrix(normalize(vec3(5, 0, 1)), angle2C * PI * dI2);
+
+  float dI3 = cnoise2(uv);
+  lookup *= rotationMatrix(normalize(vec3(0, 1, 0)), angle3C * PI * dI3);
+
+  color = 0.5 + 0.5 * cos( TWO_PI * (lookup + vec3(0, 0.33, 0.67)) );
+
+  float diff = dot(nor, -rd);
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(colorz(rd, uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
