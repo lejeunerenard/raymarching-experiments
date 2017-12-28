@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 precision highp float;
 
@@ -147,7 +147,7 @@ float vfbm6 (vec2 p) {
 
 float vfbm6 (vec3 p) {
   float f = 0.0;
-  const float a = 1.123;
+  const float a = 0.823;
   mat3 m = rotationMatrix(vec3(1, 0, 0), a);
 
   f += 0.500000 * (0.5 + 0.5 * noise( p )); p *= m * 2.02;
@@ -888,8 +888,9 @@ vec3 colorz (in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
   vec2 p = uv;
 
-  pModPolar(uv, 6.0);
+  pModPolar(uv, 3.0);
   uv.y = abs(uv.y);
+  // uv = abs(uv - 1.0) + 1.0;
 
   // Scale
   uv *= 2.0;
@@ -897,12 +898,24 @@ vec3 colorz (in vec3 rd, in vec2 uv) {
   float cosT = PI * slowTime;
 
   uv += 0.50000 * cos( 2.0 * uv.yx + vec2(cosT, -cosT));
+  uv *= rotMat2(0.1);
+  uv *= 1.2;
+
   uv += 0.25000 * cos( 3.0 * uv.yx + vec2(0, cosT + 0.25 * sin(cosT)));
+  uv *= rotMat2(0.2);
+  uv *= 1.2;
+
   uv += 0.12500 * cos( 5.0 * uv.yx );
+  uv *= rotMat2(0.3);
+  uv *= 1.2;
+
   uv += 0.06250 * cos( 7.0 * uv.yx );
+  uv *= rotMat2(-0.1);
+  uv *= 1.2;
+
   uv += 0.03125 * cos(11.0 * uv.yx );
 
-  uv += cnoise3(vec3(uv * vec2(1, 7), time));
+  uv += vfbmWarp(vec3(uv * vec2(1, 2), time));
 
   float v = cnoise3(vec3(uv, slowTime));
 
@@ -912,23 +925,21 @@ vec3 colorz (in vec3 rd, in vec2 uv) {
       v);
   nor = normalize(nor);
 
-  vec3 lookup = vec3(1.732051, 0, 0);
+  vec3 lookup = vec3(1);
 
   float dI = dot(nor, -rd);
 
-  lookup *= rotationMatrix(normalize(vec3(1, 3, 2)), angle1C * PI * dI);
+  lookup *= rotationMatrix(normalize(vec3(2, 0, 1)), angle1C * dI);
 
-  float dI2 = dot(p, nor.xy);
-  lookup *= rotationMatrix(normalize(vec3(5, 0, 1)), angle2C * PI * dI2);
+  float dI2 = dot(p, rd.xy);
+  lookup *= rotationMatrix(normalize(vec3(5, 0, 1)), angle2C * dI2);
 
   float dI3 = cnoise2(uv);
-  lookup *= rotationMatrix(normalize(vec3(0, 1, 0)), angle3C * PI * dI3);
+  lookup *= rotationMatrix(normalize(vec3(1, 1, 0)), angle3C * PI * dI3);
 
-  color = 0.5 + 0.5 * cos( TWO_PI * (lookup + vec3(0, 0.33, 0.67)) );
+  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
 
-  float diff = dot(nor, -rd);
-
-  return color;
+  return color * 0.8;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
