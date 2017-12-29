@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 precision highp float;
 
@@ -553,21 +553,26 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = maxDistance;
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
   float cosT = PI * slowTime;
 
-  q.xzy = twist(q, q.y);
+  q += 0.20000 * cos( 5.0 * q.yzx + cos(q.zyx) + cosT);
+  q += 0.10000 * cos( 7.0 * q.yzx + cos(q.zxy));
+  q += 0.05000 * cos(11.0 * q.yzx + cos(1.5 * q.zyx));
+  q += 0.02500 * cos(13.0 * q.yzx);
+  q += 0.01250 * cos(17.0 * q.yzx);
+  q += 0.00625 * cos(23.0 * q.yzx);
 
   mPos = p;
 
-  float l = 2.0;
-  float r = saturate(0.25 - 0.25 * q.y);
-  r = pow(r, 0.75);
+  float r = 1.0 + 0.25 * sin(PI * slowTime + dot(q, vec3(1)));
 
-  vec3 s = vec3(sdHexPrism(q.xzy, vec2(r, l)), 0, 0);
+  vec3 s = vec3(length(q.xzy) - r, 0, 0);
   d = dMin(d, s);
+
+  d.x *= 0.25;
 
   return d;
 }
@@ -628,7 +633,7 @@ vec3 textures (in vec3 rd) {
   // float n = ncnoise3(spaceScaling * rd + startPoint);
   // n = smoothstep(0.5, 1.00, n);
 
-  vec3 spaceScaling = vec3(0.25);
+  vec3 spaceScaling = vec3(0.5);
   float n = vfbmWarp(spaceScaling * rd + startPoint);
   n = smoothstep(0.65, 0.85, n);
 
@@ -749,7 +754,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), angle3C * i3);
 
   // Get the color
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -793,19 +798,17 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FF9999, 1.0);
-      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #99FFFF, 1.0);
+      lights[0] = light(normalize(vec3(0.25, 1., 1.)), #FF6666, 1.0);
+      lights[1] = light(normalize(vec3(-0.25, .25, 0.5)), #66FFFF, 1.0);
       lights[2] = light(normalize(vec3(-0.75, 0.1, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.2;
       float specCo = 0.2;
       float disperCo = 0.5;
-
-      float angle = 1.0 - dot(nor, -rayDirection);
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
@@ -839,11 +842,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // reflectColor += 0.05 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 1.0 * dispersion(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 2.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
@@ -884,66 +887,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-vec3 colorz (in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-  vec2 p = uv;
-
-  pModPolar(uv, 3.0);
-  uv.y = abs(uv.y);
-  // uv = abs(uv - 1.0) + 1.0;
-
-  // Scale
-  uv *= 2.0;
-
-  float cosT = PI * slowTime;
-
-  uv += 0.50000 * cos( 2.0 * uv.yx + vec2(cosT, -cosT));
-  uv *= rotMat2(0.1);
-  uv *= 1.2;
-
-  uv += 0.25000 * cos( 3.0 * uv.yx + vec2(0, cosT + 0.25 * sin(cosT)));
-  uv *= rotMat2(0.2);
-  uv *= 1.2;
-
-  uv += 0.12500 * cos( 5.0 * uv.yx );
-  uv *= rotMat2(0.3);
-  uv *= 1.2;
-
-  uv += 0.06250 * cos( 7.0 * uv.yx );
-  uv *= rotMat2(-0.1);
-  uv *= 1.2;
-
-  uv += 0.03125 * cos(11.0 * uv.yx );
-
-  uv += vfbmWarp(vec3(uv * vec2(1, 2), time));
-
-  float v = cnoise3(vec3(uv, slowTime));
-
-  vec3 nor = vec3(
-      cnoise3(vec3(uv + vec2(0.01, 0), slowTime)) - cnoise3(vec3(uv - vec2(0.01, 0), slowTime)),
-      cnoise3(vec3(uv + vec2(0, 0.01), slowTime)) - cnoise3(vec3(uv - vec2(0, 0.01), slowTime)),
-      v);
-  nor = normalize(nor);
-
-  vec3 lookup = vec3(1);
-
-  float dI = dot(nor, -rd);
-
-  lookup *= rotationMatrix(normalize(vec3(2, 0, 1)), angle1C * dI);
-
-  float dI2 = dot(p, rd.xy);
-  lookup *= rotationMatrix(normalize(vec3(5, 0, 1)), angle2C * dI2);
-
-  float dI3 = cnoise2(uv);
-  lookup *= rotationMatrix(normalize(vec3(1, 1, 0)), angle3C * PI * dI3);
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
-
-  return color * 0.8;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(colorz(rd, uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
