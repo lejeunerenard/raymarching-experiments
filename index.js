@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'portal-test1',
+    name: 'zero-point-lattice-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
