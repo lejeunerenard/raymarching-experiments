@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 8.0
+const BLOOM_WET = 4.0
 const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.72
+const BLOOM_MIN_BRIGHTNESS = 0.90
 
 // Initialize shell
 export default class App {
@@ -201,7 +201,7 @@ export default class App {
     this.angle2C = 0.705
     this.angle3C = 0.143
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -279,20 +279,16 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ x: -0.025 }, 5 * 1000)
+      .to({ x: -0.5 }, 10 * 1000)
       .onUpdate(updatePos)
 
     let cameraPosTween2 = new TWEEN.Tween(ob)
     cameraPosTween2
-      .to({ x: 0.025 }, 10 * 1000)
-      .onUpdate(updatePos)
-    let cameraPosTweenReturn = new TWEEN.Tween(ob)
-    cameraPosTweenReturn
-      .to({ x: 0 }, 5 * 1000)
+      .to({ x: 0.5 }, 10 * 1000)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTweenReturn)
+    cameraPosTween2.chain(cameraPosTween)
     cameraPosTween.start(0)
 
     // Camera rotation
@@ -333,7 +329,7 @@ export default class App {
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween3)
     rotTween3.chain(rotTweenReturn)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -365,7 +361,7 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.chain(offsetTweenReturn)
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
   }
 
   setupAudio () {

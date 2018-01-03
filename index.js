@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'FLX-RIVR-test1',
+    name: 'level-up-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
