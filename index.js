@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 5
 const capturing = false
 
 const FOV = 50
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'candy-test1',
+    name: 'satellite-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

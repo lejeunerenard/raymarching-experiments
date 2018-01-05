@@ -43,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const thingy = {
@@ -180,10 +180,10 @@ export default class App {
     }
 
     const preset = this.presets.kaleidoGem
-    preset.cameraAngles = [-0.18, 0, 0]
+    preset.cameraAngles = [0.7, -2.504, 0.174]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2)
+    this.cameraRo = vec3.fromValues(-1.77, 1.52, -1.83)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
