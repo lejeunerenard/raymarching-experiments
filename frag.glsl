@@ -34,7 +34,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 512
 #define maxDistance 50.0
 #define fogMaxDistance (0.5 * maxDistance)
 
@@ -552,10 +552,22 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= 1.4;
+
   // p *= globalRot;
   vec3 q = p;
 
   q.y += 0.05 * nsin(slowTime);
+
+  vec3 qN = q;
+  qN += 0.300000 * cos( 5.0 * qN.yzx + slowTime);
+  qN += 0.150000 * cos( 7.0 * qN.yzx + slowTime);
+  qN += 0.075000 * cos(11.0 * qN.yzx );
+  qN += 0.037500 * cos(13.0 * qN.yzx );
+  qN += 0.018750 * cos(17.0 * qN.yzx );
+  qN += 0.009375 * cos(23.0 * qN.yzx );
+
+  q = mix(q, qN, nsin(slowTime));
 
   vec3 planet = vec3(length(q.xyz) - 0.75, 0, 0);
   d = dMin(d, planet);
@@ -572,6 +584,8 @@ vec3 map (in vec3 p) {
 
   vec3 moon = vec3(length(q.xyz) - 0.11, 2, 0);
   d = dMin(d, moon);
+
+  d.x *= 0.1;
 
   return d;
 }
