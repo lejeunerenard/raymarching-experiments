@@ -552,40 +552,38 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= 1.4;
-
   // p *= globalRot;
-  vec3 q = p;
+  vec3 q = p - vec3(0, 0.2, 0);
 
-  q.y += 0.05 * nsin(slowTime);
+  float cosT = PI * 0.25 * slowTime;
 
-  vec3 qN = q;
-  qN += 0.300000 * cos( 5.0 * qN.yzx + slowTime);
-  qN += 0.150000 * cos( 7.0 * qN.yzx + slowTime);
-  qN += 0.075000 * cos(11.0 * qN.yzx );
-  qN += 0.037500 * cos(13.0 * qN.yzx );
-  qN += 0.018750 * cos(17.0 * qN.yzx );
-  qN += 0.009375 * cos(23.0 * qN.yzx );
+  q += 0.40000 * cos(  3.0 * q.yzx + vec3(-cosT, 0, cosT));
+  q += 0.20000 * cos(  7.0 * q.yzx + vec3(0, cosT, cosT + sin(cosT)));
+  q += 0.10000 * cos( 11.0 * q.yzx );
+  q += 0.05000 * cos( 13.0 * q.yzx + cosT);
+  q += 0.02500 * cos( 19.0 * q.yzx );
 
-  q = mix(q, qN, nsin(slowTime));
+  q.xyz = q.xzy;
 
-  vec3 planet = vec3(length(q.xyz) - 0.75, 0, 0);
-  d = dMin(d, planet);
+  const float radius = 0.85;
+  const float radiusStep = 0.15;
 
-  const float ringR = 0.87;
-
-  vec3 ring = vec3(sdTorus(q.xyz, vec2(ringR, 0.005)), 1, 0);
+  vec3 ring = vec3(sdTorus(q.xyz, vec2(radius, 0.05)), 0, 0);
   d = dMin(d, ring);
 
-  // Rotate
-  float angle = TWO_PI * pow(sin(PI * (0.5 * mod(slowTime, 1.0) + 1.0)), 2.0) + PI;
-  q *= rotationMatrix(vec3(0, 1, 0), angle);
-  q.x += ringR; // Offset
+  vec3 ring2 = vec3(sdTorus(q.xyz, vec2(radius - 1.0 * radiusStep, 0.05)), 1, 0);
+  d = dMin(d, ring2);
 
-  vec3 moon = vec3(length(q.xyz) - 0.11, 2, 0);
-  d = dMin(d, moon);
+  vec3 ring3 = vec3(sdTorus(q.xyz, vec2(radius - 2.0 * radiusStep, 0.05)), 0, 0);
+  d = dMin(d, ring3);
 
-  d.x *= 0.1;
+  vec3 ring4 = vec3(sdTorus(q.xyz, vec2(radius - 3.0 * radiusStep, 0.05)), 1, 0);
+  d = dMin(d, ring4);
+
+  vec3 ring5 = vec3(sdTorus(q.xyz, vec2(radius - 4.0 * radiusStep, 0.05)), 0, 0);
+  d = dMin(d, ring5);
+
+  d.x *= 0.05;
 
   return d;
 }
@@ -754,16 +752,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  const vec3 pink = pow(#EF5381, vec3(2.2));
-  const vec3 orange = pow(#F99F81, vec3(2.2));
+  const vec3 pink = pow(#FF2CCE, vec3(2.2));
+  const vec3 purple = pow(#AC39FF, vec3(2.2));
+  const vec3 blue = pow(#342CFF, vec3(2.2));
 
-  vec3 planetColor = mix(pink, orange, 0.5 * (1.0 + dot(nor, vec3(1, 1, -1))));
-  color = mix(color, planetColor, isMaterialSmooth(m, 0.0));
+  vec3 ring1 = mix(pink, purple, 0.5 * (1.0 + dot(nor, vec3(1, 1, -1))));
+  color = mix(color, ring1, isMaterialSmooth(m, 0.0));
 
-  float moonI = 0.5 * (1.0 + dot(nor, vec3(-0.5, 1, 1))) - 0.4;
-  moonI = saturate(moonI);
-  vec3 moonColor = mix(pink, background, moonI);
-  color = mix(color, moonColor, isMaterialSmooth(m, 2.0));
+  vec3 ring2 = mix(purple, blue, 0.5 * (1.0 + dot(nor, vec3(1, 1, -1))));
+  color = mix(color, ring2, isMaterialSmooth(m, 1.0));
 
   return color;
 }
@@ -783,11 +780,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 1.0;
-      nor += 0.05 * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // nor += 0.05 * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -815,19 +812,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.75;
+      float specCo = 0.3;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // diffuse(nor, lightPos);
+        float dif = max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.8, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -837,7 +834,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.1 * amb * diffuseColor;
+        lin += 0.9 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -845,7 +842,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      // color += 1.0 * vec3(pow(specAll, 8.0));
+      color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.03125 * matCap(reflect(rayDirection, nor));
 
