@@ -459,8 +459,8 @@ float sdCappedCylinder( vec3 p, vec2 h )
 }
 
 // p as usual, e exponent (p in the paper), r radius or something like that
-// #pragma glslify: octahedral = require(./model/octahedral)
-#pragma glslify: dodecahedral = require(./model/dodecahedral)
+#pragma glslify: octahedral = require(./model/octahedral)
+// #pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
 #pragma glslify: sdTriPrism = require(./model/tri-prism)
@@ -484,13 +484,13 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: circ = require(glsl-easings/circular-in-out)
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
-// #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
+#pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
 // #pragma glslify: voronoi = require(./voronoi)
 #pragma glslify: band = require(./band-filter)
 
-// #pragma glslify: tetrahedron = require(./model/tetrahedron)
-#pragma glslify: cellular = require(./cellular-tile)
+#pragma glslify: tetrahedron = require(./model/tetrahedron)
+// #pragma glslify: cellular = require(./cellular-tile)
 
 // Starts at 0.5 goes towards 1.0
 float nsin (in float t) {
@@ -552,21 +552,76 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
+
+  float nT = nsin(0.5 * slowTime);
+  p *= rotationMatrix(normalize(vec3(0.5, 1, 0)), PI * (0.25 * nT * nT - 0.0750324));
+
   vec3 q = p;
 
   float cosT = PI * 0.5 * slowTime;
 
-  q += 0.30000 * cnoise3(2.7 * q.yzx);
-  q += 0.30000 * cos(  3.1 * q.yzx + vec3(-cosT, 0, cosT));
-  q.xzy = twist(q.xyz, 5.0 * q.y);
-  q += 0.20000 * cos(5.0 * q.yzx + vec3(-cosT, 0, cosT));
-  q += 0.10000 * cos(7.0 * q.yzx);
+  mPos = q;
+  float r = 0.5;
 
-  vec3 s = vec3(length(q.xyz) - (0.5 + cnoise2(q.xy)), 0, 0);
+  const float period = 5.0;
+  float mT = mod(time, period);
+  float scale = mix(1.0, 1.5, saturate(elasticOut(mT)));
+  scale = mix(scale, 1.0, elasticOut(saturate(mT - 3.0)));
+  q /= scale;
+  vec3 s = vec3(octahedral(q.xyz, 70.0, r), 0, 0);
+  s.x *= scale;
+  d.x *= 0.1;
   d = dMin(d, s);
 
-  d.x *= 0.025;
+  vec3 qS = p;
+  float scaleS = mix(1.0, 2.0, elasticOut(saturate(mT - 1.0)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.5)));
+  float rS = 0.25 * scaleS;
+  vec3 sphere = vec3(length(qS.xyz + vec3(1.5, -0.5, -0.25)) - rS, 1, 0);
+  d = dMin(d, sphere);
+
+  qS = p;
+  scaleS = mix(1.0, 2.0, elasticOut(saturate(mT - 1.25)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.25)));
+  rS = 0.125 * scaleS;
+  sphere = vec3(length(qS.xyz + vec3(-1.0, 0.5, 0.5)) - rS, 1, 0);
+  d = dMin(d, sphere);
+
+  qS = p;
+  scaleS = mix(1.0, 2.0, elasticOut(saturate(mT - 1.125)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.375)));
+  rS = 0.1 * scaleS;
+  sphere = vec3(length(qS.xyz + vec3(-0.35, -0.95, 0.3)) - rS, 1, 0);
+  d = dMin(d, sphere);
+
+  qS = p;
+  scaleS = mix(1.0, 2.0, elasticOut(saturate(mT - 1.15)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.4)));
+  rS = 0.15 * scaleS;
+  sphere = vec3(length(qS.xyz + vec3(-0.8, 0.1, -2.4)) - rS, 1, 0);
+  d = dMin(d, sphere);
+
+  qS = p;
+  scaleS = mix(1.0, 2.0, elasticOut(saturate(mT - 1.05)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.45)));
+  rS = 0.2 * scaleS;
+  sphere = vec3(length(qS.xyz + vec3(-1.0, -1.3, 0.1)) - rS, 1, 0);
+  d = dMin(d, sphere);
+
+  qS = p;
+  scaleS = mix(1.0, 2.0, elasticOut(saturate(mT - 0.95)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.55)));
+  rS = 0.1 * scaleS;
+  sphere = vec3(length(qS.xyz + vec3(0.8, 1.1, -0.2)) - rS, 1, 0);
+  d = dMin(d, sphere);
+
+  qS = p;
+  scaleS = mix(1.0, 2.2, elasticOut(saturate(mT - 0.75)));
+  scaleS = mix(scaleS, 1.0, elasticOut(saturate(mT - 2.55)));
+  rS = 0.25 * scaleS;
+  sphere = vec3(length(qS.xyz + vec3(1.2, -1.1, 0.45)) - rS, 1, 0);
+  d = dMin(d, sphere);
 
   return d;
 }
@@ -612,7 +667,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.5;
+const float n2 = 1.7;
 const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
@@ -735,6 +790,21 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(background);
 
+  const vec3 purple = pow(#B253FF, vec3(2.2));
+  const vec3 green = pow(#31B263, vec3(2.2));
+  const vec3 pink = pow(#CC2EAF, vec3(2.2));
+
+  // float i = dot(nor, vec3(1, 0, 0));
+  float i = dot(nor, -rd);
+  // i += 0.5 * cnoise2(2.0 * mPos.xy);
+  color = mix(pink, purple, i);
+
+  float dI = 1.0 - dot(nor, -rd);
+  color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * ( dI * dI + vec3(0, 0.33, 0.67) )));
+
+  vec3 sphere = vec3(0.7);
+  color = mix(color, sphere, isMaterialSmooth(m, 1.0));
+
   return color;
 }
 
@@ -785,15 +855,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.5;
+      float freCo = 1.0;
+      float specCo = 0.75;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // max(0.5, diffuse(nor, lightPos));
+        float dif = max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -807,7 +877,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.9 * amb * diffuseColor;
+        lin += 1.0 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -821,15 +891,15 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      reflectColor += 0.125 * reflection(pos, reflectionRd);
       color += reflectColor;
 
-      color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
-      color += 0.5 * dispersion(nor, rayDirection, n2, n1);
+      // color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
-      color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      color = mix(background, color, exp(-t.x * 0.1));
+      // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
+      // color = mix(background, color, exp(-t.x * 0.1));
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
