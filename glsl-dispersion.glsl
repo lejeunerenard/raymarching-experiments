@@ -7,11 +7,11 @@
 // #define REFR_INTEGRAL 1
 #define HUE 1
 #define HUE_NUM 40
-#define COS_HUE 1
+// #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
-// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
@@ -67,7 +67,7 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     vec3 iorRefract = refract(eye, nor, ior);
 
     #ifdef COS_HUE
-    // color += (0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)))) * scene(iorRefract, ior);
+    color += (0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)))) * scene(iorRefract, ior);
 
     // Red / Teal
     // color += (vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos(TWO_PI * (vec3(2, 1, 0) * hue + vec3(0, 0.25, 0.25)))) * scene(iorRefract, ior);
@@ -83,12 +83,12 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     // Something 1
     // color += (vec3(0.5, 0.3, 0.5) + vec3(0.25, 0.5, 0.7) * cos(TWO_PI * (vec3(2, 1, 0.5) * hue + vec3(0.6, 0.1, 0.25)))) * scene(iorRefract, ior);
-    //
+
     // RED CYAN
-    color += mix(#FF0000, #00FFFF, hue) * scene(iorRefract, ior);
+    // color += mix(#FF0000, #00FFFF, hue) * scene(iorRefract, ior);
 
     #else
-    color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior);
+    color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior) * (0.75 + 0.25 * (0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)))));
     #endif
   }
 

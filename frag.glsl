@@ -34,8 +34,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
-#define maxDistance 50.0
+#define maxSteps 512
+#define maxDistance 20.0
 #define fogMaxDistance maxDistance
 
 #define slowTime time * 0.2
@@ -519,8 +519,7 @@ vec3 theColor (vec2 uv) {
   return mix(#10FFFF, #03E8A8, uv.y);
 }
 
-// 14
-#define jTrap 17
+#define jTrap 14
 float julia (in vec3 p, in vec4 c) {
     vec4 z = vec4(p, 0.);
 
@@ -557,16 +556,15 @@ vec3 map (in vec3 p) {
 
   float cosT = PI * 0.5 * slowTime;
 
-  q.y += 0.01 * cos(cosT);
+  q += 0.20 * cos( 7.0 * q.yzx + vec3(0, cosT, cosT - sin(cosT)));
+  q += 0.10 * cos(11.0 * q.yzx);
+  q += 0.05 * cos(13.0 * q.yzx);
+
+  float r = 0.5 + 0.5 * cnoise3( vec3(5, 7, 1) * q.xyz );
 
   mPos = q;
-  float r = 0.2
-    + 0.05 * sin(dot(q, vec3(10)) + cosT)
-    - 0.025 * dot(cos(10.0 * q.xyz), vec3(1))
-    + 0.05 * cnoise3(vec3(2, 30, 1) * q + cos(2.5 * q.yzx));
-
-  vec3 s = vec3(sdCapsule(q.xyz, vec3(-1, 0, 0), vec3(1, 0, 0), r), 0, 0);
-  d.x *= 0.025;
+  vec3 s = vec3(length(q.xyz) - r, 0, 0);
+  s.x *= 0.05;
   d = dMin(d, s);
 
   return d;
@@ -613,26 +611,29 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.7;
-const float amount = 0.05;
+const float n2 = 1.5;
+const float amount = 0.5;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.0 - 1.0 * saturate(dot(-rd, gNor));
+  float spread = 1.0; // - 1.0 * saturate(dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
-  float startPoint = 0.8;
+  float startPoint = 0.1;
 
   // vec3 spaceScaling = vec3(1.234, 2.34, 0.2);
   // float n = ncnoise3(spaceScaling * rd + startPoint);
   // n = smoothstep(0.5, 1.00, n);
 
-  vec3 spaceScaling = vec3(0.5);
-  float n = vfbmWarp(spaceScaling * rd + startPoint);
-  n = smoothstep(0.65, 0.85, n);
+  // vec3 spaceScaling = vec3(0.5);
+  // float n = vfbmWarp(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.65, 0.85, n);
 
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
+
+  float n = cnoise3(0.5 * rd);
+  n = smoothstep(-0.9, 0.9, n);
 
   float v = n;
 
@@ -653,7 +654,7 @@ vec3 scene (in vec3 rd, in float ior) {
 #pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amount)
 
 float dispersionMarch (in vec3 rayDirection) {
-  vec3 rayOrigin = gPos + -gNor * 0.001;
+  vec3 rayOrigin = gPos + -gNor * 0.01;
   rayDirection = normalize(rayDirection);
 
   float t = 0.0;
@@ -674,7 +675,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   #if 1
   d = dispersionMarch(rd);
   #else
-  const int samples = 20;
+  const int samples = 12;
   for (int i = 0; i < samples; i++) {
     vec3 lightDir = rd;
     lightDir += 0.1 * vec3(
@@ -687,14 +688,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   d /= float(samples);
   #endif
 
-  vec3 reflectionPoint = gPos + rd * d;
-  vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.1);
+  vec3 reflectionPoint = gPos - gNor * 0.1 + rd * d;
+  vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001);
   dNor = reflectionPointNor;
+  reflectionPointNor = normalize(reflectionPointNor);
 
-  vec3 delta = reflectionPoint - gPos;
-  // float sss = max(0.0, 1.0 - 2.0 * pow(length(delta), 0.5));
-  vec3 disp = scene(refract(rd, reflectionPointNor, ior), ior);
-  disp *= min(1.0, 1.0 / d); // Darker as it gets further
+  vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1);
 
   return disp;
 }
@@ -734,15 +733,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.8 + 0.1 * noise(pos));
+  vec3 color = vec3(background);
 
-  float n = vfbmWarp(vec3(1, 20, 1) * pos);
-  n = smoothstep(0.4, 0.9, n);
-  color += vec3(n);
-
-  color += 0.075 * ( 0.5 + 0.5 * cos(TWO_PI * ( dot(nor, -rd) + vec3(0., 0.33, 0.67) )) );
-
-  return color * 0.5;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=maxSteps)
@@ -760,11 +753,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 1.0;
-      nor += 0.1 * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // nor += 0.1 * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -792,16 +785,16 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.75;
+      float freCo = 0.7;
+      float specCo = 0.7;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.7, diffuse(nor, lightPos));
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
+        float dif = max(0.1, diffuse(nor, lightPos));
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         dif *= max(0.8, softshadow(pos, lightPos, 0.01, 4.75));
@@ -814,7 +807,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        // lin += 0.125 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -822,21 +815,21 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      color += 0.5 * vec3(pow(specAll, 8.0));
 
       // color += 0.03125 * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.125 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.125 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
-      // color += 2.0 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
-      // color = mix(background, color, (fogMaxDistance - t.x) / fogMaxDistance);
-      // color = mix(background, color, exp(-t.x * 0.1));
+      color = mix(background, color, saturate((fogMaxDistance - t.x) / fogMaxDistance));
+      color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
