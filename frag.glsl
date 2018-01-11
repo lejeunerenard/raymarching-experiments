@@ -552,19 +552,19 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // p *= globalRot;
-  vec3 q = p;
+  vec3 q = p - vec3(-1.0, 0, 0);
 
   float cosT = PI * 0.5 * slowTime;
 
-  q += 0.20 * cos( 7.0 * q.yzx + vec3(0, cosT, cosT - sin(cosT)));
-  q += 0.10 * cos(11.0 * q.yzx);
-  q += 0.05 * cos(13.0 * q.yzx);
-
-  float r = 0.5 + 0.5 * cnoise3( vec3(5, 7, 1) * q.xyz );
-
+  vec3 t = 1.4 * vec3(-cosT, cosT, cosT);
   mPos = q;
-  vec3 s = vec3(length(q.xyz) - r, 0, 0);
-  s.x *= 0.05;
+  q.z += 2.0 * cos(
+      dot(q, vec3(0.5))
+      + 0.5 * cnoise3(vec3(1.5, 3, 1) * q + t));
+
+  vec3 s = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0, 0);
+  s.x += 0.1 * vfbm4(vec3(7, 11, 1) * q + t);
+  s.x *= 0.3;
   d = dMin(d, s);
 
   return d;
@@ -733,7 +733,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
+
+  float i = dot(nor, -rd);
+
+  color += 0.5 + 0.5 * cos( TWO_PI * (vec3(1, 1, 0.5) * i + vec3(0.8, 0.9, 0.3)) );
+  color = pow(color, vec3(1.5));
 
   return color;
 }
@@ -752,12 +757,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 1.0;
-      // nor += 0.1 * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      const float bumpsScale = 0.5;
+      nor += 0.05 * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -793,11 +798,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.1, diffuse(nor, lightPos));
+        float dif = max(0.0, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.8, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.0, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -807,7 +812,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.125 * amb * diffuseColor;
+        // lin += 0.25 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -815,20 +820,20 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 0.5 * vec3(pow(specAll, 8.0));
+      color += 1.0 * vec3(pow(specAll, 8.0));
 
       // color += 0.03125 * matCap(reflect(rayDirection, nor));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.125 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.125 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
-      color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1);
+      // color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
-      color = mix(background, color, saturate((fogMaxDistance - t.x) / fogMaxDistance));
+      // color = mix(background, color, saturate((fogMaxDistance - t.x) / fogMaxDistance));
       color *= exp(-t.x * 0.005);
 
       // Inner Glow
