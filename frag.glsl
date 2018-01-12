@@ -552,18 +552,17 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // p *= globalRot;
-  vec3 q = p - vec3(-1.0, 0, 0);
+  vec3 q = p;
 
   float cosT = PI * 0.5 * slowTime;
 
-  vec3 t = 1.4 * vec3(-cosT, cosT, cosT);
-  mPos = q;
-  q.z += 2.0 * cos(
-      dot(q, vec3(0.5))
-      + 0.5 * cnoise3(vec3(1.5, 3, 1) * q + t));
+  q += 0.30 * cos( 5.0 * q.yzx + vec3(cosT, sin(cosT) - cosT, 2.0 * cosT));
+  q += 0.15 * cos(11.0 * q.yzx );
 
-  vec3 s = vec3(sdPlane(q.xyz, vec4(0, 0, 1, 0)), 0, 0);
-  s.x += 0.1 * vfbm4(vec3(7, 11, 1) * q + t);
+  mPos = q;
+
+  const float r = 0.5;
+  vec3 s = vec3(length(q.xyz) - r, 0, 0);
   s.x *= 0.3;
   d = dMin(d, s);
 
@@ -617,7 +616,7 @@ const float amount = 0.5;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.0; // - 1.0 * saturate(dot(-rd, gNor));
+  float spread = 1.0; // saturate(1.0 - 8.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.1;
@@ -632,8 +631,8 @@ vec3 textures (in vec3 rd) {
 
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
-  float n = cnoise3(0.5 * rd);
-  n = smoothstep(-0.9, 0.9, n);
+  float n = cnoise3(1.0 * rd);
+  n = smoothstep(-0.0, 0.9, n);
 
   float v = n;
 
@@ -733,12 +732,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
-
-  float i = dot(nor, -rd);
-
-  color += 0.5 + 0.5 * cos( TWO_PI * (vec3(1, 1, 0.5) * i + vec3(0.8, 0.9, 0.3)) );
-  color = pow(color, vec3(1.5));
+  vec3 color = vec3(0.001);
 
   return color;
 }
@@ -790,19 +784,19 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
-      float specCo = 0.7;
+      float freCo = 0.2;
+      float specCo = 0.4;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         float firstLightOnly = isMaterialSmooth(float(i), 1.0);
         vec3 lightPos = lights[i].position;
-        float dif = max(0.0, diffuse(nor, lightPos));
+        float dif = 1.0; // max(0.0, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.0, softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.0, softshadow(pos, lightPos, 0.01, 4.75));
         vec3 lin = vec3(0.);
 
         // Specular Lighting
@@ -829,7 +823,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog

@@ -6,7 +6,7 @@
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
 #define HUE 1
-#define HUE_NUM 40
+#define HUE_NUM 30
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
@@ -88,7 +88,13 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // color += mix(#FF0000, #00FFFF, hue) * scene(iorRefract, ior);
 
     #else
-    color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior) * (0.75 + 0.25 * (0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)))));
+    // color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior);
+    const vec3 magenta = pow(#FF1799, vec3(2.2));
+    const vec3 purple = pow(#9636FF, vec3(2.2));
+    float dI = dot(nor, -eye);
+    color += mix(purple, magenta, clamp(0.5 + 0.5 * sin(4.0 * dI + sin(nor)), 0.0, 1.0))
+      * scene(iorRefract, ior);
+      // * (0.75 + 0.25 * cos(TWO_PI * (dI + vec3(0., 0.33, 0.67))));
     #endif
   }
 
