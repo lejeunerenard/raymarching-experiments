@@ -5,6 +5,7 @@ vec3 getBackground (in vec2 uv) {
   vec2 aUV = abs(uv);
   float i = smoothstep(0.0, 0.75, length(aUV));
   const vec3 purple = pow(#9636FF, vec3(2.2));
+  return vec3(0.001);
   return mix(purple, vec3(0.001), pow(i, 0.1));
 }
 vec3 background = vec3(0.);

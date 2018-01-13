@@ -556,15 +556,33 @@ vec3 map (in vec3 p) {
 
   float cosT = PI * 0.5 * slowTime;
 
-  q += 0.30 * cos( 5.0 * q.yzx + vec3(cosT, sin(cosT) - cosT, 2.0 * cosT));
-  q += 0.15 * cos(11.0 * q.yzx );
+  q += 0.20 * cos( 5.0 * q.yzx + vec3(cosT, sin(cosT) - cosT, 2.0 * cosT));
+  q += 0.10 * cos(11.0 * q.yzx );
 
   mPos = q;
 
-  const float r = 0.5;
-  vec3 s = vec3(length(q.xyz) - r, 0, 0);
-  s.x *= 0.3;
-  d = dMin(d, s);
+  const float r = 0.25;
+  const float spread = 0.75;
+
+  vec3 c1 = vec3(sdCapsule(q.xyz - vec3(spread, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0), r), 1, 0);
+  d = dMin(d, c1);
+
+  vec3 c2 = vec3(sdCapsule(q.xyz, vec3(0, -1, 0), vec3(0, 1, 0), r), 2, 0);
+  d = dMin(d, c2);
+
+  vec3 c3 = vec3(sdCapsule(q.xyz - vec3(-spread, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0), r), 0, 0);
+  d = dMin(d, c3);
+
+  vec3 c4 = vec3(sdCapsule(q.xyz - vec3(spread, 0, -spread), vec3(0, -1, 0), vec3(0, 1, 0), r), 3, 0);
+  d = dMin(d, c4);
+
+  vec3 c5 = vec3(sdCapsule(q.xyz - vec3(0, 0, -spread), vec3(0, -1, 0), vec3(0, 1, 0), r), 1, 0);
+  d = dMin(d, c5);
+
+  vec3 c6 = vec3(sdCapsule(q.xyz - vec3(-spread, 0, -spread), vec3(0, -1, 0), vec3(0, 1, 0), r), 2, 0);
+  d = dMin(d, c6);
+
+  d.x *= 0.2;
 
   return d;
 }
@@ -641,7 +659,7 @@ vec3 textures (in vec3 rd) {
   return clamp(color, 0., 1.);
 }
 
-vec3 scene (in vec3 rd, in float ior) {
+vec3 scene (in vec3 rd, in float ior, in float m) {
   vec3 color = vec3(0.);
 
   rd = normalize(rd);
@@ -668,7 +686,7 @@ float dispersionMarch (in vec3 rayDirection) {
   return t;
 }
 
-vec3 secondRefraction (in vec3 rd, in float ior) {
+vec3 secondRefraction (in vec3 rd, in float ior, in float m) {
   float d = 0.0;
 
   #if 1
@@ -692,9 +710,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   dNor = reflectionPointNor;
   reflectionPointNor = normalize(reflectionPointNor);
 
-  vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1);
+  vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1, m);
 
   return disp;
+}
+vec3 secondRefraction (in vec3 rd, in float ior) {
+  return secondRefraction(rd, ior, 0.0);
 }
 
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount)
@@ -752,11 +773,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 0.5;
-      nor += 0.05 * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // nor += 0.05 * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -823,12 +844,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1);
+      color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1, t.y);
       // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
 
       // Fog
       // color = mix(background, color, saturate((fogMaxDistance - t.x) / fogMaxDistance));
-      color *= exp(-t.x * 0.005);
+      // color *= exp(-t.x * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
