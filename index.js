@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'late-night-test1',
+    name: 'refract-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

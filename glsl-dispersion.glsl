@@ -6,7 +6,7 @@
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
 #define HUE 1
-#define HUE_NUM 10
+#define HUE_NUM 20
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 
@@ -14,11 +14,6 @@
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
-
-float isMaterialSmooth( float m, float goal ) {
-  const float eps = .1;
-  return 1. - smoothstep(0., eps, abs(m - goal));
-}
 
 vec3 intRefract (in vec3 l, in vec3 n, in float r1, in float r2) {
   float sqrt1minusC = sqrt(1.0 - dot(l, -n));
@@ -30,7 +25,7 @@ vec3 intRefract (in vec3 l, in vec3 n, in float r1, in float r2) {
         - n * asin(sqrt1minusC * r1) / sqrt1minusC));
 }
 
-vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in float m, in vec3 lightColor) {
+vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 lightColor) {
   float between = amount;
   float greenIOR = n2;
 
@@ -99,15 +94,11 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in float
 
     float dI = dot(nor, -eye);
 
-    vec3 sceneResult = scene(iorRefract, ior, m);
+    vec3 sceneResult = scene(iorRefract, ior);
     vec3 mixI = clamp(0.5 + 0.5 * sin(4.0 * dI + sin(nor)), 0.0, 1.0);
 
     vec3 thisColor = vec3(0);
-    thisColor += isMaterialSmooth(m, 0.0) * mix(purple, magenta, mixI)
-      * sceneResult;
-    thisColor += isMaterialSmooth(m, 1.0) * mix(#00FF00, #FF00FF, mixI)
-      * sceneResult;
-    thisColor += isMaterialSmooth(m, 2.0) * mix(#FF0000, #00FFFF, mixI)
+    thisColor += mix(#FF0000, #00FFFF, mixI)
       * sceneResult;
 
     color += thisColor * (0.75 + 0.25 * cos(TWO_PI * (dI + vec3(0., 0.33, 0.67))));
@@ -161,16 +152,13 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in float
   return vec3(R, G, B) * lightColor;
 }
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2) {
-  return refractColors(nor, eye, n2, 1., 0.0, vec3(1.0));
+  return refractColors(nor, eye, n2, 1., vec3(1.0));
 }
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1) {
-  return refractColors(nor, eye, n2, n1, 0.0, vec3(1.0));
-}
-vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in float m) {
-  return refractColors(nor, eye, n2, n1, m, vec3(1.0));
+  return refractColors(nor, eye, n2, n1, vec3(1.0));
 }
 vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in vec3 lightColor) {
-  return refractColors(nor, eye, n2, 1., 0.0, lightColor);
+  return refractColors(nor, eye, n2, 1., lightColor);
 }
 
 #pragma glslify: export(refractColors)

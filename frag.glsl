@@ -6,8 +6,11 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
+// @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
+// out, but it seems more than it is just screened or overlayed by the
+// background instead of correctly fused into it.
 precision highp float;
 
 varying vec2 fragCoord;
@@ -490,7 +493,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: band = require(./band-filter)
 
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
-// #pragma glslify: cellular = require(./cellular-tile)
+#pragma glslify: cellular = require(./cellular-tile)
 
 // Starts at 0.5 goes towards 1.0
 float nsin (in float t) {
@@ -551,36 +554,15 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
-
   float cosT = PI * 0.5 * slowTime;
-
-  q += 0.20 * cos( 5.0 * q.yzx + vec3(cosT, sin(cosT) - cosT, 2.0 * cosT));
-  q += 0.10 * cos(11.0 * q.yzx );
 
   mPos = q;
 
-  const float r = 0.25;
-  const float spread = 0.75;
-
-  vec3 c1 = vec3(sdCapsule(q.xyz - vec3(spread, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0), r), 1, 0);
-  d = dMin(d, c1);
-
-  vec3 c2 = vec3(sdCapsule(q.xyz, vec3(0, -1, 0), vec3(0, 1, 0), r), 2, 0);
-  d = dMin(d, c2);
-
-  vec3 c3 = vec3(sdCapsule(q.xyz - vec3(-spread, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0), r), 0, 0);
-  d = dMin(d, c3);
-
-  vec3 c4 = vec3(sdCapsule(q.xyz - vec3(spread, 0, -spread), vec3(0, -1, 0), vec3(0, 1, 0), r), 3, 0);
-  d = dMin(d, c4);
-
-  vec3 c5 = vec3(sdCapsule(q.xyz - vec3(0, 0, -spread), vec3(0, -1, 0), vec3(0, 1, 0), r), 1, 0);
-  d = dMin(d, c5);
-
-  vec3 c6 = vec3(sdCapsule(q.xyz - vec3(-spread, 0, -spread), vec3(0, -1, 0), vec3(0, 1, 0), r), 2, 0);
-  d = dMin(d, c6);
+  vec3 thing = vec3(sdBox(q.xyz, vec3(0.5)), 0, 0);
+  thing.x -= 0.5 * cellular(q + vec3(slowTime));
+  d = dMin(d, thing);
 
   d.x *= 0.2;
 
@@ -623,7 +605,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 
 // #pragma glslify: checker = require(glsl-checker)
 #pragma glslify: hsv = require(glsl-hsv2rgb)
-// #pragma glslify: rgb2hsv = require(./rgb2hsv.glsl)
+#pragma glslify: rgb2hsv = require(./rgb2hsv.glsl)
 // #pragma glslify: debugColor = require(./debug-color-clip)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
@@ -650,7 +632,7 @@ vec3 textures (in vec3 rd) {
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
   float n = cnoise3(1.0 * rd);
-  n = smoothstep(-0.0, 0.9, n);
+  n = smoothstep(0.0, 0.9, n);
 
   float v = n;
 
@@ -659,7 +641,7 @@ vec3 textures (in vec3 rd) {
   return clamp(color, 0., 1.);
 }
 
-vec3 scene (in vec3 rd, in float ior, in float m) {
+vec3 scene (in vec3 rd, in float ior) {
   vec3 color = vec3(0.);
 
   rd = normalize(rd);
@@ -686,7 +668,7 @@ float dispersionMarch (in vec3 rayDirection) {
   return t;
 }
 
-vec3 secondRefraction (in vec3 rd, in float ior, in float m) {
+vec3 secondRefraction (in vec3 rd, in float ior) {
   float d = 0.0;
 
   #if 1
@@ -710,12 +692,9 @@ vec3 secondRefraction (in vec3 rd, in float ior, in float m) {
   dNor = reflectionPointNor;
   reflectionPointNor = normalize(reflectionPointNor);
 
-  vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1, m);
+  vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1);
 
   return disp;
-}
-vec3 secondRefraction (in vec3 rd, in float ior) {
-  return secondRefraction(rd, ior, 0.0);
 }
 
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount)
@@ -753,7 +732,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.001);
+  vec3 color = vec3(0.65 * background);
 
   return color;
 }
@@ -844,8 +823,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      color += 0.7 * dispersionStep1(nor, rayDirection, n2, n1, t.y);
-      // color += 1.0 * dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = 4.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
+      // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
+      vec3 colorHSV = rgb2hsv(color);
+      vec3 dispersionHSV = rgb2hsv(dispersionColor);
+      color += dispersionColor;
+      // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
+      // color = dispersionColor;
 
       // Fog
       // color = mix(background, color, saturate((fogMaxDistance - t.x) / fogMaxDistance));
@@ -853,6 +837,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
+
+      color = pow(color, vec3(3.2)); // Get more range in values
 
       // Debugging
       #ifdef debugMapCalls
