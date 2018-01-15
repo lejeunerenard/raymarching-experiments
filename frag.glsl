@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -560,11 +560,18 @@ vec3 map (in vec3 p) {
 
   mPos = q;
 
-  vec3 thing = vec3(sdBox(q.xyz, vec3(0.5)), 0, 0);
-  thing.x -= 0.5 * cellular(q + vec3(slowTime));
-  d = dMin(d, thing);
+  // vec3 thing = vec3(sdBox(q.xyz, vec3(0.5)), 0, 0);
+  // thing.x -= 0.25 * cellular(q + vec3(slowTime));
+  // d = dMin(d, thing);
 
-  d.x *= 0.2;
+  // d.x *= 0.2;
+
+  q += 0.20 * cos( 3.21 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
+  q += 0.10 * cos( 7.71 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
+  q += 0.05 * cos(13.00 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
+
+  d = vec3(length(q) - 0.5, 0., 0.);
+  d.x *= 0.4;
 
   return d;
 }
@@ -632,7 +639,7 @@ vec3 textures (in vec3 rd) {
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
   float n = cnoise3(1.0 * rd);
-  n = smoothstep(0.0, 0.9, n);
+  n = smoothstep(0.1, 0.9, n);
 
   float v = n;
 
@@ -752,7 +759,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 0.5;
-      // nor += 0.05 * vec3(
+      // nor += 0.025 * vec3(
       //     cnoise3(bumpsScale * 490.0 * mPos),
       //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
       //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
@@ -823,7 +830,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      vec3 dispersionColor = 4.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
+      vec3 dispersionColor = 2.5 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
       // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
       vec3 colorHSV = rgb2hsv(color);
       vec3 dispersionHSV = rgb2hsv(dispersionColor);
