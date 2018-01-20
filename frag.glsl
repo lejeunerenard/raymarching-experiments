@@ -37,7 +37,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 20.0
 #define fogMaxDistance 10.0
 
@@ -554,19 +554,32 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
   float cosT = PI * 0.5 * slowTime;
 
   mPos = q;
 
-  q += 0.20 * cos( 7.13 * q.yzx + vec3(cosT, sin(cosT + sin(cosT)), 0.));
-  q += 0.10 * cos(11.13 * q.yzx );
-  q += 0.05 * cos(17.13 * q.yzx );
+  // Timing
+  float posOffset = dot(q, vec3(0.25));
+  float timeI = sin(PI * (slowTime + posOffset));
+
+  // Distort
+  vec3 dQ = q;
+  dQ += 0.10 * cos( 5.0 * dQ.yzx + dot(dQ, vec3(11. + cnoise3(dQ + slowTime))) + 15.0 * time);
+  dQ += 0.05 * cos(23.0 * dQ.yzx + dot(dQ, vec3(13)) + 15.0 * time);
+  dQ += 0.25 * cnoise3(dQ.yzx);
+
+  q = mix(q, dQ, smoothstep(0.5, 1.0, timeI));
 
   vec3 s = vec3(length(q) - 0.5, 0, 0);
-  s.x *= 0.4;
   d = dMin(d, s);
+
+  float c = sdBox(q, vec3(0.5));
+
+  d.x = mix(d.x, c, smoothstep(0., 0.5, sin(PI * (0.5 * slowTime + posOffset - PI * 0.0625))));
+
+  d.x *= 0.125;
 
   return d;
 }
@@ -734,7 +747,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(m);
+  vec3 color = vec3(0.75);
   return color;
 }
 
@@ -794,7 +807,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.75, diffuse(nor, lightPos));
+        float dif = max(0., diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -864,14 +877,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      float angle = atan(uv.y, uv.x) / PI;
+      // float angle = atan(uv.y, uv.x) / PI;
 
-      float i = pow(saturate(t.z / 40.0), 3.0);
-      float l = length(uv);
-      i += 0.5 * smoothstep(0.5, 0.0, l) * vfbmWarp(vec2(angle + 0.25 * sin(PI * 0.5 * (-slowTime + l)), 2.0 * l - slowTime));
-
-      vec3 glowColor = hsv(vec3(0.5 * angle, 1.0, 1.0));
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // float i = pow(saturate(t.z / 40.0), 3.0);
+      // float l = length(uv);
+      // i += 0.5 * smoothstep(0.5, 0.0, l) * vfbmWarp(vec2(angle + 0.25 * sin(PI * 0.5 * (-slowTime + l)), 2.0 * l - slowTime));
+      // vec3 glowColor = hsv(vec3(0.5 * angle, 1.0, 1.0));
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
