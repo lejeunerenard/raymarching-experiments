@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -493,7 +493,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: band = require(./band-filter)
 
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
-// #pragma glslify: cellular = require(./cellular-tile)
+#pragma glslify: cellular = require(./cellular-tile)
 
 // Starts at 0.5 goes towards 1.0
 float nsin (in float t) {
@@ -564,22 +564,20 @@ vec3 map (in vec3 p) {
   float posOffset = dot(q, vec3(0.25));
   float timeI = sin(PI * (slowTime + posOffset));
 
-  // Distort
-  vec3 dQ = q;
-  dQ += 0.10 * cos( 5.0 * dQ.yzx + dot(dQ, vec3(11. + cnoise3(dQ + slowTime))) + 15.0 * time);
-  dQ += 0.05 * cos(23.0 * dQ.yzx + dot(dQ, vec3(13)) + 15.0 * time);
-  dQ += 0.25 * cnoise3(dQ.yzx);
+  float animT = 0.5 * slowTime;
 
-  q = mix(q, dQ, smoothstep(0.5, 1.0, timeI));
+  float cell = nsin(animT);
 
-  vec3 s = vec3(length(q) - 0.5, 0, 0);
+  float r = 0.5 + 0.8 * smoothstep(0., 1., sin(TWO_PI * animT));
+  vec3 s = vec3(length(q) - r, 0, 0);
+
+  s.x -= cell * cellular(q);
   d = dMin(d, s);
 
-  float c = sdBox(q, vec3(0.5));
+  float crop = sdBox(q, vec3(0.75));
+  d.x = max(d.x, crop);
 
-  d.x = mix(d.x, c, smoothstep(0., 0.5, sin(PI * (0.5 * slowTime + posOffset - PI * 0.0625))));
-
-  d.x *= 0.125;
+  d.x *= 0.2;
 
   return d;
 }
@@ -747,7 +745,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.75);
+  vec3 color = vec3(#FF8888);
   return color;
 }
 
@@ -839,10 +837,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor * isFloor;
 
-      // vec3 dispersionColor = 2.5 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
-      // // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = 2.5 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
+      // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
+      color += dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // color = pow(color, vec3(3.5)); // Get more range in values
+      color = pow(color, vec3(3.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
