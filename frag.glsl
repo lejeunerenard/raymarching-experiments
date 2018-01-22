@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -554,28 +554,17 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
   float cosT = PI * 0.5 * slowTime;
 
   mPos = q;
 
-  // Timing
-  float posOffset = dot(q, vec3(0.25));
-  float timeI = sin(PI * (slowTime + posOffset));
+  vec3 s = vec3(length(q) - 0.5, 0, 0);
 
-  float animT = 0.5 * slowTime;
-
-  float cell = nsin(animT);
-
-  float r = 0.5 + 0.8 * smoothstep(0., 1., sin(TWO_PI * animT));
-  vec3 s = vec3(length(q) - r, 0, 0);
-
-  s.x -= cell * cellular(q);
+  vec3 offset = normalize(vec3(1, 1, 0)) * rotationMatrix(normalize(vec3(1, 1.3, 2.3)), PI * 0.5 * slowTime);
+  s.x -= 0.05 * cellular(2.0 * q + offset);
   d = dMin(d, s);
-
-  float crop = sdBox(q, vec3(0.75));
-  d.x = max(d.x, crop);
 
   d.x *= 0.2;
 
@@ -623,8 +612,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.5;
-const float amount = 0.5;
+const float n2 = 1.3;
+const float amount = 0.15;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -745,7 +734,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(#FF8888);
+  vec3 color = vec3(background);
   return color;
 }
 
@@ -763,7 +752,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 0.5;
+      const float bumpsScale = 1.5;
       nor += 0.05 * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -805,11 +794,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0., diffuse(nor, lightPos));
+        float dif = 1.0; // max(0., diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.85, softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.85, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -837,11 +826,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor * isFloor;
 
-      vec3 dispersionColor = 2.5 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
+      vec3 dispersionColor = 1.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
       // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
       color += dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(3.5)); // Get more range in values
+      color = pow(color, vec3(6.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
