@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'color-beast-test1',
+    name: 'AXID-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
