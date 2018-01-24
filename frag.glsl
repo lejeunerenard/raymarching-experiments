@@ -559,32 +559,48 @@ vec3 map (in vec3 p) {
   vec3 q = p;
   float cosT = PI * 0.2 * time;
 
-  const int number = 7;
+#define MULTI 1
+#ifdef MULTI
+  const int number = 13;
   const float invers = 1.0 / float(number);
   for (int i = 0; i < number; i++) {
-    vec3 q = p;
-    q *= rotationMatrix(vec3(0, 1, 0), float(i) * TWO_PI * invers);
+#else 
+    const int i = 0;
+    const float invers = 1.0;
+#endif
+
+    q = p;
+    float rotOffset = float(i) * TWO_PI * invers;
+    q *= rotationMatrix(vec3(0, 1, 0), rotOffset);
     q.x += 1.00;
     q *= globalRot;
-    q.xzy = twist(q, 2.0 * q.y);
-    q += 0.05 * cos( 3.0 * q.yzx + cosT);
+    q.xzy = twist(q, 3.0 * q.y);
+    q += 0.1 * cos( 3.0 * q.yzx + cosT);
 
+    const float thick = 0.035;
     float m = smoothstep(0.0, 0.01, sin(33.0 * q.y + 0.7));
-    vec3 t = vec3(sdTorus(q.xzy, vec2(1.0, 0.025)), m, 0);
+    vec3 t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
     d = dMin(d, t);
 
     q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus(q.xzy, vec2(1.0, 0.05)), m, 0);
+    t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
     d = dMin(d, t);
 
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.666667);
-    t = vec3(sdTorus(q.xzy, vec2(1.0, 0.05)), m, 0);
+    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
+    t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
     d = dMin(d, t);
 
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.666667);
-    t = vec3(sdTorus(q.xzy, vec2(1.0, 0.05)), m, 0);
+    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
+    t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
     d = dMin(d, t);
+
+#ifdef MULTI
   }
+#endif
+
+  // Wall
+  vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 0, 0);
+  d = dSMin(d, w, 0.1);
 
   d.x *= 0.2;
 
@@ -755,9 +771,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.7);
-
-  vec3 iridescent = vec3(0.01);
-  color = mix(color, iridescent, isMaterialSmooth(m, 1.));
 
   return color;
 }
