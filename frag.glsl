@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -32,6 +32,7 @@ uniform float angle3C;
 
 // KIFS
 uniform mat4 kifsM;
+uniform mat4 kifsM2;
 uniform float scale;
 uniform vec3 offset;
 
@@ -381,9 +382,10 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 4
+#define Iterations 5
 // #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
+#pragma glslify: octahedron2 = require(./octahedron, scale=scale, kifsM=kifsM2, Iterations=Iterations)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
@@ -555,53 +557,19 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // p *= globalRot;
-  p.xzy = p.xyz;
   vec3 q = p;
   float cosT = PI * 0.2 * time;
 
-#define MULTI 1
-#ifdef MULTI
-  const int number = 13;
-  const float invers = 1.0 / float(number);
-  for (int i = 0; i < number; i++) {
-#else 
-    const int i = 0;
-    const float invers = 1.0;
-#endif
+  float o = octahedron(q).x;
 
-    q = p;
-    float rotOffset = float(i) * TWO_PI * invers;
-    q *= rotationMatrix(vec3(0, 1, 0), rotOffset);
-    q.x += 1.00;
-    q *= globalRot;
-    q.xzy = twist(q, 3.0 * q.y);
-    q += 0.1 * cos( 3.0 * q.yzx + cosT);
+  float o2 = octahedron2(q).x;
 
-    const float thick = 0.035;
-    float m = smoothstep(0.0, 0.01, sin(33.0 * q.y + 0.7));
-    vec3 t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
+  vec3 n = p;
+  n += 0.20 * cos( 7.0 * n.yzx);
+  n += 0.10 * cos(13.0 * n.yzx);
+  n += 0.05 * cos(17.0 * n.yzx);
 
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
-    t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-#ifdef MULTI
-  }
-#endif
-
-  // Wall
-  vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 0, 0);
-  d = dSMin(d, w, 0.1);
-
+  d = vec3(mix(o, o2, nsin(dot(n, vec3(1)))), 0, 0);
   d.x *= 0.2;
 
   return d;
@@ -856,12 +824,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      color += 0.03125 * matCap(reflect(rayDirection, nor));
+      // color += 0.03125 * matCap(reflect(rayDirection, nor));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.125 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.125 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 dispersionColor = 0.5 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
       // // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);

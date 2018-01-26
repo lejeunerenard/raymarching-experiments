@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 50
 const capturing = false
 
 const FOV = 50
@@ -18,11 +18,10 @@ window.app = app
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
-    format: 'jpg',
+    format: 'png',
     framerate: fr,
-    name: 'radial-test1',
+    name: 'grime-test4',
     autoSaveTime: 5,
-    quality: 95,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true

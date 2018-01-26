@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 4.0
-const BLOOM_PASSES = 5
-const BLOOM_MIN_BRIGHTNESS = 0.6
+const BLOOM_WET = 1.0
+const BLOOM_PASSES = 1
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -179,11 +179,36 @@ export default class App {
       cameraAngles: [-0.203, -0.009, 0]
     }
 
-    const preset = this.presets.kaleidoGem
+    this.presets.blend1 = {
+      offset: {
+        x: 1.441,
+        y: 0.457,
+        z: 0.4
+      },
+      d: 5,
+      scale: 1.61,
+      rot2angle: [0.301, 0, 0],
+      cameraAngles: [-0.203, -0.009, 0]
+    }
+
+    this.presets.blend2 = {
+      offset: {
+        x: 0.499,
+        y: 0.029,
+        z: 0.21
+      },
+      d: 5,
+      scale: 2.52,
+      rot2angle: [0.301, 0, 0],
+      cameraAngles: [-0.203, -0.009, 0]
+    }
+
+    const preset = this.presets.blend1
+    const preset2 = this.presets.blend2
     preset.cameraAngles = [0.7, -2.504, 0.174]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 5.5)
+    this.cameraRo = vec3.fromValues(0, 0, 0.835)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -197,11 +222,16 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
+    this.offset2 = (preset2.offset)
+      ? vec3.fromValues(preset2.offset.x, preset2.offset.y, preset2.offset.z)
+      : vec3.fromValues(0, 0, 0)
+    this.scale2 = preset2.scale
+
     this.angle1C = 0.136
     this.angle2C = 0.705
     this.angle3C = 0.143
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -289,7 +319,7 @@ export default class App {
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -347,21 +377,14 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .delay(5 * 1000)
       .to([
-        0.411,
-        -0.037,
-        -0.256
-      ], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let offsetTweenReturn = new TWEEN.Tween(this.offset)
-    offsetTweenReturn
-      .delay(5 * 1000)
-      .to([...this.offset], 5 * 1000)
+        this.offset[0],
+        0.961,
+        this.offset[2]
+      ], 60 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.chain(offsetTweenReturn)
-    // offsetTween1.start(0)
+    offsetTween1.start(0)
   }
 
   setupAudio () {
@@ -431,8 +454,7 @@ export default class App {
     this.shader.attributes.position.location = 0
   }
 
-  kifsM (t = 0) {
-    let { offset, scale } = this
+  kifsM (t = 0, scale = this.scale, offset = this.offset) {
     this.shader.uniforms.scale = scale
     this.shader.uniforms.offset = offset
 
@@ -543,7 +565,8 @@ export default class App {
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])
 
-    this.shader.uniforms.kifsM = this.kifsM(t)
+    this.shader.uniforms.kifsM = this.kifsM(t, this.scale, this.offset)
+    this.shader.uniforms.kifsM2 = this.kifsM(t, this.scale2, this.offset2)
     this.shader.uniforms.offsetC = this.offsetC
 
     this.shader.uniforms.angle1C = this.angle1C
