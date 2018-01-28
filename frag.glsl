@@ -560,17 +560,18 @@ vec3 map (in vec3 p) {
   vec3 q = p;
   float cosT = PI * 0.2 * time;
 
-  float o = octahedron(q).x;
+  q.xzy = twist(q.xyz, 2.0 * q.y);
 
-  float o2 = octahedron2(q).x;
+  q.xzy = q.xyz;
 
-  vec3 n = p;
-  n += 0.20 * cos( 7.0 * n.yzx);
-  n += 0.10 * cos(13.0 * n.yzx);
-  n += 0.05 * cos(17.0 * n.yzx);
+  q += 0.02500 * cos( 47.0 * q.yzx + vec3(2.0 * cosT, -cosT, 0));
+  q += 0.01250 * cos( 61.0 * q.yzx );
+  q += 0.00625 * cos( 91.0 * q.yzx );
 
-  d = vec3(mix(o, o2, nsin(dot(n, vec3(1)))), 0, 0);
-  d.x *= 0.2;
+  vec3 s = vec3(sdTorus(q, vec2(0.5, 0.1)), 0, 0);
+  d = dMin(d, s);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -616,7 +617,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.3;
+const float n2 = 1.6;
 const float amount = 0.15;
 
 vec3 textures (in vec3 rd) {
@@ -637,7 +638,7 @@ vec3 textures (in vec3 rd) {
 
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
-  float n = cnoise3(1.0 * rd);
+  float n = cnoise3(0.5 * rd);
   n = smoothstep(0.0, 0.9, n);
 
   float v = n;
@@ -738,7 +739,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.7);
+  vec3 color = vec3(background);
 
   return color;
 }
@@ -757,12 +758,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 2.5;
-      // nor += 0.05 * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      const float bumpsScale = 0.5;
+      nor += 0.5 * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -831,11 +832,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.125 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      // vec3 dispersionColor = 0.5 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
-      // // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
-      // color += dispersionColor;
-      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // color = pow(color, vec3(2.5)); // Get more range in values
+      vec3 dispersionColor = 1.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
+      // vec3 dispersionColor = 1.0 * dispersion(nor, rayDirection, n2, n1);
+      color += dispersionColor;
+      // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      color = pow(color, vec3(1.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;

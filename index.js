@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 50
+const secondsLong = 20
 const capturing = false
 
 const FOV = 50
@@ -18,10 +18,11 @@ window.app = app
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
-    format: 'png',
+    format: 'jpg',
     framerate: fr,
-    name: 'grime-test4',
+    name: 'pulse-test1',
     autoSaveTime: 5,
+    quality: 95,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
