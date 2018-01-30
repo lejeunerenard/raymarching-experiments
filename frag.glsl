@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -559,22 +559,11 @@ vec3 map (in vec3 p) {
   vec3 q = p;
   float cosT = PI * 0.2 * time;
 
-  // q.xy = abs(q.xy);
-
-  q.xzy = twist(q.xyz, -2.0 * q.y);
-
-  q.xzy = q.xyz;
-
-  q += 0.006250 * cos( 27.0 * q.yzx + vec3(2.0 * cosT, -cosT, 0));
-  // q += 0.01 * cnoise3( 93.0 * q.yzx );
-  q += 0.003125 * cos( 61.0 * q.yzx + cos(q.zyx));
+  // q.xzy = twist(q.xyz, -2.0 * q.y);
 
   vec3 o = vec3(dodecahedral(q, 42.0, 0.5), 0, 0);
   o.x -= 0.03 * cellular(q);
   d = dMin(d, o);
-
-  // vec3 s = vec3(sdTorus(q, vec2(0.2, 0.1)), 0, 0);
-  // d = dMin(d, s);
 
   d.x *= 0.5;
 
@@ -664,6 +653,10 @@ vec3 scene (in vec3 rd, in float ior) {
 
 #pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amount)
 
+#ifndef dispersionMap
+#define dispersionMap map
+#endif
+
 float dispersionMarch (in vec3 rayDirection) {
   vec3 rayOrigin = gPos + -gNor * 0.01;
   rayDirection = normalize(rayDirection);
@@ -671,7 +664,7 @@ float dispersionMarch (in vec3 rayDirection) {
   float t = 0.0;
 
   for (int i = 0; i < 20; i++) {
-    float d = map(rayOrigin + rayDirection * t).x;
+    float d = dispersionMap(rayOrigin + rayDirection * t).x;
     if (d >= 0.0) break;
     d = min(d, -0.0001);
 
@@ -682,6 +675,10 @@ float dispersionMarch (in vec3 rayDirection) {
 
 vec3 secondRefraction (in vec3 rd, in float ior) {
   float d = 0.0;
+
+  float angle = ncnoise3(rd);
+
+  rd *= rotationMatrix(vec3(1, 4, 2), smoothstep(0.5, 0.6, angle));
 
   #if 1
   d = dispersionMarch(rd);
