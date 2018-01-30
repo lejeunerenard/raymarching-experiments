@@ -384,8 +384,7 @@ float fCorner (vec2 p) {
 
 #define Iterations 5
 // #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
-#pragma glslify: octahedron2 = require(./octahedron, scale=scale, kifsM=kifsM2, Iterations=Iterations)
+// #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
@@ -464,8 +463,8 @@ float sdCappedCylinder( vec3 p, vec2 h )
 }
 
 // p as usual, e exponent (p in the paper), r radius or something like that
-#pragma glslify: octahedral = require(./model/octahedral)
-// #pragma glslify: dodecahedral = require(./model/dodecahedral)
+// #pragma glslify: octahedral = require(./model/octahedral)
+#pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
 #pragma glslify: sdTriPrism = require(./model/tri-prism)
@@ -556,20 +555,26 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
   float cosT = PI * 0.2 * time;
 
-  q.xzy = twist(q.xyz, 2.0 * q.y);
+  // q.xy = abs(q.xy);
+
+  q.xzy = twist(q.xyz, -2.0 * q.y);
 
   q.xzy = q.xyz;
 
-  q += 0.02500 * cos( 47.0 * q.yzx + vec3(2.0 * cosT, -cosT, 0));
-  q += 0.01250 * cos( 61.0 * q.yzx );
-  q += 0.00625 * cos( 91.0 * q.yzx );
+  q += 0.006250 * cos( 27.0 * q.yzx + vec3(2.0 * cosT, -cosT, 0));
+  // q += 0.01 * cnoise3( 93.0 * q.yzx );
+  q += 0.003125 * cos( 61.0 * q.yzx + cos(q.zyx));
 
-  vec3 s = vec3(sdTorus(q, vec2(0.5, 0.1)), 0, 0);
-  d = dMin(d, s);
+  vec3 o = vec3(dodecahedral(q, 42.0, 0.5), 0, 0);
+  o.x -= 0.03 * cellular(q);
+  d = dMin(d, o);
+
+  // vec3 s = vec3(sdTorus(q, vec2(0.2, 0.1)), 0, 0);
+  // d = dMin(d, s);
 
   d.x *= 0.5;
 
@@ -639,7 +644,7 @@ vec3 textures (in vec3 rd) {
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
   float n = cnoise3(0.5 * rd);
-  n = smoothstep(0.0, 0.9, n);
+  n = smoothstep(-0.1, 0.9, n);
 
   float v = n;
 
