@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 4.0
-const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.2
+const BLOOM_WET = 2.0
+const BLOOM_PASSES = 4
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
 export default class App {
@@ -43,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const thingy = {
@@ -205,7 +205,7 @@ export default class App {
 
     const preset = this.presets.blend1
     const preset2 = this.presets.blend2
-    preset.cameraAngles = [-0.07, 0.051, -0.09]
+    preset.cameraAngles = [-0.035, 0, 0]
 
     this.d = preset.d
     this.cameraRo = vec3.fromValues(0, 0, 2)
