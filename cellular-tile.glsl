@@ -1,3 +1,4 @@
+// Source: https://www.shadertoy.com/view/MscSDB by Shane
 // The cellular tile routine. Draw a few objects (four spheres, in this case) using a minumum
 // blend at various 3D locations on a cubic tile. Make the tile wrappable by ensuring the 
 // objects wrap around the edges. That's it.
@@ -12,7 +13,7 @@
 float drawSphere(in vec3 p){
 
     // Anything that wraps the domain will suffice, so any of the following will work.
-    // p = cos(p*3.14159)*0.5; 
+    // p = cos(p*3.14159)*0.5;
     // p = abs(cos(p*3.14159)*0.5);
     // p = fract(p)-.5;
     // return dot(p, p);
