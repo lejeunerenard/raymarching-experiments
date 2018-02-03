@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'technical-test1',
+    name: 'anitya-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

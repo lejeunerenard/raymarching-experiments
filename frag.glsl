@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 10.0
 #define fogMaxDistance 30.0
 
@@ -354,8 +354,8 @@ float length8 (in vec3 p) {
 }
 
 float sdTorus88( vec3 p, vec2 t ) {
-  vec2 q = vec2(length16(p.xz)-t.x,p.y);
-  return length16(q)-t.y;
+  vec2 q = vec2(length8(p.xz)-t.x,p.y);
+  return length8(q)-t.y;
 }
 
 float sdEllipsoid( in vec3 p, in vec3 r ) {
@@ -560,29 +560,58 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
+  p.xzy = p.xyz;
   vec3 q = p;
   float cosT = PI * 0.2 * time;
 
-  // Base Shape
-  vec3 box = vec3(sdBox(q, vec3(0.5)), 0, 0);
-  d = dMin(d, box);
+#define MULTI 1
+#ifdef MULTI
+  const int number = 15;
+  const float invers = 1.0 / float(number);
+  for (int i = 0; i < number; i++) {
+#else 
+    const int i = 0;
+    const float invers = 1.0;
+#endif
 
-  // A gyroid object to form the main passage base layer.
-  q *= 5.0;
-  q += vec3(cosT, -cosT, 1.0);
-  vec3 cav = vec3(dot(cos(q*PI/3.), sin(q.yzx*PI/3.)) + 2.0, 0, 0);
-  d = dSMax(d, 1.0 - cav, 2.);
+    q = p;
+    float rotOffset = float(i) * TWO_PI * invers;
+    q *= rotationMatrix(vec3(0, 1, 0), rotOffset);
+    q.x += 1.00;
+    q *= globalRot;
+    q *= rotationMatrix(normalize(vec3(1, 0, 1)), cosT);
+    q.xzy = twist(q, 1.0 * q.y);
+    q += 0.10 * cos( 3.0 * q.yzx + cosT);
+    q += 0.05 * cos( 5.0 * q.yzx + cosT);
 
-  q = p;
+    const float thick = 0.035;
+    float m = 0.0; // smoothstep(0.0, 0.01, sin(33.0 * q.y + 0.7));
+    vec3 t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
+    d = dMin(d, t);
 
-  float c = cellular(q);
-  float surface = mix(c, cos(c*TWO_PI*2.)*.5 + .5, .25);
-  d.x += 0.2 - surface;
-  // vec3 tile = vec3(0.25 * cellular(1.0 * q), 0, 0);
-  // d = dMin(d, tile);
+    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
+    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
+    d = dMin(d, t);
 
-  d.x *= 0.1;
+    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
+    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
+    d = dMin(d, t);
+
+    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
+    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
+    d = dMin(d, t);
+
+#ifdef MULTI
+  }
+#endif
+
+  // Wall
+  // p.z += 0.25;
+  vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 1, 0);
+  d = dMin(d, w);
+
+  d.x *= 0.2;
 
   return d;
 }
@@ -729,7 +758,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.7);
 
-  color = mix(#FF1D06, #FF8A0C, 1.5 * dot(nor, -rd));
+  color += 0.125 * (0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67))));
 
   return color;
 }
@@ -756,12 +785,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 7.0;
-      nor += 0.5 * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // const float bumpsScale = 7.0;
+      // nor += 0.5 * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -783,8 +812,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(-0.5, 0.65, 1.)), #FFAAAA, 1.0);
-      lights[1] = light(normalize(vec3(0.5, 0.5, 0.5)), #AAFFFF, 1.0);
+      lights[0] = light(normalize(vec3(-0.5, 0.65, 1.)), #FFAAFF, 1.0);
+      lights[1] = light(normalize(vec3(0.5, 0.5, 0.5)), #AAFFAA, 1.0);
       lights[2] = light(normalize(vec3(0, 0.05, 1.0)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
@@ -798,7 +827,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.75, diffuse(nor, lightPos));
+        float dif = max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -823,7 +852,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // color += 0.03125 * matCap(reflect(rayDirection, nor));
+      color += 0.03125 * matCap(reflect(rayDirection, nor));
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor + 0.1 * vec3(cnoise2(pos.xz), cnoise2(1.3 * pos.xz + 123.523), 0));
@@ -831,8 +860,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += pow(reflectColor, vec3(0.9));
 
       // vec3 dispersionColor = 1.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
-      vec3 dispersionColor = 0.4 * dispersion(nor, rayDirection, n2, n1);
-      color += dispersionColor;
+      // vec3 dispersionColor = 0.4 * dispersion(nor, rayDirection, n2, n1);
+      // color += dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.5)); // Get more range in values
 
