@@ -563,11 +563,11 @@ vec3 map (in vec3 p) {
   // p *= globalRot;
   p.xzy = p.xyz;
   vec3 q = p;
-  float cosT = PI * 0.2 * time;
+  float cosT = PI * 0.1 * time;
 
 #define MULTI 1
 #ifdef MULTI
-  const int number = 15;
+  const int number = 13;
   const float invers = 1.0 / float(number);
   for (int i = 0; i < number; i++) {
 #else 
@@ -578,14 +578,14 @@ vec3 map (in vec3 p) {
     q = p;
     float rotOffset = float(i) * TWO_PI * invers;
     q *= rotationMatrix(vec3(0, 1, 0), rotOffset);
-    q.x += 1.00;
-    q *= globalRot;
+    q.x += 1.00 + 0.125 * sin(PI * float(i) / 2.0 + cosT);
+    // q *= globalRot;
     q *= rotationMatrix(normalize(vec3(1, 0, 1)), cosT);
-    q.xzy = twist(q, 1.0 * q.y);
+    q.xzy = twist(q, 2.0 * q.y);
     q += 0.10 * cos( 3.0 * q.yzx + cosT);
     q += 0.05 * cos( 5.0 * q.yzx + cosT);
 
-    const float thick = 0.035;
+    const float thick = 0.1;
     float m = 0.0; // smoothstep(0.0, 0.01, sin(33.0 * q.y + 0.7));
     vec3 t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
     d = dMin(d, t);
@@ -758,7 +758,21 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.7);
 
-  color += 0.125 * (0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67))));
+  vec3 lookup = vec3(1, 1, 1);
+
+  float i1 = 0.5 * dot(nor, -rd) + 0.25;
+  lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), 1.391 * i1);
+
+  float i2 = 0.5 * dot(nor, pos) + 0.25;
+  lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), -0.549 * i2);
+
+  float i3 = 0.5 * cnoise3(0.5 * pos + m) + 0.25;
+  lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), 0.351 * i3);
+
+  // Get the color
+  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+
+  color = mix(color, vec3(0.7), isMaterialSmooth(m, 1.0));
 
   return color;
 }
