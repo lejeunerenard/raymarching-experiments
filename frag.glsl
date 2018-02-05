@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 128
 #define maxDistance 10.0
 #define fogMaxDistance 30.0
 
@@ -495,7 +495,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 // #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
-// #pragma glslify: voronoi = require(./voronoi)
+#pragma glslify: voronoi = require(./voronoi)
 // #pragma glslify: band = require(./band-filter)
 
 // #pragma glslify: tetrahedron = require(./model/tetrahedron)
@@ -561,57 +561,19 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // p *= globalRot;
-  p.xzy = p.xyz;
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-#define MULTI 1
-#ifdef MULTI
-  const int number = 13;
-  const float invers = 1.0 / float(number);
-  for (int i = 0; i < number; i++) {
-#else 
-    const int i = 0;
-    const float invers = 1.0;
-#endif
+  q += 0.25 * cos( 5.0 * q.yzx + vec3(cosT, sin(cosT) + cos(cosT + sin(cosT)), -cosT));
+  q.xzy = twist(q, q.y * 0.1);
 
-    q = p;
-    float rotOffset = float(i) * TWO_PI * invers;
-    q *= rotationMatrix(vec3(0, 1, 0), rotOffset);
-    q.x += 1.00 + 0.125 * sin(PI * float(i) / 2.0 + cosT);
-    // q *= globalRot;
-    q *= rotationMatrix(normalize(vec3(1, 0, 1)), cosT);
-    q.xzy = twist(q, 2.0 * q.y);
-    q += 0.10 * cos( 3.0 * q.yzx + cosT);
-    q += 0.05 * cos( 5.0 * q.yzx + cosT);
+  vec3 t = vec3(sdBox(q.xyz, vec3(1, 1, 0.00625)), 0, 0);
+  d = dMin(d, t);
 
-    const float thick = 0.1;
-    float m = 0.0; // smoothstep(0.0, 0.01, sin(33.0 * q.y + 0.7));
-    vec3 t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
-    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-#ifdef MULTI
-  }
-#endif
-
-  // Wall
-  // p.z += 0.25;
-  vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 1, 0);
-  d = dMin(d, w);
-
-  d.x *= 0.2;
+  vec2 v = voronoi(5.0 * q.xy, 0.0001 * slowTime);
+  d.x -= 0.1250 * v.x;
+  // d.x = min(d.x, v.x);
+  d.x *= 0.4;
 
   return d;
 }
@@ -756,23 +718,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.7);
-
-  vec3 lookup = vec3(1, 1, 1);
-
-  float i1 = 0.5 * dot(nor, -rd) + 0.25;
-  lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), 1.391 * i1);
-
-  float i2 = 0.5 * dot(nor, pos) + 0.25;
-  lookup *= rotationMatrix(normalize(vec3(0, 1, 1)), -0.549 * i2);
-
-  float i3 = 0.5 * cnoise3(0.5 * pos + m) + 0.25;
-  lookup *= rotationMatrix(normalize(vec3(1, 0, 0)), 0.351 * i3);
-
-  // Get the color
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
-
-  color = mix(color, vec3(0.7), isMaterialSmooth(m, 1.0));
+  vec3 color = vec3(background);
 
   return color;
 }
@@ -834,7 +780,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.5;
       float specCo = 0.5;
       float disperCo = 0.5;
 
@@ -845,7 +791,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 16.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.3, softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.3, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -856,7 +802,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        // lin += 0.5 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -873,9 +819,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 1.5 * reflection(pos, reflectionRd);
       // color += pow(reflectColor, vec3(0.9));
 
-      // vec3 dispersionColor = 1.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
+      vec3 dispersionColor = 1.0 * pow(dispersionStep1(nor, rayDirection, n2, n1), vec3(0.75));
       // vec3 dispersionColor = 0.4 * dispersion(nor, rayDirection, n2, n1);
-      // color += dispersionColor;
+      color += dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.5)); // Get more range in values
 
