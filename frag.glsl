@@ -489,8 +489,8 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
-// #pragma glslify: bounce = require(glsl-easings/bounce-out)
-// #pragma glslify: circ = require(glsl-easings/circular-in-out)
+#pragma glslify: bounce = require(glsl-easings/bounce-out)
+#pragma glslify: circ = require(glsl-easings/circular-in-out)
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 // #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
@@ -561,55 +561,28 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // p *= globalRot;
-  p.xzy = p.xyz;
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-#define MULTI 1
-#ifdef MULTI
-  const int number = 5;
-  const float invers = 1.0 / float(number);
-  for (int i = 0; i < number; i++) {
-#else 
-    const int i = 0;
-    const float invers = 1.0;
-#endif
+  float scale = 1.0 + 0.2 * bounce(smoothstep(0.6, 1.0, sin(TWO_PI * slowTime)));
+  q /= scale;
 
-    q = p;
-    float rotOffset = float(i) * TWO_PI * invers;
-    q *= rotationMatrix(vec3(0, 1, 0), rotOffset);
-    q.x += 1.00 + 0.125 * sin(PI * float(i) / 2.0 + cosT);
-    // q *= globalRot;
-    q *= rotationMatrix(normalize(vec3(1, 0, 1)), cosT);
-    q.xzy = twist(q, 1.0 * q.y);
+  q *= rotationMatrix(normalize(vec3(1, 0, 1)), PI * 0.25 + PI * circ(nsin(slowTime)));
+  vec3 outer = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  d = dMin(d, outer);
 
-    const float thick = 0.2;
-    float m = 0.0; // smoothstep(0.0, 0.01, sin(33.0 * q.y + 0.7));
-    vec3 t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
+  vec3 inner = vec3(-sdBox(q, vec3(0.3)), 1, 0);
+  inner.x += 0.2 * cellular(q);
+  d = dMax(d, inner);
 
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
+  q *= scale;
 
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
-    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
+  // // Wall
+  // // p.z += 0.25;
+  // vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 1, 0);
+  // d = dMin(d, w);
 
-    q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5);
-    t = vec3(sdTorus88(q.xzy, vec2(1.0, thick)), m, 0);
-    d = dMin(d, t);
-
-#ifdef MULTI
-  }
-#endif
-
-  // Wall
-  // p.z += 0.25;
-  vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 1, 0);
-  d = dMin(d, w);
-
-  d.x *= 0.2;
+  d.x *= 0.7;
 
   return d;
 }
@@ -754,7 +727,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.7 * background);
+  vec3 color = vec3(background);
 
   return color;
 }
@@ -858,7 +831,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // vec3 dispersionColor = 0.4 * dispersion(nor, rayDirection, n2, n1);
       color += dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // // color = pow(color, vec3(1.5)); // Get more range in values
+      color = pow(color, vec3(1.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
@@ -896,14 +869,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Glow
       // float angle = atan(uv.y, uv.x) / PI;
-
-      float i = pow(saturate(t.z / 100.0), 2.0);
-      float l = length(uv);
-      i += 0.5 * smoothstep(0.25, 0.0, l) * vfbmWarp(uv);
-      float d = length(pos);
-      // i *= smoothstep(5.0, 3.0, d);
-      vec3 glowColor = vec3(1);
-      color = mix(color, vec4(glowColor, 1.0), i);
+// 
+//       float i = pow(saturate(t.z / 100.0), 2.0);
+//       float l = length(uv);
+//       i += 0.5 * smoothstep(0.25, 0.0, l) * vfbmWarp(uv);
+//       float d = length(pos);
+//       // i *= smoothstep(5.0, 3.0, d);
+//       vec3 glowColor = vec3(1);
+//       color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
