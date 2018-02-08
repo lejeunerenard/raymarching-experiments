@@ -99,21 +99,21 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // float dI = cnoise3(2.0 * nor);
 
     vec3 sceneResult = scene(iorRefract, ior);
-    vec3 mixI = clamp(0.5 + 0.5 * sin(1.5 * dI + sin(nor)), 0.0, 1.0);
-    // float mixI = dI + cnoise3(1.0 * nor);
+    // vec3 mixI = clamp(0.5 + 0.5 * sin(1.5 * dI + sin(nor)), 0.0, 1.0);
+    float mixI = dI + cnoise3(1.0 * nor);
 
     vec3 thisColor = vec3(0);
     // thisColor += mix(#FF0000, #00FFFF, mixI);
 
-    thisColor += (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0, 0.33, 0.67))))
+    thisColor += (0.75 + 0.25 * cos(TWO_PI * (mixI + vec3(0, 0.33, 0.67))))
       * sceneResult;
-
-    thisColor += #FF0000 * nsin(vec3(0.5, 1.05, 0.8) * mixI + vec3(0.0, 0.5, -0.2)) * sceneResult;
-    thisColor += #00FFFF * nsin(vec3(1.1, 1.70, 1.2) * mixI + vec3(4.0, 3.5, -9.2)) * sceneResult;
+    thisColor += #FF00FF * nsin(vec3(0.5, 1.05, 0.8) * mixI + vec3(0.0, 0.5, -0.2)) * sceneResult;
+    thisColor += #00FF00 * nsin(vec3(1.1, 1.70, 1.2) * mixI + vec3(4.0, 3.5, -9.2)) * sceneResult;
 
     // thisColor *= 0.6;
     // color += thisColor;
     color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.33, 0.67))));
+
     #endif
   }
 
