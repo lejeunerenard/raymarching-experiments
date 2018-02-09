@@ -491,6 +491,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 #pragma glslify: bounce = require(glsl-easings/bounce-out)
 #pragma glslify: circ = require(glsl-easings/circular-in-out)
+#pragma glslify: expo = require(glsl-easings/exponential-in-out)
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 // #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
@@ -564,25 +565,22 @@ vec3 map (in vec3 p) {
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-  float scale = 1.0 + 0.2 * bounce(smoothstep(0.6, 1.0, sin(TWO_PI * slowTime)));
-  q /= scale;
+  q.y += 0.1 * sin(PI * 0.5 * slowTime);
+  float angle = PI * 0.25 + PI * 0.75 * expo(nsin(0.25 * slowTime));
+  q *= rotationMatrix(normalize(vec3(0.2, 1, 0)), angle);
 
-  q *= rotationMatrix(normalize(vec3(1, 0, 1)), PI * 0.25 + PI * circ(nsin(slowTime)));
-  vec3 outer = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  float c = cellular(q);
+
+  vec3 outer = vec3(dodecahedral(q, 51., 0.7), 0, 0);
+  outer.x += 0.1 * c;
   d = dMin(d, outer);
 
-  vec3 inner = vec3(-sdBox(q, vec3(0.3)), 1, 0);
-  inner.x += 0.2 * cellular(q);
+  vec3 inner = vec3(sdBox(q, vec3(0.25)), 1, 0);
+  inner.x += 0.1 * c;
+  inner.x = -inner.x;
   d = dMax(d, inner);
 
-  q *= scale;
-
-  // // Wall
-  // // p.z += 0.25;
-  // vec3 w = vec3(sdPlane(p, vec4(0, 1, 0, 0)), 1, 0);
-  // d = dMin(d, w);
-
-  d.x *= 0.7;
+  d.x *= 0.6;
 
   return d;
 }
@@ -641,7 +639,7 @@ vec3 textures (in vec3 rd) {
 
   vec3 spaceScaling = vec3(1.234, 2.34, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.4, 1.00, n);
+  n = smoothstep(0.525, 1.00, n);
 
   // vec3 spaceScaling = vec3(0.5);
   // float n = vfbmWarp(spaceScaling * rd + startPoint);
@@ -788,8 +786,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.5;
+      float specCo = 0.5;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -828,10 +826,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += pow(reflectColor, vec3(0.9));
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = 0.4 * dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       color += dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.5)); // Get more range in values
+      color = pow(color, vec3(1.7)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
@@ -869,14 +867,14 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Glow
       // float angle = atan(uv.y, uv.x) / PI;
-// 
-//       float i = pow(saturate(t.z / 100.0), 2.0);
-//       float l = length(uv);
-//       i += 0.5 * smoothstep(0.25, 0.0, l) * vfbmWarp(uv);
-//       float d = length(pos);
-//       // i *= smoothstep(5.0, 3.0, d);
-//       vec3 glowColor = vec3(1);
-//       color = mix(color, vec4(glowColor, 1.0), i);
+
+      // float i = pow(saturate(t.z / 50.0), 2.0);
+      // float l = length(uv);
+      // i += 0.5 * smoothstep(0.25, 0.0, l) * vfbm6(uv);
+      // float d = length(pos);
+      // // i *= smoothstep(5.0, 3.0, d);
+      // vec3 glowColor = vec3(1);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
