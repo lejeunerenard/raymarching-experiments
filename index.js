@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'splinter-test1',
+    name: 'equivalent-exchange-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
