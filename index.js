@@ -10,7 +10,7 @@ const captureTime = 0 * 5
 const secondsLong = 20
 const capturing = false
 
-const FOV = 50
+const FOV = 30
 
 let app = new App()
 window.app = app
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'forgotten-test2',
+    name: 'chusho-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

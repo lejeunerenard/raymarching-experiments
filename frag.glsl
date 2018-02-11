@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -565,13 +565,20 @@ vec3 map (in vec3 p) {
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-  q += 0.10 * cos( 7.1 * q.yzx + vec3(cosT, -cosT, 0));
+  q += 0.050 * cos (13.0 * q.yzx);
+  q += 0.025 * cos (17.0 * q.yzx);
 
-  vec3 shape = vec3(length(q) - 0.3, 0, 0);
-  shape.x -= 0.5 * cellular(1.3 * q + 0.5 * sin(vec3(cosT, -cosT, 0)));
-  d = dMin(d, shape);
+  // Fill
+  float r = 0.24;
+  r += 0.1 * cnoise3(3.0 * q.yzx + 2.0 * slowTime)
+    + 0.009375 * cnoise3(15.0 * q.yzx + time)
+    + 0.32 * smoothstep(0.2, 1.0, nsin(0.5 * slowTime + 0.25));
+  vec3 n = vec3(length(q) - r, 0, 0);
+  n.x *= 0.3;
+  d = dMin(d, n);
 
-  d.x *= 0.125;
+  float crop = sdBox(p, vec3(0.25)) - 0.05;
+  d.x = max(d.x, crop);
 
   return d;
 }
@@ -716,7 +723,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.6 * background);
+  vec3 color = vec3(0.9 * background);
+
+  color = mix(color, vec3(1), isMaterialSmooth(m, 1.0));
 
   return color;
 }
@@ -741,12 +750,12 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      // const float bumpsScale = 0.001;
-      // nor += 0.1 * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      const float bumpsScale = 1.0;
+      nor += 0.1 * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -755,6 +764,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       gRd = rayDirection;
 
       // Material Types
+      float isObject = isMaterialSmooth(t.y, 0.);
+      float isFloor = 1.0 - isObject;
 
       // Basic Diffusion
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w);
@@ -783,11 +794,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // max(0.0, diffuse(nor, lightPos));
+        float dif = 0.7 + 0.3 * diffuse(nor, lightPos);
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0.25, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -798,7 +809,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.1 * amb * diffuseColor;
+        lin += isFloor * 0.5 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -815,11 +826,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.05 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += dispersionColor;
-      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.7)); // Get more range in values
+      if (isObject == 1.0) {
+        vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+        // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+        color += dispersionColor;
+        // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+        color = pow(color, vec3(1.7)); // Get more range in values
+      }
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
