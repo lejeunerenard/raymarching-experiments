@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 90
+#define maxSteps 256
 #define maxDistance 100.0
 #define fogMaxDistance 30.0
 
@@ -572,33 +572,35 @@ vec3 DF_repeatHex(vec3 p)
     return p;
 }
 
-// Return value is (distance, material, orbit trap)
 vec3 mPos = vec3(0);
+vec3 miniMap (in vec3 q) {
+  const float r = 0.195;
+  float cosT = PI * 0.1 * time;
+
+  q += 0.0500 * cos(17.0 * q.yzx + vec3(-cosT, cosT, 2.0 * cosT));
+  q += 0.0250 * cos(23.0 * q.yzx );
+  q += 0.0125 * cos(31.0 * q.yzx );
+
+  mPos = q;
+  return vec3(length(q) - r, 0, 0);
+}
+// Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
+  p.x -= 0.01;
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-  mat3 rot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1)
-    * rotationMatrix(vec3(0, 1, 0), PI * 0.166666666)
-    * rotationMatrix(vec3(1, 0, 0), PI * 0.25)
-    * rotationMatrix(vec3(0, 1, 0), PI * 0.25);
-
-  const float r = 0.195;
-
   vec3 qH1 = DF_repeatHex(q);
-  qH1 *= rot;
-  vec3 n = vec3(sdBox(qH1, vec3(r)), 0, 0);
+  vec3 n = miniMap(qH1);
   d = dMin(d, n);
 
   q = p;
 
   vec3 qH2 = DF_repeatHex(q - vec3(X_REPEAT_DIST * 0.5, 0, Z_REPEAT_DIST * 0.25));
-  qH2 *= rot;
-  mPos = qH2;
-  n = vec3(sdBox(qH2, vec3(r)), 0, 0);
+  n = miniMap(qH2);
   d = dMin(d, n);
 
   d.x *= 0.25;
@@ -612,10 +614,11 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
   float trap = maxDistance;
 
-// #define OVERSTEP 1
+#define OVERSTEP 1
 #ifdef OVERSTEP
   // Source: https://www.shadertoy.com/view/MdcXzn
-  for( int i = 0; i < 35; i++ ) {
+  const int halfMax = (maxSteps / 2);
+  for( int i = 0; i < halfMax; i++ ) {
        vec3 d = map(rayOrigin + rayDirection * t);
 
        if( d.x < epsilon * 100.0 ) break;
@@ -625,7 +628,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
    t -= Z_REPEAT_DIST * 0.5;
 
-   for( int i = 0; i < 35; i++ ) {
+   for( int i = 0; i < halfMax; i++ ) {
        vec3 d = map(rayOrigin + rayDirection * t);
 
        if( d.x<epsilon ) return vec4(t + d.x, d.y, float(i), d.z);
@@ -768,7 +771,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.9 * background);
+  vec3 color = vec3(mix(background, vec3(1), 0.5));
 
   // color = mix(color, vec3(1), isMaterialSmooth(m, 1.0));
 
@@ -877,7 +880,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       color += dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(2.2)); // Get more range in values
+      color = pow(color, vec3(2.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
