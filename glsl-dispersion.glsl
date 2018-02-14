@@ -6,7 +6,7 @@
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
 #define HUE 1
-#define HUE_NUM 20
+#define HUE_NUM 40
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
@@ -66,10 +66,13 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
   const float hueStep = 1.0 / float(HUE_NUM);
   vec3 color = vec3(0.);
 
+  vec3 variation = vec3(0);
   for (int i = 0; i < HUE_NUM; i++) {
     float hue = float(i) * hueStep;
     float ior = hue2IOR(360.0 * hue, greenIOR, n1, between);
-    vec3 iorRefract = refract(eye, nor, ior);
+    // variation += pow(0.5, float(i)) * cos(pow(2.0, float(i)) * variation + 0.1 * eye.yzx);
+
+    vec3 iorRefract = refract(eye + 0.1 * variation, nor, ior);
 
     #ifdef COS_HUE
     color += (0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)))) * scene(iorRefract, ior);

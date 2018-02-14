@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -38,8 +38,8 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
-#define maxDistance 10.0
+#define maxSteps 90
+#define maxDistance 100.0
 #define fogMaxDistance 30.0
 
 #define slowTime time * 0.2
@@ -555,30 +555,53 @@ vec3 travel (in float t) {
   t *= scale;
   return vec3(mod(t, scale) - scale * 0.5, 0, 0);
 }
+// Source: https://www.shadertoy.com/view/MdcXzn
+const float X_REPEAT_DIST = 0.90;
+const float Z_REPEAT_DIST = 1.05;
+vec3 DF_repeatHex(vec3 p)
+{
+    //Repetition
+    float xRepeatDist = X_REPEAT_DIST;
+    float zRepeatDist = Z_REPEAT_DIST*0.5;
+    float latticeX = (fract(p.x/xRepeatDist+0.5)-0.5)*xRepeatDist;
+    float latticeY = (fract(p.z/zRepeatDist+0.5)-0.5)*zRepeatDist;
+    vec2 anchorPosXZ = p.xz-vec2(latticeX,latticeY);
+    p.x = latticeX; //Cyclic coords.
+    p.z = latticeY;
+
+    return p;
+}
 
 // Return value is (distance, material, orbit trap)
 vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-  q += 0.050 * cos (13.0 * q.yzx);
-  q += 0.025 * cos (17.0 * q.yzx);
+  mat3 rot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1)
+    * rotationMatrix(vec3(0, 1, 0), PI * 0.166666666)
+    * rotationMatrix(vec3(1, 0, 0), PI * 0.25)
+    * rotationMatrix(vec3(0, 1, 0), PI * 0.25);
 
-  // Fill
-  float r = 0.24;
-  r += 0.1 * cnoise3(3.0 * q.yzx + 2.0 * slowTime)
-    + 0.009375 * cnoise3(15.0 * q.yzx + time)
-    + 0.32 * smoothstep(0.2, 1.0, nsin(0.5 * slowTime + 0.25));
-  vec3 n = vec3(length(q) - r, 0, 0);
-  n.x *= 0.3;
+  const float r = 0.195;
+
+  vec3 qH1 = DF_repeatHex(q);
+  qH1 *= rot;
+  vec3 n = vec3(sdBox(qH1, vec3(r)), 0, 0);
   d = dMin(d, n);
 
-  float crop = sdBox(p, vec3(0.25)) - 0.05;
-  d.x = max(d.x, crop);
+  q = p;
+
+  vec3 qH2 = DF_repeatHex(q - vec3(X_REPEAT_DIST * 0.5, 0, Z_REPEAT_DIST * 0.25));
+  qH2 *= rot;
+  mPos = qH2;
+  n = vec3(sdBox(qH2, vec3(r)), 0, 0);
+  d = dMin(d, n);
+
+  d.x *= 0.25;
 
   return d;
 }
@@ -589,6 +612,27 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
   float trap = maxDistance;
 
+// #define OVERSTEP 1
+#ifdef OVERSTEP
+  // Source: https://www.shadertoy.com/view/MdcXzn
+  for( int i = 0; i < 35; i++ ) {
+       vec3 d = map(rayOrigin + rayDirection * t);
+
+       if( d.x < epsilon * 100.0 ) break;
+       t += d.x;
+       if (t > maxDistance) break;
+   }
+
+   t -= Z_REPEAT_DIST * 0.5;
+
+   for( int i = 0; i < 35; i++ ) {
+       vec3 d = map(rayOrigin + rayDirection * t);
+
+       if( d.x<epsilon ) return vec4(t + d.x, d.y, float(i), d.z);
+
+       t += min(d.x, Z_REPEAT_DIST * 0.2);
+   }
+#else
   for (int i = 0; i < maxSteps; i++) {
     vec3 d = map(rayOrigin + rayDirection * t);
     if (d.x < epsilon) return vec4(t + d.x, d.y, float(i), d.z);
@@ -597,6 +641,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
     trap = d.z;
     if (t > maxDistance) break;
   }
+#endif
   return vec4(-1., 0., maxI, trap);
 }
 
@@ -725,13 +770,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.9 * background);
 
-  color = mix(color, vec3(1), isMaterialSmooth(m, 1.0));
+  // color = mix(color, vec3(1), isMaterialSmooth(m, 1.0));
 
   return color;
 }
 
 vec3 reflectionDiffuseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(getBackground(pos.xy));
+
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -750,7 +797,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 1.0;
+      const float bumpsScale = 0.75;
       nor += 0.1 * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -779,9 +826,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(-0.5, 0.65, 0.5)), #FFDDDD, 1.0);
-      lights[1] = light(normalize(vec3(0.5, -0.5, 0.5)), #DDFFFF, 1.0);
-      lights[2] = light(normalize(vec3(0, 0.05, -1.0)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(1, 1, 0)), #FFDDDD, 1.0);
+      lights[1] = light(normalize(vec3(-1, 1, -1)), #DDFFFF, 1.0);
+      lights[2] = light(normalize(vec3(-1, 1, 1)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -794,11 +841,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 0.7 + 0.3 * diffuse(nor, lightPos);
-        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
+        float dif = max(0.0, diffuse(nor, lightPos));
+        float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.25, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -809,7 +856,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += isFloor * 0.5 * amb * diffuseColor;
+        // lin += 0.25 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -821,18 +868,16 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.03125 * mix(color, vec3(0.5), vec3(0.5)) * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.05 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
-      if (isObject == 1.0) {
-        vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-        // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-        color += dispersionColor;
-        // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-        color = pow(color, vec3(1.7)); // Get more range in values
-      }
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      color += dispersionColor;
+      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      color = pow(color, vec3(2.2)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
