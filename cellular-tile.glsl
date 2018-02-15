@@ -15,8 +15,8 @@ float drawSphere(in vec3 p){
     // Anything that wraps the domain will suffice, so any of the following will work.
     // p = cos(p*3.14159)*0.5;
     // p = abs(cos(p*3.14159)*0.5);
-    // p = fract(p)-.5;
-    // return dot(p, p);
+    p = fract(p)-.5;
+    return dot(p, p);
 
     // Other metrics to try.
 
