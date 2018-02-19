@@ -7,10 +7,10 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 60
 const capturing = false
 
-const FOV = 10
+const FOV = 70
 
 let app = new App()
 window.app = app
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'neon-poem-test1',
+    name: 'stare-deeply-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
