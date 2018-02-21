@@ -918,7 +918,84 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+void thrshld (inout float v, in float level, in float edge) {
+  v = smoothstep(level, level + edge, v);
+}
+
+void bnd (inout float v, in float start, in float end, in float eps) {
+  float v1 = v;
+  thrshld(v1, start, eps);
+  float v2 = v;
+  thrshld(v2, end, -eps);
+
+  v = v1 * v2;
+}
+
+float crcl (in vec2 uv, float r) {
+  return length(uv) - r;
+}
+
+float sqr (in vec2 uv, float r) {
+  vec2 absUv = abs(uv);
+  float l = max(absUv.x, absUv.y);
+  return l - r;
+}
+
+vec3 scndLyr (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  uv += 0.1 * cos(5.0 * uv.yx + PI * 0.5 * slowTime);
+  uv.y *= 5.0 + 3.0 * noise(7.0 * uv);
+  uv.x *= 73.0;
+  uv.x += cnoise2(uv);
+
+  float n = dot(vec2(1), sin(PI * uv));
+
+  n += 0.5 * noise(134.5340 * uv);
+  n += 0.5 * noise(334.340 * uv);
+  n += 0.5 * noise(14.340 * uv);
+  n += 0.5 * noise(734.340 * uv);
+
+  color = vec3(n);
+
+  return color;
+}
+
+vec3 bwTexture (in vec2 uv) {
+  vec3 color = background;
+
+  uv *= 0.85;
+
+  vec2 q = uv - vec2(0.2);
+  float msk2 = sqr(q, 0.4);
+  thrshld(msk2, 0., 0.001);
+  msk2 = 1.0 - msk2;
+  color = mix(color, saturate(scndLyr(q)) + color, msk2);
+
+  q = uv + vec2(0.2);
+
+  float crclmask = crcl(q, 0.4);
+  // float sqrmsk = sqr(q, 0.4);
+
+  float mask = crclmask;
+  // float mask = mix(crclmask, sqrmsk, circ(smoothstep(-0.5, 0.5, sin(PI * slowTime))));
+  thrshld(mask, 0., 0.001);
+  mask = 1.0 - mask;
+
+  q += 0.2 * sin((5.0 + 2.0 * cnoise2(5.0 * q + slowTime)) * q.yx + slowTime);
+
+  float n = vfbm6(vec2(1, 7) * q);
+  n = smoothstep(0.25, 0.70, n);
+  n = pow(n, 2.5);
+
+  color = mix(color, vec3(n), mask);
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(bwTexture(uv), 1.);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -974,10 +1051,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    vec2 absUV = abs(uv);
-    float vignette = smoothstep(0.5, 1.4, max(absUV.x, absUV.y));
-    vignette *= vignette;
-    gl_FragColor.a += vignette;
-    vignette = 1.0 - vignette;
-    gl_FragColor.rgb *= vec3(vignette);
+    // vec2 absUV = abs(uv);
+    // float vignette = smoothstep(0.5, 1.4, max(absUV.x, absUV.y));
+    // vignette *= vignette;
+    // gl_FragColor.a += vignette;
+    // vignette = 1.0 - vignette;
+    // gl_FragColor.rgb *= vec3(vignette);
 }
