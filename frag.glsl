@@ -964,31 +964,23 @@ vec3 scndLyr (in vec2 uv) {
 vec3 bwTexture (in vec2 uv) {
   vec3 color = background;
 
-  uv *= 0.85;
+  const float period = 20.0 * 0.2;
+  const float start = 3.0;
+  vec2 q = uv;
+  q += 0.05000 *   cos( 4.0 * q.yx + PI * 0.5 * slowTime + 4.0 * q.x);
+  float q11 = 0.10000 * vfbm4(vec3(4.0 * q.yx, slowTime));
+  float q12 = 0.10000 * vfbm4(vec3(4.0 * q.yx, (slowTime - period)));
+  q += mix(q11, q12, saturate((slowTime - start) / (period - start)));
 
-  vec2 q = uv - vec2(0.2);
-  float msk2 = sqr(q, 0.4);
-  thrshld(msk2, 0., 0.001);
-  msk2 = 1.0 - msk2;
-  color = mix(color, saturate(scndLyr(q)) + color, msk2);
+  q += 0.02500 *   cos( 8.0 * q.yx );
+  q += 0.02500 * vfbm4( 8.0 * q.yx );
+  q += 0.01250 *   cos(11.0 * q.yx );
 
-  q = uv + vec2(0.2);
+  float n = smoothstep(0.95, 1.0, sin(133. * q.y));
 
-  float crclmask = crcl(q, 0.4);
-  // float sqrmsk = sqr(q, 0.4);
-
-  float mask = crclmask;
-  // float mask = mix(crclmask, sqrmsk, circ(smoothstep(-0.5, 0.5, sin(PI * slowTime))));
-  thrshld(mask, 0., 0.001);
-  mask = 1.0 - mask;
-
-  q += 0.2 * sin((5.0 + 2.0 * cnoise2(5.0 * q + slowTime)) * q.yx + slowTime);
-
-  float n = vfbm6(vec2(1, 7) * q);
-  n = smoothstep(0.25, 0.70, n);
-  n = pow(n, 2.5);
-
-  color = mix(color, vec3(n), mask);
+  color = mix(color, vec3(1), n);
+  vec2 absUv = abs(uv);
+  color = mix(color, background, smoothstep(0.0, 0.01, max(absUv.x, absUv.y) - 0.7));
 
   return color;
 }
