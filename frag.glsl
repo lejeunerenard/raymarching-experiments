@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 100.0
 #define fogMaxDistance 75.0
 
@@ -581,19 +581,27 @@ vec3 map (in vec3 p) {
   vec3 q = p;
   float cosT = PI * 0.1 * time;
 
-  const float size = 0.25;
+  q.y -= 0.5;
 
-  q += 0.200 * cos( 7.0 * q.yzx + vec3(cosT, 0, 0));
-  q.xzy = twist(q, q.y);
-  q += 0.100 * cos(11.0 * q.yzx);
-  q += 0.050 * cos(17.0 * q.yzx);
+  q += 0.0500 * cos(3.0 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
+  q += 0.0250 * cos(5.0 * q.yzx);
+  q += 0.0125 * cos(7.0 * q.yzx);
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(size)), 0, 0);
-  o.x -= cnoise3(1.5 * p);
-
-  o.x *= 0.15;
+  vec3 o = vec3(sdBox(q, vec3(1, 0.1, 0.75)), 0, 0);
   d = dMin(d, o);
+
+  q = p;
+  q.y += 1.0;
+  q.z += 10.0;
+
+  q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
+  q.y -= max(0.0, pow(-0.01 * q.z, 0.5)) * max(0.0, -q.z) ;
+  // opCheapBend(q.yxz, 0.01);
+
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1., 0);
+  f.x *= 0.75;
+  d = dMin(d, f);
 
   return d;
 }
@@ -760,18 +768,36 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount)
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
+
+vec3 camoStripes (in vec3 q) {
+  vec3 color = vec3(0);
+
+  const float period = 20.0 * 0.2;
+  const float start = 3.0;
+
+  const float scale = 38.0;
+
+  float i = dot(q, vec3(1));
+  vec3 t = vec3(0); // vec3(time, -time, time);
+  i += 0.025 * vfbm4(scale * q.yzx + (i + 0.1 * sin(71. * i)) * t);
+  i += 0.025 * cnoise3(scale * q.yzx + i);
+
+  float n = sin(71. * i);
+  n += cnoise3(scale * q.yzx);
+
+  float edge = 0.7;
+  n = smoothstep(edge, edge + 0.025, n);
+
+  color = mix(color, vec3(1), n);
+
+  return color;
+}
+
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  // vec3 lookup = vec3(1, 1, 1);
-  // float dI = dot(nor, -rd);
-  // lookup *= rotationMatrix(normalize(vec3(1., 23.4, 35.)), dI);
+  color = mix(vec3(1), camoStripes(mPos), isMaterialSmooth(m, 0.0));
 
-  // lookup *= rotationMatrix(normalize(vec3(0., 0.2, 0.8)), cnoise3(pos));
-
-  // lookup *= rotationMatrix(normalize(vec3(0.5, 0., 0.2)), dot(nor, pos));
-
-  // color = 0.5 + 0.5 * cos(TWO_PI * (1.2 * lookup + vec3(0, 0.33, 0.67)));
   return color;
 }
 
@@ -818,26 +844,26 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(1, -0.5, 1)), #FFFFFF, 1.0);
-      lights[1] = light(normalize(vec3(-1, 0.5, -0.5)), #FFFFFF, 1.0);
-      lights[2] = light(normalize(vec3(-1, 1, -1)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFFFFF, 1.0);
+      lights[1] = light(normalize(vec3(-0.5, 0.5, -0.25)), #FFFFFF, 1.0);
+      lights[2] = light(normalize(vec3(-0.25, -.025, -0.5)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 1.0;
+      float specCo = 0.85;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.4, diffuse(nor, lightPos));
+        float dif = max(0.6, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.4, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -961,33 +987,7 @@ vec3 scndLyr (in vec2 uv) {
   return color;
 }
 
-vec3 bwTexture (in vec2 uv) {
-  vec3 color = background;
-
-  const float period = 20.0 * 0.2;
-  const float start = 3.0;
-  vec2 q = uv;
-  q += 0.05000 *   cos( 4.0 * q.yx + PI * 0.5 * slowTime + 4.0 * q.x);
-  float q11 = 0.10000 * vfbm4(vec3(4.0 * q.yx, slowTime));
-  float q12 = 0.10000 * vfbm4(vec3(4.0 * q.yx, (slowTime - period)));
-  q += mix(q11, q12, saturate((slowTime - start) / (period - start)));
-
-  q += 0.02500 *   cos( 8.0 * q.yx );
-  q += 0.02500 * vfbm4( 8.0 * q.yx );
-  q += 0.01250 *   cos(11.0 * q.yx );
-
-  float n = smoothstep(0.95, 1.0, sin(133. * q.y));
-
-  color = mix(color, vec3(1), n);
-  vec2 absUv = abs(uv);
-  color = mix(color, background, smoothstep(0.0, 0.01, max(absUv.x, absUv.y) - 0.7));
-
-  return color;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(bwTexture(uv), 1.);
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
