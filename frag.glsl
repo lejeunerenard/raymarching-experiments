@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 100.0
 #define fogMaxDistance 75.0
 
@@ -577,19 +577,33 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
   vec3 q = p;
+  q *= globalRot;
+
   float cosT = PI * 0.1 * time;
 
-  q.y -= 0.5;
+  const float size = 0.25;
 
-  q += 0.0500 * cos(3.0 * q.yzx + vec3(cosT, -cosT, cosT + sin(cosT)));
-  q += 0.0250 * cos(5.0 * q.yzx);
-  q += 0.0125 * cos(7.0 * q.yzx);
-
+  q = abs(q);
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(1, 0.1, 0.75)), 0, 0);
-  d = dMin(d, o);
+  vec3 b1 = vec3(sdBox(q - vec3(2.0 * size, 0, 0), vec3(size)), 1, 0);
+  d = dMin(d, b1);
+
+  vec3 b2 = vec3(sdBox(q - vec3(0, 0, 2.0 * size), vec3(size)), 2, 0);
+  d = dMin(d, b2);
+
+  vec3 b3 = vec3(sdBox(q - vec3(0, 2.0 * size, 0), vec3(size)), 2, 0);
+  d = dMin(d, b3);
+
+  // Bits
+  vec3 b5 = vec3(sdBox(q - vec3(2.0 * size, 2.0 * size, 0), vec3(0.25 * size)), 4, 0);
+  d = dMin(d, b5);
+
+  vec3 b6 = vec3(sdBox(q - vec3(0.0, 2.0 * size, 2.0 * size), vec3(0.25 * size)), 4, 0);
+  d = dMin(d, b6);
+
+  vec3 b7 = vec3(sdBox(q - vec3(2.0 * size, 0, 2.0 * size), vec3(0.25 * size)), 4, 0);
+  d = dMin(d, b7);
 
   q = p;
   q.y += 1.0;
@@ -597,9 +611,8 @@ vec3 map (in vec3 p) {
 
   q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
   q.y -= max(0.0, pow(-0.01 * q.z, 0.5)) * max(0.0, -q.z) ;
-  // opCheapBend(q.yxz, 0.01);
 
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1., 0);
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
   f.x *= 0.75;
   d = dMin(d, f);
 
@@ -796,7 +809,19 @@ vec3 camoStripes (in vec3 q) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = mix(vec3(1), camoStripes(mPos), isMaterialSmooth(m, 0.0));
+  vec3 lookup = vec3(0.57735);
+
+  float dI = dot(nor, -rd);
+  lookup *= rotationMatrix(normalize(vec3(1, 3., 2)), dI);
+
+  lookup *= rotationMatrix(normalize(vec3(5, 2., 2.2)), dot(nor, vec3(1, 0, 0)));
+
+  vec3 cube = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  cube += 0.25 + 0.25 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
+  cube = pow(cube, vec3(0.75));
+
+  color = mix(cube, color, isMaterialSmooth(m, 0.0));
 
   return color;
 }
@@ -829,8 +854,8 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       gRd = rayDirection;
 
       // Material Types
-      float isObject = isMaterialSmooth(t.y, 0.);
-      float isFloor = 1.0 - isObject;
+      float isFloor = isMaterialSmooth(t.y, 0.);
+      float isObject = 1.0 - isFloor;
 
       // Basic Diffusion
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w);
@@ -859,11 +884,11 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.6, diffuse(nor, lightPos));
+        float dif = max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.4, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.7, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -874,7 +899,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.25 * amb * diffuseColor;
+        lin += mix(0.25, 0.35, isObject) * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
