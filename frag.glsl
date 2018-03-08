@@ -484,9 +484,9 @@ float isMaterialSmooth( float m, float goal ) {
 
 // #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
-// #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-#pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+#pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
+// #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
+// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 // #pragma glslify: bounce = require(glsl-easings/bounce-out)
@@ -1031,7 +1031,49 @@ vec3 scndLyr (in vec2 uv) {
   return color;
 }
 
+vec3 bwTexture (in vec2 uv) {
+  vec3 color = background;
+
+  const float period = 2.0; // 10.0 * 0.2;
+  const float start = 1.5;
+  vec2 q = uv;
+
+  // q = abs(q);
+
+  q += 0.05000 * cos( 4.0 * q.yx + PI * 0.5 * slowTime + 4.0 * q.x);
+
+  float q11 = 0.10000 * vfbm4(vec3(4.0 * q.yx, slowTime));
+  float q12 = 0.10000 * vfbm4(vec3(4.0 * q.yx, (slowTime - period)));
+  q += mix(q11, q12, saturate((slowTime - start) / (period - start)));
+
+  q += 0.02500 *   cos( 8.0 * q.yx );
+  q += 0.02500 * vfbm4( 8.0 * q.yx );
+  q += 0.01250 *   cos(11.0 * q.yx );
+  q += 0.01250 * vfbm4(13.0 * q.yx );
+  q += 0.00625 *   cos(17.0 * q.yx );
+
+  vec2 cen = q;
+  pMod2(cen, vec2(0.5));
+  vec2 before = cen;
+  float r = length(cen);
+  cen *= rotMat2(10.0 * r + PI * 0.5 * slowTime);
+  q += cen - before;
+
+
+  float n = smoothstep(0.80, 0.85, sin(133. * q.y));
+
+  color = mix(color, vec3(0), n);
+
+  // Mask
+  vec2 absUv = abs(uv);
+  color = mix(color, background, smoothstep(0.0, 0.005, max(absUv.x, absUv.y) - 0.7));
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(bwTexture(uv), 1.);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
