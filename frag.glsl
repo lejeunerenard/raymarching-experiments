@@ -489,7 +489,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
-#pragma glslify: bounce = require(glsl-easings/bounce-out)
+// #pragma glslify: bounce = require(glsl-easings/bounce-out)
 #pragma glslify: circ = require(glsl-easings/circular-in-out)
 #pragma glslify: expo = require(glsl-easings/exponential-in-out)
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
@@ -578,31 +578,57 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
-  q *= globalRot;
+  // q *= globalRot;
 
   float cosT = PI * 0.1 * time;
 
-  const float size = 0.25;
+  float size = 0.25;
 
-  q = abs(q);
-  mPos = q;
-  vec3 b1 = vec3(sdBox(q - vec3(2.0 * size, 0, 0), vec3(size)), 1, 0);
+  float t = mod(time, 8.0);
+  // Scale
+  float scale = mix(1.0, 0.49, smoothstep(0.0, 7.9, t));
+  size *= scale;
+  mPos = q * scale;
+
+  const float height = 5.0;
+  q.y -= height - 0.04 * smoothstep(0., 7.9, t);
+
+  vec3 b0 = vec3(sdBox(q + vec3(0, height, 0), vec3(size)), 1, scale);
+  d = dMin(d, b0);
+
+  float i = saturate(t);
+  float trans = circ(i);
+  vec3 b1 = vec3(sdBox(q - vec3(0, 2.0 * size, 0) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
   d = dMin(d, b1);
 
-  vec3 b2 = vec3(sdBox(q - vec3(0, 0, 2.0 * size), vec3(size)), 2, 0);
+  i = saturate(t - 1.0);
+  trans = circ(i);
+  vec3 b2 = vec3(sdBox(q - vec3(-2.0 * size, 0, 0) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
   d = dMin(d, b2);
 
-  vec3 b3 = vec3(sdBox(q - vec3(0, 2.0 * size, 0), vec3(size)), 2, 0);
+  i = saturate(t - 2.0);
+  trans = circ(i);
+  vec3 b3 = vec3(sdBox(q - vec3(0, 0, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
   d = dMin(d, b3);
 
-  // Bits
-  vec3 b5 = vec3(sdBox(q - vec3(2.0 * size, 2.0 * size, 0), vec3(0.25 * size)), 4, 0);
+  i = saturate(t - 3.0);
+  trans = circ(i);
+  vec3 b4 = vec3(sdBox(q - vec3(-2.0 * size, 2.0 * size, 0) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
+  d = dMin(d, b4);
+
+  i = saturate(t - 4.0);
+  trans = circ(i);
+  vec3 b5 = vec3(sdBox(q - vec3(-2.0 * size, 0, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
   d = dMin(d, b5);
 
-  vec3 b6 = vec3(sdBox(q - vec3(0.0, 2.0 * size, 2.0 * size), vec3(0.25 * size)), 4, 0);
+  i = saturate(t - 5.0);
+  trans = circ(i);
+  vec3 b6 = vec3(sdBox(q - vec3(0, 2.0 * size, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
   d = dMin(d, b6);
 
-  vec3 b7 = vec3(sdBox(q - vec3(2.0 * size, 0, 2.0 * size), vec3(0.25 * size)), 4, 0);
+  i = saturate(t - 6.0);
+  trans = circ(i);
+  vec3 b7 = vec3(sdBox(q - vec3(-2.0 * size, 2.0 * size, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
   d = dMin(d, b7);
 
   q = p;
@@ -809,17 +835,10 @@ vec3 camoStripes (in vec3 q) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  vec3 lookup = vec3(0.57735);
-
-  float dI = dot(nor, -rd);
-  lookup *= rotationMatrix(normalize(vec3(1, 3., 2)), dI);
-
-  lookup *= rotationMatrix(normalize(vec3(5, 2., 2.2)), dot(nor, vec3(1, 0, 0)));
-
-  vec3 cube = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
-  cube += 0.25 + 0.25 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  cube = pow(cube, vec3(0.75));
+  float dI = pow(dot(nor, -rd), 2.0);
+  vec3 cube = mix(pow(#FF1156, vec3(2.2)), pow(#D304E8, vec3(2.2)), dI);
+  cube += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (cnoise3(0.5 * mPos) + vec3(0, 0.33, 0.67))));
+  // cube += 0.5 * vec3(0.5 + 0.5 * sin(5.0 / trap * mPos));
 
   color = mix(cube, color, isMaterialSmooth(m, 0.0));
 
@@ -840,7 +859,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
-      const float bumpsScale = 5.00;
+      const float bumpsScale = 1.00;
       nor += 0.1 * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -878,13 +897,13 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.85;
+      float specCo = 1.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, lightPos));
+        float dif = 1.0; // max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 

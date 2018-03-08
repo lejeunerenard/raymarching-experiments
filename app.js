@@ -26,7 +26,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 4.0
 const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_MIN_BRIGHTNESS = 0.975
 
 // Initialize shell
 export default class App {
@@ -208,7 +208,7 @@ export default class App {
     preset.cameraAngles = [-0.035, 0, 0]
 
     this.d = preset.d
-    const dist = 8.1
+    const dist = 8
     this.cameraRo = vec3.fromValues(-dist, dist * 1.4 / 2.1, dist)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
