@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 128
 #define maxDistance 100.0
 #define fogMaxDistance 75.0
 
@@ -493,8 +493,9 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: circ = require(glsl-easings/circular-in-out)
 #pragma glslify: expo = require(glsl-easings/exponential-in-out)
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
+#pragma glslify: quint = require(glsl-easings/quintic-in-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
-// #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
+#pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
 #pragma glslify: voronoi = require(./voronoi)
 // #pragma glslify: band = require(./band-filter)
@@ -584,52 +585,37 @@ vec3 map (in vec3 p) {
 
   float size = 0.25;
 
-  float t = mod(time, 8.0);
-  // Scale
-  float scale = mix(1.0, 0.49, smoothstep(0.0, 7.9, t));
-  size *= scale;
-  mPos = q * scale;
+  float t = mod(time, 6.0);
 
-  const float height = 5.0;
-  q.y -= height - 0.04 * smoothstep(0., 7.9, t);
+  p *= rotationMatrix(vec3(0, 1, 0), 3.0 * TWO_PI * quint(smoothstep(1.75, 6.0, t)));
 
-  vec3 b0 = vec3(sdBox(q + vec3(0, height, 0), vec3(size)), 1, scale);
+  q = p;
+  q += vec3(0, 0, 0);
+  mPos = q;
+  vec3 b0 = vec3(sdBox(q, vec3(size)), 1, scale);
   d = dMin(d, b0);
 
-  float i = saturate(t);
-  float trans = circ(i);
-  vec3 b1 = vec3(sdBox(q - vec3(0, 2.0 * size, 0) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
-  d = dMin(d, b1);
-
-  i = saturate(t - 1.0);
-  trans = circ(i);
-  vec3 b2 = vec3(sdBox(q - vec3(-2.0 * size, 0, 0) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
+  float radius = 3.0 - 2.0 * circ(smoothstep(2.0, 5.0, t));
+  q = p;
+  float scaleT = smoothstep(0., 1., t) - smoothstep(4.0, 4.1, t);
+  size = 0.25 * elasticOut(scaleT);
+  q += vec3(0, 0, radius * size);
+  vec3 b2 = vec3(sdBox(q, vec3(size)), 1, scale);
   d = dMin(d, b2);
 
-  i = saturate(t - 2.0);
-  trans = circ(i);
-  vec3 b3 = vec3(sdBox(q - vec3(0, 0, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
+  q = p;
+  scaleT = smoothstep(0.25, 1.25, t) - smoothstep(4.0, 4.1, t);
+  size = 0.25 * elasticOut(scaleT);
+  q += vec3(-radius * size, 0, radius * size);
+  vec3 b3 = vec3(sdBox(q, vec3(size)), 1, scale);
   d = dMin(d, b3);
 
-  i = saturate(t - 3.0);
-  trans = circ(i);
-  vec3 b4 = vec3(sdBox(q - vec3(-2.0 * size, 2.0 * size, 0) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
-  d = dMin(d, b4);
-
-  i = saturate(t - 4.0);
-  trans = circ(i);
-  vec3 b5 = vec3(sdBox(q - vec3(-2.0 * size, 0, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
-  d = dMin(d, b5);
-
-  i = saturate(t - 5.0);
-  trans = circ(i);
-  vec3 b6 = vec3(sdBox(q - vec3(0, 2.0 * size, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
-  d = dMin(d, b6);
-
-  i = saturate(t - 6.0);
-  trans = circ(i);
-  vec3 b7 = vec3(sdBox(q - vec3(-2.0 * size, 2.0 * size, 2.0 * size) + vec3(0, height * trans, 0), vec3(size)), 1, scale);
-  d = dMin(d, b7);
+  q = p;
+  scaleT = smoothstep(0.5, 1.5, t) - smoothstep(4.0, 4.1, t);
+  size = 0.25 * elasticOut(scaleT);
+  q += vec3(-radius * size, 0, 0);
+  vec3 b1 = vec3(sdBox(q, vec3(size)), 1, scale);
+  d = dMin(d, b1);
 
   q = p;
   q.y += 1.0;
@@ -837,8 +823,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   float dI = pow(dot(nor, -rd), 2.0);
   vec3 cube = mix(pow(#FF1156, vec3(2.2)), pow(#D304E8, vec3(2.2)), dI);
-  cube += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (cnoise3(0.5 * mPos) + vec3(0, 0.33, 0.67))));
-  // cube += 0.5 * vec3(0.5 + 0.5 * sin(5.0 / trap * mPos));
+  cube += 0.65 * vec3(0.5 + 0.5 * sin(5.0 * mPos));
 
   color = mix(cube, color, isMaterialSmooth(m, 0.0));
 
@@ -907,7 +892,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.7, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= mix(1.0, max(0.5, softshadow(pos, lightPos, 0.01, 4.75)), isFloor);
 
         vec3 lin = vec3(0.);
 
@@ -930,10 +915,10 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.03125 * mix(color, vec3(0.5), vec3(0.5)) * matCap(reflect(rayDirection, nor));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.01 * reflection(pos, reflectionRd);
-      color += isFloor * reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.01 * reflection(pos, reflectionRd);
+      // color += isFloor * reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
@@ -977,12 +962,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      // float angle = atan(uv.y, uv.x) / PI;
-
-      // float i = pow(saturate(t.z / 200.0), 30.0);
-      // float l = length(uv);
-      // vec3 glowColor = vec3(0.3);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = pow(saturate(t.z / 200.0), 30.0);
+      vec3 glowColor = vec3(1.0);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -1031,49 +1013,7 @@ vec3 scndLyr (in vec2 uv) {
   return color;
 }
 
-vec3 bwTexture (in vec2 uv) {
-  vec3 color = background;
-
-  const float period = 2.0; // 10.0 * 0.2;
-  const float start = 1.5;
-  vec2 q = uv;
-
-  // q = abs(q);
-
-  q += 0.05000 * cos( 4.0 * q.yx + PI * 0.5 * slowTime + 4.0 * q.x);
-
-  float q11 = 0.10000 * vfbm4(vec3(4.0 * q.yx, slowTime));
-  float q12 = 0.10000 * vfbm4(vec3(4.0 * q.yx, (slowTime - period)));
-  q += mix(q11, q12, saturate((slowTime - start) / (period - start)));
-
-  q += 0.02500 *   cos( 8.0 * q.yx );
-  q += 0.02500 * vfbm4( 8.0 * q.yx );
-  q += 0.01250 *   cos(11.0 * q.yx );
-  q += 0.01250 * vfbm4(13.0 * q.yx );
-  q += 0.00625 *   cos(17.0 * q.yx );
-
-  vec2 cen = q;
-  pMod2(cen, vec2(0.5));
-  vec2 before = cen;
-  float r = length(cen);
-  cen *= rotMat2(10.0 * r + PI * 0.5 * slowTime);
-  q += cen - before;
-
-
-  float n = smoothstep(0.80, 0.85, sin(133. * q.y));
-
-  color = mix(color, vec3(0), n);
-
-  // Mask
-  vec2 absUv = abs(uv);
-  color = mix(color, background, smoothstep(0.0, 0.005, max(absUv.x, absUv.y) - 0.7));
-
-  return color;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(bwTexture(uv), 1.);
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
