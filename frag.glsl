@@ -446,7 +446,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.05 * time;
+float gRAngle = TWO_PI * 0.0625 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -489,11 +489,18 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 // #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
-// #pragma glslify: bounce = require(glsl-easings/bounce-out)
+#pragma glslify: bounceOut = require(glsl-easings/bounce-out)
+#pragma glslify: cubicOut = require(glsl-easings/cubic-out)
+#pragma glslify: cubicIn = require(glsl-easings/cubic-in)
 #pragma glslify: circ = require(glsl-easings/circular-in-out)
+#pragma glslify: circIn = require(glsl-easings/circular-in)
+#pragma glslify: circOut = require(glsl-easings/circular-out)
 #pragma glslify: expo = require(glsl-easings/exponential-in-out)
+#pragma glslify: expoOut = require(glsl-easings/exponential-out)
 // #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 #pragma glslify: quint = require(glsl-easings/quintic-in-out)
+#pragma glslify: quintIn = require(glsl-easings/quintic-in)
+#pragma glslify: quintOut = require(glsl-easings/quintic-out)
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
@@ -578,47 +585,66 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p.y += 0.4;
   vec3 q = p;
-  // q *= globalRot;
+  q *= globalRot;
+
+  q.xz = abs(q.xz);
 
   float cosT = PI * 0.1 * time;
 
-  float size = 0.25;
+  const float sizeDefault = 0.25;
+  float size = sizeDefault;
 
-  float t = mod(time, 6.0);
+  float speed = 2.25;
+  float t = mod(time, 8.0);
 
-  p *= rotationMatrix(vec3(0, 1, 0), 3.0 * TWO_PI * quint(smoothstep(1.75, 6.0, t)));
+  // p *= rotationMatrix(vec3(0, 1, 0), 3.0 * TWO_PI * quint(smoothstep(1.75, 6.0, t)));
 
-  q = p;
-  q += vec3(0, 0, 0);
-  mPos = q;
-  vec3 b0 = vec3(sdBox(q, vec3(size)), 1, scale);
+  vec3 qB = q;
+
+  const float height = 1.15;
+  float y = height * (
+          circOut(smoothstep(0.,             speed * 0.5,   t))
+      -    circIn(smoothstep(speed * 0.766,  speed,         t))
+      +   circOut(smoothstep(speed * 1.9125, speed * 2.533, t))
+      - bounceOut(smoothstep(speed * 2.533,  speed * 3.00,  t)));
+  qB += vec3(0, -y, 0);
+
+  mPos = p - vec3(0, y, 0);
+
+  // qB *= 1.0 + 0.1 * smoothstep(0.9, 1.5, t);
+  vec3 b0 = vec3(sdBox(qB, vec3(size)), 1, scale);
   d = dMin(d, b0);
 
-  float radius = 3.0 - 2.0 * circ(smoothstep(2.0, 5.0, t));
-  q = p;
-  float scaleT = smoothstep(0., 1., t) - smoothstep(4.0, 4.1, t);
-  size = 0.25 * elasticOut(scaleT);
-  q += vec3(0, 0, radius * size);
-  vec3 b2 = vec3(sdBox(q, vec3(size)), 1, scale);
+  float scaleTime =
+      cubicOut(smoothstep(speed * 0.95, speed * 1.05,  t))
+    -  cubicIn(smoothstep(speed * 1.8,  speed * 1.975, t));
+
+  float expandTime =
+      cubicOut(smoothstep(speed * 0.70, speed * 1.5, t))
+    -  cubicIn(smoothstep(speed * 1.5,  speed * 2.2, t));
+
+  size = sizeDefault * scaleTime;
+  float radius = 2.25 * circ(expandTime) + 0.75;
+
+  qB = q;
+  qB += vec3(0, 0, -radius * size);
+  vec3 b2 = vec3(sdBox(qB, vec3(size)), 1, scale);
   d = dMin(d, b2);
 
-  q = p;
-  scaleT = smoothstep(0.25, 1.25, t) - smoothstep(4.0, 4.1, t);
-  size = 0.25 * elasticOut(scaleT);
-  q += vec3(-radius * size, 0, radius * size);
-  vec3 b3 = vec3(sdBox(q, vec3(size)), 1, scale);
+  qB = q;
+  qB += vec3(-radius * size, 0, -radius * size);
+  vec3 b3 = vec3(sdBox(qB, vec3(size)), 1, scale);
   d = dMin(d, b3);
 
-  q = p;
-  scaleT = smoothstep(0.5, 1.5, t) - smoothstep(4.0, 4.1, t);
-  size = 0.25 * elasticOut(scaleT);
-  q += vec3(-radius * size, 0, 0);
-  vec3 b1 = vec3(sdBox(q, vec3(size)), 1, scale);
-  d = dMin(d, b1);
+  qB = q;
+  qB += vec3(-radius * size, 0, 0);
+  vec3 b4 = vec3(sdBox(qB, vec3(size)), 1, scale);
+  d = dMin(d, b4);
 
   q = p;
-  q.y += 1.0;
+  q.y += sizeDefault + 0.02;
   q.z += 10.0;
 
   q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
@@ -822,7 +848,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(1);
 
   float dI = pow(dot(nor, -rd), 2.0);
-  vec3 cube = mix(pow(#FF1156, vec3(2.2)), pow(#D304E8, vec3(2.2)), dI);
+  vec3 cube = mix(pow(#114FFF, vec3(2.2)), pow(#04C9FF, vec3(2.2)), dI);
   cube += 0.65 * vec3(0.5 + 0.5 * sin(5.0 * mPos));
 
   color = mix(cube, color, isMaterialSmooth(m, 0.0));
@@ -886,13 +912,21 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float disperCo = 0.5;
 
       float specAll = 0.0;
+
+      float gLRAngle = TWO_PI * 0.0625 * -time;
+      float gLRc = cos(gLRAngle);
+      float gLRs = sin(gLRAngle);
+      mat3 globalLRot = mat3(
+        gLRc, 0.0, -gLRs,
+        0.0, 1.0,  0.0,
+        gLRs, 0.0,  gLRc);
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
-        vec3 lightPos = lights[i].position;
+        vec3 lightPos = lights[i].position * globalLRot;
         float dif = 1.0; // max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= mix(1.0, max(0.5, softshadow(pos, lightPos, 0.01, 4.75)), isFloor);
+        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -918,7 +952,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
       // reflectColor += 0.01 * reflection(pos, reflectionRd);
-      // color += isFloor * reflectColor;
+      // color += isObject * reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
