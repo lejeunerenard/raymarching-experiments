@@ -1047,7 +1047,55 @@ vec3 scndLyr (in vec2 uv) {
   return color;
 }
 
+vec3 nestedCircles (in vec2 uv) {
+  vec3 color = vec3(0.0);
+  float m = 0.0;
+
+  float l = length(uv);
+
+  const float bigR = 0.65;
+  float white = smoothstep(bigR, bigR - 0.001, l);
+  m = mix(m, 1.0, white);
+
+  const float fudge = bigR * 0.1;
+  const float dR12 = bigR - 2.0 * fudge;
+  float modT = mod(time, 8.0);
+  // modT = 3.5;
+  float trans = smoothstep(0.0, 3.0, modT) - smoothstep(4.0, 7.0, modT);
+  trans = quint(trans);
+  float ratio = mix(0.2, 0.7, trans); // r1 / r2
+
+  vec2 q = uv;
+  float dR1 = mix(dR12, 0.0, trans);
+  q *= rotMat2(PI * 0.75 * time);
+  q.x -= dR1;
+
+  float l1 = length(q);
+  float r1 = ratio * (bigR - 2.0 * fudge);
+  float inner1 = smoothstep(r1, r1 - 0.001, l1);
+  m = mix(m, 0.0, inner1);
+
+  q = uv;
+
+  // float dR2 = r1 + fudge + r1 / ratio;
+  float dR2 = dR12 - dR1;
+  q *= rotMat2(PI * 0.75 * time);
+  q.x += dR2;
+
+  float l2 = length(q);
+  ratio = mix(0.2, 0.7, 1.0 - trans); // r1 / r2
+  float r2 = ratio * (bigR - 2.0 * fudge);
+  float inner2 = smoothstep(r2, r2 - 0.001, l2);
+  m = mix(m, 0.0, inner2);
+
+  color = mix(vec3(0.025), vec3(1), m);
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(nestedCircles(uv), 1.);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
