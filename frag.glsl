@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -584,75 +584,90 @@ vec3 mPos = vec3(0);
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
+  vec3 b = vec3(0);
 
-  p.y += 0.4;
+  p *= globalRot;
+  p *= rotationMatrix(vec3(0, 1, 0), PI);
+
+  const float up = 0.75;
+
+  float startT = 0.0;
+  float t = startT;
+  const float startInc = 0.2;
+  const float timeToTake = 2.0;
+
+  const float totalT = 4.0;
+  float modT = mod(time, totalT);
+  p.y += up * modT / totalT;
+
   vec3 q = p;
-  q *= globalRot;
 
-  q.xz = abs(q.xz);
+  const vec3 size = vec3(0.1, 0.25, 0.1);
+  const float spacing = 0.3;
 
-  float cosT = PI * 0.1 * time;
+  q = p + vec3(spacing, 0, -spacing);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  const float sizeDefault = 0.25;
-  float size = sizeDefault;
+  q = p + vec3(spacing, 0, 0);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  float speed = 2.25;
-  float t = mod(time, 8.0);
+  q = p + vec3(spacing, 0, spacing);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  // p *= rotationMatrix(vec3(0, 1, 0), 3.0 * TWO_PI * quint(smoothstep(1.75, 6.0, t)));
+  q = p + vec3(0, 0, spacing);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  vec3 qB = q;
+  q = p + vec3(-spacing, 0, spacing);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  const float height = 1.15;
-  float y = height * (
-          circOut(smoothstep(0.,             speed * 0.5,   t))
-      -    circIn(smoothstep(speed * 0.766,  speed,         t))
-      +   circOut(smoothstep(speed * 1.9125, speed * 2.533, t))
-      - bounceOut(smoothstep(speed * 2.533,  speed * 3.00,  t)));
-  qB += vec3(0, -y, 0);
+  q = p + vec3(-spacing, 0, 0);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  mPos = p - vec3(0, y, 0);
+  q = p + vec3(-spacing, 0, -spacing);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
-  // qB *= 1.0 + 0.1 * smoothstep(0.9, 1.5, t);
-  vec3 b0 = vec3(sdBox(qB, vec3(size)), 1, scale);
-  d = dMin(d, b0);
-
-  float scaleTime =
-      cubicOut(smoothstep(speed * 0.95, speed * 1.05,  t))
-    -  cubicIn(smoothstep(speed * 1.8,  speed * 1.975, t));
-
-  float expandTime =
-      cubicOut(smoothstep(speed * 0.70, speed * 1.5, t))
-    -  cubicIn(smoothstep(speed * 1.5,  speed * 2.2, t));
-
-  size = sizeDefault * scaleTime;
-  float radius = 2.25 * circ(expandTime) + 0.75;
-
-  qB = q;
-  qB += vec3(0, 0, -radius * size);
-  vec3 b2 = vec3(sdBox(qB, vec3(size)), 1, scale);
-  d = dMin(d, b2);
-
-  qB = q;
-  qB += vec3(-radius * size, 0, -radius * size);
-  vec3 b3 = vec3(sdBox(qB, vec3(size)), 1, scale);
-  d = dMin(d, b3);
-
-  qB = q;
-  qB += vec3(-radius * size, 0, 0);
-  vec3 b4 = vec3(sdBox(qB, vec3(size)), 1, scale);
-  d = dMin(d, b4);
-
-  q = p;
-  q.y += sizeDefault + 0.02;
-  q.z += 10.0;
-
-  q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
-  q.y -= max(0.0, pow(-0.01 * q.z, 0.5)) * max(0.0, -q.z) ;
-
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  f.x *= 0.75;
-  d = dMin(d, f);
+  q = p + vec3(0, 0, -spacing);
+  t = smoothstep(startT, startT + timeToTake, modT);
+  t = quint(t);
+  q.y -= up * t;
+  startT += startInc;
+  b = vec3(sdBox(q, size), 0, q.y);
+  d = dMin(d, b);
 
   return d;
 }
@@ -845,13 +860,10 @@ vec3 camoStripes (in vec3 q) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.75);
 
-  float dI = pow(dot(nor, -rd), 2.0);
-  vec3 cube = mix(pow(#114FFF, vec3(2.2)), pow(#04C9FF, vec3(2.2)), dI);
-  cube += 0.65 * vec3(0.5 + 0.5 * sin(5.0 * mPos));
-
-  color = mix(cube, color, isMaterialSmooth(m, 0.0));
+  // color = mix(color, vec3(1), 2.0 * (0.5 - (mPos + 0.25)));
+  color = mix(color, vec3(1), 2.0 * (0.5 - (trap + 0.25)));
 
   return color;
 }
@@ -921,7 +933,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         0.0, 1.0,  0.0,
         gLRs, 0.0,  gLRc);
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
-        vec3 lightPos = lights[i].position * globalLRot;
+        vec3 lightPos = lights[i].position;
         float dif = 1.0; // max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -996,9 +1008,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      float i = pow(saturate(t.z / 200.0), 30.0);
-      vec3 glowColor = vec3(1.0);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // float i = pow(saturate(t.z / 200.0), 30.0);
+      // vec3 glowColor = vec3(1.0);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -1047,55 +1059,7 @@ vec3 scndLyr (in vec2 uv) {
   return color;
 }
 
-vec3 nestedCircles (in vec2 uv) {
-  vec3 color = vec3(0.0);
-  float m = 0.0;
-
-  float l = length(uv);
-
-  const float bigR = 0.65;
-  float white = smoothstep(bigR, bigR - 0.001, l);
-  m = mix(m, 1.0, white);
-
-  const float fudge = bigR * 0.1;
-  const float dR12 = bigR - 2.0 * fudge;
-  float modT = mod(time, 8.0);
-  // modT = 3.5;
-  float trans = smoothstep(0.0, 3.0, modT) - smoothstep(4.0, 7.0, modT);
-  trans = quint(trans);
-  float ratio = mix(0.2, 0.7, trans); // r1 / r2
-
-  vec2 q = uv;
-  float dR1 = mix(dR12, 0.0, trans);
-  q *= rotMat2(PI * 0.75 * time);
-  q.x -= dR1;
-
-  float l1 = length(q);
-  float r1 = ratio * (bigR - 2.0 * fudge);
-  float inner1 = smoothstep(r1, r1 - 0.001, l1);
-  m = mix(m, 0.0, inner1);
-
-  q = uv;
-
-  // float dR2 = r1 + fudge + r1 / ratio;
-  float dR2 = dR12 - dR1;
-  q *= rotMat2(PI * 0.75 * time);
-  q.x += dR2;
-
-  float l2 = length(q);
-  ratio = mix(0.2, 0.7, 1.0 - trans); // r1 / r2
-  float r2 = ratio * (bigR - 2.0 * fudge);
-  float inner2 = smoothstep(r2, r2 - 0.001, l2);
-  m = mix(m, 0.0, inner2);
-
-  color = mix(vec3(0.025), vec3(1), m);
-
-  return color;
-}
-
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(nestedCircles(uv), 1.);
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
