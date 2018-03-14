@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 100.0
 #define fogMaxDistance 75.0
 
@@ -586,88 +586,32 @@ vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec3 b = vec3(0);
 
-  p *= globalRot;
-  p *= rotationMatrix(vec3(0, 1, 0), PI);
-
-  const float up = 0.75;
-
-  float startT = 0.0;
-  float t = startT;
-  const float startInc = 0.2;
-  const float timeToTake = 2.0;
-
-  const float totalT = 4.0;
-  float modT = mod(time, totalT);
-  p.y += up * modT / totalT;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  const vec3 size = vec3(0.1, 0.25, 0.1);
-  const float spacing = 0.3;
+  const float totalT = 8.0;
+  float modT = mod(time, totalT);
+  float cosT = PI * 0.5 * slowTime;
 
-  q = p + vec3(spacing, 0, -spacing);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
+  q *= 2.0;
+  q += 0.20 * cos( 7.0 * q.yzx + cosT);
+  q += 0.10 * cos(13.0 * q.yzx + cosT);
+  q += 0.05 * cos(23.0 * q.yzx + cosT);
+  q += 0.05 * cnoise3(7.0 * q.yzx);
 
-  q = p + vec3(spacing, 0, 0);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
+  float i = saturate(modT / totalT - 0.75 * length(p.xy + 0.1 * q.xy));
+  q = mix(p, q, i);
+  q.z -= 6.0 * i;
 
-  q = p + vec3(spacing, 0, spacing);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
+  vec3 f = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  d = dMin(d, f);
 
-  q = p + vec3(0, 0, spacing);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
+  q = p - vec3(0, 0, 2);
+  vec3 c = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  d = dMax(d, c);
 
-  q = p + vec3(-spacing, 0, spacing);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
-
-  q = p + vec3(-spacing, 0, 0);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
-
-  q = p + vec3(-spacing, 0, -spacing);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
-
-  q = p + vec3(0, 0, -spacing);
-  t = smoothstep(startT, startT + timeToTake, modT);
-  t = quint(t);
-  q.y -= up * t;
-  startT += startInc;
-  b = vec3(sdBox(q, size), 0, q.y);
-  d = dMin(d, b);
+  d.x *= 0.125;
 
   return d;
 }
@@ -860,10 +804,10 @@ vec3 camoStripes (in vec3 q) {
 }
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.75);
+  vec3 color = vec3(1);
 
   // color = mix(color, vec3(1), 2.0 * (0.5 - (mPos + 0.25)));
-  color = mix(color, vec3(1), 2.0 * (0.5 - (trap + 0.25)));
+  // color = mix(color, vec3(1), 2.0 * (0.5 - (trap + 0.25)));
 
   return color;
 }
@@ -883,7 +827,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.14 * t.x);
       const float bumpsScale = 1.00;
-      nor += 0.1 * vec3(
+      nor += 0.2 * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
           cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
@@ -911,16 +855,16 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFFFFF, 1.0);
-      lights[1] = light(normalize(vec3(-0.5, 0.5, -0.25)), #FFFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFAAAA, 1.0);
+      lights[1] = light(normalize(vec3(-0.5, 0.5, -0.25)), #AAFFFF, 1.0);
       lights[2] = light(normalize(vec3(-0.25, -.025, -0.5)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.8;
+      float specCo = 0.5;
       float disperCo = 0.5;
 
       float specAll = 0.0;
@@ -934,7 +878,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         gLRs, 0.0,  gLRc);
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // max(0.5, diffuse(nor, lightPos));
+        float dif = max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -949,7 +893,7 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += mix(0.25, 0.35, isObject) * amb * diffuseColor;
+        lin += 0.6 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
