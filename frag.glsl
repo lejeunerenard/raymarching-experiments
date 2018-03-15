@@ -594,24 +594,21 @@ vec3 map (in vec3 p) {
   float modT = mod(time, totalT);
   float cosT = PI * 0.5 * slowTime;
 
-  q *= 2.0;
-  q += 0.20 * cos( 7.0 * q.yzx + cosT);
-  q += 0.10 * cos(13.0 * q.yzx + cosT);
-  q += 0.05 * cos(23.0 * q.yzx + cosT);
-  q += 0.05 * cnoise3(7.0 * q.yzx);
+  float l = length(q.xy);
+  l = sqrt(l);
+  float i = saturate(modT / totalT - 0.5 * l);
 
-  float i = saturate(modT / totalT - 0.75 * length(p.xy + 0.1 * q.xy));
-  q = mix(p, q, i);
-  q.z -= 6.0 * i;
-
+  q.z -= 3.0 * i;
+  q.xy *= 3.0;
   vec3 f = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  f.x -= 2.0 * i * cellular(q);
   d = dMin(d, f);
 
   q = p - vec3(0, 0, 2);
   vec3 c = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
   d = dMax(d, c);
 
-  d.x *= 0.125;
+  d.x *= 0.15;
 
   return d;
 }
