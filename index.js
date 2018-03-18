@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'transcendental-twist-test2',
+    name: 'Sself-referential-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,

@@ -580,6 +580,12 @@ vec3 DF_repeatHex(vec3 p)
     return p;
 }
 
+float clausen (in float gamma) {
+  return sin(gamma)
+    + sin(2.0 * gamma) * 0.25
+    + sin(3.0 * gamma) * 0.111111;
+}
+
 vec3 mPos = vec3(0);
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p) {
@@ -589,18 +595,28 @@ vec3 map (in vec3 p) {
 
   vec3 q = p;
 
-  float angle = atan(q.y, q.x);
+  q.xzy = twist(q, 2.0 * q.y);
+
+  float theta = atan(q.y, q.x);
   float r = length(q.xy);
 
-  q.x = 0.1 * angle;
+  q.x = 0.1 * theta;
   q.y = r - 0.2;
 
-  q.y += 0.05 * noise(5. * p);
-  q *= rotationMatrix(vec3(1, 0, 0), angle * 0.75 + PI * 0.25 * time + 0.15 * cnoise3(9.0 * p));
-  mPos = q;
+  float normalizedTheta = (PI + theta) / TWO_PI;
+  float twistAngle = 0.25 * PI * clausen(TWO_PI * normalizedTheta + PI * 0.25) + 0.5 * PI * normalizedTheta;
+  twistAngle += PI * 0.25 * time;
+  q *= rotationMatrix(vec3(1, 0, 0), twistAngle);
 
+  mPos = q;
   vec3 t = vec3(sdBox(q, vec3(1, 0.05, 0.05)), 0, 0);
   d = dMin(d, t);
+
+  q *= rotationMatrix(vec3(1, 0, 0), PI * 0.25);
+  vec3 t2 = vec3(sdBox(q, vec3(1, 0.05, 0.05)), 0, 0);
+  d = dMin(d, t2);
+
+  d.x += pow((PI - abs(theta)) / PI, 0.85) * 0.0005 * cnoise2(vec2(3.5, 490.0 + 80.0 * cnoise3(p)) * q.xy);
 
   d.x *= 0.8;
 
@@ -773,8 +789,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = nsin(0.40 * (1.0 - nor));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color = nsin(0.40 * (1.0 - 2.0 * nor));
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -786,14 +802,14 @@ const vec3 glowColor = pow(#ED4F2C, vec3(2.2));
 #pragma glslify: innerGlow = require(./inner-glow, glowColor=glowColor)
 #pragma glslify: matCap = require(./matCap, texture=tMatCap)
 
-vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
+vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
     gPos = pos;
     if (t.x>0.) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.000014 * t.x);
-      const float bumpsScale = 2.30;
+      const float bumpsScale = 3.30;
       nor += 0.1 * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -912,9 +928,9 @@ vec4 shade( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      // float i = pow(saturate(t.z / 200.0), 30.0);
-      // vec3 glowColor = vec3(1.0);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = 1.0 * pow(saturate(t.z / 75.0), 1.1);
+      vec3 glowColor = #CC0077;
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -999,10 +1015,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    // vec2 absUV = abs(uv);
-    // float vignette = smoothstep(0.5, 1.4, max(absUV.x, absUV.y));
-    // vignette *= vignette;
-    // gl_FragColor.a += vignette;
-    // vignette = 1.0 - vignette;
-    // gl_FragColor.rgb *= vec3(vignette);
+    vec2 absUV = abs(uv);
+    float vignette = smoothstep(0.5, 1.4, max(absUV.x, absUV.y));
+    vignette *= vignette;
+    gl_FragColor.a += vignette;
+    vignette = 1.0 - vignette;
+    gl_FragColor.rgb *= vec3(vignette);
 }
