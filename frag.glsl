@@ -585,7 +585,7 @@ vec3 mPos = vec3(0);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -595,11 +595,14 @@ vec3 map (in vec3 p) {
   q.x = 0.1 * angle;
   q.y = r - 0.2;
 
-  q *= rotationMatrix(vec3(1, 0, 0), angle * 0.25 + PI * 0.25 * time);
+  q.y += 0.05 * noise(5. * p);
+  q *= rotationMatrix(vec3(1, 0, 0), angle * 0.75 + PI * 0.25 * time + 0.15 * cnoise3(9.0 * p));
   mPos = q;
 
   vec3 t = vec3(sdBox(q, vec3(1, 0.05, 0.05)), 0, 0);
   d = dMin(d, t);
+
+  d.x *= 0.8;
 
   return d;
 }
@@ -770,8 +773,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * ((0.5 * nor + 0.125 * time) + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color = nsin(0.40 * (1.0 - nor));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
 
   return color;
 }

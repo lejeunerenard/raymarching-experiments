@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 8
+const secondsLong = 16
 const capturing = false
 
 const FOV = 10
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'endless-test1',
+    name: 'transcendental-twist-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
