@@ -7,10 +7,10 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 16
+const secondsLong = 5
 const capturing = false
 
-const FOV = 10
+const FOV = 2
 
 let app = new App()
 window.app = app
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'locked-test1',
+    name: 'rabbit-hole-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -103,46 +103,46 @@ if (capturing) {
     }
   })
 } else {
-  // let gui = new dat.GUI()
-  // gui.remember(app)
-  // gui.closed = true
+  let gui = new dat.GUI()
+  gui.remember(app)
+  gui.closed = true
 
-  // let offsetF = gui.addFolder('Offset')
-  // offsetF.add(app.offset, '0', -5, 5).step(0.001).listen()
-  // offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
-  // offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
+  let offsetF = gui.addFolder('Offset')
+  offsetF.add(app.offset, '0', -5, 5).step(0.001).listen()
+  offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
+  offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
 
-  // // let offsetC = gui.addFolder('Offset C')
-  // // offsetC.add(app.offsetC, '0', -5, 5).step(0.001).listen()
-  // // offsetC.add(app.offsetC, '1', -5, 5).step(0.001).listen()
-  // // offsetC.add(app.offsetC, '2', -5, 5).step(0.001).listen()
-  // // offsetC.add(app.offsetC, '3', -5, 5).step(0.001).listen()
+  // let offsetC = gui.addFolder('Offset C')
+  // offsetC.add(app.offsetC, '0', -5, 5).step(0.001).listen()
+  // offsetC.add(app.offsetC, '1', -5, 5).step(0.001).listen()
+  // offsetC.add(app.offsetC, '2', -5, 5).step(0.001).listen()
+  // offsetC.add(app.offsetC, '3', -5, 5).step(0.001).listen()
 
-  // gui.add(app, 'd', 0, 20).step(0.01).listen()
-  // gui.add(app, 'scale', -6, 6).step(0.01).listen()
-  // gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
+  gui.add(app, 'd', 0, 20).step(0.01).listen()
+  gui.add(app, 'scale', -6, 6).step(0.01).listen()
+  gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
 
-  // let angleCF = gui.addFolder('Angle Coefficients')
-  // angleCF.add(app, 'angle1C', -Math.PI, Math.PI).step(0.001).listen()
-  // angleCF.add(app, 'angle2C', -Math.PI, Math.PI).step(0.001).listen()
-  // angleCF.add(app, 'angle3C', -Math.PI, Math.PI).step(0.001).listen()
+  let angleCF = gui.addFolder('Angle Coefficients')
+  angleCF.add(app, 'angle1C', -Math.PI, Math.PI).step(0.001).listen()
+  angleCF.add(app, 'angle2C', -Math.PI, Math.PI).step(0.001).listen()
+  angleCF.add(app, 'angle3C', -Math.PI, Math.PI).step(0.001).listen()
 
-  // let rotationF = gui.addFolder('Rotation')
-  // rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
-  // rotationF.add(app.rot2angle, '1', 0, 2 * Math.PI).step(0.001).listen()
-  // rotationF.add(app.rot2angle, '2', 0, 2 * Math.PI).step(0.001).listen()
+  let rotationF = gui.addFolder('Rotation')
+  rotationF.add(app.rot2angle, '0', 0, 2 * Math.PI).step(0.001).listen()
+  rotationF.add(app.rot2angle, '1', 0, 2 * Math.PI).step(0.001).listen()
+  rotationF.add(app.rot2angle, '2', 0, 2 * Math.PI).step(0.001).listen()
 
-  // let cameraF = gui.addFolder('Camera')
+  let cameraF = gui.addFolder('Camera')
 
-  // let cameraPosF = cameraF.addFolder('Position')
-  // cameraPosF.add(app.cameraRo, '0', -20, 20).step(0.01).listen()
-  // cameraPosF.add(app.cameraRo, '1', -20, 20).step(0.01).listen()
-  // cameraPosF.add(app.cameraRo, '2', -20, 20).step(0.01).listen()
+  let cameraPosF = cameraF.addFolder('Position')
+  cameraPosF.add(app.cameraRo, '0', -20, 20).step(0.01).listen()
+  cameraPosF.add(app.cameraRo, '1', -20, 20).step(0.01).listen()
+  cameraPosF.add(app.cameraRo, '2', -20, 20).step(0.01).listen()
 
-  // let cameraRotF = cameraF.addFolder('Rotation')
-  // cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
-  // cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
-  // cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
+  let cameraRotF = cameraF.addFolder('Rotation')
+  cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
+  cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
+  cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
 
   // ----- Setup -----
 

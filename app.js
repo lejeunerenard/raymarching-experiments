@@ -208,7 +208,7 @@ export default class App {
     preset.cameraAngles = [-0.035, 0, 0]
 
     this.d = preset.d
-    const dist = 4.75
+    const dist = 18.75
     this.cameraRo = vec3.fromValues(0, 0, dist)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
@@ -546,6 +546,7 @@ export default class App {
   }
 
   update (t) {
+    t = (window.time !== undefined) ? window.time : t
     TWEEN.update(t)
 
     if (this.tMatCap) {
