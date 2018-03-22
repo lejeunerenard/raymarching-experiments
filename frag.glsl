@@ -389,15 +389,6 @@ float fCorner (vec2 p) {
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 // #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
-mat4 octaM = mat4(
-scale, 0., 0., 0.,
-0., scale, 0., 0.,
-0., 0., scale, 0.,
-1., 1., 1., 1.) * mat4(
-1., 0., 0.1, .0,
-0., 1., 0., 0.,
-0., 0.2, 1., 0.,
-0., 0., 0., 1.);
 // #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=3, kifsM=kifsM, trapCalc=trapCalc)
 // 
 // #pragma glslify: fold = require(./folds)
@@ -446,13 +437,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.125 * time;
-float gRc = cos(gRAngle);
-float gRs = sin(gRAngle);
-mat3 globalRot = mat3(
-  gRc, 0.0, -gRs,
-  0.0, 1.0,  0.0,
-  gRs, 0.0,  gRc);
+mat3 globalRot;
 
 #pragma glslify: rotMat2 = require(./rotation-matrix2)
 
@@ -593,34 +578,19 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float totalT = 5.0;
-  float modTime = mod(time, totalT);
+  // p *= globalRot;
 
-  p *= globalRot;
+  float cosT = PI * 0.5 * slowTime;
+  vec3 q = p - vec3(0, 0.0125 * sin(2.0 * cosT), 0);
 
-  vec3 q = p;
-
-  float angle = atan(q.y, q.x);
-  float radius = length(q.xy);
-
-  q.x = 0.1 * angle;
-  q.y = radius - 0.2;
-
-  float normAngle = (angle + PI) / (0.5 * PI);
-  q *= rotationMatrix(vec3(1, 0, 0), 0.25 * angle + PI * 0.25 * time);
+  mRot *= rotationMatrix(normalize(vec3(1, 2, 0)), PI * 0.25 * slowTime);
+  mRot *= rotationMatrix(normalize(vec3(0, 0.5, 1)), PI * 0.1 * slowTime);
+  mRot *= rotationMatrix(normalize(vec3(1, 0, 0)), PI * 0.05 * slowTime);
+  q *= mRot;
 
   mPos = q;
-  float m = smoothstep(0.975, 0.980, sin(32.0 * angle));
 
-  const float edgeThickness = 0.001;
-  const float edgeStart = 0.0475;
-  float edge = smoothstep(edgeStart, edgeStart + edgeThickness, abs(q.y))
-    * smoothstep(edgeStart, edgeStart + edgeThickness, abs(q.z));
-
-  // Combine
-  m = max(m, edge);
-
-  vec3 t = vec3(sdBox(q, vec3(1, 0.05, 0.05)), m, 0);
+  vec3 t = vec3(sdBox(q, vec3(0.05)), 0, 0);
   d = dMin(d, t);
 
   d.x *= 0.7;
@@ -792,11 +762,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
 
-  color = mix(color, vec3(0, 0.9, 0), m);
+  vec3 rotNor = nor * mRot;
+  vec3 lookup = vec3(1, 0, 1);
 
-  return color;
+  lookup *= rotationMatrix(normalize(vec3(1, 3, 2)), dot(rotNor, rd));
+  lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), PI * dot(pos, rd));
+
+  return saturate(lookup);
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -814,12 +788,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.0014 * t.x);
-      const float bumpsScale = 2.30;
-      // nor += 0.1 * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      const float bumpsScale = 3.30;
+      nor += 0.1 * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -851,15 +825,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 1.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // mix(max(0.4, diffuse(nor, lightPos)), 1.0, finishT);
+        float dif = 1.0; // max(0.8, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -886,10 +860,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.03125 * mix(color, vec3(0.5), vec3(0.5)) * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.05 * reflection(pos, reflectionRd);
-      // color += isObject * reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      color += isObject * reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
@@ -907,6 +881,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
+
+      // Make colors 'deeper'
+      color = pow(color, vec3(1.15));
 
       // Debugging
       #ifdef debugMapCalls
@@ -931,9 +908,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      float i = pow(saturate(t.z / 125.0), 1.8);
-      vec3 glowColor = #00FF00;
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // float i = pow(saturate(t.z / 125.0), 1.8);
+      // vec3 glowColor = #00FF00;
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -972,6 +949,14 @@ void main() {
 
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
+
+    float gRAngle = TWO_PI * 0.125 * time;
+    float gRc = cos(gRAngle);
+    float gRs = sin(gRAngle);
+    globalRot = mat3(
+      gRc, 0.0, -gRs,
+      0.0, 1.0,  0.0,
+      gRs, 0.0,  gRc);
 
     #ifdef SS
     // Antialias by averaging all adjacent values
