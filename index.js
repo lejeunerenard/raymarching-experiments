@@ -7,10 +7,10 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 5
+const secondsLong = 8
 const capturing = false
 
-const FOV = 2
+const FOV = 10
 
 let app = new App()
 window.app = app
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'rabbit-hole-test2',
+    name: 'stuxnet-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -90,10 +90,10 @@ if (capturing) {
     app.tick(t)
     capturer.capture(app.canvas)
 
-    if (currentTime <= 1000 * (secondsLong + captureTime)) {
-      window.setTimeout(() => {
+    if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
+      // window.setTimeout(() => {
         currentRAF = vrDisplay.requestAnimationFrame(tick)
-      }, 500)
+      // }, 500)
     }
   }
 

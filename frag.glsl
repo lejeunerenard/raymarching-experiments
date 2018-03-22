@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -446,7 +446,7 @@ vec3 dMax (vec3 d1, vec3 d2) {
   return (d1.x > d2.x) ? d1 : d2;
 }
 
-float gRAngle = TWO_PI * 0.0625 * time;
+float gRAngle = TWO_PI * 0.125 * time;
 float gRc = cos(gRAngle);
 float gRs = sin(gRAngle);
 mat3 globalRot = mat3(
@@ -596,31 +596,34 @@ vec3 map (in vec3 p) {
   const float totalT = 5.0;
   float modTime = mod(time, totalT);
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  q.z -= 13.000 * quad(smoothstep(2.5, 6.5, modTime));
+  float angle = atan(q.y, q.x);
+  float radius = length(q.xy);
 
-  mRot = rotationMatrix(normalize(vec3(0, 1, 0)), -0.50 * PI)
-       * rotationMatrix(normalize(vec3(0, 0, 1)),  0.50 * PI)
-       * rotationMatrix(normalize(vec3(1, 0, 0)),  2.00 * PI);
+  q.x = 0.1 * angle;
+  q.y = radius - 0.2;
 
-  float rotT1 = quart(smoothstep(0.00, 3.30, modTime));
-  float rotT2 = quart(smoothstep(1.00, 4.25, modTime));
-  float rotT3 = quart(smoothstep(1.66, 5.00, modTime));
-
-  mRot *= rotationMatrix(normalize(vec3(1, 0, 0)), -2.00 * PI * rotT1);
-  mRot *= rotationMatrix(normalize(vec3(0, 0, 1)), -0.50 * PI * rotT2);
-  mRot *= rotationMatrix(normalize(vec3(0, 1, 0)),  0.50 * PI * rotT3);
-
-  q *= mRot;
+  float normAngle = (angle + PI) / (0.5 * PI);
+  q *= rotationMatrix(vec3(1, 0, 0), 0.25 * angle + PI * 0.25 * time);
 
   mPos = q;
-  vec3 t = vec3(sdBox(q, vec3(0.2)), 0, 0);
+  float m = smoothstep(0.975, 0.980, sin(32.0 * angle));
+
+  const float edgeThickness = 0.001;
+  const float edgeStart = 0.0475;
+  float edge = smoothstep(edgeStart, edgeStart + edgeThickness, abs(q.y))
+    * smoothstep(edgeStart, edgeStart + edgeThickness, abs(q.z));
+
+  // Combine
+  m = max(m, edge);
+
+  vec3 t = vec3(sdBox(q, vec3(1, 0.05, 0.05)), m, 0);
   d = dMin(d, t);
-  float cut = sdBox(q - vec3(0, 0, 0.07), vec3(0.066667, 0.066667, 0.2));
-  d.x = max(d.x, -cut);
+
+  d.x *= 0.7;
 
   return d;
 }
@@ -789,23 +792,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(background);
 
-  const float totalT = 5.0;
-  float modTime = mod(time, totalT);
-  float finishT = smoothstep(4.5, 4.7, modTime);
-
-  vec3 rotNor = nor * mRot;
-
-  vec3 absRotNor = abs(rotNor);
-  vec3 outerRed = mix(vec3(1, 0, 0), vec3(0), smoothstep(3.6, 4.0, modTime));
-  color = mix(color, outerRed, saturate(dot(absRotNor, vec3(0, 1, 0))));
-  color = mix(color, vec3(0, 0, 1), saturate(dot(absRotNor, vec3(1, 0, 0))));
-  color = mix(color, vec3(1, 0, 0), saturate(dot(rotNor, vec3(0, 0, 1))) * smoothstep(0.0, -0.1, mPos.z));
-
-  // Finish
-  color = mix(color, vec3(1, 0, 0), finishT);
-  color = mix(color, vec3(0), saturate(dot(rotNor, vec3(0, 0, 1))) * smoothstep(0.0, 0.1, mPos.z));
+  color = mix(color, vec3(0, 0.9, 0), m);
 
   return color;
 }
@@ -820,10 +809,6 @@ const vec3 glowColor = pow(#ED4F2C, vec3(2.2));
 vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
     gPos = pos;
-
-    const float totalT = 5.0;
-    float modTime = mod(time, totalT);
-    float finishT = smoothstep(3.8, 4.05, modTime);
 
     if (t.x>0.) {
       vec3 color = vec3(0.0);
@@ -946,9 +931,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(theColor(uv), 1.0), vec4(background, 1), pow(length(uv) * 1.7, 8.0));
 
       // Glow
-      // float i = 1.0 * pow(saturate(t.z / 75.0), 1.1);
-      // vec3 glowColor = #FF88CC;
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = pow(saturate(t.z / 125.0), 1.8);
+      vec3 glowColor = #00FF00;
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
