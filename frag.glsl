@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -578,22 +578,50 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  const float totalT = 5.0;
+  float modTime = mod(time, totalT);
 
-  float cosT = PI * 0.5 * slowTime;
-  vec3 q = p - vec3(0, 0.0125 * sin(2.0 * cosT), 0);
+  p *= globalRot;
 
-  mRot *= rotationMatrix(normalize(vec3(1, 2, 0)), PI * 0.25 * slowTime);
-  mRot *= rotationMatrix(normalize(vec3(0, 0.5, 1)), PI * 0.1 * slowTime);
-  mRot *= rotationMatrix(normalize(vec3(1, 0, 0)), PI * 0.05 * slowTime);
-  q *= mRot;
+  vec3 q = p;
+  q.x = abs(q.x);
+
+  const float a = 0.225;
+  float angle = atan(q.y, q.x);
+  float radius = length(q.xy);
+
+  q.x = angle;
+  q.y = radius - sqrt(a * a * cos( 2.0 * angle ));
+
+  float normAngle = (angle + PI) / (0.5 * PI);
+  q *= rotationMatrix(vec3(1, 0, 0), 0.25 * angle + PI * 0.25 * time);
 
   mPos = q;
+  float m = smoothstep(0.975, 0.980, sin(32.0 * angle));
 
-  vec3 t = vec3(sdBox(q, vec3(0.05)), 0, 0);
+  const float edgeThickness = 0.001;
+  const float edgeStart = 0.0475;
+  float edge = smoothstep(edgeStart, edgeStart + edgeThickness, abs(q.y))
+    * smoothstep(edgeStart, edgeStart + edgeThickness, abs(q.z));
+
+  // Combine
+  m = max(m, edge);
+
+  vec3 t = vec3(sdBox(q, vec3(1, 0.05, 0.05)), m, 0);
   d = dMin(d, t);
+  d.x -= 0.01;
 
-  d.x *= 0.7;
+  // Crop extremes
+  q = p;
+  q.x = abs(q.x);
+  q.x -= 0.176777 + 0.00003;
+
+  q *= rotationMatrix(vec3(0, 0, 1), PI * 0.25);
+
+  t = vec3(sdBox(q, vec3(0.125)), 0, 0);
+  d = dMax(d, t);
+
+  d.x *= 0.05;
 
   return d;
 }
@@ -769,6 +797,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   lookup *= rotationMatrix(normalize(vec3(1, 3, 2)), dot(rotNor, rd));
   lookup *= rotationMatrix(normalize(vec3(1, 0, 1)), PI * dot(pos, rd));
+  lookup *= rotationMatrix(vec3(0, 0, 1), PI * 0.25);
 
   return saturate(lookup);
 }
@@ -833,7 +862,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.0; // max(0.8, diffuse(nor, lightPos));
+        float dif = max(0.8, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
