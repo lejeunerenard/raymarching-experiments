@@ -10,7 +10,7 @@ const captureTime = 0 * 5
 const secondsLong = 10
 const capturing = false
 
-const FOV = 10
+const FOV = 60
 
 let app = new App()
 window.app = app
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'centauri-alpha-test2',
+    name: 'center-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
