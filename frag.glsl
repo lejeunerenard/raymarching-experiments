@@ -581,27 +581,22 @@ vec3 map (in vec3 p) {
   vec3 q = p;
 
   const float tRad = 0.5;
-  const float tThick = 0.2;
+  const float tThick = 0.25;
 
   float angle = atan(q.y, q.x);
   float radius = length(q.xy) - tRad;
 
-  mPos = q;
-  vec3 tor = vec3(sdTorus(q.xzy, vec2(tRad, tThick)), 0, smoothstep(-0.5, -0.49, sin(32.0 * angle)));
-  d = dMin(d, tor);
-
   q.x = angle;
   q.y = radius;
 
-  q *= rotationMatrix(vec3(1, 0, 0), 1.5 * q.x + cosT);
+  q *= rotationMatrix(vec3(1, 0, 0), 2.5 * q.x + cosT);
 
   vec3 t = vec3(sdBox(q, vec3(PI * 1.01, 0.1, 1.01 * tThick)), 1, 0);
   t.x += smoothstep(PI, PI * 0.99, abs(q.x)) * 0.0015 * cnoise3(vec3(0.01, 13, 15) * q);
-  t.x *= 0.7;
+  t.x *= 0.5;
 
-  t.x = -t.x;
-  d = dMax(d, t);
-  // d = dMin(d, t);
+  t.x = t.x;
+  d = dMin(d, t);
 
   return d;
 }

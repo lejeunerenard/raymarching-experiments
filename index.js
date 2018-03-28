@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'triply-twisted-mobius-space-test1',
+    name: 'mystical-killer-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
