@@ -576,27 +576,57 @@ vec3 map (in vec3 p) {
   float modTime = mod(time, totalT);
   float cosT = PI * slowTime;
 
-  p *= globalRot;
+  // p *= globalRot;
 
+  p.y -= 0.04;
   vec3 q = p;
 
-  const float tRad = 0.5;
-  const float tThick = 0.25;
+  q *= globalRot;
 
-  float angle = atan(q.y, q.x);
-  float radius = length(q.xy) - tRad;
+  q.y -= 0.05 * sin(cosT);
+  vec3 mainS = vec3(length(q) - 0.4, 0, 0);
+  mPos = q;
+  float cel = 0.05 * cellular(3.0 * q);
+  mainS.x -= cel;
+  d = dMin(d, mainS);
 
-  q.x = angle;
-  q.y = radius;
+  q += 0.1000 * cos( 3.0 * q.yzx + 0.05);
+  q += 0.0500 * cos( 7.0 * q.yzx );
+  q += 0.0250 * cos(13.0 * q.yzx );
+  q += 0.0125 * cos(23.0 * q.yzx );
 
-  q *= rotationMatrix(vec3(1, 0, 0), 2.5 * q.x + cosT);
+  q += 0.01 * cnoise3(vec3(21.0, 21.0, 2.0) * q.yzx);
 
-  vec3 t = vec3(sdBox(q, vec3(PI * 1.01, 0.1, 1.01 * tThick)), 1, 0);
-  t.x += smoothstep(PI, PI * 0.99, abs(q.x)) * 0.0015 * cnoise3(vec3(0.01, 13, 15) * q);
-  t.x *= 0.5;
+  q.y -= 0.05;
 
-  t.x = t.x;
-  d = dMin(d, t);
+  q.y = - q.y;
+  vec3 slice = vec3(sdBox(q, vec3(1, 0.1, 1)), 1, 0);
+  slice.x = - slice.x;
+  d = dMax(d, slice);
+
+  q = p;
+
+  q.y -= 0.04 * sin(cosT + PI * 0.125);
+  q.xz += vec2(-0.5, -0.5);
+  vec3 s2 = vec3(length(q) - 0.1, 0, 0);
+  s2.x -= 0.035 * cellular(5.0 * q);
+  d = dMin(d, s2);
+
+  q = p;
+
+  q.y -= 0.05 * sin(cosT + PI * 0.25);
+  q.xz += vec2(0.7, 0.35);
+  s2 = vec3(length(q) - 0.2, 0, 0);
+  s2.x -= 0.035 * cellular(5.0 * q);
+  d = dMin(d, s2);
+
+  q.y -= 0.05 * sin(cosT + PI * 0.75) + 0.01;
+  q.xz += vec2(-0.3, -1.1);
+  s2 = vec3(length(q) - 0.15, 0, 0);
+  s2.x -= 0.035 * cellular(5.0 * q);
+  d = dMin(d, s2);
+
+  d.x *= 0.85;
 
   return d;
 }
@@ -768,7 +798,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(1);
 
   if ( m == 0.0 ) {
-    color *= trap;
+    color = vec3(0.7);
   } else {
     color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
   }
@@ -791,8 +821,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.0014 * t.x);
-      float bumpsScale = 1.0;
-      nor += 0.1 * isMaterialSmooth(t.y, 1.) * vec3(
+      float bumpsScale = 3.0;
+      float bumpIntensity = mix(0.2, 0.1, isMaterialSmooth(t.y, 1.));
+      nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * pos),
           cnoise3(bumpsScale * 670.0 * pos + 234.634),
           cnoise3(bumpsScale * 310.0 * pos + 23.4634));
@@ -840,7 +871,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(mix(0.0, 0.1, isMaterialSmooth(t.y, 1.0)), softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(mix(0.5, 0.1, isMaterialSmooth(t.y, 1.0)), softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -851,7 +882,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += mix(0., 0.1, isMaterialSmooth(t.y, 1.0)) * amb * diffuseColor;
+        lin += mix(0.6, 0.1, isMaterialSmooth(t.y, 1.0)) * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
