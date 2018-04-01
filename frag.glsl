@@ -580,6 +580,9 @@ vec3 map (in vec3 p) {
 
   vec3 q = p;
 
+  mRot = mRot * rotationMatrix(vec3(0, 0, 1), cosT);
+  q *= mRot;
+
   mPos = q;
   q.z += vfbm4(q + vec3(1, 0, 0) * rotationMatrix(vec3(1, 0, 0.2), cosT));
   vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
@@ -754,11 +757,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  float n = vfbm4(131.0 * mPos + sin(3.0 * pos));
-  n += 0.2 * sin(dot(pos, vec3(101)) + 3.0 * cnoise3(20.1 * cross(mPos.yxz, pos.xzy)) + 3.0 * cnoise3(3.0 * pos) * sin(112.0 * pos.x));
-  n = smoothstep(0.30, 0.85, n);
-
-  color = vec3(n);
+  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, mPos) + vec3(0, 0.33, 0.67)));
 
   return saturate(color);
 }
@@ -857,10 +856,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 0.5 * dispersionColor;
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      color += 1.0 * dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // color = pow(color, vec3(2.5)); // Get more range in values
+      color = pow(color, vec3(2.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
