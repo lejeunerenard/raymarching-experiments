@@ -580,12 +580,19 @@ vec3 map (in vec3 p) {
 
   vec3 q = p;
 
-  mRot = mRot * rotationMatrix(vec3(0, 0, 1), cosT);
-  q *= mRot;
+  q += 0.075000 * cos( 3.0 * q.yzx + 2.0 * circ(nsin(cosT)));
+  q += 0.037500 * cos( 7.0 * q.yzx + 3.0 * cosT);
+  q += 0.018750 * cos(13.0 * q.yzx + cosT);
+  q += 0.009375 * cos(17.0 * q.yzx + cosT);
+  q += 0.004687 * cos(23.0 * q.yzx);
+
+  q += 0.00625 * cnoise3(vec3(7.0, 1.2, 7.0) * q.yzx);
+
+  mRot *= rotationMatrix(normalize(vec3(1, 0.2, 1.4)), 0.001 * sin(cosT));
 
   mPos = q;
-  q.z += vfbm4(q + vec3(1, 0, 0) * rotationMatrix(vec3(1, 0, 0.2), cosT));
-  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  s.x *= 0.5;
   d = dMin(d, s);
 
   return d;
@@ -758,8 +765,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0);
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, mPos) + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
 
-  return saturate(color);
+  return saturate(pow(0.4 * color, vec3(1.125)));
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -857,7 +865,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 1.0 * dispersionColor;
+      color += 0.9 * dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       color = pow(color, vec3(2.5)); // Get more range in values
 
@@ -898,7 +906,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float i = pow(saturate(t.z / 80.0), 1.25);
+      float i = 0.9 * pow(saturate(t.z / 108.0), 1.0);
       vec3 glowColor = #FFFFFF;
       color = mix(color, vec4(glowColor, 1.0), i);
 
