@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -471,7 +471,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
-// #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
+#pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 #pragma glslify: bounceOut = require(glsl-easings/bounce-out)
@@ -576,21 +576,20 @@ vec3 map (in vec3 p) {
   float modTime = mod(time, totalT);
   float cosT = PI * 0.5 * slowTime;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  q += 0.2000 * cos( 3.0 * q.yzx + 2.0 * circ(smoothstep(0., 2., modTime) - smoothstep(4., 5., modTime)));
-  q += 0.1000 * cos( 7.0 * q.yzx + 2.0 * circ(smoothstep(2., 3., modTime) - smoothstep(3., 4., modTime)));
-  q += 0.0500 * cos(13.0 * q.yzx + cosT);
-  q += 0.0250 * cos(17.0 * q.yzx);
+  pModPolar(q.xy, 5. + cos(cosT));
+  q.y = abs(q.y);
+  q *= rotationMatrix(vec3(0, 0, 1), cosT);
 
   mPos = q;
-  vec3 s = vec3(length(q) - 0.6, 0, 0);
-  s.x -= 0.075 * cellular(5.0 * q);
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.3;
+  d.x -= 0.025 * cellular(5.0 * q);
+  d.x *= 0.9;
 
   return d;
 }
@@ -761,11 +760,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, mPos) + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67) + 2.0 * cnoise3(0.5 * mPos)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, 3.0 * pos) + vec3(0, 0.33, 0.67)));
 
-  // return saturate(color);
-  return saturate(pow(0.4 * color, vec3(1.125)));
+  return saturate(pow(color, vec3(2.0)));
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -785,11 +783,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 nor = getNormal2(pos, 0.0014 * t.x);
       float bumpsScale = 0.75;
       float bumpIntensity = 0.;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * pos),
-          cnoise3(bumpsScale * 670.0 * pos + 234.634),
-          cnoise3(bumpsScale * 310.0 * pos + 23.4634));
-      nor = normalize(nor);
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * pos),
+      //     cnoise3(bumpsScale * 670.0 * pos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * pos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -821,19 +819,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.2;
+      float freCo = 0.5;
+      float specCo = 0.4;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.7, diffuse(nor, lightPos));
+        float dif = max(0.4, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.7, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.4, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -844,7 +842,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.3 * amb * diffuseColor;
+        // lin += 0.3 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -863,23 +861,23 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 0.9 * dispersionColor;
-      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(2.5)); // Get more range in values
+      color += 1.0 * dispersionColor;
+      // // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      // color = pow(color, vec3(2.5)); // Get more range in values
 
       // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
       // color = dispersionColor;
 
       // Fog
-      float d = max(0.0, t.x - 20.0);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // float d = max(0.0, t.x - 20.0);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
       // Make colors 'deeper'
-      color = pow(color, vec3(1.15));
+      color = pow(0.9 * color, vec3(2.7));
 
       // Debugging
       #ifdef debugMapCalls
@@ -983,17 +981,17 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    // float brightness = length(gl_FragColor.rgb);
-    // vec2 angle = normalize(vec2(0.0, 1.0));
-    // gl_FragColor.rgb *= mix(
-    //   vec3(1),
-    //   mix(
-    //     #FF1111,
-    //     #00aaaa,
-    //     saturate(-0.25 + dot(angle, uv.xy)))
-    //   , 0.3);
-    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
-    // gl_FragColor.rgb *= 1.1;
+    float brightness = length(gl_FragColor.rgb);
+    vec2 angle = normalize(vec2(0.0, 1.0));
+    gl_FragColor.rgb *= mix(
+      vec3(1),
+      mix(
+        #FF1111,
+        #00aaaa,
+        saturate(-0.25 + dot(angle, uv.xy)))
+      , 0.3);
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
+    gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
     // float brightness = length(gl_FragColor.rgb);
