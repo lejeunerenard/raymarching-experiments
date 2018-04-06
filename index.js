@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'unfurl-test1',
+    name: 'white-hot-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -91,9 +91,9 @@ if (capturing) {
     capturer.capture(app.canvas)
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
-      // window.setTimeout(() => {
+      window.setTimeout(() => {
         currentRAF = vrDisplay.requestAnimationFrame(tick)
-      // }, 500)
+      }, 500)
     }
   }
 

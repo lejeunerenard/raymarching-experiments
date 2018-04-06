@@ -581,14 +581,17 @@ vec3 map (in vec3 p) {
   vec3 q = p;
 
   vec3 qW = q;
-  qW += 0.200 * cos( 5.0 * qW.yzx + cosT);
-  qW += 0.100 * cos( 7.0 * qW.yzx + cosT);
-  qW += 0.050 * cos(13.0 * qW.yzx + cosT);
+  qW += 0.1000 * cos( 5.0 * qW.yzx + cosT);
+  qW += 0.1000 * cos( 7.0 * qW.yzx + cosT);
+  qW.xzy = twist(qW, 5.0 * qW.y);
+  qW += 0.0500 * cos(13.0 * qW.yzx + cosT);
+  qW += 0.0250 * cos(17.0 * qW.yzx + cosT);
+  qW += 0.0125 * cos(23.0 * qW.yzx + cosT);
 
   q = mix(q, qW, circ(nsin(slowTime)));
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(0.35)), 0, 0);
+  vec3 s = vec3(length(q) - 0.3, 0, 0);
   d = dMin(d, s);
 
   // d.x -= 0.025 * cellular(5.0 * q);
@@ -701,7 +704,7 @@ vec3 scene (in vec3 rd, in float ior) {
   return color;
 }
 
-#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amount)
+#pragma glslify: dispersion = require(./glsl-dispersion, scene=scene, amount=amount, time=time)
 
 #ifndef dispersionMap
 #define dispersionMap map
@@ -756,17 +759,21 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   return disp;
 }
 
-#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount)
+#pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time)
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67) + 2.0 * cnoise3(0.5 * mPos)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, 3.0 * pos) + vec3(0, 0.33, 0.67)));
+  vec3 lookup = vec3(1, 0, 0);
 
-  return saturate(pow(color, vec3(2.0)));
+  lookup *= rotationMatrix(normalize(vec3(1, 0.25, 1)), PI * slowTime);
+
+  color += 0.5 + 0.5 * cos(TWO_PI * (0.0625 * dot(nor, -rd) + vec3(0, 0.33, 0.67) + 2.0 * cnoise3(0.5 * mPos + lookup)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, 0.8 * pos) + vec3(0, 0.33, 0.67)));
+
+  return pow(color, vec3(3.1));
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -822,19 +829,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.4;
+      float freCo = 0.6;
+      float specCo = 0.6;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.6, diffuse(nor, lightPos));
+        float dif = max(0.7, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.6, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.7, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -859,7 +866,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.4 * reflection(pos, reflectionRd);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
@@ -879,8 +886,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // Make colors 'deeper'
-      color = pow(0.9 * color, vec3(2.7));
+      color = pow(0.98 * color, vec3(1.6));
 
       // Debugging
       #ifdef debugMapCalls
@@ -905,9 +911,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      // float i = 0.9 * pow(saturate(t.z / 108.0), 1.0);
-      // vec3 glowColor = #FFFFFF;
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = 0.4 * pow(saturate(t.z / 108.0), 3.0);
+      vec3 glowColor = #ffffff;
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
