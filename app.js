@@ -9,24 +9,24 @@ import fit from 'canvas-fit'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
 import { rot4 } from './utils'
-import SoundCloud from 'soundcloud-badge'
-// import Analyser from 'web-audio-analyser'
 import drawTriangle from 'a-big-triangle'
 
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
+import Octavian from 'octavian'
+import createSwell from './audio/swell'
+
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
-const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
 
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.4
-const BLOOM_PASSES = 10
-const BLOOM_MIN_BRIGHTNESS = 0.1
+const BLOOM_WET = 0
+const BLOOM_PASSES = 1
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -213,7 +213,7 @@ export default class App {
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -256,7 +256,7 @@ export default class App {
       }
     })
 
-    // this.audioReady = this.setupAudio()
+    this.audioReady = this.setupAudio()
     this.loaded = Promise.all([tMatCapImgLoaded])
 
     // Scene Rendering
@@ -390,41 +390,89 @@ export default class App {
 
   setupAudio () {
     return new Promise((resolve, reject) => {
-      SoundCloud({
-        client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/xlr8r/download-skudge-traveller?in=xlr8r/sets/xlr8rs-top-10-downloads-of-21',
-        dark: false,
-        getFonts: true
-      }, (err, src, data, div) => {
-        if (err) {
-          reject(err)
-          throw err
-        }
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 
-        // Play the song on
-        // a modern browser
-        let audio = new Audio()
-        audio.crossOrigin = 'Anonymous'
-        audio.src = src
-        audio.addEventListener('canplay', () => {
-          resolve()
+      const output = audioCtx.createGain()
+      output.gain.setValueAtTime(0.3, audioCtx.currentTime)
+      output.connect(audioCtx.destination)
 
-          this.audioCtx = new AudioContext()
-          let media = this.audioCtx.createMediaElementSource(audio)
-          this.analyser = this.audioCtx.createAnalyser()
-          // this.analyser.smoothingTimeConstant = 0.5
-          this.analyser.fftSize = this.audioFFT
-          media.connect(this.analyser)
-          this.analyser.connect(this.audioCtx.destination)
-          audio.play()
-        })
+      const start = audioCtx.currentTime
 
-        this.audio = audio
+      // Tones
+      const swell1 = createSwell(audioCtx, 'A3', 0, 5)
+      swell1.gain.setValueAtTime(0.5, start + 0.001)
+      swell1.connect(output)
 
-        // Metadata related to the song
-        // retrieved by the API.
-        console.log(data)
-      })
+      const swell2 = createSwell(audioCtx, 'F3', 4, 5)
+      swell2.gain.setValueAtTime(0.5, start + 0.001)
+      swell2.connect(output)
+
+      const swell3 = createSwell(audioCtx, 'C4', 8, 5)
+      swell3.gain.setValueAtTime(0.5, start + 0.001)
+      swell3.connect(output)
+
+      const swell4 = createSwell(audioCtx, 'G3', 12, 5)
+      swell4.gain.setValueAtTime(0.5, start + 0.001)
+      swell4.connect(output)
+
+      // Low tone
+      const lowTone = audioCtx.createOscillator()
+      lowTone.type = 'sawtooth'
+      lowTone.frequency.setValueAtTime((new Octavian.Note('D#2')).frequency, start)
+
+      const lowToneGain = audioCtx.createGain()
+      lowToneGain.gain.setValueAtTime(0.4, start)
+
+      const lowToneFilter = audioCtx.createBiquadFilter()
+      lowToneFilter.type = 'lowpass'
+      lowToneFilter.frequency.setValueAtTime(0, start)
+      lowToneFilter.frequency.linearRampToValueAtTime(1000, start + 17 / 2)
+      lowToneFilter.frequency.linearRampToValueAtTime(0, start + 17)
+
+      lowTone.connect(lowToneFilter)
+      lowToneFilter.connect(lowToneGain)
+      lowToneGain.connect(output)
+
+      lowTone.start(start)
+
+      const start2 = audioCtx.currentTime + 17
+
+      // Tones
+      const swell21 = createSwell(audioCtx, 'A3', 0 + 17, 5)
+      swell21.gain.setValueAtTime(0.5, start2 + 0.001)
+      swell21.connect(output)
+
+      const swell22 = createSwell(audioCtx, 'F3', 4 + 17, 5)
+      swell22.gain.setValueAtTime(0.5, start2 + 0.001)
+      swell22.connect(output)
+
+      const swell23 = createSwell(audioCtx, 'C4', 8 + 17, 5)
+      swell23.gain.setValueAtTime(0.5, start2 + 0.001)
+      swell23.connect(output)
+
+      const swell24 = createSwell(audioCtx, 'G3', 12 + 17, 5)
+      swell24.gain.setValueAtTime(0.5, start2 + 0.001)
+      swell24.connect(output)
+
+      // Low tone
+      const lowTone2 = audioCtx.createOscillator()
+      lowTone2.type = 'sawtooth'
+      lowTone2.frequency.setValueAtTime((new Octavian.Note('D#2')).frequency, start2)
+
+      const lowToneGain2 = audioCtx.createGain()
+      lowToneGain2.gain.setValueAtTime(0.4, start2)
+
+      const lowToneFilter2 = audioCtx.createBiquadFilter()
+      lowToneFilter2.type = 'lowpass'
+      lowToneFilter2.frequency.setValueAtTime(0, start2)
+      lowToneFilter2.frequency.linearRampToValueAtTime(1000, start2 + 17 / 2)
+      lowToneFilter2.frequency.linearRampToValueAtTime(0, start2 + 17)
+
+      lowTone2.connect(lowToneFilter2)
+      lowToneFilter2.connect(lowToneGain2)
+      lowToneGain2.connect(output)
+
+      lowTone2.start(start2)
     })
   }
 
