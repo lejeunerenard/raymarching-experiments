@@ -7,10 +7,10 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 17
+const secondsLong = 5
 const capturing = false
 
-const FOV = 60
+const FOV = 10
 
 let app = new App()
 window.app = app
@@ -20,7 +20,7 @@ window.app = app
 //   capturer = new CCapture({
 //     format: 'jpg',
 //     framerate: fr,
-//     name: '◎▽△-test1',
+//     name: 'black-mochi-test1',
 //     autoSaveTime: 5,
 //     quality: 95,
 //     startTime: captureTime,

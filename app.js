@@ -208,8 +208,8 @@ export default class App {
     preset.cameraAngles = [-0.035, 0, 0]
 
     this.d = preset.d
-    const dist = 1.225
-    this.cameraRo = vec3.fromValues(0, 0, dist)
+    const dist = 0.8
+    this.cameraRo = vec3.fromValues(dist, dist, dist)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -256,8 +256,10 @@ export default class App {
       }
     })
 
-    this.audioReady = this.setupAudio()
     this.loaded = Promise.all([tMatCapImgLoaded])
+      .then(() => {
+        this.setupAudio()
+      })
 
     // Scene Rendering
     this.sceneRender = defined(options.sceneRender, this.defaultSceneRender)
@@ -393,27 +395,15 @@ export default class App {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 
       const output = audioCtx.createGain()
-      output.gain.setValueAtTime(0.3, audioCtx.currentTime)
+      output.gain.setValueAtTime(0.2, audioCtx.currentTime)
       output.connect(audioCtx.destination)
 
-      const start = audioCtx.currentTime
+      const start = audioCtx.currentTime + 5 * (1 + Math.floor(window.performance.now() / (5 * 1000))) + 2.20
 
       // Tones
-      const swell1 = createSwell(audioCtx, 'A3', 0, 5)
+      const swell1 = createSwell(audioCtx, 'E2', start, 5)
       swell1.gain.setValueAtTime(0.5, start + 0.001)
       swell1.connect(output)
-
-      const swell2 = createSwell(audioCtx, 'F3', 4, 5)
-      swell2.gain.setValueAtTime(0.5, start + 0.001)
-      swell2.connect(output)
-
-      const swell3 = createSwell(audioCtx, 'C4', 8, 5)
-      swell3.gain.setValueAtTime(0.5, start + 0.001)
-      swell3.connect(output)
-
-      const swell4 = createSwell(audioCtx, 'G3', 12, 5)
-      swell4.gain.setValueAtTime(0.5, start + 0.001)
-      swell4.connect(output)
 
       // Low tone
       const lowTone = audioCtx.createOscillator()
@@ -426,8 +416,8 @@ export default class App {
       const lowToneFilter = audioCtx.createBiquadFilter()
       lowToneFilter.type = 'lowpass'
       lowToneFilter.frequency.setValueAtTime(0, start)
-      lowToneFilter.frequency.linearRampToValueAtTime(1000, start + 17 / 2)
-      lowToneFilter.frequency.linearRampToValueAtTime(0, start + 17)
+      lowToneFilter.frequency.linearRampToValueAtTime(1000, start + 5 / 2)
+      lowToneFilter.frequency.linearRampToValueAtTime(0, start + 5)
 
       lowTone.connect(lowToneFilter)
       lowToneFilter.connect(lowToneGain)
@@ -435,24 +425,12 @@ export default class App {
 
       lowTone.start(start)
 
-      const start2 = audioCtx.currentTime + 17
+      const start2 = start + 5
 
       // Tones
-      const swell21 = createSwell(audioCtx, 'A3', 0 + 17, 5)
-      swell21.gain.setValueAtTime(0.5, start2 + 0.001)
-      swell21.connect(output)
-
-      const swell22 = createSwell(audioCtx, 'F3', 4 + 17, 5)
-      swell22.gain.setValueAtTime(0.5, start2 + 0.001)
-      swell22.connect(output)
-
-      const swell23 = createSwell(audioCtx, 'C4', 8 + 17, 5)
-      swell23.gain.setValueAtTime(0.5, start2 + 0.001)
-      swell23.connect(output)
-
-      const swell24 = createSwell(audioCtx, 'G3', 12 + 17, 5)
-      swell24.gain.setValueAtTime(0.5, start2 + 0.001)
-      swell24.connect(output)
+      const swell2 = createSwell(audioCtx, 'E2', start2, 5)
+      swell2.gain.setValueAtTime(0.5, start2 + 0.001)
+      swell2.connect(output)
 
       // Low tone
       const lowTone2 = audioCtx.createOscillator()
@@ -465,8 +443,8 @@ export default class App {
       const lowToneFilter2 = audioCtx.createBiquadFilter()
       lowToneFilter2.type = 'lowpass'
       lowToneFilter2.frequency.setValueAtTime(0, start2)
-      lowToneFilter2.frequency.linearRampToValueAtTime(1000, start2 + 17 / 2)
-      lowToneFilter2.frequency.linearRampToValueAtTime(0, start2 + 17)
+      lowToneFilter2.frequency.linearRampToValueAtTime(1000, start2 + 5 / 2)
+      lowToneFilter2.frequency.linearRampToValueAtTime(0, start2 + 5)
 
       lowTone2.connect(lowToneFilter2)
       lowToneFilter2.connect(lowToneGain2)

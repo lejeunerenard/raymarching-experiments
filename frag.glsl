@@ -574,26 +574,22 @@ vec3 map (in vec3 p) {
 
   const float totalT = 5.0;
   float modTime = mod(time, totalT);
-  float cosT = PI * 2.0 * slowTime;
+  float cosT = PI * 4.0 * (modTime * 0.2);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
   vec3 qW = q;
   qW += 0.1000 * cos( 7.0 * qW.yzx + cosT);
-  qW.xzy = twist(qW, 5.0 * qW.y + PI * 0.5 * sin(cosT));
-  qW += 0.1000 * cos(17.0 * qW.yzx + cosT);
-  qW += 0.0200 * cos(21.0 * qW.yzx + cosT);
+  qW += 0.0500 * cos(11.0 * qW.yzx + cosT);
 
-  q = mix(q, qW, circ(nsin(0.5 * slowTime)));
+  q = mix(q, qW, smoothstep(0.0, 1.0, modTime) - smoothstep(2., 3., modTime));
 
   mPos = q;
-  vec3 s = vec3(length(q) - 0.4, 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(0.4)), 0, 0);
   d = dMin(d, s);
-
-  // d.x -= 0.025 * cellular(5.0 * q);
-  d.x *= 0.3;
+  d.x *= 0.9;
 
   return d;
 }
@@ -762,18 +758,20 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  vec3 lookup = vec3(1, 0, 0);
+  return color * smoothstep(0.175, 0.174, dot(nor, -rd));
 
-  lookup *= rotationMatrix(normalize(vec3(1, 0.25, 1)), PI * slowTime);
+  // vec3 lookup = vec3(1, 0, 0);
 
-  color += 0.5 + 0.5 * cos(TWO_PI * (0.0625 * dot(nor, -rd) + vec3(0, 0.33, 0.67) + 2.0 * cnoise3(0.5 * mPos + lookup)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, 0.9 * pos) + vec3(0, 0.33, 0.67) + 0.1));
-  color += 0.5 + 0.5 * cos(TWO_PI * (refract(rd, nor, 1.28 + 0.1 * length(pos)) + vec3(0, 0.33, 0.67 + 0.2)));
-  color *= 0.8;
+  // lookup *= rotationMatrix(normalize(vec3(1, 0.25, 1)), PI * slowTime);
 
-  return pow(color, vec3(2.1));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (0.0625 * dot(nor, -rd) + vec3(0, 0.33, 0.67) + 2.0 * cnoise3(0.5 * mPos + lookup)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, 0.9 * pos) + vec3(0, 0.33, 0.67) + 0.1));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (refract(rd, nor, 1.28 + 0.1 * length(pos)) + vec3(0, 0.33, 0.67 + 0.2)));
+  // color *= 0.8;
+
+  // return pow(color, vec3(2.1));
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -821,27 +819,27 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFAAAA, 1.0);
-      lights[1] = light(normalize(vec3(-0.5, 0.5, 0.25)), #AAFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFFFFF, 1.0);
+      lights[1] = light(normalize(vec3(-0.5, 0.5, 0.25)), #FFFFFF, 1.0);
       lights[2] = light(normalize(vec3(0.25, -.025, 0.5)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.6;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, lightPos));
+        float dif = 1.; // max(0.5, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -990,17 +988,17 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    float brightness = length(gl_FragColor.rgb);
-    vec2 angle = normalize(vec2(0.0, 1.0));
-    gl_FragColor.rgb *= mix(
-      vec3(1),
-      mix(
-        #FF1111,
-        #00aaaa,
-        saturate(-0.25 + dot(angle, uv.xy)))
-      , 0.3);
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
-    gl_FragColor.rgb *= 1.1;
+    // float brightness = length(gl_FragColor.rgb);
+    // vec2 angle = normalize(vec2(0.0, 1.0));
+    // gl_FragColor.rgb *= mix(
+    //   vec3(1),
+    //   mix(
+    //     #FF1111,
+    //     #00aaaa,
+    //     saturate(-0.25 + dot(angle, uv.xy)))
+    //   , 0.3);
+    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
+    // gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
     // float brightness = length(gl_FragColor.rgb);
