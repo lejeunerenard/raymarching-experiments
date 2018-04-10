@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 64
 #define maxDistance 100.0
 #define fogMaxDistance 10.0
 
@@ -569,36 +569,33 @@ vec3 mPos = vec3(0);
 mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
 // Return value is (distance, material, orbit trap)
-vec3 map (in vec3 p) {
+vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   const float totalT = 5.0;
   float modTime = mod(time, totalT);
-  float cosT = PI * 4.0 * slowTime;
+  float cosT = PI * 4.0 * (slowTime + dT);
 
-  p.y += 0.1;
-
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
-  q *= globalRot;
 
-  q.y -= 0.55 + 0.1 * sin(cosT);
+  q += 0.07500 * cos( 5.0 * q.yzx + cosT);
+  q.xzy = twist(q, 7. * q.y);
+  q += 0.02500 * cos( 7.0 * q.yzx + cosT);
+  q += 0.01250 * cos(13.0 * q.yzx + cosT);
+  q += 0.025 * cnoise3(13.0 * q.yzx);
+  q += 0.00625 * cos(17.0 * q.yzx + cosT);
+
   mPos = q;
-  vec3 s = vec3(octahedral(q, 20., 0.5), 0, 0);
-  s.x -= 0.1 * cellular(q);
-  s.x *= 0.9;
+  vec3 s = vec3(length(q) - 0.5, 0, 0);
   d = dMin(d, s);
-
-  q = p;
-  q.y += 0.475;
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
-  f.x -= 0.6 * cellular(0.15 * q + 0.1);
-  f.x *= 0.8;
-  d = dMin(d, f);
-
+  d.x *= 0.6;
 
   return d;
+}
+vec3 map (in vec3 p) {
+  return map(p, 0.);
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
@@ -607,16 +604,19 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
 
   float trap = maxDistance;
 
+  float deltaT = 0.;
+  float deltaTDelta = 0.00065;
 // #define OVERSTEP 1
 #ifdef OVERSTEP
   // Source: https://www.shadertoy.com/view/MdcXzn
   const int halfMax = (maxSteps / 2);
   for( int i = 0; i < halfMax; i++ ) {
-       vec3 d = map(rayOrigin + rayDirection * t);
+       vec3 d = map(rayOrigin + rayDirection * t, deltaT);
 
        if( d.x < epsilon * 100.0 ) break;
        t += d.x;
        if (t > maxDistance) break;
+      deltaT += deltaTDelta;
    }
 
    t -= Z_REPEAT_DIST * 0.5;
@@ -627,15 +627,17 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
        if( d.x<epsilon ) return vec4(t + d.x, d.y, float(i), d.z);
 
        t += min(d.x, Z_REPEAT_DIST * 0.2);
+      deltaT += deltaTDelta;
    }
 #else
   for (int i = 0; i < maxSteps; i++) {
-    vec3 d = map(rayOrigin + rayDirection * t);
+    vec3 d = map(rayOrigin + rayDirection * t, deltaT);
     if (d.x < epsilon) return vec4(t + d.x, d.y, float(i), d.z);
     t += d.x;
     maxI = float(i);
     trap = d.z;
     if (t > maxDistance) break;
+    deltaT += deltaTDelta;
   }
 #endif
   return vec4(-1., 0., maxI, trap);
@@ -765,7 +767,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(getBackground(refract(rd, nor, 1.28).xy));
+  vec3 color = vec3(0);
 
   vec3 lookup = vec3(1, 0, 0);
 
@@ -773,8 +775,8 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   color += 0.5 + 0.5 * cos(TWO_PI * (0.0625 * dot(nor, -rd) + vec3(0, 0.33, 0.67) + 2.0 * cnoise3(0.5 * mPos + lookup)));
   color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, 0.9 * pos) + vec3(0, 0.33, 0.67) + 0.1));
-  color += 0.5 + 0.5 * cos(TWO_PI * (refract(rd, nor, 1.28 + 0.1 * length(pos)) + vec3(0, 0.33, 0.67 + 0.2)));
-  color *= 0.5;
+  // color += 0.5 + 0.5 * cos(TWO_PI * (refract(rd, nor, 1.28 + 0.1 * length(pos)) + vec3(0, 0.33, 0.67 + 0.2)));
+  color *= 0.7;
 
   color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
   return pow(color, vec3(2.1));
@@ -833,19 +835,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.4;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, lightPos));
+        float dif = max(0.85, diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0.85, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -868,28 +870,26 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.03125 * mix(color, vec3(0.5), vec3(0.5)) * matCap(reflect(rayDirection, nor));
 
-      // if (isFloor == 1.) {
-        vec3 reflectColor = vec3(0);
-        vec3 reflectionRd = reflect(rayDirection, nor);
-        reflectColor += 0.05 * reflection(pos, reflectionRd);
-        color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.05 * reflection(pos, reflectionRd);
+      // color += reflectColor;
+
+      // if (isObject == 1.) {
+      //   vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      //   // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      //   color += 1.0 * dispersionColor;
+      //   // // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      //   color = pow(color, vec3(1.8)); // Get more range in values
+
+      //   // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
+      //   // color = dispersionColor;
       // }
 
-      if (isObject == 1.) {
-        vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-        // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-        color += 1.0 * dispersionColor;
-        // // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-        color = pow(color, vec3(1.8)); // Get more range in values
-
-        // color = mix(color, hsv(vec3(dispersionHSV.x, 1.0, colorHSV.z)), 0.3);
-        // color = dispersionColor;
-      }
-
       // Fog
-      float d = max(0.0, t.x - 20.0);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // float d = max(0.0, t.x - 20.0);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -919,9 +919,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      // float i = 0.4 * pow(saturate(t.z / 108.0), 3.0);
-      // vec3 glowColor = #ffffff;
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = 1.0 * pow(saturate(t.z / 47.0), 1.9);
+      vec3 glowColor = #ffffff;
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -1014,10 +1014,10 @@ void main() {
     // float brightness = length(gl_FragColor.rgb);
     // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.4 * brightness));
 
-    vec2 absUV = abs(uv);
-    float vignette = smoothstep(0.75, 1.4, max(absUV.x, absUV.y));
-    vignette *= vignette;
-    gl_FragColor.a += vignette;
-    vignette = 1.0 - vignette;
-    gl_FragColor.rgb *= vec3(vignette);
+    // vec2 absUV = abs(uv);
+    // float vignette = smoothstep(0.65, 1.4, max(absUV.x, absUV.y));
+    // vignette *= vignette;
+    // gl_FragColor.a += vignette;
+    // vignette = 1.0 - vignette;
+    // gl_FragColor.rgb *= vec3(vignette);
 }
