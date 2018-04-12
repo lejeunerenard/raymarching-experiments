@@ -957,7 +957,41 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
+vec3 two_dimensional (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  float modT = mod(time, 10.0);
+
+  vec2 q = uv;
+
+  vec2 qW = q;
+  float a = atan(qW.y, qW.x);
+  // float modulT = modT + qW.x;
+  float modulT = modT + 5.0 * a / PI;
+  modulT = mod(modulT, 10.0);
+  float modul = smoothstep(0.1, 4.0, modulT) - smoothstep(6., 9.0, modulT);
+  modul = saturate(modul);
+  modul = 1.0 - modul;
+  modul *= smoothstep(0.15, 0.25, length(uv));
+  qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
+
+  q = qW;
+
+  const float edge = 0.3;
+  const float thickness = 0.625;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * q.y));
+  n = 1. - n;
+  color = vec3(n);
+
+  const float cropEdge = 0.003;
+  const float cropD = 0.7;
+  color += smoothstep(cropD, cropD + cropEdge, length(q));
+
+  return color;
+}
+
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
