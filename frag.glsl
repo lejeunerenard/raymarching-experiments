@@ -967,12 +967,12 @@ vec3 two_dimensional (in vec2 uv) {
   vec2 qW = q;
   float a = atan(qW.y, qW.x);
   // float modulT = modT + qW.x;
-  float modulT = modT + 5.0 * a / PI;
+  float modulT = modT + 8.0 * qW.y;
   modulT = mod(modulT, 10.0);
   float modul = smoothstep(0.1, 4.0, modulT) - smoothstep(6., 9.0, modulT);
   modul = saturate(modul);
   modul = 1.0 - modul;
-  modul *= smoothstep(0.15, 0.25, length(uv));
+  modul *= smoothstep(0.35, 0.45, length(uv));
   qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
 
   q = qW;
@@ -985,7 +985,12 @@ vec3 two_dimensional (in vec2 uv) {
 
   const float cropEdge = 0.003;
   const float cropD = 0.7;
-  color += smoothstep(cropD, cropD + cropEdge, length(q));
+  vec2 absQ = abs(q);
+  color += smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
+
+  color = saturate(color);
+
+  color = mix(vec3(1), pow(#3E4790, vec3(2.2)), color.r);
 
   return color;
 }
