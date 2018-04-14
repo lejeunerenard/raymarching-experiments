@@ -964,33 +964,25 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  vec2 qW = q;
-  float a = atan(qW.y, qW.x);
-  // float modulT = modT + qW.x;
-  float modulT = modT + 8.0 * qW.y;
-  modulT = mod(modulT, 10.0);
-  float modul = smoothstep(0.1, 4.0, modulT) - smoothstep(6., 9.0, modulT);
-  modul = saturate(modul);
-  modul = 1.0 - modul;
-  modul *= smoothstep(0.35, 0.45, length(uv));
-  qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
+  const vec2 size = vec2(0.05);
+  vec2 c = pMod2(q, size);
+  q *= rotMat2(PI * smoothstep(0.0, 0.5, modT / 10.0 - 0.025 * length(c)));
 
-  q = qW;
-
-  const float edge = 0.3;
-  const float thickness = 0.625;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * q.y));
+  const float edge = 0.2;
+  const float thickness = 0.725;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(q, vec2(0, 1)) + 0.5 * PI));
   n = 1. - n;
   color = vec3(n);
 
+  q = uv;
   const float cropEdge = 0.003;
-  const float cropD = 0.7;
+  const float cropD = 0.723;
   vec2 absQ = abs(q);
   color += smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   color = saturate(color);
 
-  color = mix(vec3(1), pow(#3E4790, vec3(2.2)), color.r);
+  color = mix(pow(#FFEEEE, vec3(2.2)), pow(#87A0FF, vec3(2.2)), color.r);
 
   return color;
 }
