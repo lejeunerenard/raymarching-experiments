@@ -960,18 +960,22 @@ float sqr (in vec2 uv, float r) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  float modT = mod(time, 10.0);
+  const float totalT = 8.0;
+  float modT = mod(time, totalT);
 
   vec2 q = uv;
 
   const vec2 size = vec2(0.05);
   vec2 c = pMod2(q, size);
-  q *= rotMat2(PI * smoothstep(0.0, 0.5, modT / 10.0 - 0.025 * length(c)));
 
-  const float edge = 0.2;
-  const float thickness = 0.725;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(q, vec2(0, 1)) + 0.5 * PI));
-  n = 1. - n;
+  float slider1 = smoothstep(0., totalT * 0.55, modT - 0.1 * length(c));
+  float slider2 = smoothstep(totalT * 0.45, totalT * 0.95, modT - 0.1 * length(c));
+  float edge = max(0.0001, 0.002 * saturate(10.0 * slider1));
+  float edge2 = max(0.0001, 0.002 * saturate(10.0 * slider2));
+  float thickness = size.x * slider1;
+  float thickness2 = size.x * slider2;
+  float l = length(q);
+  float n = saturate(smoothstep(thickness + edge, thickness, l)) - saturate(smoothstep(thickness2 + edge2, thickness2, l));
   color = vec3(n);
 
   q = uv;
@@ -981,8 +985,6 @@ vec3 two_dimensional (in vec2 uv) {
   color += smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   color = saturate(color);
-
-  color = mix(pow(#FFEEEE, vec3(2.2)), pow(#87A0FF, vec3(2.2)), color.r);
 
   return color;
 }
