@@ -985,31 +985,37 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
+  q.y += 0.2 * sin(PI * (q.x + 0.5 * slowTime));
   vec2 qW = q;
 
-  q *= rotMat2(PI * modT * 0.2);
-  vec2 absQ = abs(q);
-
-  float modul = smoothstep(cropD * 0.707107 - 0.1, cropD * 0.707107, max(absQ.x, absQ.y));
+  qW *= rotMat2(PI * modT * 0.2);
+  float modul = smoothstep(cropD * 0.707107 - 0.1, cropD * 0.707107, length(q));
   modul = saturate(modul);
   modul = 1.0 - modul;
-  modul *= smoothstep(0.15, 0.25, max(absQ.x, absQ.y));
+  modul *= smoothstep(0.15, 0.25, length(q));
+  modul = 1.0;
   qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
-
-  q = qW;
 
   const float edge = 0.3;
   const float thickness = 0.625;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * q.y));
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * qW.y));
   color = vec3(n);
 
   const float cropEdge = 0.003;
-  color -= smoothstep(cropD, cropD + cropEdge, length(q));
+  q = uv;
+  vec2 absQ = abs(q);
+  // absQ.y *= 2.0;
+  color -= smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(
+      two_dimensional(uv).r,
+      two_dimensional(uv + vec2( 0.01, 0)).b,
+      two_dimensional(uv + vec2(-0.01, 0)).g,
+      1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

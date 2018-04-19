@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'saturated-test2',
+    name: 'daze-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -93,7 +93,7 @@ if (capturing) {
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
         currentRAF = vrDisplay.requestAnimationFrame(tick)
-      }, 150)
+      }, 50)
     }
   }
 
