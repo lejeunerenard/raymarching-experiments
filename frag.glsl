@@ -983,39 +983,37 @@ vec3 two_dimensional (in vec2 uv) {
   // Circle params
   const float cropD = 0.7;
 
+  uv += 0.1 * cnoise2(371.8 * uv.yx + time);
   vec2 q = uv;
 
-  q.y += 0.2 * sin(PI * (q.x + 0.5 * slowTime));
-  vec2 qW = q;
+  const float cycleR = 0.125;
+  const float startR = 0.3;
+  const float endR = 0.5;
+  q += vec2(
+      cycleR * cos(PI * slowTime),
+      cycleR * sin(PI * slowTime));
 
-  qW *= rotMat2(PI * modT * 0.2);
-  float modul = smoothstep(cropD * 0.707107 - 0.1, cropD * 0.707107, length(q));
-  modul = saturate(modul);
-  modul = 1.0 - modul;
-  modul *= smoothstep(0.15, 0.25, length(q));
-  modul = 1.0;
-  qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
+  color.r += smoothstep(endR, startR, length(q));
 
-  const float edge = 0.3;
-  const float thickness = 0.625;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * qW.y));
-  color = vec3(n);
-
-  const float cropEdge = 0.003;
   q = uv;
-  vec2 absQ = abs(q);
-  // absQ.y *= 2.0;
-  color -= smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
+  q += vec2(
+      cycleR * cos(PI * (slowTime + 0.5)),
+      cycleR * sin(PI * (slowTime + 0.5)));
+
+  color.g += smoothstep(endR, startR, length(q));
+
+  q = uv;
+  q += vec2(
+      cycleR * cos(PI * (slowTime + 1.0)),
+      cycleR * sin(PI * (slowTime + 1.0)));
+
+  color.b += smoothstep(endR, startR, length(q));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(
-      two_dimensional(uv).r,
-      two_dimensional(uv + vec2( 0.01, 0)).b,
-      two_dimensional(uv + vec2(-0.01, 0)).g,
-      1);
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
