@@ -475,6 +475,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 #pragma glslify: bounceOut = require(glsl-easings/bounce-out)
+#pragma glslify: cubic = require(glsl-easings/cubic-in-out)
 #pragma glslify: cubicOut = require(glsl-easings/cubic-out)
 #pragma glslify: cubicIn = require(glsl-easings/cubic-in)
 #pragma glslify: circ = require(glsl-easings/circular-in-out)
@@ -976,38 +977,85 @@ float sqr (in vec2 uv, float r) {
 }
 
 vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  float modT = mod(time, 10.0);
+  const float edge = 0.0001;
+  const float circleR = 0.35;
+  const float largeSqrR = 0.40;
 
-  // Circle params
-  const float cropD = 0.7;
+  // Timing
+  const float totalT = 8.0;
+  float modT = mod(time, totalT);
+  float showlargSqr = step(totalT * 0.5, modT);
+  float enableMask = 1.0 - showlargSqr;
 
-  uv += 0.1 * cnoise2(371.8 * uv.yx + time);
+  float circleRotT = quart(enableMask * modT / (totalT * 0.5));
+  mat2 circleRot = rotMat2(TWO_PI * circleRotT);
+  mat2 circleRotOp = rotMat2(TWO_PI * -circleRotT);
+  mat2 circleRotAll = rotMat2(0.5 * PI * circleRotT);
+  float sqrRotT = expo(smoothstep(totalT * 0.5, totalT, modT));
+  mat2 sqrRot = rotMat2(PI * sqrRotT);
   vec2 q = uv;
 
-  const float cycleR = 0.125;
-  const float startR = 0.3;
-  const float endR = 0.5;
-  q += vec2(
-      cycleR * cos(PI * slowTime),
-      cycleR * sin(PI * slowTime));
+  // Circle 1 (top left)
+  q *= circleRotAll;
+  q += vec2(largeSqrR, -largeSqrR);
+  q *= circleRot;
+  float circle1 = smoothstep(circleR, circleR - edge, length(q));
+  q += vec2(-circleR, circleR);
+  vec2 absQ = abs(q);
+  // Corner Mask
+  circle1 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
+  circle1 = 1. - circle1;
 
-  color.r += smoothstep(endR, startR, length(q));
+  color *= circle1;
+
+  // Circle 2 (top right)
+  q = uv;
+  q *= circleRotAll;
+  q += vec2(-largeSqrR, -largeSqrR);
+  q *= circleRotOp;
+  float circle2 = smoothstep(circleR, circleR - edge, length(q));
+  q += vec2(circleR, circleR);
+  absQ = abs(q);
+  circle2 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
+  circle2 = 1. - circle2;
+
+  color *= circle2;
+
+  // Circle 3 (bottom right)
+  q = uv;
+  q *= circleRotAll;
+  q += vec2(-largeSqrR, largeSqrR);
+  q *= circleRot;
+  float circle3 = smoothstep(circleR, circleR - edge, length(q));
+  q += vec2(circleR, -circleR);
+  absQ = abs(q);
+  circle3 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
+  circle3 = 1. - circle3;
+
+  color *= circle3;
+
+  // Circle 4 (bottom right)
+  q = uv;
+  q *= circleRotAll;
+  q += vec2(largeSqrR, largeSqrR);
+  q *= circleRotOp;
+  float circle4 = smoothstep(circleR, circleR - edge, length(q));
+  q += vec2(-circleR, -circleR);
+  absQ = abs(q);
+  circle4 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
+  circle4 = 1. - circle4;
+
+  color *= circle4;
 
   q = uv;
-  q += vec2(
-      cycleR * cos(PI * (slowTime + 0.5)),
-      cycleR * sin(PI * (slowTime + 0.5)));
+  q *= mix(1.0, 0.9, sin(PI * sqrRotT));
+  q *= sqrRot;
+  absQ = abs(q);
+  float largeSqr = smoothstep(largeSqrR, largeSqrR - edge, max(absQ.x, absQ.y));
 
-  color.g += smoothstep(endR, startR, length(q));
-
-  q = uv;
-  q += vec2(
-      cycleR * cos(PI * (slowTime + 1.0)),
-      cycleR * sin(PI * (slowTime + 1.0)));
-
-  color.b += smoothstep(endR, startR, length(q));
+  color += showlargSqr * largeSqr;
 
   return color;
 }
