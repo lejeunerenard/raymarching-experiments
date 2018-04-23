@@ -581,16 +581,11 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float width = 0.3;
-  const float gap = 0.05;
-  float c = pMod1(q.z, width);
-  q.y += 0.2 * sin(PI * (0.5 * abs(q.x) - slowTime + 0.1 * c))
-    + 0.1 * sin(PI * (1.0 + mod(c, 2.0)) * (0.5 * abs(q.x) - 0.5 * slowTime));
-  q.y += 0.2;
-  vec3 line = vec3(sdBox(q, vec3(9, 0.4, (0.5 * width) - gap)), 0, 0);
-  d = dMin(d, line);
+  const float size = 0.4;
+  q *= rotationMatrix(vec3(3, 0, 2), PI * time * 0.4);
 
-  d.x *= 0.25;
+  vec3 s = vec3(sdBox(q, vec3(0.15)), 0, 0);
+  d = dMin(d, s);
 
   return d;
 }
@@ -822,27 +817,27 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       const int NUM_OF_LIGHTS = 3;
       const float repNUM_OF_LIGHTS = 0.333333;
       light lights[NUM_OF_LIGHTS];
-      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFDDDD, 1.0);
-      lights[1] = light(normalize(vec3(-0.5, 0.5, 0.25)), #DDFFFF, 1.0);
+      lights[0] = light(normalize(vec3(0, 0.75, 0.5)), #FFFFFF, 1.0);
+      lights[1] = light(normalize(vec3(-0.5, 0.5, 0.5)), #FFFFFF, 1.0);
       lights[2] = light(normalize(vec3(0.25, -.025, 0.5)), #FFFFFF, 1.0);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
-      float specCo = 0.3;
+      float freCo = 1.0;
+      float specCo = 1.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, lightPos));
+        float dif = max(0., diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
+        dif *= max(0., softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -853,7 +848,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.3 * amb * diffuseColor;
+        lin += 0.1 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -882,9 +877,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       }
 
       // Fog
-      float d = max(0.0, t.x);
-      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // float d = max(0.0, t.x);
+      // // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -945,93 +940,39 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
-vec3 two_dimensional (in vec2 uv) {
+vec3 two_dimensional (in vec2 uv, in vec4 coloring) {
   vec3 color = vec3(1);
 
-  const float edge = 0.0001;
-  const float circleR = 0.35;
-  const float largeSqrR = 0.40;
-
-  // Timing
-  const float totalT = 8.0;
-  float modT = mod(time, totalT);
-  float showlargSqr = step(totalT * 0.5, modT);
-  float enableMask = 1.0 - showlargSqr;
-
-  float circleRotT = quart(enableMask * modT / (totalT * 0.5));
-  mat2 circleRot = rotMat2(TWO_PI * circleRotT);
-  mat2 circleRotOp = rotMat2(TWO_PI * -circleRotT);
-  mat2 circleRotAll = rotMat2(0.5 * PI * circleRotT);
-  float sqrRotT = expo(smoothstep(totalT * 0.5, totalT, modT));
-  mat2 sqrRot = rotMat2(PI * sqrRotT);
   vec2 q = uv;
+  vec2 qW = q;
+  float modul = pow(coloring.r, 0.65);
+  modul = saturate(modul);
+  modul = 1.0 - modul;
+  qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
 
-  // Circle 1 (top left)
-  q *= circleRotAll;
-  q += vec2(largeSqrR, -largeSqrR);
-  q *= circleRot;
-  float circle1 = smoothstep(circleR, circleR - edge, length(q));
-  q += vec2(-circleR, circleR);
+  q = qW;
+
+  const float edge = 0.3;
+  const float thickness = 0.625;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * q.y));
+  n = 1. - n;
+  color = vec3(n);
+
+  const float cropEdge = 0.003;
+  const float cropD = 0.7;
   vec2 absQ = abs(q);
-  // Corner Mask
-  circle1 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
-  circle1 = 1. - circle1;
+  color += smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
-  color *= circle1;
-
-  // Circle 2 (top right)
-  q = uv;
-  q *= circleRotAll;
-  q += vec2(-largeSqrR, -largeSqrR);
-  q *= circleRotOp;
-  float circle2 = smoothstep(circleR, circleR - edge, length(q));
-  q += vec2(circleR, circleR);
-  absQ = abs(q);
-  circle2 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
-  circle2 = 1. - circle2;
-
-  color *= circle2;
-
-  // Circle 3 (bottom right)
-  q = uv;
-  q *= circleRotAll;
-  q += vec2(-largeSqrR, largeSqrR);
-  q *= circleRot;
-  float circle3 = smoothstep(circleR, circleR - edge, length(q));
-  q += vec2(circleR, -circleR);
-  absQ = abs(q);
-  circle3 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
-  circle3 = 1. - circle3;
-
-  color *= circle3;
-
-  // Circle 4 (bottom right)
-  q = uv;
-  q *= circleRotAll;
-  q += vec2(largeSqrR, largeSqrR);
-  q *= circleRotOp;
-  float circle4 = smoothstep(circleR, circleR - edge, length(q));
-  q += vec2(-circleR, -circleR);
-  absQ = abs(q);
-  circle4 *= mix(1., 1. - smoothstep(circleR, circleR - edge, max(absQ.x, absQ.y)), enableMask);
-  circle4 = 1. - circle4;
-
-  color *= circle4;
-
-  q = uv;
-  q *= mix(1.0, 0.9, sin(PI * sqrRotT));
-  q *= sqrRot;
-  absQ = abs(q);
-  float largeSqr = smoothstep(largeSqrR, largeSqrR - edge, max(absQ.x, absQ.y));
-
-  color += showlargSqr * largeSqr;
+  color = saturate(color);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 t = march(ro, rd);
-  return shade(ro, rd, t, uv);
+  vec4 color = shade(ro, rd, t, uv);
+  // return color;
+  return vec4(two_dimensional(uv, color), 1.0);
 }
 
 void main() {
