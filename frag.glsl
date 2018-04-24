@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -577,15 +577,22 @@ vec3 map (in vec3 p, in float dT) {
   float modTime = mod(time, totalT);
   float cosT = PI * slowTime;
 
-  // p *= globalRot;
-
   vec3 q = p;
 
-  const float size = 0.4;
-  q *= rotationMatrix(vec3(3, 0, 2), PI * time * 0.4);
+  float a = atan(q.y, q.x);
+  float r = length(q.xy) - 0.3;
 
-  vec3 s = vec3(sdBox(q, vec3(0.15)), 0, 0);
+  q.xy = vec2(a, r);
+
+  q *= rotationMatrix(vec3(1, 0, 0), 0.25 * a + PI * 0.5 * slowTime);
+
+  vec2 absQ2 = abs(q.yz) - 0.07975;
+  float m = min(absQ2.x, absQ2.y);
+  // float m = dot(q.yz, vec2(1));
+  vec3 s = vec3(sdBox(q, vec3(PI, 0.07, 0.07)), 0, m);
   d = dMin(d, s);
+
+  d.x *= 0.3;
 
   return d;
 }
@@ -769,6 +776,8 @@ const vec3 color4 = pow(#FF9D3A, vec3(2.2));
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
+  color = vec3(smoothstep(0.6, 0.65, sin(TWO_PI * 78.0 * trap)));
+
   return color;
 }
 
@@ -825,19 +834,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
       float disperCo = 0.5;
 
       float specAll = 0.0;
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0., diffuse(nor, lightPos));
+        float dif = 1.; // max(0., diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        dif *= max(0., softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0., softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -848,7 +857,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.1 * amb * diffuseColor;
+        lin += 0.4 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
@@ -970,9 +979,7 @@ vec3 two_dimensional (in vec2 uv, in vec4 coloring) {
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 t = march(ro, rd);
-  vec4 color = shade(ro, rd, t, uv);
-  // return color;
-  return vec4(two_dimensional(uv, color), 1.0);
+  return shade(ro, rd, t, uv);
 }
 
 void main() {
