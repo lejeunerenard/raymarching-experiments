@@ -577,19 +577,20 @@ vec3 map (in vec3 p, in float dT) {
   float modTime = mod(time, totalT);
   float cosT = PI * slowTime;
 
+  p.xzy *= globalRot;
   vec3 q = p;
 
   float a = atan(q.y, q.x);
-  float r = length(q.xy) - 0.3;
+  float r = length8(q.xy) - 0.4;
 
   q.xy = vec2(a, r);
 
   q *= rotationMatrix(vec3(1, 0, 0), 0.25 * a + PI * 0.5 * slowTime);
 
-  vec2 absQ2 = abs(q.yz) - 0.07975;
+  vec2 absQ2 = abs(q.yz) - 0.07425;
   float m = min(absQ2.x, absQ2.y);
   // float m = dot(q.yz, vec2(1));
-  vec3 s = vec3(sdBox(q, vec3(PI, 0.07, 0.07)), 0, m);
+  vec3 s = vec3(sdBox(q, vec3(PI, 0.1, 0.1)), 0, m);
   d = dMin(d, s);
 
   d.x *= 0.3;
@@ -776,7 +777,7 @@ const vec3 color4 = pow(#FF9D3A, vec3(2.2));
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = vec3(smoothstep(0.6, 0.65, sin(TWO_PI * 78.0 * trap)));
+  color = vec3(smoothstep(0.6, 0.65, sin(TWO_PI * 51.0 * trap)));
 
   return color;
 }
@@ -834,7 +835,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.1;
       float specCo = 0.0;
       float disperCo = 0.5;
 
@@ -988,7 +989,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = TWO_PI * slowTime;
+    float gRAngle = TWO_PI * 0.25 * slowTime;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
