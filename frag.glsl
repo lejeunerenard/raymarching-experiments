@@ -6,7 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -577,23 +578,39 @@ vec3 map (in vec3 p, in float dT) {
   float modTime = mod(time, totalT);
   float cosT = PI * slowTime;
 
-  p.xzy *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
-  float a = atan(q.y, q.x);
-  float r = length8(q.xy) - 0.4;
+  q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
 
-  q.xy = vec2(a, r);
+  q *= rotationMatrix(normalize(vec3(1, 1, 1)), TWO_PI * quart(smoothstep(1., 5., modTime)));
 
-  q *= rotationMatrix(vec3(1, 0, 0), 0.25 * a + PI * 0.5 * slowTime);
+  q.y += 0.3;
+  q.x += 0.05;
+  q.z += 0.05;
 
-  vec2 absQ2 = abs(q.yz) - 0.07425;
-  float m = min(absQ2.x, absQ2.y);
-  // float m = dot(q.yz, vec2(1));
-  vec3 s = vec3(sdBox(q, vec3(PI, 0.1, 0.1)), 0, m);
-  d = dMin(d, s);
+  const float unit = 0.1;
+  const float fudge = 1.05;
 
-  d.x *= 0.3;
+  vec3 b1 = vec3(sdBox(q, vec3(6. * unit, unit, unit)), 0, 0);
+  d = dMin(d, b1);
+
+  vec3 b2 = vec3(sdBox(q - vec3(5. * unit, 5. * unit, 0), vec3(unit, 6. * unit, unit)), 0, 0);
+  d = dMin(d, b2);
+
+  vec3 b3 = vec3(sdBox(q - vec3(5. * unit, 11. * unit, 5. * unit), vec3(unit, unit, 6. * unit)), 0, 0);
+  d = dMin(d, b3);
+  // B3 Mask
+  vec3 b3m1 = vec3(sdBox(q - vec3(10. * unit, 11. * unit, 10. * unit), vec3(6. * unit * fudge, unit * fudge, unit * fudge)), 0, 0);
+  b3m1.x = -b3m1.x;
+  d = dMax(d, b3m1);
+  q -= vec3(5. * unit, 11. * unit, 10. * unit - 0.041);
+  q *= rotationMatrix(normalize(vec3(1, 0, 0)), -PI * 0.235);
+  vec3 b3m2 = vec3(sdBox(q, vec3(unit * fudge, 6. * unit * fudge, unit * fudge * 1.1)), 0, 0);
+  b3m2.x = -b3m2.x;
+  d = dMax(d, b3m2);
+
+  d.x -= 0.001;
 
   return d;
 }
@@ -777,8 +794,6 @@ const vec3 color4 = pow(#FF9D3A, vec3(2.2));
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = vec3(smoothstep(0.6, 0.65, sin(TWO_PI * 51.0 * trap)));
-
   return color;
 }
 
@@ -796,7 +811,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = vec3(0.0);
 
-      vec3 nor = getNormal2(pos, 0.0014 * t.x);
+      vec3 nor = getNormal2(pos, 0.0001 * t.x);
       float bumpsScale = 0.7;
       float bumpIntensity = 0.0;
       // nor += bumpIntensity * vec3(
@@ -843,7 +858,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.; // max(0., diffuse(nor, lightPos));
+        float dif = max(0., diffuse(nor, lightPos));
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -1004,21 +1019,45 @@ void main() {
 
     for (int x = - SS / 2; x < SS / 2; x++) {
         for (int y = - SS / 2; y < SS / 2; y++) {
+#ifdef ORTHO
+            vec3 rd = vec3(0, 0, -1);
+#else
             vec3 rd = getRayDirection(vec2(
                   float(x) / R.y + uv.x,
                   float(y) / R.y + uv.y),
                   projectionMatrix);
+#endif
             rd = (vec4(rd, 1.) * cameraMatrix).xyz;
             rd = normalize(rd);
+#ifdef ORTHO
+            vec2 ndc = (gl_FragCoord.xy + 0.0 * vec2(x, y)) / resolution.xy * 2.0 - 1.0;
+            float w = 2.0;
+            float h = w / (resolution.x / resolution.y);
+            ro += (vec4(
+                  ndc * vec2(w * 0.5, h * 0.5),
+                  0, 1) * cameraMatrix).xyz;
+#endif
             color += saturate(sample(ro, rd, uv));
         }
     }
     gl_FragColor = color / float(SS * SS);
 
     #else
+#ifdef ORTHO
+    vec3 rd = vec3(0, 0, -1);
+#else
     vec3 rd = getRayDirection(uv, projectionMatrix);
+#endif
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     rd = normalize(rd);
+#ifdef ORTHO
+    vec2 ndc = gl_FragCoord.xy / resolution.xy * 2.0 - 1.0;
+    float w = 2.0;
+    float h = w / (resolution.x / resolution.y);
+    ro += (vec4(
+          ndc * vec2(w * 0.5, h * 0.5),
+          0, 1) * cameraMatrix).xyz;
+#endif
     gl_FragColor = saturate(sample(ro, rd, uv));
     #endif
 

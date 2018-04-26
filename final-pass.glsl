@@ -46,7 +46,7 @@ void main() {
   vec3 colorBefore = gl_FragColor.rgb;
   colorMap(gl_FragColor.rgb);
   gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 1.0);
-  // gl_FragColor.r = pow(gl_FragColor.r, 0.6);
+  gl_FragColor.r = pow(gl_FragColor.r, 1.3);
 
   // Gamma encode
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
