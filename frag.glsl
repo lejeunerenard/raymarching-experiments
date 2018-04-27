@@ -43,7 +43,7 @@ uniform float epsilon;
 #define maxDistance 100.0
 #define fogMaxDistance 5.0
 
-#define slowTime time * 0.235294
+#define slowTime time * 0.2
 // v3
 // #define slowTime time * 0.06666667
 
@@ -581,36 +581,17 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
+  vec2 c = pMod2(q.xy, vec2(0.5));
 
-  q *= rotationMatrix(normalize(vec3(1, 1, 1)), TWO_PI * quart(smoothstep(1., 5., modTime)));
+  q *= rotationMatrix(normalize(vec3(0, 1, 0)), PI * 0.25);
+  float rotT = smoothstep(-0.8, 0.8, sin(PI * (slowTime - 0.1 * length(c))));
+  q *= rotationMatrix(normalize(vec3(1, 1, 0)), PI * rotT);
 
-  q.y += 0.3;
-  q.x += 0.05;
-  q.z += 0.05;
-
-  const float unit = 0.1;
-  const float fudge = 1.05;
-
-  vec3 b1 = vec3(sdBox(q, vec3(6. * unit, unit, unit)), 0, 0);
+  mPos = q;
+  vec3 b1 = vec3(sdBox(q, vec3(0.1)), 0, 0);
   d = dMin(d, b1);
 
-  vec3 b2 = vec3(sdBox(q - vec3(5. * unit, 5. * unit, 0), vec3(unit, 6. * unit, unit)), 0, 0);
-  d = dMin(d, b2);
-
-  vec3 b3 = vec3(sdBox(q - vec3(5. * unit, 11. * unit, 5. * unit), vec3(unit, unit, 6. * unit)), 0, 0);
-  d = dMin(d, b3);
-  // B3 Mask
-  vec3 b3m1 = vec3(sdBox(q - vec3(10. * unit, 11. * unit, 10. * unit), vec3(6. * unit * fudge, unit * fudge, unit * fudge)), 0, 0);
-  b3m1.x = -b3m1.x;
-  d = dMax(d, b3m1);
-  q -= vec3(5. * unit, 11. * unit, 10. * unit - 0.041);
-  q *= rotationMatrix(normalize(vec3(1, 0, 0)), -PI * 0.235);
-  vec3 b3m2 = vec3(sdBox(q, vec3(unit * fudge, 6. * unit * fudge, unit * fudge * 1.1)), 0, 0);
-  b3m2.x = -b3m2.x;
-  d = dMax(d, b3m2);
-
-  d.x -= 0.001;
+  d.x *= 0.7;
 
   return d;
 }
@@ -786,15 +767,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
-const vec3 color1 = pow(#7A26E8, vec3(2.2));
-const vec3 color2 = pow(#FF299C, vec3(2.2));
-const vec3 color3 = pow(#4C29FF, vec3(2.2));
-const vec3 color4 = pow(#FF9D3A, vec3(2.2));
-
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
 
-  return color;
+  color += 0.5 + 0.5 * cos(TWO_PI * ((2.8 + cnoise3(2.0 * mPos)) * dot(nor, mPos) + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * ((2.8 + cnoise3(2.0 * mPos)) * dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+
+  return pow(color, vec3(1.2));
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -862,7 +841,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, (lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // dif *= max(0., softshadow(pos, lightPos, 0.01, 4.75));
+        // dif *= max(0.5, softshadow(pos, lightPos, 0.01, 4.75));
 
         vec3 lin = vec3(0.);
 
@@ -873,7 +852,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.4 * amb * diffuseColor;
+        // lin += 0.4 * amb * diffuseColor;
 
         color +=
           saturate((dif * lights[i].intensity) * lights[i].color * diffuseColor)
