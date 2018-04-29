@@ -939,35 +939,51 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
-vec3 two_dimensional (in vec2 uv, in vec4 coloring) {
-  vec3 color = vec3(1);
+vec3 two_dimensional (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  float modT = mod(time, 20.0);
+
+  // Circle params
+  const float cropD = 0.7;
 
   vec2 q = uv;
+
+  pModPolar(q.xy, 5.0);
+
+  q.y = abs(q.y);
+
+  q.y += 0.2 * sin(PI * (0.5 * q.x + 0.5 * slowTime));
   vec2 qW = q;
-  float modul = pow(coloring.r, 0.65);
+
+  qW *= rotMat2(PI * modT * 0.1);
+  float modul = smoothstep(cropD * 0.707107 - 0.1, cropD * 0.707107, length(q));
   modul = saturate(modul);
   modul = 1.0 - modul;
-  qW.y += modul * 0.01 * sin(PI * 22.0 * (qW.x + 0.227273 * slowTime));
+  modul *= smoothstep(0.15, 0.25, length(q));
+  modul = 1.0;
 
-  q = qW;
+  qW += 0.1 * cos(3.0 * qW.yx + PI * 0.2 * time);
+  qW += 0.05 * cos(8.0 * qW.yx + PI * 0.2 * time);
+
+  qW.y += modul * 0.01 * sin(PI * 21.2 * (qW.x + 0.227273 * slowTime));
+  modul += cnoise2(0.1 * qW);
 
   const float edge = 0.3;
-  const float thickness = 0.625;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * q.y));
-  n = 1. - n;
+  const float thickness = 0.75;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * qW.y));
   color = vec3(n);
 
   const float cropEdge = 0.003;
-  const float cropD = 0.7;
+  q = uv;
   vec2 absQ = abs(q);
-  color += smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
-
-  color = saturate(color);
+  color -= smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
