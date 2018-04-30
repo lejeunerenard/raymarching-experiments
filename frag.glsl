@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -941,49 +941,54 @@ float sqr (in vec2 uv, float r) {
 
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
+  float d = 100.0;
 
-  float modT = mod(time, 20.0);
-
-  // Circle params
-  const float cropD = 0.7;
+  const float totalT = 20.0;
+  float modT = mod(time, totalT);
+  float cosT = TWO_PI / totalT * time;
 
   vec2 q = uv;
 
-  pModPolar(q.xy, 5.0);
+  q += 0.2000 * sin( 3.0 * q.yx);
+  q += 0.1000 * sin( 7.0 * q.yx + cosT);
 
-  q.y = abs(q.y);
+  const float edge = 0.2;
+  const float thickness = 0.0;
+  float maxInput = 4.0;
+  d = 25.0 * abs(q.y) - 0.25;
+  float l = smoothstep(maxInput, maxInput + 0.01, d);
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * d));
+  n *= (1.0 - l);
 
-  q.y += 0.2 * sin(PI * (0.5 * q.x + 0.5 * slowTime));
-  vec2 qW = q;
+  maxInput = 9.0;
+  float minInput = 8.0;
+  l = smoothstep(minInput, minInput + 0.01, d) * smoothstep(maxInput + 0.01, maxInput, d);
+  float n2 = smoothstep(thickness, thickness + edge, sin(TWO_PI * d));
 
-  qW *= rotMat2(PI * modT * 0.1);
-  float modul = smoothstep(cropD * 0.707107 - 0.1, cropD * 0.707107, length(q));
-  modul = saturate(modul);
-  modul = 1.0 - modul;
-  modul *= smoothstep(0.15, 0.25, length(q));
-  modul = 1.0;
+  n += n2 * l;
 
-  qW += 0.1 * cos(3.0 * qW.yx + PI * 0.2 * time);
-  qW += 0.05 * cos(8.0 * qW.yx + PI * 0.2 * time);
-
-  qW.y += modul * 0.01 * sin(PI * 21.2 * (qW.x + 0.227273 * slowTime));
-  modul += cnoise2(0.1 * qW);
-
-  const float edge = 0.3;
-  const float thickness = 0.75;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * qW.y));
   color = vec3(n);
-
-  const float cropEdge = 0.003;
-  q = uv;
-  vec2 absQ = abs(q);
-  color -= smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  vec4 color = vec4(0);
+  float divergence = 0.05 * nsin(0.05 * time);
+
+  color += vec4(
+      two_dimensional(uv + vec2(1, 0) * divergence).r,
+      two_dimensional(uv + vec2(0, 1) * divergence).r,
+      two_dimensional(uv + vec2(1, 1) * divergence).r,
+      1);
+
+  vec2 absUV = abs(uv);
+  float b = max(absUV.x, absUV.y);
+  b = smoothstep(0.80, 0.80 + 0.001, b) * smoothstep(0.81 + 0.001, 0.81, b);
+  color += b;
+
+  return color;
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
