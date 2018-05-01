@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -943,30 +943,28 @@ vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
   float d = 100.0;
 
-  const float totalT = 20.0;
+  const float totalT = 10.0;
   float modT = mod(time, totalT);
   float cosT = TWO_PI / totalT * time;
 
-  vec2 q = uv;
+  const float radius = 0.25;
 
-  q += 0.2000 * sin( 3.0 * q.yx);
-  q += 0.1000 * sin( 7.0 * q.yx + cosT);
+  vec2 q = uv * rotMat2(TWO_PI * modT * 0.1);
+  pMod2(q, vec2(2.0 * radius));
 
-  const float edge = 0.2;
-  const float thickness = 0.0;
-  float maxInput = 4.0;
-  d = 25.0 * abs(q.y) - 0.25;
-  float l = smoothstep(maxInput, maxInput + 0.01, d);
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * d));
-  n *= (1.0 - l);
+  float highPowT = smoothstep(0.25 * totalT, 0.5 * totalT, modT)
+    * smoothstep(0.75 * totalT, 0.5 * totalT, modT);
 
-  maxInput = 9.0;
-  float minInput = 8.0;
-  l = smoothstep(minInput, minInput + 0.01, d) * smoothstep(maxInput + 0.01, maxInput, d);
-  float n2 = smoothstep(thickness, thickness + edge, sin(TWO_PI * d));
+  float power = 1.0 + mix(-0.9, 65., highPowT) * (
+        highPowT
+      + smoothstep(0.75 * totalT, totalT, modT)
+      + smoothstep(0.25 * totalT, 0., modT));
 
-  n += n2 * l;
+  vec2 absQ = abs(q);
+  float s = pow(pow(absQ.x, power) + pow(absQ.y, power), 1.0 / power) - radius;
+  d = min(d, s);
 
+  float n = smoothstep(0.0, 0.001, d);
   color = vec3(n);
 
   return color;
@@ -976,16 +974,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0);
   float divergence = 0.05 * nsin(0.05 * time);
 
-  color += vec4(
-      two_dimensional(uv + vec2(1, 0) * divergence).r,
-      two_dimensional(uv + vec2(0, 1) * divergence).r,
-      two_dimensional(uv + vec2(1, 1) * divergence).r,
-      1);
-
-  vec2 absUV = abs(uv);
-  float b = max(absUV.x, absUV.y);
-  b = smoothstep(0.80, 0.80 + 0.001, b) * smoothstep(0.81 + 0.001, 0.81, b);
-  color += b;
+  color = vec4(two_dimensional(uv), 1);
 
   return color;
 
