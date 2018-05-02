@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'foreground-test2',
+    name: 'glow-test2',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
