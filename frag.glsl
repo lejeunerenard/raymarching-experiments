@@ -977,34 +977,39 @@ vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
   float d = 100.0;
 
-  const float totalT = 10.0;
-  float modT = mod(time, totalT);
-  float cosT = TWO_PI / totalT * time;
+  float modT = mod(time, 20.0);
+  float cosT = PI * 0.5 * slowTime;
 
-  const float radius = 0.25;
+  // Circle params
+  const float cropD = 0.7;
 
-  vec2 q = uv * rotMat2(TWO_PI * modT * 0.1);
-  pMod2(q, vec2(2.0 * radius));
+  vec2 q = uv;
 
-  float highPowT = smoothstep(0.25 * totalT, 0.5 * totalT, modT)
-    * smoothstep(0.75 * totalT, 0.5 * totalT, modT);
+  q += 0.10 * cos(4.0 * q.yx + vec2(-cosT, cosT));
+  q += 0.05 * cos(9.0 * q.yx + cosT);
 
-  float power = 1.0 + mix(-0.9, 65., highPowT) * (
-        highPowT
-      + smoothstep(0.75 * totalT, totalT, modT)
-      + smoothstep(0.25 * totalT, 0., modT));
+  vec2 qW = q;
 
-  vec2 absQ = abs(q);
-  float s = pow(pow(absQ.x, power) + pow(absQ.y, power), 1.0 / power) - radius;
-  d = min(d, s);
+  const float edge = 0.3;
+  const float thickness = 0.75;
+  float cD = length(qW) - 0.25;
+  float c1 = cD;
+  c1 *= smoothstep(0., 0. + 0.01, cD);
+  d = fOpUnionRound(d, c1, 0.1);
 
-  float n = smoothstep(0.0, 0.001, d);
+  float n = smoothstep( 0., 0. + edge, sin(190.0 * d));
   color = vec3(n);
+
+  const float cropEdge = 0.003;
+  q = uv;
+  vec2 absQ = abs(q);
+  color -= smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
