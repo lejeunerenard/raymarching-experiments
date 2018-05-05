@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -977,27 +977,21 @@ vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
   float d = 100.0;
 
-  float modT = mod(time, 20.0);
-  float cosT = PI * 0.5 * slowTime;
+  float totalT = 8.0;
+  float modT = mod(time, totalT);
+  float cosT = TWO_PI * modT / totalT;
 
-  // Circle params
+  const float edge = 0.1;
   const float cropD = 0.7;
 
   vec2 q = uv;
 
-  q += 0.10 * cos(4.0 * q.yx + vec2(-cosT, cosT));
-  q += 0.05 * cos(9.0 * q.yx + cosT);
+  float c1 = q.x;
+  d = min(d, c1);
 
-  vec2 qW = q;
-
-  const float edge = 0.3;
-  const float thickness = 0.75;
-  float cD = length(qW) - 0.25;
-  float c1 = cD;
-  c1 *= smoothstep(0., 0. + 0.01, cD);
-  d = fOpUnionRound(d, c1, 0.1);
-
-  float n = smoothstep( 0., 0. + edge, sin(190.0 * d));
+  float thickness = 0.0 + 0.4 * sin(3.0 * q.x - cosT);
+  float n = smoothstep( thickness, thickness + edge, sin(TWO_PI * 7. * d));
+  n += 0.0175 * cnoise2(323. * uv);
   color = vec3(n);
 
   const float cropEdge = 0.003;
