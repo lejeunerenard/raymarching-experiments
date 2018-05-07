@@ -996,23 +996,32 @@ float sqr (in vec2 uv, float r) {
 
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
-  float d = 100.0;
 
-  float totalT = 8.0;
-  float modT = mod(time, totalT);
-  float cosT = TWO_PI * modT / totalT;
+  float modT = mod(time, 8.0);
 
-  const float edge = 0.1;
+  // Circle params
   const float cropD = 0.7;
 
   vec2 q = uv;
 
-  float c1 = q.x;
-  d = min(d, c1);
+  // q.y += 0.2 * sin(PI * (0.5 * q.x + 0.5 * slowTime));
+  vec2 qW = q;
 
-  float thickness = 0.0 + 0.4 * sin(3.0 * q.x - cosT);
-  float n = smoothstep( thickness, thickness + edge, sin(TWO_PI * 7. * d));
-  n += 0.0175 * cnoise2(323. * uv);
+  qW *= 1.2 + 0.2 * sin(PI * (length(qW) - 0.5 * modT));
+
+  // qW *= rotMat2(PI * modT * 0.1);
+  float modul = smoothstep(cropD * 0.707107 - 0.1, cropD * 0.707107, length(q));
+  modul = saturate(modul);
+  modul = 1.0 - modul;
+  modul *= smoothstep(0.15, 0.25, length(q));
+  modul = 1.0;
+
+  qW.y += modul * 0.01 * sin(PI * 21.2 * (qW.x + 0.047168 * modT));
+  modul += cnoise2(0.1 * qW);
+
+  const float edge = 0.3;
+  const float thickness = 0.75;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * qW.y));
   color = vec3(n);
 
   const float cropEdge = 0.003;
@@ -1024,6 +1033,9 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec4 color = vec4(two_dimensional(uv), 1);
+
+  return color;
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
