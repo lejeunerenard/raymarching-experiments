@@ -575,7 +575,7 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float totalT = 10.0;
+  const float totalT = 20.0;
   float modTime = mod(time, totalT);
   float cosT = TWO_PI * modTime / totalT;
 
@@ -583,36 +583,20 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q *= rotationMatrix(vec3(0, 0, 1), cosT);
-
-  float w = 0.0; // 0.05 * smoothstep(0.4, 1.0, sin(PI * length(q) - cosT));
-
   mPos = q;
-  q.z += 0.3;
   vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
-  s.x -= w;
   d = dMin(d, s);
 
-  q.z -= 0.05;
-  pModPolar(q.xy, 5.0);
-  q.y = abs(q.y);
-  q.x -= 0.2;
-  q += -0.075 + 0.05 * cos(5.0 * q.yzx + cosT);
-  q.xzy = twist(q, 8.0 * q.y);
-  q.y += 0.1;
-  q = abs(q);
-  q += 0.05 * cos(5.0 * q.yzx + cosT);
-  q += 0.025 * cos(7.0 * q.yzx + cosT);
-  q = abs(q);
+  const vec2 size = vec2(0.19);
+  vec2 c = pMod2(q.xy, size);
 
-  vec3 c = vec3(sdCapsule(q, vec3(0, 0, 0.5), vec3(0, 0, -0.5), 0.05), 1., 0.);
-  d = dMin(d, c);
+  q.z -= 0.14;
+  q.z += 0.1 * cos(PI * (-0.1 * modTime + 0.5 * length(c)));
 
-  q -= 0.1;
-  vec3 b = vec3(sdBox(q, vec3(0.05, 0.5, 0.05)), 1., 0.);
+  vec3 b = vec3(sdBox(q, vec3(size.x * 0.425)), 1., 0.);
   d = dMin(d, b);
 
-  d.x *= 0.3;
+  d.x *= 0.1;
 
   return d;
 }
@@ -791,7 +775,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = mix(color, vec3(0.15), isMaterialSmooth(m, 1.));
+  // color = mix(color, vec3(0.15), isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -813,8 +797,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color;
       float intensity;
     };
-    const int NUM_OF_LIGHTS = 5;
-    const float repNUM_OF_LIGHTS = 0.2;
+    const int NUM_OF_LIGHTS = 10;
+    const float repNUM_OF_LIGHTS = 0.1;
     light lights[NUM_OF_LIGHTS];
     vec2 lightPosRef = vec2(0.95, 0);
     mat2 lightPosRefInc = rotMat2(TWO_PI * repNUM_OF_LIGHTS);
@@ -822,7 +806,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // lightPosRef *= rotMat2(TWO_PI * mod(time * 0.1, 1.));
 
     for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-      vec3 lightColor = hsb2rgb(vec3(float(i) * repNUM_OF_LIGHTS + 0.1, 1., 1));
+      vec3 lightColor = hsb2rgb(vec3(float(i) * repNUM_OF_LIGHTS + 0.1 * mod(time, 10.0), 1., 1));
       float greenish = 0.0; // dot(normalize(lightColor), #00FF00);
       lights[i] = light(vec3(lightPosRef, 0.25), lightColor, mix(1.8, 0.8, greenish));
       lightPosRef *= lightPosRefInc;
@@ -909,10 +893,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.03125 * mix(color, vec3(0.5), vec3(0.5)) * matCap(reflect(rayDirection, nor));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
-      color += reflectColor * isMaterialSmooth(t.y, 0.);
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.2 * reflection(pos, reflectionRd);
+      // color += reflectColor * isMaterialSmooth(t.y, 0.);
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
@@ -922,8 +906,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Fog
       float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       color += directLighting * exp(-d * 0.0005);
 
@@ -1033,9 +1017,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 color = vec4(two_dimensional(uv), 1);
-
-  return color;
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

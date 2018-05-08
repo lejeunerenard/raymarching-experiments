@@ -46,7 +46,7 @@ void main() {
   vec3 colorBefore = gl_FragColor.rgb;
   colorMap(gl_FragColor.rgb);
   gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 1.);
-  gl_FragColor.r = pow(gl_FragColor.r, 0.75);
+  gl_FragColor.r = pow(gl_FragColor.r, 0.85);
   gl_FragColor.b = pow(gl_FragColor.b, 1.15);
 
   // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.85)); // Lighten
