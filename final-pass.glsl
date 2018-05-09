@@ -36,7 +36,13 @@ void main() {
   vec4 bufferColor  = texture2D(buffer, uv);
   bufferColor.rgb = pow(bufferColor.rgb, gamma);
 
-  vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
+  vec4 result = mix(vec4(background, 0.), baseColor, baseColor.a);
+  if (result.a < 0.01 && time > 0.1) {
+    discard;
+  } else {
+    result.a = 1.;
+  }
+
   gl_FragColor = wet * bufferColor + result;
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));

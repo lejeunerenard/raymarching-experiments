@@ -24,8 +24,8 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1
-const BLOOM_PASSES = 1
+const BLOOM_WET = 0
+const BLOOM_PASSES = 0
 const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
@@ -35,7 +35,7 @@ export default class App {
     document.body.appendChild(canvas)
     canvas.style.display = 'none'
 
-    let gl = makeContext(canvas)
+    let gl = makeContext(canvas, { preserveDrawingBuffer: true })
 
     // enable extensions
     var ext = gl.getExtension('OES_standard_derivatives')
@@ -536,9 +536,9 @@ export default class App {
 
     this.shader.bind()
 
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    gl.clearColor(0, 0, 0, 1)
-    gl.viewport(0, 0, dim[0], dim[1])
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    // gl.clearColor(0, 0, 0, 0)
+    // gl.viewport(0, 0, dim[0], dim[1])
 
     this.update(t)
     this.render(t)
