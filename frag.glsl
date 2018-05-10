@@ -583,12 +583,10 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
+  q -= 0.1000 * cos( 7.0 * q.yzx + cosT );
+  q.xzy = twist(q, q.y * 5.0);
   q += 0.1000 * cos( 7.0 * q.yzx + cosT );
-  q.xzy = twist(q, q.y * 7.0);
-  q += 0.1000 * cos( 7.0 * q.yzx + cosT );
-  q.xzy = twist(q, q.x * 7.0);
   q += 0.0750 * cos(13.0 * q.yzx + cosT );
-  q += 0.0250 * cos(27.0 * q.yzx + cosT );
   // q += 0.0350 * cos(37.0 * q.yzx + cosT );
 
   q.xz *= 0.8;
@@ -798,7 +796,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color;
       float intensity;
     };
-    const int NUM_OF_LIGHTS = 7;
+    const int NUM_OF_LIGHTS = 5;
     const float repNUM_OF_LIGHTS = 0.142857;
     light lights[NUM_OF_LIGHTS];
     vec2 lightPosRef = vec2(0.95, 0);
@@ -807,7 +805,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // lightPosRef *= rotMat2(TWO_PI * mod(time * 0.1, 1.));
 
     for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-      vec3 lightColor = hsb2rgb(vec3(float(i) * repNUM_OF_LIGHTS, 1., 1));
+      vec3 lightColor = hsb2rgb(vec3(float(i) * 1.1 * repNUM_OF_LIGHTS, 1., 1));
       float greenish = 0.0; // dot(normalize(lightColor), #00FF00);
       lights[i] = light(vec3(lightPosRef, 0.25), lightColor, mix(1.8, 0.8, greenish));
       lightPosRef *= lightPosRefInc;
@@ -824,12 +822,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
       float bumpsScale = 0.9;
-      float bumpIntensity = 0.2;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * pos),
-          cnoise3(bumpsScale * 670.0 * pos + 234.634),
-          cnoise3(bumpsScale * 310.0 * pos + 23.4634));
-      nor = normalize(nor);
+      float bumpIntensity = 0.0;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * pos),
+      //     cnoise3(bumpsScale * 670.0 * pos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * pos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -858,7 +856,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         float dif = max(0.5, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         float sha = max(0.0, softshadow(pos, normalize(lightPos), 0.01, 4.75));
