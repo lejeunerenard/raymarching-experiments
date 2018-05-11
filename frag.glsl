@@ -587,15 +587,17 @@ vec3 map (in vec3 p, in float dT) {
   q.xzy = twist(q, q.y * 5.0);
   q += 0.1000 * cos( 7.0 * q.yzx + cosT );
   q += 0.0750 * cos(13.0 * q.yzx + cosT );
+  q.xzy = twist(q, q.z * q.x);
   // q += 0.0350 * cos(37.0 * q.yzx + cosT );
 
   q.xz *= 0.8;
   mPos = q;
 
   vec3 s = vec3(length(q) - 0.275, 0., 0.);
+  s.x -= 0.2 * cnoise3(4.0 * q.yzx);
   d = dMin(d, s);
 
-  d.x *= 0.025;
+  d.x *= 0.1;
 
   return d;
 }
@@ -774,8 +776,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  // color = mix(color, vec3(0.15), isMaterialSmooth(m, 1.));
-
   return color;
 }
 
@@ -804,18 +804,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
     // lightPosRef *= rotMat2(TWO_PI * mod(time * 0.1, 1.));
 
-    for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-      vec3 lightColor = hsb2rgb(vec3(float(i) * 1.1 * repNUM_OF_LIGHTS, 1., 1));
-      float greenish = 0.0; // dot(normalize(lightColor), #00FF00);
-      lights[i] = light(vec3(lightPosRef, 0.25), lightColor, mix(1.8, 0.8, greenish));
-      lightPosRef *= lightPosRefInc;
-    }
-    // lights[0] = light(vec3(lightPosRef, 0.25), #FF0000, 1.8);
-    // lightPosRef *= lightPosRefInc;
-    // lights[1] = light(vec3(lightPosRef, 0.25), #00FF00, 0.8);
-    // lightPosRef *= lightPosRefInc;
-    // lights[2] = light(vec3(lightPosRef, 0.25), #0000FF, 1.8);
-    // lightPosRef *= lightPosRefInc;
+    // for (int i = 0; i < NUM_OF_LIGHTS; i++) {
+    //   vec3 lightColor = hsb2rgb(vec3(float(i) * 1.1 * repNUM_OF_LIGHTS, 1., 1));
+    //   float greenish = 0.0; // dot(normalize(lightColor), #00FF00);
+    //   lights[i] = light(vec3(lightPosRef, 0.25), lightColor, mix(1.8, 0.8, greenish));
+    //   lightPosRef *= lightPosRefInc;
+    // }
+    lights[0] = light(vec3(lightPosRef, 0.25), #FFFFFF, 1.8);
+    lightPosRef *= lightPosRefInc;
+    lights[1] = light(vec3(lightPosRef, 0.25), #FFFFFF, 0.8);
+    lightPosRef *= lightPosRefInc;
+    lights[2] = light(vec3(lightPosRef, 0.25), #FFFFFF, 1.8);
+    lightPosRef *= lightPosRefInc;
 
     if (t.x>0.) {
       vec3 color = vec3(0.0);
@@ -892,10 +892,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += 0.03125 * mix(color, vec3(0.5), vec3(0.5)) * matCap(reflect(rayDirection, nor));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.2 * reflection(pos, reflectionRd);
-      // color += reflectColor * isMaterialSmooth(t.y, 0.);
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      color += reflectColor * isMaterialSmooth(t.y, 0.);
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
