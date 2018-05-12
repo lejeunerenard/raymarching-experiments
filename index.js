@@ -7,7 +7,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 4
 const capturing = false
 
 const FOV = 70
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'png',
     framerate: fr,
-    name: 'datum-test1',
+    name: 'in-place-test1',
     autoSaveTime: 5,
     quality: 95,
     startTime: captureTime,
@@ -93,7 +93,7 @@ if (capturing) {
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
         currentRAF = vrDisplay.requestAnimationFrame(tick)
-      }, 350)
+      }, 250)
     }
   }
 
