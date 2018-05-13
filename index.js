@@ -18,11 +18,11 @@ window.app = app
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
-    format: 'png',
+    format: 'jpg',
     framerate: fr,
-    name: 'in-place-test1',
+    name: 'wriggle-test1',
     autoSaveTime: 5,
-    quality: 95,
+    quality: 98,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true

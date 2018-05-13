@@ -983,22 +983,25 @@ vec3 two_dimensional (in vec2 uv) {
   const float totalT = 4.0;
   float modT = mod(time, totalT);
 
+  const float cropD = 0.7;
+
   vec2 q = uv;
 
-  const vec2 size = vec2(0.15);
-  vec2 c = pMod2(q, size);
-  float offsetT = mod(time - 0.2 * length(c), totalT);
-  float transT = clamp(offsetT, 0., totalT * 0.75) / (totalT * 0.75);
-  float rotT = expo(transT);
-  q *= rotMat2(0.5 * PI * rotT);
+  vec2 qW = q;
+
+  qW *= 1.2 + 0.2 * sin(PI * (dot(abs(qW), vec2(0.5)) + length(qW) - 0.5 * modT));
+
+  float modul = 1.0;
+
+  const float edge = 0.3;
+  const float thickness = 0.75;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, vec2(1))));
+  color = vec3(n);
 
   const float cropEdge = 0.003;
-  float cropD = mix(size.x * 0.01, size.x * 0.3333, rotT);
+  q = uv;
   vec2 absQ = abs(q);
-  float s = 1. - smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
-  color = mix(color, vec3(s), smoothstep(0.75 * totalT, 0.6 * totalT, offsetT));
-
-  color = mix(pow(#FF42C0, vec3(2.2)), pow(#BCFF82, vec3(2.2)), color.x);
+  color -= smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
 
   return color;
 }
