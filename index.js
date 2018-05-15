@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'wriggle-test1',
+    name: 'falter-test1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

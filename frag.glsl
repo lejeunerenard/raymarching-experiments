@@ -989,13 +989,17 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 qW = q;
 
-  qW *= 1.2 + 0.2 * sin(PI * (dot(abs(qW), vec2(0.5)) + length(qW) - 0.5 * modT));
+  // qW *= 1.2 + 0.2 * sin(PI * (dot(abs(qW), vec2(0.5)) + length(qW) - 0.5 * modT));
 
   float modul = 1.0;
 
   const float edge = 0.3;
   const float thickness = 0.75;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, vec2(1))));
+  vec2 axis = vec2(0, 1);
+
+  axis *= rotMat2(PI * 0.25 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
+
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis)));
   color = vec3(n);
 
   const float cropEdge = 0.003;
