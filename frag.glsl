@@ -985,7 +985,6 @@ vec3 two_dimensional (in vec2 uv) {
   float cosT = TWO_PI / totalT * modT;
 
   const float cropD = 0.7;
-  const float edge = cropD * 0.5;
 
   vec2 q = uv;
 
@@ -994,42 +993,23 @@ vec3 two_dimensional (in vec2 uv) {
   qW += 0.050 * cos(3.0 * qW.yx + cosT);
   qW += 0.025 * cos(5.0 * qW.yx + cosT);
 
-  q = qW;
-  color += #FFFF00 * smoothstep(edge, 0., length(q) - cropD * 0.125);
-  q += 0.050 * cos(3.0 * q.yx + cosT);
-  q += 0.025 * cos(5.0 * q.yx + cosT);
-  q.x -= cropD * 0.5;
-  q *= rotMat2(PI * sin(cosT));
-  color += #00FFFF * smoothstep(edge, 0., length(q) - cropD * 0.125);
-  q = qW;
-  q += 0.050 * cos(7.0 * q.yx + cosT);
-  q += 0.025 * cos(2.0 * q.yx + cosT);
-  q.y += cropD * 0.5;
-  q.x += cropD * -0.5;
-  q *= rotMat2(PI * cos(cosT));
-  color += #FF00FF * smoothstep(edge, 0., length(q) - cropD * 0.125);
+  const float edge = 0.3;
+  const float thickness = 0.75;
+  vec2 axis = vec2(0, 1);
 
-  qW = uv;
-  qW += 0.10 * cos(7.0 * qW.yx + cosT);
-  qW += 0.05 * cos(13.0 * qW.yx + cosT);
-  color += #FF0000 * cnoise2(vec2(1, 3) * qW);
-  color += #00FF00 * cnoise2(vec2(1.5, 1.2) * qW + vec2(234., 683.2));
-  color += #0000FF * cnoise2(vec2(4.5, 0.2) * qW + vec2(34., -763.2));
+  axis *= rotMat2(PI * 0.25 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
 
-  color *= 0.8;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis)));
+  color.r = n;
+  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW + 0.005, axis)));
+  color.g = n;
+  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW + 0.010, axis)));
+  color.b = n;
 
   const float cropEdge = 0.003;
   q = uv;
   vec2 absQ = abs(q);
   color -= 10.0 * smoothstep(cropD, cropD + cropEdge, length(q));
-
-  q = uv;
-  float shadowR = 0.8 * cropD;
-  float outer = smoothstep(0., 0.1, length(q) - shadowR);
-  float inner = smoothstep(0.0, 0.1, length(q - 0.1) - shadowR * 0.99);
-  float shadow = 1. - saturate(max(outer, -inner));
-  // color = vec3(shadow);
-  color *= shadow;
 
   return color;
 }

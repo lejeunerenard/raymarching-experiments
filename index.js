@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'tasty-dreams-test1',
+    name: 'knead-test1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
