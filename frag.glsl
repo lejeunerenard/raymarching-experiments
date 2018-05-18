@@ -392,7 +392,7 @@ float fCorner (vec2 p) {
 
 // #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=3, kifsM=kifsM, trapCalc=trapCalc)
 // 
-// #pragma glslify: fold = require(./folds)
+#pragma glslify: fold = require(./folds)
 // #pragma glslify: foldNd = require(./foldNd)
 #pragma glslify: twist = require(./twist)
 
@@ -989,27 +989,26 @@ vec3 two_dimensional (in vec2 uv) {
   vec2 q = uv;
 
   vec2 qW = q;
-  qW += vec2(0.3, -0.1);
-  qW += 0.050 * cos(3.0 * qW.yx + cosT);
-  qW += 0.025 * cos(5.0 * qW.yx + cosT);
 
-  const float edge = 0.3;
-  const float thickness = 0.75;
-  vec2 axis = vec2(0, 1);
+  qW += 0.1000 * cos( 3.0 * qW.yx + cosT);
+  qW += 0.0500 * cos( 5.0 * qW.yx + cosT);
+  qW += 0.0250 * cos( 9.0 * qW.yx + cosT);
 
-  axis *= rotMat2(PI * 0.25 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
+  const float edge = 0.1;
+  const float thickness = 0.85;
+  vec3 axis = vec3(-1, 1, 1);
 
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis)));
-  color.r = n;
-  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW + 0.005, axis)));
-  color.g = n;
-  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW + 0.010, axis)));
-  color.b = n;
+  // axis *= rotationMatrix(normalize(vec3(1, 0, 1)), PI * 0.125 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
+
+  qW.y += 0.4;
+
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 19.0 * max(0.2, qW.y)));
+  color = vec3(n);
 
   const float cropEdge = 0.003;
   q = uv;
   vec2 absQ = abs(q);
-  color -= 10.0 * smoothstep(cropD, cropD + cropEdge, length(q));
+  color += 10.0 * smoothstep(cropD, cropD + cropEdge, length(q));
 
   return color;
 }
