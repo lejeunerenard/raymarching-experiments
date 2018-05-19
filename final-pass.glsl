@@ -36,12 +36,7 @@ void main() {
   vec4 bufferColor  = texture2D(buffer, uv);
   bufferColor.rgb = pow(bufferColor.rgb, gamma);
 
-  vec4 result = mix(vec4(background, 0.), baseColor, baseColor.a);
-  if (result.a < 0.01 && time > 0.2) {
-    discard;
-  } else {
-    result.a = 1.;
-  }
+  vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
 
   gl_FragColor = wet * bufferColor + result;
 
@@ -51,7 +46,8 @@ void main() {
   // Post process
   vec3 colorBefore = gl_FragColor.rgb;
   colorMap(gl_FragColor.rgb);
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 1.);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.8);
+  gl_FragColor.r = pow(gl_FragColor.r, 0.9);
 
   // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.85)); // Lighten
 

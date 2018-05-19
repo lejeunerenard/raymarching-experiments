@@ -213,7 +213,7 @@ export default class App {
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -536,9 +536,9 @@ export default class App {
 
     this.shader.bind()
 
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    // gl.clearColor(0, 0, 0, 0)
-    // gl.viewport(0, 0, dim[0], dim[1])
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    gl.clearColor(0, 0, 0, 0)
+    gl.viewport(0, 0, dim[0], dim[1])
 
     this.update(t)
     this.render(t)

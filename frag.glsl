@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 100.0
 #define fogMaxDistance 5.0
 
@@ -579,23 +579,23 @@ vec3 map (in vec3 p, in float dT) {
   float modTime = mod(time, totalT);
   float cosT = TWO_PI * modTime / totalT;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  q -= 0.1000 * cos( 7.0 * q.yzx + cosT );
-  q.xzy = twist(q, q.y * 5.0);
-  q += 0.1000 * cos( 7.0 * q.yzx + cosT );
-  q += 0.0750 * cos(13.0 * q.yzx + cosT );
-  q.xzy = twist(q, q.z * q.x);
-  // q += 0.0350 * cos(37.0 * q.yzx + cosT );
-
-  q.xz *= 0.8;
   mPos = q;
 
-  vec3 s = vec3(length(q) - 0.275, 0., 0.);
-  s.x -= 0.2 * cnoise3(4.0 * q.yzx);
-  d = dMin(d, s);
+  vec3 offset = vec3(0);
+  offset.x += 2.00 * cos(cosT);
+  offset.y += 0.50 * cos(2.0 * cosT);
+  offset.z += 0.25 * cos(5.0 * cosT);
+
+  vec3 cell = vec3(0.5 * cellular(8.0 * q.yzx + offset), 0., 0.);
+  cell.x -= 0.06;
+  d = dMin(d, cell);
+
+  vec3 crop = vec3(sdBox(q, vec3(0.3)), 0., 0.);
+  d = dMax(d, crop);
 
   d.x *= 0.1;
 
@@ -1014,7 +1014,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -1025,7 +1024,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = TWO_PI * mod(time, 10.0) * 0.1;
+    float gRAngle = TWO_PI * mod(time, 20.0) * 0.05;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
