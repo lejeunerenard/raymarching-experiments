@@ -988,32 +988,29 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  vec2 qW = q;
-
-  qW += 0.1000 * cos( 3.0 * qW.yx + cosT);
-  qW += 0.0500 * cos( 5.0 * qW.yx + cosT);
-  qW += 0.0250 * cos( 9.0 * qW.yx + cosT);
-
-  const float edge = 0.1;
+  const float edge = 0.01;
   const float thickness = 0.85;
-  vec3 axis = vec3(-1, 1, 1);
+  const float size = 0.25;
+  const float radius = size * 0.25;
 
-  // axis *= rotationMatrix(normalize(vec3(1, 0, 1)), PI * 0.125 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
+  vec2 c = pMod2(q, vec2(size));
 
-  qW.y += 0.4;
+  float l = length(c);
+  q.x -= radius * 0.4 * sin(cosT + PI * 0.4 * l);
+  q *= 1. + 0.125 * sin(cosT - PI * 0.5 * l + 0.1 + 0.5 * PI);
 
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 19.0 * max(0.2, qW.y)));
-  color = vec3(n);
+  color += 10.0 * smoothstep(radius, radius + edge, length(q));
 
-  const float cropEdge = 0.003;
-  q = uv;
-  vec2 absQ = abs(q);
-  color += 10.0 * smoothstep(cropD, cropD + cropEdge, length(q));
+  float cropDinC = 3.;
+
+  vec2 absC = abs(c);
+  color += 10.0 * step(cropDinC + 0.001, max(absC.x, absC.y));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1.);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
