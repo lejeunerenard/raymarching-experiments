@@ -980,7 +980,7 @@ float sqr (in vec2 uv, float r) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 4.0;
+  const float totalT = 5.0;
   float modT = mod(time, totalT);
   float cosT = TWO_PI / totalT * modT;
 
@@ -988,23 +988,50 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  const float edge = 0.01;
-  const float thickness = 0.85;
-  const float size = 0.25;
-  const float radius = size * 0.25;
+  vec2 qW = q;
+  qW += vec2(0.3, -0.1);
+  qW += 0.050 * cos(3.0 * qW.yx + cosT);
+  qW += 0.025 * cos(5.0 * qW.yx + cosT);
+  qW *= 1.075 * vfbmWarp(vec2(0.05) * qW);
 
-  vec2 c = pMod2(q, vec2(size));
+  const float edge = 0.2;
+  const float thickness = 0.5;
+  vec2 axis = vec2(0, 1);
 
-  float l = length(c);
-  q.x -= radius * 0.4 * sin(cosT + PI * 0.4 * l);
-  q *= 1. + 0.125 * sin(cosT - PI * 0.5 * l + 0.1 + 0.5 * PI);
+  axis *= rotMat2(PI * 0.0625 * sin(TWO_PI * (modT / totalT + 0.5 * dot(qW, vec2(1)))));
+  axis *= rotMat2(PI * 0.25 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
 
-  color += 10.0 * smoothstep(radius, radius + edge, length(q));
+  const float spread = 0.5;
+  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis)));
+  color.r = n;
+  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis) + 0.5 * spread));
+  color.g = n;
+  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis) + spread));
+  color.b = n;
 
-  float cropDinC = 3.;
+  q = uv;
+  const float cropEdge = 0.01;
+  // Triangle crop
+  const float triRadius = 0.75;
+  const vec2 point1 = vec2(0, triRadius * 1.414214);
+  const vec2 point2 = vec2(0.5 * triRadius, 0);
+  // Point 3 is created via horizontal mirror
+  q.x = abs(q.x);
 
-  vec2 absC = abs(c);
-  color += 10.0 * step(cropDinC + 0.001, max(absC.x, absC.y));
+  // Height adjustment (Number is tan(30º))
+  q.y += 0.5 * triRadius * 0.5773502692;
+  q.y += triRadius * 0.333333;
+
+  float m = 1.0; // Start w/ everything included
+  m *= smoothstep(point2.y - cropEdge, point2.y, q.y); // Bottom edge
+  vec2 midPoint = 0.5 * (point1 + point2);
+  float d = length(midPoint);
+
+  // Find Perpendicular vector pointing outward
+  vec2 midPointPerpendicular = vec2(0, 1) * rotMat2(-0.333333 * PI);
+
+  m *= smoothstep(d, d - cropEdge, dot(q, midPointPerpendicular));
+  color *= m;
 
   return color;
 }
