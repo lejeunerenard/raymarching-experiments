@@ -989,32 +989,31 @@ vec3 two_dimensional (in vec2 uv) {
   vec2 q = uv;
 
   vec2 qW = q;
-  qW += vec2(0.3, -0.1);
-  qW += 0.050 * cos(3.0 * qW.yx + cosT);
-  qW += 0.025 * cos(5.0 * qW.yx + cosT);
-  qW *= 1.075 * vfbmWarp(vec2(0.05) * qW);
 
-  const float edge = 0.2;
-  const float thickness = 0.5;
+  qW.y += 0.5 * modT / totalT;
+
+  float scale = modT / (0.9 * totalT);
+  scale = smoothstep(0., 0.4, scale);
+  const float maxScale = 1.0;
+
+  float thickness = 0.2;
+  float edge = 0.01;
+  float mul = 36.0;
   vec2 axis = vec2(0, 1);
 
-  axis *= rotMat2(PI * 0.0625 * sin(TWO_PI * (modT / totalT + 0.5 * dot(qW, vec2(1)))));
-  axis *= rotMat2(PI * 0.25 * sin(TWO_PI * (modT / totalT - 0.5 * length(qW))));
-
   const float spread = 0.5;
-  float n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis)));
-  color.r = n;
-  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis) + 0.5 * spread));
-  color.g = n;
-  n = smoothstep(thickness, thickness + edge, sin(TWO_PI * 24.0 * dot(qW, axis) + spread));
-  color.b = n;
+  float i = mod(mul * dot(qW, axis), 2.0);
+  float n =
+      smoothstep(1. - thickness - edge, 1. - thickness, i)
+    - smoothstep(1. + thickness, 1. + thickness + edge, i);
+  color = vec3(n);
 
   q = uv;
-  const float cropEdge = 0.01;
+  float cropEdge = 0.01;
   // Triangle crop
-  const float triRadius = 0.75;
-  const vec2 point1 = vec2(0, triRadius * 1.414214);
-  const vec2 point2 = vec2(0.5 * triRadius, 0);
+  float triRadius = 0.75;
+  vec2 point1 = vec2(0, triRadius * 1.414214);
+  vec2 point2 = vec2(0.5 * triRadius, 0);
   // Point 3 is created via horizontal mirror
   q.x = abs(q.x);
 
