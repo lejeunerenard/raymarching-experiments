@@ -27,9 +27,8 @@ vec2 voronoi(in vec2 x, in float time) {
       vec2 offset = hash(p + b + time);
       offset = 0.5 + 0.5 * cos( time + TWO_PI * offset );
       vec2 r = vec2(b) - f + offset;
-      // float d = dot( r, r );
+      float d = dot( r, r );
       // float d = dot( abs(r), vec2(1) );
-      float d = max( abs(r.x), abs(r.y) );
       // float d = min( abs(r.x), abs(r.y) );
 
       if (d < res.x) {
