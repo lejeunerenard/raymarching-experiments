@@ -988,58 +988,34 @@ vec3 two_dimensional (in vec2 uv) {
   float cosT = TWO_PI / totalT * modT;
 
   const float cropD = 0.7;
+  const float cropEdge = 0.005;
   const float edge = 0.01;
+  const float thickness = 0.4;
 
   vec2 q = uv;
 
-  // open pane
-  vec2 absQ = abs(q);
+  float r = length(q);
+  float a = atan(q.y, q.x);
+  const float angleThickness = 0.1;
+  a = mix(a, -a, step(angleThickness, sin(PI * 4. * r)));
+  a -= cosT;
 
-  const int totalLayers = 4;
-  vec3 colors[totalLayers];
-  colors[0] = pow(#FFA491, vec3(2.2));
-  colors[1] = pow(#CC312D, vec3(2.2));
-  colors[2] = pow(#52FFED, vec3(2.2));
-  colors[3] = pow(#2D87CC, vec3(2.2));
+  float spread = 0.0025 + 0.0025 * sin(cosT);
+  float n = smoothstep(thickness, thickness + edge, sin(PI * 24. * (0.5 * a / PI + r)));
+  color.r = n;
+  n = smoothstep(thickness, thickness + edge, sin(PI * 24. * (0.5 * a / PI + r + spread)));
+  color.g = n;
+  n = smoothstep(thickness, thickness + edge, sin(PI * 24. * (0.5 * a / PI + r + 2.0 * spread)));
+  color.b = n;
 
-  color = colors[0];
+  q = uv;
 
-  for (int i = 3; i >= 0; i --) {
-    float layerIndex = float(i) / float(totalLayers);
-    float startTime = layerIndex * totalT;
-    float localT = smoothstep(startTime, startTime + totalT / float(totalLayers), modT);
-    float open = -0.3 + 1.5 * expo(localT);
+  float crop = 1. - smoothstep(cropD, cropD + cropEdge, r);
+  color *= crop;
 
-    float d = absQ.x;
-
-    d += 0.1 * cnoise2(q + 2.0 * layerIndex); // Edge ripples
-    d += 0.2 * smoothstep(0.3, 0.81, cnoise2(18. * q + 2.0 * layerIndex)); // Specs left behind
-
-    // Voronoi bridges
-    vec2 vQ = q; 
-    vQ.x *= (1. + 0.25 * (1. - smoothstep(0.1, 0.5, saturate(open)) + 0.1 * absQ.x));
-    // vQ.x *= saturate(0.1 + smoothstep(open - 0.1, open, absQ.x));
-    vQ.y *= 1.0 + 2.0 * sin(PI * vQ.y);
-
-    vec2 v = voronoi(3.0 * vQ + 0.5 + 3.0 * layerIndex);
-    vec2 v2 = voronoi(0.2 * vQ + vec2(12., 2.3) * layerIndex);
-    d += 0.6 * smoothstep(0.4, 1.0, v.x * v2.x);
-    d -= 0.15 * localT;
-    open += 0.2 * saturate(1. - 2. * q.x);
-
-    // vec2 v = voronoi(3.0 * q);
-    // float limit = smoothstep(0., 0.5, modT - v.y);
-    // d -= smoothstep(limit, limit + edge, 1.2 * v.x);
-
-    float m = saturate(elastic(smoothstep(open - edge, open, d)));
-    vec3 layerColor = colors[i] * vec3(m);
-
-    float br = smoothstep(0.1, 0.11, length(layerColor));
-
-    color = mix(color, layerColor, br);
-  }
-
-  // color *= 0.7;
+  vec3 backgroundColor = mix(#060606, #020202, smoothstep(cropD, 1.2, r));
+  backgroundColor = mix(#020202, backgroundColor, -crop + 1.);
+  color = mix(backgroundColor, color, max(color.r, max(color.g, color.b)));
 
   return color;
 }
