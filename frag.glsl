@@ -994,25 +994,42 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  float r = length(q);
-  float a = atan(q.y, q.x);
+  q += 0.05000 * cos( 4. * q.yx + cosT);
+  q += 0.02500 * cos( 8. * q.yx + cosT);
+
+  q.x = abs(q.x);
+
+  q += 0.01250 * cos(12. * q.yx + cosT);
+  q += 0.00625 * cos(17. * q.yx + cosT);
+
+  q *= rotMat2(0.5 * q.y);
+
   const float angleThickness = 0.1;
-  a = mix(a, -a, step(angleThickness, sin(PI * 4. * r)));
-  a -= cosT;
+
+  vec3 axis = vec3(0, 1, 0);
+
+  axis *= rotationMatrix(normalize(vec3(0,1, 0.5)), cosT + q.x);
+
+  axis *= rotationMatrix(normalize(vec3(2, 0.2, 1.2)), cosT - length(q));
+
+  axis *= rotationMatrix(normalize(vec3(0, 1, 3)), cosT - max(q.x, q.y));
 
   float spread = 0.0025 + 0.0025 * sin(cosT);
-  float n = smoothstep(thickness, thickness + edge, sin(PI * 24. * (0.5 * a / PI + r)));
-  color.r = n;
-  n = smoothstep(thickness, thickness + edge, sin(PI * 24. * (0.5 * a / PI + r + spread)));
-  color.g = n;
-  n = smoothstep(thickness, thickness + edge, sin(PI * 24. * (0.5 * a / PI + r + 2.0 * spread)));
-  color.b = n;
+  float n = smoothstep(thickness, thickness + edge, sin(PI * 77. * (dot(q, axis.xy))));
+  color = vec3(n);
 
   q = uv;
 
-  float crop = 1. - smoothstep(cropD, cropD + cropEdge, r);
+  q *= vec2(1, 2);
+
+  vec2 absQ = abs(q);
+
+  float crop = 1. - smoothstep(cropD, cropD + cropEdge, max(absQ.x, absQ.y));
   color *= crop;
 
+  q = uv;
+  float r = length(q);
+  r += 0.1 * cnoise2(q);
   vec3 backgroundColor = mix(#060606, #020202, smoothstep(cropD, 1.2, r));
   backgroundColor = mix(#020202, backgroundColor, -crop + 1.);
   color = mix(backgroundColor, color, max(color.r, max(color.g, color.b)));
