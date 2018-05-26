@@ -989,38 +989,32 @@ vec3 two_dimensional (in vec2 uv) {
 
   const float cropD = 0.7;
   const float cropEdge = 0.005;
-  const float edge = 0.01;
+  const float edge = 0.1;
   const float thickness = 0.4;
 
   vec2 q = uv;
 
   q += 0.05000 * cos( 4. * q.yx + cosT);
   q += 0.02500 * cos( 8. * q.yx + cosT);
-
-  q.x = abs(q.x);
-
   q += 0.01250 * cos(12. * q.yx + cosT);
-  q += 0.00625 * cos(17. * q.yx + cosT);
 
-  q *= rotMat2(0.5 * q.y);
+  q *= mix(1., 1.525, 0.5 + 0.5 * sin(cosT - 5.0 * length(uv)));
 
   const float angleThickness = 0.1;
 
   vec3 axis = vec3(0, 1, 0);
 
-  axis *= rotationMatrix(normalize(vec3(0,1, 0.5)), cosT + q.x);
-
-  axis *= rotationMatrix(normalize(vec3(2, 0.2, 1.2)), cosT - length(q));
-
-  axis *= rotationMatrix(normalize(vec3(0, 1, 3)), cosT - max(q.x, q.y));
+  // axis *= rotationMatrix(normalize(vec3(2, 0.2, 1.2)), sin(cosT) - length(q));
+  // axis *= rotationMatrix(normalize(vec3(0, 0, 1)), 0.25 * sin(cosT) - 0.5 * q.y);
 
   float spread = 0.0025 + 0.0025 * sin(cosT);
-  float n = smoothstep(thickness, thickness + edge, sin(PI * 77. * (dot(q, axis.xy))));
+  float n = smoothstep(thickness, thickness + edge, sin(PI * 47. * (dot(q, axis.xy))));
+
   color = vec3(n);
 
-  q = uv;
+  q = uv; // cropQ;
 
-  q *= vec2(1, 2);
+  // q *= vec2(1, 2);
 
   vec2 absQ = abs(q);
 
@@ -1030,9 +1024,19 @@ vec3 two_dimensional (in vec2 uv) {
   q = uv;
   float r = length(q);
   r += 0.1 * cnoise2(q);
+
+  // -- Background --
   vec3 backgroundColor = mix(#060606, #020202, smoothstep(cropD, 1.2, r));
-  backgroundColor = mix(#020202, backgroundColor, -crop + 1.);
-  color = mix(backgroundColor, color, max(color.r, max(color.g, color.b)));
+  // backgroundColor = mix(#020202, backgroundColor, -crop + 1.);
+
+  // Counter Lines
+  const float patternStart = 0.9;
+  const float patternEnd = 1.0;
+  backgroundColor += 0.25 * smoothstep(patternStart, patternEnd, sin(195. * dot(q, vec2(1))))
+    * smoothstep(patternStart, patternEnd, sin(195. * dot(q, vec2(-1, 1))));
+  color = mix(backgroundColor, color, crop);
+
+  // Line Overlay
 
   return color;
 }
