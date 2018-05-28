@@ -983,34 +983,34 @@ const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
-const float edge = 0.001;
+const float edge = 0.0025;
 const float thickness = 0.4;
 
 vec4 linez (in vec2 uv) {
   vec2 q = uv;
 
-  // q += 0.4000 * cos( 3.2 * q.yx + cosT);
+  // q += 0.4000 * cos( 3.0 * q.yx + cosT);
   // q += 0.2000 * cos( 5.0 * q.yx + cosT);
-  // q += 0.1000 * cos( 7.0 * q.yx + 2.0 * cosT);
-  // q += 0.0500 * cos(13.0 * q.yx + 3.0 * cosT);
+  q += 0.1000 * cos( 7.0 * q.yx + cosT);
+  q += 0.0500 * cos(13.0 * q.yx + cosT);
 
-  q.x += 0.4 * q.y;
   const float baseHeight = 0.35;
-  const float size = 0.05;
+  const float size = 0.025;
   const float halfsize = 0.5 * size;
 
   float c = floor((q.x + halfsize) / size);
   q.x = mod(q.x + halfsize, size) - halfsize;
   q.y -= 0.3 * cnoise2(vec2(c, sin(cosT + c)));
   q.y -= 0.2 * sin(7.0 * cosT + 0.3 * c);
-  q.y -= 0.8 * cnoise2(vec2(3.2 * c, 0.0));
+  q.y -= 0.1 * cnoise2(vec2(c, sin(cosT + c)));
 
   const float border = 0.2 * size;
   float v = smoothstep(halfsize - border, halfsize - border - edge, abs(q.x));
-  v *= smoothstep(baseHeight + edge, baseHeight, abs(q.y));
+  // v *= smoothstep(baseHeight + edge, baseHeight, abs(q.y));
+
   vec4 color = vec4(vec3(v), 1.);
-  color *= smoothstep(baseHeight + edge + border, baseHeight + border, abs(q.y));
-  color *= 1. - step(17., abs(c));
+  // color *= smoothstep(baseHeight + edge + border, baseHeight + border, abs(q.y));
+  // color *= 1. - step(17., abs(c));
 
   return color;
 }
@@ -1038,12 +1038,14 @@ vec3 sine_wavez (in vec2 uv) {
 vec4 two_dimensional (in vec2 uv) {
   vec4 color = vec4(vec3(0.01), 1.);
 
-  color.rgb += sine_wavez(uv);
+  // color.rgb += sine_wavez(uv);
 
-  vec4 c1 = linez(uv);
-  color.rgb = mix(color.rgb, c1.rgb, c1.a);
+  // vec4 c1 = linez(uv);
+  // color.rgb = mix(color.rgb, c1.rgb, c1.a);
   // vec4 c2 = linez(uv + 0.5 + vec2(0.01, 0));
   // color.rgb = mix(color.rgb, c2.rgb, c2.a);
+
+  color = linez(uv);
 
   return color;
 }
