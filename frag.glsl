@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 2048
 #define maxDistance 100.0
 #define fogMaxDistance 5.0
 
@@ -53,6 +53,12 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
+const float totalT = 8.0;
+float modT = mod(time, totalT);
+float norT = modT / totalT;
+float cosT = TWO_PI / totalT * modT;
+const float edge = 0.0025;
+const float thickness = 0.4;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -577,29 +583,31 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float totalT = 20.0;
-  float modTime = mod(time, totalT);
-  float cosT = TWO_PI * modTime / totalT;
-
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
+  // q = abs(q);
+
+  q.xyz = twist(q.xzy, 2.0 * q.z);
+  // q += 0.100 * cos( 3.0 * q.yzx  + cosT);
+  // q += 0.050 * cos( 7.0 * q.yzx  + cosT);
+  // q += 0.025 * cos(17.0 * q.yzx  + cosT);
+
+  float a = atan(q.y, q.x);
+  float phi = atan(q.y, q.z); //  - PI * 0.25;
+  float r = length(q);
+
+  q = vec3(a, r, phi);
+
+  q.z -= norT;
   mPos = q;
+  pMod1(q.z, 0.2);
 
-  vec3 offset = vec3(0);
-  offset.x += 2.00 * cos(cosT);
-  offset.y += 0.50 * cos(2.0 * cosT);
-  offset.z += 0.25 * cos(5.0 * cosT);
+  vec3 b = vec3(sdBox(q + vec3(0, 0.1, 0), vec3(TWO_PI, 0.65, 0.01)), 0., 0.);
+  d = dMin(d, b);
 
-  vec3 cell = vec3(0.5 * cellular(8.0 * q.yzx + offset), 0., 0.);
-  cell.x -= 0.06;
-  d = dMin(d, cell);
-
-  vec3 crop = vec3(sdBox(q, vec3(0.3)), 0., 0.);
-  d = dMax(d, crop);
-
-  d.x *= 0.1;
+  d *= 0.25;
 
   return d;
 }
@@ -776,7 +784,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
+
+  // float n = smoothstep(0.5, 0.51, sin(15.0 * mPos.z));
+  // color = vec3(n);
+
+  color += 0.5 + 0.5 * cos(TWO_PI * (cnoise3(pos) + abs(0.25 * pos) + norT + nor + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -848,7 +861,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
+      float freCo = 0.8;
       float specCo = 0.7;
       float disperCo = 0.5;
 
@@ -861,7 +874,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float sha = max(0.0, softshadow(pos, normalize(lightPos), 0.01, 4.75));
+        float sha = max(0.5, softshadow(pos, normalize(lightPos), 0.01, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -873,7 +886,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.3 * amb * diffuseColor;
+        lin += 0.5 * amb * diffuseColor;
 
         float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
@@ -900,8 +913,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color += reflectColor * isMaterialSmooth(t.y, 0.);
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 0.3 * dispersionColor;
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      color += 0.3 * dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.3)); // Get more range in values
 
@@ -979,13 +992,6 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
-const float totalT = 8.0;
-float modT = mod(time, totalT);
-float norT = modT / totalT;
-float cosT = TWO_PI / totalT * modT;
-const float edge = 0.0025;
-const float thickness = 0.4;
-
 vec4 linez (in vec2 uv) {
   vec2 q = uv;
 
@@ -1051,8 +1057,6 @@ vec4 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return two_dimensional(uv);
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
