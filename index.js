@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'nacre-render1',
+    name: 'end-of-the-tunnel-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
