@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'end-of-the-tunnel-render1',
+    name: 'divergence-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

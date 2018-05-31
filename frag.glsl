@@ -57,8 +57,8 @@ const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
-const float edge = 0.0025;
-const float thickness = 0.4;
+const float edge = 0.3;
+const float thickness = 0.75;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -986,48 +986,33 @@ float sqr (in vec2 uv, float r) {
 vec4 linez (in vec2 uv) {
   vec2 q = uv;
 
-  // q += 0.4000 * cos( 3.0 * q.yx + cosT);
-  // q += 0.2000 * cos( 5.0 * q.yx + cosT);
-  q += 0.1000 * cos( 7.0 * q.yx + cosT);
-  q += 0.0500 * cos(13.0 * q.yx + cosT);
+  // Interior Square
+  const float sqrR = 0.5;
+  // q *= rotMat2(cosT);
+  vec2 absUv = abs(q);
+  float sD = max(absUv.x, absUv.y);
+  float s = smoothstep(sqrR + 0.35 * edge, sqrR, sD);
 
   const float baseHeight = 0.35;
-  const float size = 0.025;
+  const float size = 0.5;
   const float halfsize = 0.5 * size;
 
+  q = uv;
+  q += 0.1000 * cos( 7.0 * q.yx + cosT);
+  q += 0.0500 * cos(13.0 * q.yx + cosT);
   float c = floor((q.x + halfsize) / size);
-  q.x = mod(q.x + halfsize, size) - halfsize;
-  q.y -= 0.3 * cnoise2(vec2(c, sin(cosT + c)));
-  q.y -= 0.2 * sin(7.0 * cosT + 0.3 * c);
-  q.y -= 0.1 * cnoise2(vec2(c, sin(cosT + c)));
+  q.y -= 0.4 * vfbm4(vec2(c, sin(cosT + c)));
+  q.y -= 0.2 * sin(9.0 * cosT + 0.6 * c);
+  q.y -= 0.1 * vfbm4(vec2(8.0 * c, sin(cosT + c)));
 
-  const float border = 0.2 * size;
-  float v = smoothstep(halfsize - border, halfsize - border - edge, abs(q.x));
-  // v *= smoothstep(baseHeight + edge, baseHeight, abs(q.y));
+  const float border = 0.35 * size;
+  const float spread = 0.011;
+  const float freq = 50.0;
+  float vR = smoothstep(thickness, thickness + edge, sin(freq * PI * q.x));
+  float vG = smoothstep(thickness, thickness + edge, sin(freq * PI * (q.x + spread * s)));
+  float vB = smoothstep(thickness, thickness + edge, sin(freq * PI * (q.x + 2.0 * spread * s)));
 
-  vec4 color = vec4(vec3(v), 1.);
-  // color *= smoothstep(baseHeight + edge + border, baseHeight + border, abs(q.y));
-  // color *= 1. - step(17., abs(c));
-
-  return color;
-}
-
-vec3 sine_wavez (in vec2 uv) {
-  vec3 color = vec3(0);
-
-  vec2 q = uv;
-  q.y += 0.40 * sin(1.0 * q.x * PI + cosT);
-  q.y += 0.20 * sin(3.0 * q.x * PI + cosT);
-  q.y += 0.10 * sin(5.0 * q.x * PI + cosT);
-
-  const float size = 0.05;
-  const float halfsize = 0.5 * size;
-  float r = floor((q.y - halfsize) / size);
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (cnoise2(vec2(r, time)) + 0.41 * r + vec3(0., 0.2, 0.3)));
-  // color = hsv(vec3(q.y, 1., 1.));
-  float v = smoothstep(0.4, 0.44, cnoise2(vec2(0.1, 73.0) * q + time));
-  color *= v;
+  vec4 color = vec4(vR, vG, vB, 1.);
 
   return color;
 }
@@ -1035,19 +1020,13 @@ vec3 sine_wavez (in vec2 uv) {
 vec4 two_dimensional (in vec2 uv) {
   vec4 color = vec4(vec3(0.01), 1.);
 
-  // color.rgb += sine_wavez(uv);
-
-  // vec4 c1 = linez(uv);
-  // color.rgb = mix(color.rgb, c1.rgb, c1.a);
-  // vec4 c2 = linez(uv + 0.5 + vec2(0.01, 0));
-  // color.rgb = mix(color.rgb, c2.rgb, c2.a);
-
   color = linez(uv);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return two_dimensional(uv);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
