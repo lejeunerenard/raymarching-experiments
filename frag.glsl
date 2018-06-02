@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 84
+#define maxSteps 1024
 #define maxDistance 100.0
 #define fogMaxDistance 20.0
 
@@ -587,19 +587,19 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q += 0.100 * cos( 5.0 * q.yzx + cosT);
-  q += 0.050 * cos( 7.0 * q.yzx + cosT);
-  q += 0.025 * cos(13.0 * q.yzx + cosT);
+  q += 0.07500 * cos( 5.0 * q.yzx + cosT);
+  q += 0.03000 * cos( 7.0 * q.yzx + cosT);
+  q += 0.01500 * cos(13.0 * q.yzx + cosT);
+  q += 0.00800 * cos(23.0 * q.yzx + cosT);
+  q += 0.00400 * cos(29.0 * q.yzx + cosT);
 
-  q.xzy = twist(q, 2.0 * q.y);
+  q.xzy = twist(q, 7.1 * q.y);
+
   mPos = q;
-  float angle = atan(q.z, q.x) + PI;
-  float rMod = sin(20.0 * angle);
-  float r = 0.2 + 0.0125 * rMod;
-  vec3 t = vec3(sdCapsule(q, vec3(0, -1, 0), vec3(0, 1, 0), r), 0., rMod);
+  vec3 t = vec3(sdBox(q, vec3(0.5)), 0., 0.);
   d = dMin(d, t);
 
-  d.x *= 0.3;
+  d.x *= 0.2;
 
   return d;
 }
@@ -776,15 +776,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.85);
-  color *= 0.2 + 0.8 * smoothstep(-0.2, 0.8, trap);
+  vec3 color = vec3(background * 0.8);
 
-  // pos.xy *= 1.0 + 0.5 * sin(cosT + 0.3 * pos.z);
-  // float i = -8.0 * cosT + dot(pos, vec3(10));
-  // float n = smoothstep(0.1, 0.11, sin(i));
-  // color = vec3(n);
-  // // float n = 0.5 + 0.5 * sin(i);
-  // color = 0.5 + 0.5 * cos(TWO_PI * (n + vec3(0, 0.0250, 0.050 )));
+  color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dot(nor, rd) + vec3(0, 0.33, 0.67))));
+  color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67))));
+
+  color *= 0.6;
 
   return color;
 }
@@ -831,8 +828,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      float bumpsScale = 0.9;
-      float bumpIntensity = 0.0;
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.05;
       // nor += bumpIntensity * vec3(
       //     cnoise3(bumpsScale * 490.0 * pos),
       //     cnoise3(bumpsScale * 670.0 * pos + 234.634),
@@ -856,9 +853,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.7;
-      float disperCo = 0.5;
+      float freCo = 1.0;
+      float specCo = 0.25;
 
       float specAll = 0.0;
 
@@ -870,7 +866,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         float sha = max(0.3, softshadow(pos, normalize(lightPos), 0.01, 4.75));
-        dif *= sha;
+        // dif *= sha;
 
         vec3 lin = vec3(0.);
 
@@ -904,14 +900,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 0.3 * dispersionColor;
-      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // color = pow(color, vec3(1.3)); // Get more range in values
+      color += 0.3 * dispersionColor;
+      // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      // color = pow(color, vec3(0.8));
 
       // Fog
       float d = max(0.0, t.x);
