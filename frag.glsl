@@ -983,49 +983,39 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
-vec4 linez (in vec2 uv) {
-  vec2 q = uv;
+vec3 two_dimensional (in vec2 uv) {
+  vec3 color = vec3(0.01);
 
-  // Interior Square
-  const float sqrR = 0.5;
-  // q *= rotMat2(cosT);
-  vec2 absUv = abs(q);
-  float sD = max(absUv.x, absUv.y);
-  float s = smoothstep(sqrR + 0.35 * edge, sqrR, sD);
+  uv *= 0.9;
+  uv.x = abs(uv.x);
 
-  const float baseHeight = 0.35;
-  const float size = 0.5;
-  const float halfsize = 0.5 * size;
+  uv += 0.0500 * cos( 4.0 * uv.yx  + cosT);
+  uv += 0.0350 * cos( 7.0 * uv.yx  + cosT);
+  uv += 0.0225 * cos(13.0 * uv.yx  + cosT);
 
-  q = uv;
-  q += 0.1000 * cos( 7.0 * q.yx + cosT);
-  q += 0.0500 * cos(13.0 * q.yx + cosT);
-  float c = floor((q.x + halfsize) / size);
-  q.y -= 0.4 * vfbm4(vec2(c, sin(cosT + c)));
-  q.y -= 0.2 * sin(9.0 * cosT + 0.6 * c);
-  q.y -= 0.1 * vfbm4(vec2(8.0 * c, sin(cosT + c)));
+  vec3 glowColor = 0.5 + 0.5 * cos(TWO_PI * (2.0 * norT + vec3(0, 0.33, 0.67)));
 
-  const float border = 0.35 * size;
-  const float spread = 0.011;
-  const float freq = 50.0;
-  float vR = smoothstep(thickness, thickness + edge, sin(freq * PI * q.x));
-  float vG = smoothstep(thickness, thickness + edge, sin(freq * PI * (q.x + spread * s)));
-  float vB = smoothstep(thickness, thickness + edge, sin(freq * PI * (q.x + 2.0 * spread * s)));
+  const float thickness = 0.5;
+  const float edge = 0.01;
 
-  vec4 color = vec4(vR, vG, vB, 1.);
+  float diagI = dot(uv, vec2(1));
+  float rate = 20.0;
+  rate *= 1. + 0.05 * sin(TWO_PI * (norT + diagI));
 
-  return color;
-}
+  float i = sin(rate * PI * diagI);
+  float innerGlowI = smoothstep(thickness + 0.5 * (1. - thickness), 1., i);
+  innerGlowI = sqrt(innerGlowI);
+  glowColor = mix(glowColor, vec3(1), innerGlowI);
+  float n = smoothstep(thickness, thickness + edge, i);
 
-vec4 two_dimensional (in vec2 uv) {
-  vec4 color = vec4(vec3(0.01), 1.);
-
-  color = linez(uv);
+  color = mix(color, glowColor, n);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1.);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

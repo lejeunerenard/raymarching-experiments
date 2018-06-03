@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'liquid-sunrise-render1',
+    name: 'संतुलन-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
