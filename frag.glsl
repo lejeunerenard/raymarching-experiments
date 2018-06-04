@@ -984,37 +984,36 @@ float sqr (in vec2 uv, float r) {
 }
 
 vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(0.01);
+  vec3 color = vec3(0.0);
 
-  uv *= 0.9;
-  uv.x = abs(uv.x);
+  const float thickness = 0.01;
+  const float period = 2.0 * thickness;
 
-  uv += 0.0500 * cos( 4.0 * uv.yx  + cosT);
-  uv += 0.0350 * cos( 7.0 * uv.yx  + cosT);
-  uv += 0.0225 * cos(13.0 * uv.yx  + cosT);
+  vec2 q = uv;
 
-  vec3 glowColor = 0.5 + 0.5 * cos(TWO_PI * (2.0 * norT + vec3(0, 0.33, 0.67)));
+  q *= 1. + 0.2 * sin(cosT - 4.0 * length(uv));
 
-  const float thickness = 0.5;
-  const float edge = 0.01;
+  float c = floor( q.x / period );
+  float n = smoothstep(0., thickness, sin(TWO_PI * q.x / period));
 
-  float diagI = dot(uv, vec2(1));
-  float rate = 20.0;
-  rate *= 1. + 0.05 * sin(TWO_PI * (norT + diagI));
+  float maskLength = 0.3 + 0.5 * nsin(1.413 * c + norT);
+  float maskOffset = 0.3 * sin(1.5 * c + 1.323) * sin(1.823 * c + 0.12394);
+  n *= smoothstep(maskLength, maskLength - 0.005, abs(q.y - maskOffset));
 
-  float i = sin(rate * PI * diagI);
-  float innerGlowI = smoothstep(thickness + 0.5 * (1. - thickness), 1., i);
-  innerGlowI = sqrt(innerGlowI);
-  glowColor = mix(glowColor, vec3(1), innerGlowI);
-  float n = smoothstep(thickness, thickness + edge, i);
-
-  color = mix(color, glowColor, n);
+  color = vec3(n);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1.);
+  vec3 color = vec3(0);
+
+  vec2 spread = 0.01 * length(uv) * uv;
+  color.r = two_dimensional(uv + 0.0 * spread).x;
+  color.g = two_dimensional(uv + 1.0 * spread).x;
+  color.b = two_dimensional(uv + 2.0 * spread).x;
+
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
