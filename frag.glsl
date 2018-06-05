@@ -57,7 +57,7 @@ const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
-const float edge = 0.3;
+const float edge = 0.001;
 const float thickness = 0.75;
 
 // Utils
@@ -986,21 +986,30 @@ float sqr (in vec2 uv, float r) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0.0);
 
-  const float thickness = 0.01;
+  const float thickness = 0.025;
   const float period = 2.0 * thickness;
 
   vec2 q = uv;
 
-  q *= 1. + 0.2 * sin(cosT - 4.0 * length(uv));
+  q.x += 0.16 * sin(cosT + 3.0 * q.y);
 
-  float c = floor( q.x / period );
-  float n = smoothstep(0., thickness, sin(TWO_PI * q.x / period));
+  q += 0.0500 * cos( 5. * q.yx + cosT);
+  q += 0.0250 * cos( 7. * q.yx + cosT);
+  q += 0.0125 * cos(13. * q.yx + cosT);
 
-  float maskLength = 0.3 + 0.5 * nsin(1.413 * c + norT);
-  float maskOffset = 0.3 * sin(1.5 * c + 1.323) * sin(1.823 * c + 0.12394);
-  n *= smoothstep(maskLength, maskLength - 0.005, abs(q.y - maskOffset));
+  q *= 1. + 0.1 * sin(cosT - 4.0 * length(uv));
 
-  color = vec3(n);
+  float n = smoothstep(0.7, 0.85, sin(TWO_PI * q.x / period));
+
+  float sqrR = 0.65 + 0.02 * sin(cosT);
+  vec2 absUV = abs(uv);
+  n *= smoothstep(sqrR + edge, sqrR, max(absUV.x, absUV.y));
+  float circR = sqrR * 0.5;
+  // circR *= circR;
+  n *= smoothstep(circR, circR + edge, length(uv));
+  n += smoothstep(sqrR * 0.15 + edge, sqrR * 0.15, max(absUV.x, absUV.y));
+
+  color = vec3(1. - n);
 
   return color;
 }
@@ -1009,9 +1018,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
   vec2 spread = 0.01 * length(uv) * uv;
-  color.r = two_dimensional(uv + 0.0 * spread).x;
-  color.g = two_dimensional(uv + 1.0 * spread).x;
-  color.b = two_dimensional(uv + 2.0 * spread).x;
+  color = two_dimensional(uv + 0.0 * spread);
 
   return vec4(color, 1);
 
