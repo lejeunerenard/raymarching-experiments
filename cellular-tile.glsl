@@ -24,7 +24,7 @@ float drawSphere(in vec3 p){
     // return dot(p, vec3(.5));
 
     // p = abs(fract(p)-.5);
-    return max(max(p.x, p.y), p.z);
+    // return max(max(p.x, p.y), p.z);
 
     // p = cos(p*3.14159)*0.5; 
     // p = abs(cos(p*3.14159)*0.5);
