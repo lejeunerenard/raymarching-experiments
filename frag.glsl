@@ -587,7 +587,10 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  opCheapBend(q, clamp(-0.5 * q.z + 0.5, 0., PI * 0.25));
+  q += 0.05000 * cos( 4.0 * q.yzx + cosT);
+  q += 0.02500 * cos( 7.0 * q.yzx + cosT);
+  q += 0.01250 * cos(11.0 * q.yzx + cosT);
+  q += 0.00625 * cos(13.0 * q.yzx + cosT);
 
   mPos = q;
   vec3 t = vec3(sdBox(q, vec3(20, 0.5, 20)), 0., 0.);
@@ -773,6 +776,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
+  // color = 0.5 + 0.5 * cos( TWO_PI * (norT + 0.3 * pos + vec3(0, 0.33, 0.67)) );
   color *= smoothstep(0.2, 0.4, sin(TWO_PI * (25.0 * mPos.z + 3.0 * norT)));
 
   return color;
