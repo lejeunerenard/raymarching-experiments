@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'changing-landscapes-render1',
+    name: 'cosmic-seas-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

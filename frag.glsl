@@ -587,14 +587,13 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q += 0.05000 * cos( 4.0 * q.yzx + cosT);
-  q += 0.02500 * cos( 7.0 * q.yzx + cosT);
-  q += 0.01250 * cos(11.0 * q.yzx + cosT);
-  q += 0.00625 * cos(13.0 * q.yzx + cosT);
+  q += 0.050000 * cos( 3.1 * q.yzx + cosT);
+  q += 0.025000 * cos( 7.1 * q.yzx + cosT);
+  q += 0.012500 * cos(13.1 * q.yzx + cosT);
+  q += 0.006250 * cos(17.1 * q.yzx + cosT);
 
   mPos = q;
   vec3 t = vec3(sdBox(q, vec3(20, 0.5, 20)), 0., 0.);
-  t.x -= 0.4 * cellular(0.7 * q);
   d = dMin(d, t);
 
   d.x *= 0.2;
@@ -776,8 +775,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  // color = 0.5 + 0.5 * cos( TWO_PI * (norT + 0.3 * pos + vec3(0, 0.33, 0.67)) );
-  color *= smoothstep(0.2, 0.4, sin(TWO_PI * (25.0 * mPos.z + 3.0 * norT)));
+  float i = norT;
+  color = 0.5 + 0.5 * cos( TWO_PI * (cnoise3(0.25 * pos) + dot(nor, -rd) + i + 0.4 * pos + vec3(0, 0.33, 0.67)) );
+  color *= smoothstep(0.2, 0.4, sin(TWO_PI * (19.0 * mPos.z + 3.0 * norT)));
 
   return color;
 }
