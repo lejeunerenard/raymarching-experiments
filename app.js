@@ -209,7 +209,7 @@ export default class App {
 
     this.d = preset.d
     const dist = 1
-    this.cameraRo = vec3.fromValues(1, 1.75, dist)
+    this.cameraRo = vec3.fromValues(dist, dist, dist)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
