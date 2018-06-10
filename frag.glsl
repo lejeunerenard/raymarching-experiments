@@ -583,46 +583,61 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
 
-  const float unit = 0.35;
+  const float unit = 0.2;
   const float border = 0.075 * unit;
   const float move = unit + border;
 
   vec3 q = p;
 
+  q += 2.0 * 0.0500000 * cos( 5.0 * q.yzx + cosT);
+  q += 2.0 * 0.0250000 * cos( 7.0 * q.yzx + cosT);
+  q += 2.0 * 0.0125000 * cos(11.0 * q.yzx + cosT);
+  q += 2.0 * 0.0062500 * cos(13.0 * q.yzx + cosT);
+  q += 2.0 * 0.0031250 * cos(17.0 * q.yzx + cosT);
+  q += 2.0 * 0.0015630 * cos(23.0 * q.yzx + cosT);
+  q += 2.0 * 0.0007815 * cos(29.0 * q.yzx + cosT);
+
   vec3 c = floor((q + move * 0.5) / move);
   float i = dot(c, vec3(1));
 
-  q = rotationMatrix(vec3(1, 0.2, 0.6), 0.005) * q;
-  q += 0.0062500 * cos(2.1 * q.yzx + cosT + i * PI * 0.75);
-  q += 0.0031250 * cos(3.1 * q.yzx + cosT + i * PI * 0.75);
-  q += 0.0015630 * cos(5.1 * q.yzx + cosT + i * PI * 0.75);
+  vec3 colSize = vec3(unit, 60., unit);
 
   mPos = q;
-  vec3 t = vec3(sdBox(q, vec3(0.5 * unit)), 0., 0.);
+  vec3 pos = vec3(0);
+  vec3 t = vec3(sdBox(q - pos, colSize), 0., 0.);
   d = dMin(d, t);
 
-  float moveT = 0.; // circ(saturate(norT * 4.0));
-  vec3 pos = mix(vec3(move, -move, 0), vec3(2. * move, -move, 0), moveT);
-  t = vec3(sdBox(q - pos, vec3(0.5 * unit)), 0., 0.);
+  pos = vec3(2.5 * unit, 0, 0);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
   d = dMin(d, t);
 
-  moveT = 0.; // circ(saturate(norT * 4.0 - 0.25));
-  pos = mix(vec3(-move, 0, 0), vec3(-3. * move, 0, 0), moveT);
-  t = vec3(sdBox(q - pos, vec3(0.5 * unit)), 0., 0.);
+  pos = vec3(-2.5 * unit, 0, 0);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
   d = dMin(d, t);
 
-  moveT = 0.; // circ(saturate(norT * 4.0 - 0.5));
-  pos = mix(vec3(0, 0, -move), vec3(0, 2.0 * move, -move), moveT);
-  t = vec3(sdBox(q - pos, vec3(0.5 * unit)), 0., 0.);
+  pos = vec3(0, 0, 3.0 * unit);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
   d = dMin(d, t);
 
-  t = vec3(sdBox(q - vec3(0, -move, move), vec3(0.5 * unit)), 0., 0.);
+  pos = vec3(2. * unit, 0, -3.0 * unit);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
   d = dMin(d, t);
 
-  t = vec3(sdBox(q - vec3(-move, move, -move), vec3(0.5 * unit)), 0., 0.);
+  pos = vec3(-4. * unit, 0, -3.5 * unit);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
   d = dMin(d, t);
+
+  pos = vec3(3. * unit, 0, 2.5 * unit);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
+  d = dMin(d, t);
+
+  pos = vec3(-2. * unit, 0, 2.5 * unit);
+  t = vec3(sdBox(q - pos, colSize), 0., 0.);
+  d = dMin(d, t);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -802,10 +817,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(1);
 
   float i = norT;
-  // color = 0.5 + 0.5 * cos( TWO_PI * (cnoise3(0.25 * pos) + dot(nor, -rd) + i + 0.4 * pos + vec3(0, 0.33, 0.67)) );
-  color *= smoothstep(0.2, 0.4, sin(TWO_PI * (19.0 * mPos.x + 3.0 * norT)));
-
-  // color *= saturate(1. - dot(nor, vec3(0, 0, 1)));
+  color *= smoothstep(0.2, 0.4, sin(TWO_PI * (19.0 * dot(mPos, vec3(1)) + 8.0 * norT)));
 
   return color;
 }
@@ -1049,7 +1061,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = TWO_PI * mod(time, 20.0) * 0.05;
+    float gRAngle = TWO_PI * mod(time, totalT * 2.0) / (2.0 * totalT);
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
