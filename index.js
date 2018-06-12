@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'gentle-render1',
+    name: 'look-into-my-eyes-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -591,14 +591,14 @@ vec3 map (in vec3 p, in float dT) {
   float r = length(q.xy);
 
   q.x = a;
-  q.y = r - 0.5;
+  q.y = r - (0.3 + 0.05 * sin(cosT));
 
-  q *= rotationMatrix(vec3(1, 0, 0), 1.5 * a + cosT);
+  q *= rotationMatrix(vec3(1, 0, 0), 0.5 * a + cosT);
 
   vec3 t = vec3(sdBox(q, vec3(TWO_PI, 0.15, 0.15)), 0., 0.);
   d = dMin(d, t);
 
-  d.x *= 0.9;
+  d.x *= 0.8;
 
   return d;
 }
@@ -775,10 +775,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.25 * background);
-
-  float mI = dot(nor, -rd);
-  color += 0.5 + 0.5 * cos(TWO_PI * (nor + 0.5 * nor.yzx + 0.3333 * nor.zxy));
+  vec3 color = vec3(0);
+  color = vec3(smoothstep(-0.1, 0.1, sin(6. * cosT)));
 
   return color;
 }
@@ -893,21 +891,21 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 0.5 * dispersionColor;
+      // color += 0.5 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.1));
+      // color = pow(color, vec3(1.1));
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       // color += directLighting * exp(-d * 0.0005);
 

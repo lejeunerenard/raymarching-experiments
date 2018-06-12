@@ -279,6 +279,8 @@ export default class App {
     this.state = [
       createFBO(gl, dim, { depth: false }),
       createFBO(gl, dim, { depth: false }),
+      createFBO(gl, dim, { depth: false }),
+      createFBO(gl, dim, { depth: false }),
       createFBO(gl, dim, { depth: false }) ]
 
     this.state[0].color.magFilter = gl.LINEAR
@@ -287,6 +289,10 @@ export default class App {
     this.state[1].color.minFilter = gl.LINEAR
     this.state[2].color.magFilter = gl.LINEAR
     this.state[2].color.minFilter = gl.LINEAR
+    this.state[3].color.magFilter = gl.LINEAR
+    this.state[3].color.minFilter = gl.LINEAR
+    this.state[4].color.magFilter = gl.LINEAR
+    this.state[4].color.minFilter = gl.LINEAR
   }
 
   setupAnimation (preset) {
@@ -476,6 +482,7 @@ export default class App {
     this.bloom = createShader(gl, glslify('./vert.glsl'), glslify('./bloom.glsl'))
     this.finalPass = createShader(gl, glslify('./vert.glsl'), glslify('./final-pass.glsl'))
 
+    this.currentState = 1
     this.setupFBOs(gl)
 
     this.shader.attributes.position.location = 0
@@ -527,6 +534,8 @@ export default class App {
     this.state[0].shape = dim
     this.state[1].shape = dim
     this.state[2].shape = dim
+    this.state[3].shape = dim
+    this.state[4].shape = dim
   }
 
   tick (t) {
@@ -536,9 +545,9 @@ export default class App {
 
     this.shader.bind()
 
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    gl.clearColor(0, 0, 0, 0)
-    gl.viewport(0, 0, dim[0], dim[1])
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    // gl.clearColor(0, 0, 0, 0)
+    // gl.viewport(0, 0, dim[0], dim[1])
 
     this.update(t)
     this.render(t)
@@ -638,13 +647,19 @@ export default class App {
     }
 
     // Additive blending
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    this.currentState = (this.currentState) ? 0 : 1
+    this.state[3 + this.currentState].bind()
     this.finalPass.bind()
     this.finalPass.uniforms.base = this.state[0].color[0].bind(3)
     this.finalPass.uniforms.buffer = this.state[1].color[0].bind(4)
+    this.finalPass.uniforms.prevBuffer = this.state[3 + ((this.currentState + 1) % 2)].color[0].bind(5)
     this.finalPass.uniforms.resolution = dim
     this.finalPass.uniforms.time = this.getTime(t)
     this.finalPass.uniforms.wet = BLOOM_WET
+    drawTriangle(gl)
+
+    // Render again as framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     drawTriangle(gl)
   }
 
