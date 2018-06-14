@@ -42,21 +42,24 @@ void main() {
   vec4 bufferColor  = texture2D(buffer, uv);
   bufferColor.rgb = pow(bufferColor.rgb, gamma);
 
-  vec2 coord = 2.0 * (uv - 0.5);
-  coord *= 0.995;
-  // coord += 0.005 * vec2(sin(2.0 * cosT), cos(cosT + 0.5 * PI));
-  // coord.y += 0.01 * sin(PI * coord.x);
-  coord = coord * 0.5 + 0.5;
+  vec2 coord = uv; // 2.0 * (uv - 0.5);
+  coord.y += 0.001;
+
+  // coord *= 0.995;
+  // coord = coord * 0.5 + 0.5;
+
   vec4 prevBufferColor = texture2D(prevBuffer, coord);
   prevBufferColor.rgb = pow(prevBufferColor.rgb, gamma);
 
   // Fade
   // prevBufferColor.a *= 0.9975;
-  // prevBufferColor.a *= step(0.001, prevBufferColor.a);
+  // prevBufferColor.a *= smoothstep(0., 0.001, prevBufferColor.a);
 
-  vec4 result = mix(prevBufferColor, baseColor, baseColor.a);
+  vec4 result = mix(vec4(prevBufferColor.rgb, 1), baseColor, baseColor.a);
 
   gl_FragColor = wet * bufferColor + result;
+  // gl_FragColor.rgb = vec3(abs(coord), 0);
+  // gl_FragColor.a = 1.;
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
   // gl_FragColor = vec4(background + result.rgb, 1.);

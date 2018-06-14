@@ -974,38 +974,41 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
-vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(0.0);
+float two_dimensional (in vec2 uv) {
+  float color = 1.;
 
   const float thickness = 0.0125;
   const float period = 2.0 * thickness;
 
   vec2 q = uv;
 
-  q += 0.050000 * cos( 4. * q.yx + cosT);
-  q += 0.025000 * cos( 7. * q.yx + cosT);
-  q += 0.025000 * noise(7. * q.yx);
-  q += 0.012500 * cos(11. * q.yx + cosT);
-  q += 0.006250 * cos(17. * q.yx + cosT);
-  q += 0.003125 * noise(21. * q.yx);
+  q.y -= 0.45;
 
-  float n = smoothstep(0.65, 0.975, sin(TWO_PI * q.x / period));
+  q += 0.50000 * (0.2 + 0.1 * sin(cosT)) * cos( 3. * q.yx + cosT);
+  q += 0.25000 * (0.2 + 0.1 * sin(cosT)) * cos( 7. * q.yx + cosT);
+  q += 0.12500 * (0.2 + 0.1 * sin(cosT)) * cos(13. * q.yx + cosT);
+  q += 0.06250 * (0.2 + 0.1 * sin(cosT)) * cos(17. * q.yx + cosT);
+  q += 0.03125 * (0.2 + 0.1 * sin(cosT)) * cos(23. * q.yx + cosT);
 
-  float sqrR = 0.70;
-  vec2 absUV = abs(uv);
-  n *= smoothstep(sqrR + edge, sqrR, max(absUV.x, absUV.y));
+  q.y += (0.2 + 0.1 * sin(cosT)) * cos( 7. * q.x + cosT);
+  // q.y += (0.2 + 0.1 * sin(cosT + q.y)) * cos(11. * q.x + cosT);
 
-  color = vec3(1. - n);
+  color *= smoothstep(0.01, 0., q.y);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
+  vec4 color = vec4(vec3(0), 1.);
 
-  color = two_dimensional(uv);
+  float spreadAmount = 0.075 + 0.0025 * cos(2.0 * cosT);
+  color.rb += two_dimensional(uv + vec2(0. * spreadAmount));
+  color.rg += two_dimensional(uv + vec2(1. * spreadAmount));
+  color.gb += two_dimensional(uv + vec2(2. * spreadAmount));
+  color.rgb *= vec3(uv.y, abs(uv.x), nsin(dot(abs(uv), vec2(1)) + 1.0 * norT));
+  color.a = 1. - two_dimensional(uv + vec2(3.1 * spreadAmount));
 
-  return vec4(color, 1);
+  return color;
 
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
