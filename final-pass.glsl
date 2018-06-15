@@ -55,11 +55,10 @@ void main() {
   // prevBufferColor.a *= 0.9975;
   // prevBufferColor.a *= smoothstep(0., 0.001, prevBufferColor.a);
 
-  vec4 result = mix(vec4(prevBufferColor.rgb, 1), baseColor, baseColor.a);
+  vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
+  // vec4 result = mix(vec4(prevBufferColor.rgb, 1), baseColor, baseColor.a);
 
   gl_FragColor = wet * bufferColor + result;
-  // gl_FragColor.rgb = vec3(abs(coord), 0);
-  // gl_FragColor.a = 1.;
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
   // gl_FragColor = vec4(background + result.rgb, 1.);

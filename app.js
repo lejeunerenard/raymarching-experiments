@@ -24,8 +24,8 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1
-const BLOOM_PASSES = 2
+const BLOOM_WET = 0
+const BLOOM_PASSES = 0
 const BLOOM_MIN_BRIGHTNESS = 1.0
 
 // Initialize shell
@@ -656,7 +656,7 @@ export default class App {
     this.finalPass.uniforms.resolution = dim
     this.finalPass.uniforms.time = this.getTime(t)
     this.finalPass.uniforms.wet = BLOOM_WET
-    drawTriangle(gl)
+    // drawTriangle(gl)
 
     // Render again as framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
