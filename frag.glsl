@@ -980,23 +980,31 @@ vec3 two_dimensional (in vec2 uv) {
   const float thickness = 0.0125;
   const float period = 2.0 * thickness;
 
-  vec2 q = 1.4 * uv;
+  vec2 q = 3.4 * uv;
 
-  q += 0.20000 * cos(1.1 * q.yx + cosT);
-  q += 0.20000 * vfbm4(1.3 * q.yx);
-  q += 0.10000 * cos(2.3 * q.yx + cosT);
-  q += 0.07500 * vfbm4(2.5 * q.yx);
-  q += 0.05000 * cos(2.9 * q.yx + cosT);
-  q += 0.04000 * vfbm4(3.0 * q.yx);
-  q += 0.02500 * cos(3.1 * q.yx + cosT);
-  q += 0.01250 * cos(3.7 * q.yx + cosT);
-  q += 0.00625 * cos(3.9 * q.yx + cosT);
+  vec2 lookup = vec2(1, 0) * rotMat2(cosT);
+  mat2 incRot = rotMat2(0.1 + 0.02 * q.x);
 
-  color = vec3(smoothstep(0.2, 0., sin(dot(q, vec2(110)))));
+  q *= 1. + 0.15 * sin(cosT - length(q));
+  q += 0.30000 * cos(1.1 * q.yx + cosT);
+  q += 0.10000 * vfbm4(1.3 * q.yx + lookup);
+  q *= incRot;
+  q += 0.15000 * cos(1.5 * q.yx + cosT);
+  q *= incRot;
+  q += 0.07500 * cos(2.5 * q.yx);
+  q *= incRot;
+  q += 0.05500 * cos(3.1 * q.yx + cosT);
+  q *= incRot;
+  q += 0.04000 * vfbm4(3.0 * q.yx + lookup);
 
-  const float sqrR = 0.575;
-  vec2 absUV = abs(uv);
-  color *= smoothstep(sqrR + 0.001, sqrR, max(absUV.x, absUV.y));
+  float i = sin(dot(q, vec2(50)));
+  color = vec3(smoothstep(0.2, 0., i));
+  color *= 0.5 + 0.5 * cos(TWO_PI * (dot(q, vec2(0.9)) + vec3(0, 0.33, 0.67)));
+  color = mix(color, vec3(1), smoothstep(0.0, -0.2, i));
+
+  // const float sqrR = 0.575;
+  // vec2 absUV = abs(uv);
+  // color *= smoothstep(sqrR + 0.001, sqrR, max(absUV.x, absUV.y));
 
   return color;
 }
