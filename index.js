@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'gaze-pass-this-reality-render1',
+    name: 'min-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

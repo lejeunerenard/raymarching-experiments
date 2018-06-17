@@ -980,31 +980,40 @@ vec3 two_dimensional (in vec2 uv) {
   const float thickness = 0.0125;
   const float period = 2.0 * thickness;
 
-  vec2 q = 3.4 * uv;
+  vec2 q = uv;
 
-  vec2 lookup = vec2(1, 0) * rotMat2(cosT);
-  mat2 incRot = rotMat2(0.1 + 0.02 * q.x);
+  // vec2 qW = q;
 
-  q *= 1. + 0.15 * sin(cosT - length(q));
-  q += 0.30000 * cos(1.1 * q.yx + cosT);
-  q += 0.10000 * vfbm4(1.3 * q.yx + lookup);
-  q *= incRot;
-  q += 0.15000 * cos(1.5 * q.yx + cosT);
-  q *= incRot;
-  q += 0.07500 * cos(2.5 * q.yx);
-  q *= incRot;
-  q += 0.05500 * cos(3.1 * q.yx + cosT);
-  q *= incRot;
-  q += 0.04000 * vfbm4(3.0 * q.yx + lookup);
+  // qW += 0.1000 * cos( 3.0 * qW.yx + cosT);
+  // qW += 0.0500 * cos( 7.0 * qW.yx + cosT);
+  // qW += 0.0250 * cos(13.0 * qW.yx + cosT);
 
-  float i = sin(dot(q, vec2(50)));
-  color = vec3(smoothstep(0.2, 0., i));
-  color *= 0.5 + 0.5 * cos(TWO_PI * (dot(q, vec2(0.9)) + vec3(0, 0.33, 0.67)));
-  color = mix(color, vec3(1), smoothstep(0.0, -0.2, i));
+  float outer = 0.6; // + 0.1 * sin(dot(qW + cosT, vec2(1)));
+  float inner = 0.945 * outer;
+  float l = length(q);
+  float a = atan(q.y, q.x);
 
-  // const float sqrR = 0.575;
-  // vec2 absUV = abs(uv);
-  // color *= smoothstep(sqrR + 0.001, sqrR, max(absUV.x, absUV.y));
+  // Diagonal bar
+  color =
+    vec3(
+      smoothstep(0., edge, abs(dot(q, vec2(-1, 1))) - 0.01)
+    + smoothstep(0., edge, abs(dot(q, vec2(1))) - 2. * outer));  // Cap Mask
+
+  // White cut out
+  float whiteBufferThickness = outer * 0.06;
+  color +=
+    vec3(
+      smoothstep(edge, 0., l - (outer + whiteBufferThickness))    // Outer edge
+    * smoothstep(0., edge, l - (inner - whiteBufferThickness)));  // Inner Edge
+
+  // Flatten / Remove overexposed
+  color = saturate(color);
+
+  // Wave Ring
+  float rMod = (outer - inner) * 0.5 * (-0.5 + 0.5 * sin(20.0 * a - cosT));
+  color -= 
+      smoothstep(edge, 0., l - outer - smoothstep(0., 0.9, sin(a + 2.0 * cosT)) * rMod)
+    * smoothstep(0., edge, l - inner - smoothstep(0., 0.9, sin(a + 2.0 * cosT)) * rMod);
 
   return color;
 }
