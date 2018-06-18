@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -39,9 +39,9 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 100.0
-#define fogMaxDistance 20.0
+#define fogMaxDistance 70.0
 
 #define slowTime time * 0.2
 // v3
@@ -587,15 +587,13 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float a = atan(q.y, q.x);
-  float r = length(q.xy);
+  q.x += 0.5 * sin(q.z + cosT);
+  q *= rotationMatrix(normalize(vec3(1, 1, 0)), -0.1 * sin(q.z + cosT));
+  q.y += 0.25 * sin(2.0 * q.z + cosT + 0.5);
 
-  q.x = a;
-  q.y = r - (0.3 + 0.05 * sin(cosT));
+  q = mix(q, p, smoothstep(0.5, 2.0, q.z));
 
-  q *= rotationMatrix(vec3(1, 0, 0), 0.5 * a + cosT);
-
-  vec3 t = vec3(sdBox(q, vec3(TWO_PI, 0.15, 0.15)), 0., 0.);
+  vec3 t = vec3(0.7 - length(q.xy), 0., 0.);
   d = dMin(d, t);
 
   d.x *= 0.8;
@@ -776,7 +774,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
-  color = vec3(smoothstep(-0.1, 0.1, sin(6. * cosT)));
+  const float start = 0.7;
+  float i = smoothstep(start, start + 0.01, sin(PI * 8.0 * pos.z - 8.0 * cosT));
+  color = mix(#0000FF, #FF0000, i);
 
   return color;
 }
@@ -848,8 +848,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -908,6 +908,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color *= exp(-d * 0.005);
 
       // color += directLighting * exp(-d * 0.0005);
+
+      color = diffuseColor;
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -1019,13 +1021,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 color = vec4(vec3(0), 1.);
-
-  // float spreadAmount = 0.075 + 0.0025 * cos(2.0 * cosT);
-  color.rgb = two_dimensional(uv);
-
-  return color;
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
