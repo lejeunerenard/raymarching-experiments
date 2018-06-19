@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'continuous-enhancement-render1',
+    name: 'sub-one-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

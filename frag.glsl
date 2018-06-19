@@ -976,51 +976,56 @@ float sqr (in vec2 uv, float r) {
   return l - r;
 }
 
+vec2 hash( vec2 p  ) {
+  p = vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));
+  return fract(sin(p)*18.5453);
+}
+
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(1.);
 
   const float thickness = 0.0125;
   const float period = 2.0 * thickness;
 
-  vec2 q = uv;
+  vec2 q = 5.0 * uv;
 
-  // vec2 qW = q;
+  const vec2 size = vec2(0.3);
+  vec2 c = floor(q / size);
 
-  // qW += 0.1000 * cos( 3.0 * qW.yx + cosT);
-  // qW += 0.0500 * cos( 7.0 * qW.yx + cosT);
-  // qW += 0.0250 * cos(13.0 * qW.yx + cosT);
+  float dist = 100.; // Distance
+  vec2 finalC = vec2(0);
 
-  float outer = 0.6; // + 0.1 * sin(dot(qW + cosT, vec2(1)));
-  float inner = 0.945 * outer;
-  float l = length(q);
-  float a = atan(q.y, q.x);
+  vec2 p = floor(q);
+  vec2 f = fract(q);
 
-  // Diagonal bar
-  color =
-    vec3(
-      smoothstep(0., edge, abs(dot(q, vec2(-1, 1))) - 0.01)
-    + smoothstep(0., edge, abs(dot(q, vec2(1))) - 2. * outer));  // Cap Mask
+  for (int j=-1; j<=1; j++) {
+    for (int i=-1; i<=1; i++) {
+      vec2 b = vec2(i, j);
+      vec2 offset = hash(p + b + 0.00005 * vec2(sin(cosT), cos(2.0 * cosT - 0.2)));
+      offset = 0.5 + 0.5 * cos( TWO_PI * offset );
+      vec2 r = vec2(b) - f + offset;
+      // float d = length(r);
+      float d = dot( r, r );
+      // float d = dot( abs(r), vec2(1) );
+      // float d = min( abs(r.x), abs(r.y) );
 
-  // White cut out
-  float whiteBufferThickness = outer * 0.06;
-  color +=
-    vec3(
-      smoothstep(edge, 0., l - (outer + whiteBufferThickness))    // Outer edge
-    * smoothstep(0., edge, l - (inner - whiteBufferThickness)));  // Inner Edge
+      if (d < dist) {
+        dist = d;
+        finalC = offset;
+      }
+    }
+  }
 
-  // Flatten / Remove overexposed
-  color = saturate(color);
-
-  // Wave Ring
-  float rMod = (outer - inner) * 0.5 * (-0.5 + 0.5 * sin(20.0 * a - cosT));
-  color -= 
-      smoothstep(edge, 0., l - outer - smoothstep(0., 0.9, sin(a + 2.0 * cosT)) * rMod)
-    * smoothstep(0., edge, l - inner - smoothstep(0., 0.9, sin(a + 2.0 * cosT)) * rMod);
+  float l = dist; // sqrt(dist);
+  color = vec3(smoothstep(0.0, 0.05, sin(61. * l)));
+  // float rZone = smoothstep(-0.4, -0.39, sin(41. * l)); // floor(l / (size.x * 0.15));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (0.1 * rZone + dot(finalC, vec2(2)) + vec3(0, 0.33, 0.67)));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1.);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
