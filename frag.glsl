@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1004,10 +1004,12 @@ vec3 two_dimensional (in vec2 uv) {
       vec2 offset = hash(p + b + 0.00005 * vec2(sin(cosT), cos(2.0 * cosT - 0.2)));
       offset = 0.5 + 0.5 * cos( TWO_PI * offset );
       vec2 r = vec2(b) - f + offset;
-      // float d = length(r);
-      float d = dot( r, r );
-      // float d = dot( abs(r), vec2(1) );
+      float dC = length(r);
+      // float d = dot( r, r );
+      float dT = dot( abs(r), vec2(1) );
       // float d = min( abs(r.x), abs(r.y) );
+
+      float d = mix(dC, dT, nsin(norT));
 
       if (d < dist) {
         dist = d;
@@ -1017,7 +1019,12 @@ vec3 two_dimensional (in vec2 uv) {
   }
 
   float l = dist; // sqrt(dist);
-  color = vec3(smoothstep(0.0, 0.05, sin(61. * l)));
+  float i = smoothstep(-1.0, 1., sin(61. * l));
+  const float chunk = 0.1;
+  i = floor(i / chunk) * chunk;
+  i *= 0.35;
+  color = 0.5 + 0.5 * cos(TWO_PI * (i + vec3(0, 0.33, 0.67)));
+
   // float rZone = smoothstep(-0.4, -0.39, sin(41. * l)); // floor(l / (size.x * 0.15));
   // color = 0.5 + 0.5 * cos(TWO_PI * (0.1 * rZone + dot(finalC, vec2(2)) + vec3(0, 0.33, 0.67)));
 
