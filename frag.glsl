@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 16.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -987,7 +987,7 @@ vec3 two_dimensional (in vec2 uv) {
   const float thickness = 0.0125;
   const float period = 2.0 * thickness;
 
-  vec2 q = 5.0 * uv;
+  vec2 q = 4.0 * uv;
 
   const vec2 size = vec2(0.3);
   vec2 c = floor(q / size);
@@ -998,18 +998,21 @@ vec3 two_dimensional (in vec2 uv) {
   vec2 p = floor(q);
   vec2 f = fract(q);
 
+  const float transitionStart = totalT * 0.5;
+
   for (int j=-1; j<=1; j++) {
     for (int i=-1; i<=1; i++) {
       vec2 b = vec2(i, j);
-      vec2 offset = hash(p + b + 0.00005 * vec2(sin(cosT), cos(2.0 * cosT - 0.2)));
+      vec2 offset1 = hash(p + b + 0.00001 * modT);
+      vec2 offset2 = hash(p + b + 0.00001 * (modT - totalT));
+      vec2 offset = mix(offset1, offset2, saturate((modT - transitionStart) / (totalT - transitionStart)));
+
       offset = 0.5 + 0.5 * cos( TWO_PI * offset );
       vec2 r = vec2(b) - f + offset;
-      float dC = length(r);
+      // float d = length(r);
       // float d = dot( r, r );
-      float dT = dot( abs(r), vec2(1) );
+      float d = dot( abs(r), vec2(1) );
       // float d = min( abs(r.x), abs(r.y) );
-
-      float d = mix(dC, dT, nsin(norT));
 
       if (d < dist) {
         dist = d;
@@ -1019,11 +1022,9 @@ vec3 two_dimensional (in vec2 uv) {
   }
 
   float l = dist; // sqrt(dist);
-  float i = smoothstep(-1.0, 1., sin(61. * l));
-  const float chunk = 0.1;
-  i = floor(i / chunk) * chunk;
-  i *= 0.35;
-  color = 0.5 + 0.5 * cos(TWO_PI * (i + vec3(0, 0.33, 0.67)));
+  float i = smoothstep(0.0, 0.1, sin(61. * l));
+  color = vec3(i);
+  // color = 0.5 + 0.5 * cos(TWO_PI * (i + vec3(0, 0.33, 0.67)));
 
   // float rZone = smoothstep(-0.4, -0.39, sin(41. * l)); // floor(l / (size.x * 0.15));
   // color = 0.5 + 0.5 * cos(TWO_PI * (0.1 * rZone + dot(finalC, vec2(2)) + vec3(0, 0.33, 0.67)));
