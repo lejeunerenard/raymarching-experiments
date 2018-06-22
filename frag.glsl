@@ -984,50 +984,29 @@ vec2 hash( vec2 p  ) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(1.);
 
-  const float thickness = 0.0125;
-  const float period = 2.0 * thickness;
+  const float period = 50.;
 
-  vec2 q = 4.0 * uv;
+  vec2 q = uv;
 
-  const vec2 size = vec2(0.3);
-  vec2 c = floor(q / size);
+  vec3 r;
+  vec3 s;
+  q += 0.20000 * vfbmWarp(vec3(q, 0), r, s);
+  q += 0.05000 * cos(3. * q.yx + r.xy + cosT);
+  q += 0.02500 * cos(7. * q.yx + s.xy + cosT);
 
-  float dist = 100.; // Distance
-  vec2 finalC = vec2(0);
+  float n = smoothstep(0., 0. + edge, sin(PI * period * dot(q, vec2(1))));
+  color = vec3(n);
 
-  vec2 p = floor(q);
-  vec2 f = fract(q);
+  const float sqrR = 0.5;
+  const float sqrR2 = sqrR * 0.8;
+  vec2 absUV = abs(uv);
+  float mask = smoothstep(0., 0. + edge, max(absUV.x, absUV.y) - sqrR)
+    + (1. - smoothstep(0., 0. + edge, max(absUV.x, absUV.y) - sqrR2));
 
-  const float transitionStart = totalT * 0.5;
+  q = uv;
+  float n2 = smoothstep(0., 0. + edge, sin(PI * period * dot(q, vec2(1))));
 
-  for (int j=-1; j<=1; j++) {
-    for (int i=-1; i<=1; i++) {
-      vec2 b = vec2(i, j);
-      vec2 offset1 = hash(p + b + 0.00001 * modT);
-      vec2 offset2 = hash(p + b + 0.00001 * (modT - totalT));
-      vec2 offset = mix(offset1, offset2, saturate((modT - transitionStart) / (totalT - transitionStart)));
-
-      offset = 0.5 + 0.5 * cos( TWO_PI * offset );
-      vec2 r = vec2(b) - f + offset;
-      // float d = length(r);
-      // float d = dot( r, r );
-      float d = dot( abs(r), vec2(1) );
-      // float d = min( abs(r.x), abs(r.y) );
-
-      if (d < dist) {
-        dist = d;
-        finalC = offset;
-      }
-    }
-  }
-
-  float l = dist; // sqrt(dist);
-  float i = smoothstep(0.0, 0.1, sin(61. * l));
-  color = vec3(i);
-  // color = 0.5 + 0.5 * cos(TWO_PI * (i + vec3(0, 0.33, 0.67)));
-
-  // float rZone = smoothstep(-0.4, -0.39, sin(41. * l)); // floor(l / (size.x * 0.15));
-  // color = 0.5 + 0.5 * cos(TWO_PI * (0.1 * rZone + dot(finalC, vec2(2)) + vec3(0, 0.33, 0.67)));
+  color = mix(color, vec3(n2), (1. - mask));
 
   return color;
 }
