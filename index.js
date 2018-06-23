@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'immovable-render1',
+    name: 'espiranzy-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -587,13 +587,12 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q.x += 0.5 * sin(q.z + cosT);
-  q *= rotationMatrix(normalize(vec3(1, 1, 0)), -0.1 * sin(q.z + cosT));
-  q.y += 0.25 * sin(2.0 * q.z + cosT + 0.5);
+  q += 0.0500 * sin(3. * q.yzx + cosT);
+  q += 0.0250 * sin(5. * q.yzx + cosT);
 
   q = mix(q, p, smoothstep(0.5, 2.0, q.z));
 
-  vec3 t = vec3(0.7 - length(q.xy), 0., 0.);
+  vec3 t = vec3(-sdTorus(q, vec2(1.5, 1.)), 0., 0.);
   d = dMin(d, t);
 
   d.x *= 0.8;
@@ -775,8 +774,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
   const float start = 0.7;
-  float i = smoothstep(start, start + 0.01, sin(PI * 8.0 * pos.z - 8.0 * cosT));
-  color = mix(#0000FF, #FF0000, i);
+
+  float phi = atan(pos.x, pos.z) + pos.y;
+
+  float i = smoothstep(start, start + 0.01, sin(20.0 * phi - 8.0 * cosT));
+  color = mix(pow(#CC4B8B, vec3(2.2)), pow(#5FEBFF, vec3(2.2)), i);
 
   return color;
 }
@@ -848,7 +850,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.5;
       float specCo = 0.0;
 
       float specAll = 0.0;
@@ -1012,7 +1014,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1.);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
