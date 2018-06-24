@@ -587,12 +587,12 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q += 0.0500 * sin(3. * q.yzx + cosT);
-  q += 0.0250 * sin(5. * q.yzx + cosT);
+  q += 0.05000 * sin( 3. * q.yzx + cosT);
+  q += 0.02500 * sin( 5. * q.yzx + cosT);
+  // q += 0.01250 * sin( 7. * q.yzx + cosT);
+  // q += 0.00625 * sin(11. * q.yzx + cosT);
 
-  q = mix(q, p, smoothstep(0.5, 2.0, q.z));
-
-  vec3 t = vec3(-sdTorus(q, vec2(1.5, 1.)), 0., 0.);
+  vec3 t = vec3(0.5 - length(q.xy), 0., 0.);
   d = dMin(d, t);
 
   d.x *= 0.8;
@@ -775,10 +775,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0);
   const float start = 0.7;
 
-  float phi = atan(pos.x, pos.z) + pos.y;
-
-  float i = smoothstep(start, start + 0.01, sin(20.0 * phi - 8.0 * cosT));
-  color = mix(pow(#CC4B8B, vec3(2.2)), pow(#5FEBFF, vec3(2.2)), i);
+  float i = smoothstep(start, start + 0.01, sin(20.0 * pos.z - 8.0 * cosT - 1.0 * sin(4.0 * cosT + 1.5 * pos.z)));
+  i *= smoothstep(5.01, 5., -pos.z);
+  color = mix(pow(#000000, vec3(2.2)), pow(#FFFFFF, vec3(2.2)), i);
 
   return color;
 }
