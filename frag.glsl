@@ -587,15 +587,14 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q += 0.05000 * sin( 3. * q.yzx + cosT);
-  q += 0.02500 * sin( 5. * q.yzx + cosT);
-  // q += 0.01250 * sin( 7. * q.yzx + cosT);
-  // q += 0.00625 * sin(11. * q.yzx + cosT);
+  q += 0.1000 * cos( 4.0 * q.yzx + cosT);
+  q += 0.0500 * cos( 7.0 * q.yzx + cosT);
+  q.xzy = twist(q, 4. * q.y);
+  q += 0.0250 * cos(11.0 * q.yzx + cosT);
+  q += 0.0125 * cos(13.0 * q.yzx + cosT);
 
-  vec3 t = vec3(0.5 - length(q.xy), 0., 0.);
-  d = dMin(d, t);
-
-  d.x *= 0.8;
+  vec3 s = vec3(length(q) - 1.0, 0., 0.);
+  d = dMin(d, s);
 
   return d;
 }
@@ -773,11 +772,18 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
-  const float start = 0.7;
 
-  float i = smoothstep(start, start + 0.01, sin(20.0 * pos.z - 8.0 * cosT - 1.0 * sin(4.0 * cosT + 1.5 * pos.z)));
-  i *= smoothstep(5.01, 5., -pos.z);
-  color = mix(pow(#000000, vec3(2.2)), pow(#FFFFFF, vec3(2.2)), i);
+  const float period = 17.0;
+  const float size = 0.2;
+  const float edge = 0.01;
+  float d1 = sin(PI * dot(pos, vec3(period)));
+  vec3 pattern1 = vec3(smoothstep(size, size + edge, d1));
+
+  float d2 = sin(PI * dot(pos, vec3(-period, period, period)));
+  vec3 pattern2 = vec3(smoothstep(size, size + edge, d1 * d2));
+
+  vec3 pattern3 = vec3(smoothstep(size, size + edge, d1 * d2 * sin(PI * dot(pos, vec3(-period, -period, period)))));
+  color = pattern3;
 
   return color;
 }
