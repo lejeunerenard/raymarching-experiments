@@ -57,6 +57,6 @@ vec4 mainImage(in vec2 fragCoord )
 vec3 getBackground (in vec2 uv) {
   // Convert from [-1,1] -> [0, 1]
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
-  return pow(#000000, vec3(2.2));
+  return mix(#888888, #FFFFFF, coord.y);
 }
 vec3 background = vec3(0.);

@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 1024
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -475,7 +475,7 @@ float isMaterialSmooth( float m, float goal ) {
   return 1. - smoothstep(0., eps, abs(m - goal));
 }
 
-// #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
+#pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 // #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
@@ -583,16 +583,36 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
-  q.z *= 1.25;
 
+  const float size = 0.05;
+  const float thickness = 0.01;
+  float c = pMod1(q.z, size);
+  q = p; // We only want the c
+
+  q.xy *= 1. + 5.0 * saturate(q.z * q.z);
   mPos = q;
-  vec3 s = vec3(length(q) - 0.9, 0., 0.);
+  float radius = 0.35 + 0.1 * cnoise3(3.0 * q + slowTime);
+  float offsetR = 0.3;
+  q.xy += vec2(offsetR * cos(1.68 * c), offsetR * sin(1.68 * c));
+  vec3 s = vec3(sdCylinder(q.xzy, vec3(0, 0, radius)), 0., c);
   d = dMin(d, s);
 
-  d.x *= 0.8;
+  // Repeating space
+  pMod1(q.z, size);
+
+  float disk = sdBox(q, vec3(5, 5, thickness));
+  // d = dMin(d, vec3(disk, 0, 0));
+  d.x = max(d.x, disk);
+
+  q = p;
+  const float numOfDisks = 7.; // besides center
+  float end = sdBox(q, vec3(5, 5, size * numOfDisks + 0.5 * size));
+  d.x = max(d.x, end);
+
+  d.x *= 0.05;
 
   return d;
 }
@@ -769,21 +789,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  const float period = 11.0;
-  const float size = 0.2;
-  const float edge = 0.01;
-  float d1 = sin(PI * dot(mPos, vec3(period)));
-  vec3 pattern1 = vec3(smoothstep(size, size + edge, d1));
-  // color = pattern1;
+  color = 0.5 + 0.5 * cos( TWO_PI * ( 5.17 * trap + vec3(0., 0.33, 0.67) ) );
 
-  float d2 = sin(PI * dot(pos, vec3(-0.25 * period, 0.25 * period, 0.25 * period)));
-  vec3 pattern2 = vec3(smoothstep(size, size + edge, d1 * d2));
-  color = pattern2;
+  vec3 dir = vec3(1);
+  dir *= rotationMatrix(normalize(vec3(1, 2, 0.5)), trap);
 
-  // vec3 pattern3 = vec3(smoothstep(size, size + edge, d1 * d2 * sin(PI * dot(pos, vec3(-period, -period, period)))));
-  // color = pattern3;
+  float rate = 150. + 50. * noise(vec2(trap));
+
+  color += smoothstep(0.85, 0.85 + 0.01, sin(dot(pos, rate * dir)));
 
   return color;
 }
@@ -824,7 +839,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     lightPosRef *= lightPosRefInc;
     lights[1] = light(vec3(lightPosRef, 0.25), #FFFFFF, 1.0);
     lightPosRef *= lightPosRefInc;
-    lights[2] = light(vec3(lightPosRef, 0.25), #FFFFFF, 1.0);
+    lights[2] = light(normalize(vec3(0.2, 0, 1)), #FFFFFF, 1.0);
     lightPosRef *= lightPosRefInc;
 
     if (t.x>0.) {
@@ -864,7 +879,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, normalize(lightPos)));
+        float dif = max(0.25, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
