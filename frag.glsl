@@ -462,7 +462,7 @@ float sdCappedCylinder( vec3 p, vec2 h )
 
 // p as usual, e exponent (p in the paper), r radius or something like that
 #pragma glslify: octahedral = require(./model/octahedral)
-// #pragma glslify: dodecahedral = require(./model/dodecahedral)
+#pragma glslify: dodecahedral = require(./model/dodecahedral)
 // #pragma glslify: icosahedral = require(./model/icosahedral)
 
 #pragma glslify: sdTriPrism = require(./model/tri-prism)
@@ -587,32 +587,15 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.05;
-  const float thickness = 0.01;
-  float c = pMod1(q.z, size);
-  q = p; // We only want the c
+  mRot *= rotationMatrix(vec3(5, 3., 1), 0.2 + 0.2 * sin(cosT));
+  mRot *= rotationMatrix(vec3(1, 2., 8), 0.2 + 0.2 * cos(cosT));
 
-  q.xy *= 1. + 5.0 * saturate(q.z * q.z);
-  mPos = q;
-  float radius = 0.35 + 0.1 * cnoise3(3.0 * q + slowTime);
-  float offsetR = 0.3;
-  q.xy += vec2(offsetR * cos(1.68 * c), offsetR * sin(1.68 * c));
-  vec3 s = vec3(sdCylinder(q.xzy, vec3(0, 0, radius)), 0., c);
+  q *= mRot;
+
+  vec3 s = vec3(dodecahedral(q, 42., 0.4), 0., 0.);
   d = dMin(d, s);
 
-  // Repeating space
-  pMod1(q.z, size);
-
-  float disk = sdBox(q, vec3(5, 5, thickness));
-  // d = dMin(d, vec3(disk, 0, 0));
-  d.x = max(d.x, disk);
-
-  q = p;
-  const float numOfDisks = 7.; // besides center
-  float end = sdBox(q, vec3(5, 5, size * numOfDisks + 0.5 * size));
-  d.x = max(d.x, end);
-
-  d.x *= 0.05;
+  // d.x *= 0.9;
 
   return d;
 }
@@ -791,14 +774,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = 0.5 + 0.5 * cos( TWO_PI * ( 5.17 * trap + vec3(0., 0.33, 0.67) ) );
-
-  vec3 dir = vec3(1);
-  dir *= rotationMatrix(normalize(vec3(1, 2, 0.5)), trap);
-
-  float rate = 150. + 50. * noise(vec2(trap));
-
-  color += smoothstep(0.85, 0.85 + 0.01, sin(dot(pos, rate * dir)));
+  color = 0.5 + 0.5 * cos( TWO_PI * (0.85 * dot(nor, -rd) + 5.17 * pos.z + vec3(0., 0.33, 0.67) ) );
 
   return color;
 }
@@ -879,7 +855,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.25, diffuse(nor, normalize(lightPos)));
+        float dif = 1.0; // max(0.25, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
