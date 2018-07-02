@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'flamboyant-render1',
+    name: 'undulate-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

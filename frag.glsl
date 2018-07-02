@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 2048
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -587,23 +587,17 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q += 0.10000 * cos( 1.1 * q.yzx + cosT);
-  q += 0.05000 * cos( 7.5 * q.yzx + cosT);
+  const vec2 size = vec2(0.2);
+  vec2 c = pMod2(q.xz, size);
+  const float sizeScale = 0.4;
 
-  // Pyramids
-  const vec2 size = vec2(0.1);
-  vec2 g = mod(q.xy + size * 0.5, size) - size * 0.5;
-
-  vec2 absG = abs(g);
-  float l = max(absG.x, absG.y) - size.x;
-  l /= size.x; // Normalize
+  float height = 2.0 + 0.1 * cnoise2(1.53 * c) + dot(vec2(0.5), cos(c * 0.7 + cosT));
 
   mPos = q;
-  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0., 0.);
-  s.x -= 0.05 * l;
+  vec3 s = vec3(sdBox(q, vec3(size.x * sizeScale, height, size.y * sizeScale)), 0., 0.);
   d = dMin(d, s);
 
-  // d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -780,15 +774,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  vec3 lookup = normalize(vec3(1, 0.5, 0));
-
-  lookup *= rotationMatrix(normalize(vec3(0.,0.2, 1.)), cos(TWO_PI * (dot(nor, -rd) + 0.1)));
-  lookup += cos(TWO_PI * (0.6 * pos + vec3(0, 0.33, 0.67)));
-  lookup *= rotationMatrix(normalize(vec3(0.5, 0.1, 0.3)), dot(vec3(1), pos));
-
-  return 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -867,11 +855,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.85, diffuse(nor, normalize(lightPos)));
+        float dif = max(0.0, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float sha = max(0.9, softshadow(pos, normalize(lightPos), 0.01, 4.75));
+        float sha = max(0.4, softshadow(pos, normalize(lightPos), 0.01, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -902,10 +890,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.05 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
