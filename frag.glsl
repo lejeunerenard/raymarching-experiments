@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -983,34 +983,24 @@ vec2 hash( vec2 p  ) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(1.);
 
-  const float period = 50.;
-
   vec2 q = uv;
 
-  vec3 r;
-  vec3 s;
-  q += 0.20000 * vfbmWarp(vec3(q, 0), r, s);
-  q += 0.05000 * cos(3. * q.yx + r.xy + cosT);
-  q += 0.02500 * cos(7. * q.yx + s.xy + cosT);
+  const float inc = 0.075;
+  for (float i = 11.; i > 0.; i -= 1.) {
+    vec2 fiveQ = q * rotMat2(sin(PI * i * inc + 2.0 * cosT));
+    float fiveC = pModPolar(fiveQ, 5.5 + 0.5 * sin(cosT + 0.25 * PI * i * inc));
 
-  float n = smoothstep(0., 0. + edge, sin(PI * period * dot(q, vec2(1))));
-  color = vec3(n);
-
-  const float sqrR = 0.5;
-  const float sqrR2 = sqrR * 0.8;
-  vec2 absUV = abs(uv);
-  float mask = smoothstep(0., 0. + edge, max(absUV.x, absUV.y) - sqrR)
-    + (1. - smoothstep(0., 0. + edge, max(absUV.x, absUV.y) - sqrR2));
-
-  q = uv;
-  float n2 = smoothstep(0., 0. + edge, sin(PI * period * dot(q, vec2(1))));
-
-  color = mix(color, vec3(n2), (1. - mask));
+    float pos = 0.1 + i * inc;
+    float thickness = 0.06;
+    float n = smoothstep(pos, pos + edge, fiveQ.x) * smoothstep(pos + thickness + edge, pos + thickness, fiveQ.x);
+    color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (5.1 * i + vec3(0, 0.33, 0.67))), n);
+  }
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
