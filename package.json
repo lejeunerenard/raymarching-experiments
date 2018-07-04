@@ -6,6 +6,7 @@
   "dependencies": {
     "a-big-triangle": "^1.0.3",
     "canvas-fit": "^1.5.0",
+    "ccapture.js": "file:../ccapture.js",
     "eases": "^1.0.8",
     "gl-audio-analyser": "^1.0.3",
     "gl-context": "^0.1.1",
