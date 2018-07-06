@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 16.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1004,21 +1004,27 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  const float inc = 0.075;
-  for (float i = 11.; i > 0.; i -= 1.) {
-    vec2 fiveQ = q * rotMat2(sin(PI * i * inc + 2.0 * cosT));
-    float fiveC = pModPolar(fiveQ, 5.5 + 0.5 * sin(cosT + 0.25 * PI * i * inc));
+  vec2 c1 = voronoi(2.1 * q, 0.0001 * 0.2 * modT);
+  vec2 c2 = voronoi(2.1 * q, 0.0001 * (0.2 * totalT - 0.2 * modT));
 
-    float pos = 0.1 + i * inc;
-    float thickness = 0.06;
-    float n = smoothstep(pos, pos + edge, fiveQ.x) * smoothstep(pos + thickness + edge, pos + thickness, fiveQ.x);
-    color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (5.1 * i + vec3(0, 0.33, 0.67))), n);
-  }
+  vec2 c = mix(c1, c2, saturate((0.2 * modT - 1.0) / (0.2 * totalT - 1.)));
+
+  vec2 axis = vec2(1, 0) * rotMat2(c.y);
+  float n = smoothstep(0., 0.1, sin(PI * 81.0 * dot(q, axis)));
+
+  color = vec3(n);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  color.r = two_dimensional(uv + vec2(0.000)).r;
+  color.g = two_dimensional(uv + vec2(0.004)).r;
+  color.b = two_dimensional(uv + vec2(0.008)).r;
+
+  return vec4(color, 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
