@@ -1004,15 +1004,13 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  vec2 c1 = voronoi(2.1 * q, 0.0001 * 0.2 * modT);
-  vec2 c2 = voronoi(2.1 * q, 0.0001 * (0.2 * totalT - 0.2 * modT));
-
-  vec2 c = mix(c1, c2, saturate((0.2 * modT - 1.0) / (0.2 * totalT - 1.)));
-
-  vec2 axis = vec2(1, 0) * rotMat2(c.y);
-  float n = smoothstep(0., 0.1, sin(PI * 81.0 * dot(q, axis)));
-
-  color = vec3(n);
+  const float size = 0.065;
+  float a = atan(q.y, q.x);
+  // q *= rotMat2(PI * 0.5 * saturate(mod(a - PI + cosT, TWO_PI) / PI));
+  vec2 absQ = abs(q);
+  float l = max(absQ.x, absQ.y);
+  float i = floor(l / size);
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.454545 * i + norT + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -1020,9 +1018,7 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  color.r = two_dimensional(uv + vec2(0.000)).r;
-  color.g = two_dimensional(uv + vec2(0.004)).r;
-  color.b = two_dimensional(uv + vec2(0.008)).r;
+  color = two_dimensional(uv);
 
   return vec4(color, 1);
   vec4 t = march(ro, rd);
