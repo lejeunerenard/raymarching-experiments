@@ -587,24 +587,19 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q *= globalRot;
+  const vec2 size = vec2(0.1);
+  vec2 c = pMod2(q.xz, size);
+  const float sizeScale = 0.4;
 
-  q.y -= q.x * (20. - q.x) * 0.01;
-  q.y -= 0.1;
+  float height = 2.0;
+  float shift = 0.1 * cnoise2(1.53 * c) + 1.5 * dot(vec2(0, 0.25), cos(c * 0.7 + cosT));
+  q.y -= shift;
 
   mPos = q;
-
-  float scaleScale = 20.;
-  float r = 0.5 + 0.005 * saturate(sin(dot(q, vec3(scaleScale))) * sin(dot(q, vec3(-scaleScale, scaleScale, scaleScale)) + PI * 0.5));
-
-  vec3 s = vec3(length(q) - r, 0., 0);
+  vec3 s = vec3(sdBox(q, vec3(size.x * sizeScale, height, size.y * sizeScale)), 0., 0.);
   d = dMin(d, s);
 
-  q = p;
-  vec3 f = vec3(sdPlane(q + vec3(0, 0.8, 0), vec4(0, 1, 0, 0)), 1., 0.);
-  d = dMin(d, f);
-
-  d.x *= 0.7;
+  d.x *= 0.1;
 
   return d;
 }
@@ -783,8 +778,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = pow(#EEEEEE, vec3(2.2));
-
+  float n = smoothstep(0., 0.01, sin(40.0 * PI * mPos.y + 0.5 * PI ));
+  color = vec3(n);
   return color;
 }
 
@@ -846,19 +841,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isFloor = isMaterialSmooth(t.y, 0.);
       float isObject = 1.0 - isFloor;
 
-      float n11 = cnoise3(2.2 * mPos.yzx + slowTime);
-      float n12 = cnoise3(2.2 * mPos.yzx + (0.2 * totalT - slowTime));
-
-      const float startTime = 12. * 0.2;
-      mPos += 0.50 * mix(n11, n12, saturate((slowTime - startTime) / (0.2 * totalT - startTime)));
-
-      float n21 = cnoise3(3.2 * mPos.yzx + slowTime);
-      float n22 = cnoise3(3.2 * mPos.yzx + (0.2 * totalT - slowTime));
-
-      mPos += 0.25 * mix(n21, n22, saturate((slowTime - startTime) / (0.2 * totalT - startTime)));
-
-      float isHolo = isMaterialSmooth(t.y, 0.) * smoothstep(0., 0.001, mPos.x);
-
       // Basic Diffusion
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w);
 
@@ -890,7 +872,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        // lin += 0.5 * amb * diffuseColor;
 
         float distIntensity = 1.0; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
@@ -909,16 +891,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * isHolo * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color = mix(color, 0.7 * color + 1.2 * dispersionColor, isHolo);
+      // color = mix(color, 0.7 * color + 1.2 * dispersionColor, isHolo);
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.2));
+      // color = pow(color, vec3(1.2));
 
       // Fog
       float d = max(0.0, t.x);
@@ -1016,11 +998,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  color = two_dimensional(uv);
-
-  return vec4(color, 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
