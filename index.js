@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'reach-higher-render1',
+    name: 'bubbling-over-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
