@@ -6,7 +6,7 @@
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
 #define HUE 1
-#define HUE_NUM 10
+#define HUE_NUM 20
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
@@ -108,9 +108,9 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     vec3 thisColor = vec3(0);
 
     thisColor += #FF0000 * nsin(0.9 * vec3(1.0, 1.1, 0.8) * mixI + vec3(0.0, 0.5, 124.234) + sceneResult) * sceneResult;
-    thisColor += #00FFFF * nsin(vec3(1.0, 1.1, 0.8) * mixI + vec3(0.1, 0.6, 125.234) + sceneResult) * sceneResult;
+    thisColor += #00FFFF * nsin(1.0 * vec3(1.0, 1.1, 0.8) * mixI + vec3(0.1, 0.6, 125.234) + sceneResult) * sceneResult;
 
-    color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.33, 0.67))));
+    color += thisColor; //  * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.33, 0.67))));
     #endif
   }
 

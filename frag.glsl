@@ -588,19 +588,15 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   const float start = totalT * 0.7;
-  float n11 = noise( 3.0 * q.yzx + modT);
-  float n12 = noise( 3.0 * q.yzx + (totalT - modT));
 
-  q += 0.15000 * mix(n11, n12, (modT - start) / (totalT - start));
-
+  q += 0.10000 * cos( 7.0 * q.yzx + cosT);
   q += 0.07500 * cos( 7.0 * q.yzx + cosT);
   q += 0.05000 * cos(13.0 * q.yzx + cosT);
-
-  // q += 0.01250 * cnoise3(17.0 * q.yzx + cosT);
-  // q += 0.00625 * cnoise3(23.0 * q.yzx + cosT);
+  q += 0.03000 * cos(17.0 * q.yzx + cosT);
+  // q += 0.02000 * cos(23.0 * q.yzx + cosT);
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(0.4)), 0., 0.);
+  vec3 s = vec3(sdBox(q, vec3(5, 5, 0.2)), 0., 0.);
   d = dMin(d, s);
 
   d.x *= 0.7;
@@ -691,7 +687,7 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.1;
 
-  vec3 spaceScaling = 2.0 * vec3(1.234, 2.34, 0.2);
+  vec3 spaceScaling = vec3(1.234, 2.34, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
   n = smoothstep(0.0, 1.00, n);
 
