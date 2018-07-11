@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -587,19 +587,19 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float start = totalT * 0.7;
+  const float size = 0.3;
+  vec2 c = pMod2(q.xy, vec2(size));
 
-  q += 0.10000 * cos( 7.0 * q.yzx + cosT);
-  q += 0.07500 * cos( 7.0 * q.yzx + cosT);
-  q += 0.05000 * cos(13.0 * q.yzx + cosT);
-  q += 0.03000 * cos(17.0 * q.yzx + cosT);
-  // q += 0.02000 * cos(23.0 * q.yzx + cosT);
+  float thing = cosT + c.y + 2.0 * cnoise2(0.9 * c);
+  q.x += size * 0.2 * sin(thing);
+
+  q *= rotationMatrix(normalize(vec3(1, 1, 1)), PI * (0.25 + 0.09 * sin(thing)));
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(5, 5, 0.2)), 0., 0.);
+  vec3 s = vec3(sdBox(q, vec3(0.2 * size)), 0., 0.);
   d = dMin(d, s);
 
-  d.x *= 0.7;
+  // d.x *= 0.7;
 
   return d;
 }
@@ -776,7 +776,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = pow(#FF2170, vec3(2.2));
 
   return color;
 }
@@ -854,11 +854,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.; // max(0.3, diffuse(nor, normalize(lightPos)));
+        float dif = max(0.2, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float sha = 1.0; // max(0.0, softshadow(pos, normalize(lightPos), 0.001, 4.75));
+        float sha = max(0.0, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -891,12 +891,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color +=  0.8 * dispersionColor;
+      // color +=  0.8 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
