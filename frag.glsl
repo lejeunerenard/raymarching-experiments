@@ -980,22 +980,29 @@ vec2 hash( vec2 p  ) {
 }
 
 vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(1.);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
-  const float size = 0.065;
-  float a = atan(q.y, q.x);
-  // q *= rotMat2(PI * 0.5 * saturate(mod(a - PI + cosT, TWO_PI) / PI));
-  vec2 absQ = abs(q);
-  float l = max(absQ.x, absQ.y);
-  float i = floor(l / size);
-  color = 0.5 + 0.5 * cos(TWO_PI * (0.454545 * i + norT + vec3(0, 0.33, 0.67)));
+  q += 0.2000 * cos( 3.0 * q.yx + cosT);
+  q += 0.0300 * cnoise2( 5.0 * q.yx );
+  q += 0.0500 * cos( 7.0 * q.yx + cosT);
+  q += 0.0250 * cos(11.0 * q.yx + cosT);
+  q += 0.0125 * cos(13.0 * q.yx + cosT);
+
+  float n = smoothstep(0., 0.01, sin(TWO_PI * 16.0 * dot(q, vec2(1))));
+  color = vec3(n);
+
+  vec2 absUV = abs(uv);
+  float maskR = 0.75;
+  float mask = smoothstep(0., 0.01, length(uv) - maskR); // max(absUV.x, absUV.y) - maskR);
+  color = mix(color, vec3(0), mask);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
