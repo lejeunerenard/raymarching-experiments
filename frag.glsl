@@ -984,19 +984,24 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  q += 0.2000 * cos( 3.0 * q.yx + cosT);
-  q += 0.0300 * cnoise2( 5.0 * q.yx );
-  q += 0.0500 * cos( 7.0 * q.yx + cosT);
-  q += 0.0250 * cos(11.0 * q.yx + cosT);
-  q += 0.0125 * cos(13.0 * q.yx + cosT);
+  float size = 0.1;
+  vec2 c = pMod2(q, vec2(size));
 
-  float n = smoothstep(0., 0.01, sin(TWO_PI * 16.0 * dot(q, vec2(1))));
-  color = vec3(n);
+  q += size * 0.10000 * cos( 3.0 * q.yx + c.yx + cosT);
+  q += size * 0.05000 * cos( 5.0 * q.yx + c.yx + cosT);
+  q += size * 0.02500 * cos( 7.0 * q.yx + c.yx + cosT);
+  q += size * 0.01250 * cos(11.0 * q.yx + c.yx + cosT);
+  q += size * 0.00625 * cos(13.0 * q.yx + c.yx + cosT);
 
-  vec2 absUV = abs(uv);
-  float maskR = 0.75;
-  float mask = smoothstep(0., 0.01, length(uv) - maskR); // max(absUV.x, absUV.y) - maskR);
-  color = mix(color, vec3(0), mask);
+  float r = size * 0.25;
+  float n = smoothstep(0., 0.02 * size, length(q) - r);
+
+  const float maskR = 5.0;
+  vec2 absC = abs(c);
+  float mask = smoothstep(0., 0.01, max(absC.x, absC.y) - maskR);
+  n = mix(n, 1., mask);
+
+  color = mix(pow(#333333, vec3(2.2)), background, n);
 
   return color;
 }

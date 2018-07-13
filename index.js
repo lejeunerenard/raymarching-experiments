@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'worldz-render1',
+    name: 'stabilize-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
