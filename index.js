@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'follow-me-render1',
+    name: 'new-wave-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
