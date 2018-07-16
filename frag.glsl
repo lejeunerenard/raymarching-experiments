@@ -587,16 +587,9 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float n1 = cnoise2(q.xz + modT);
-  float n2 = cnoise2(q.xz + (modT - totalT));
-
-  float n = mix(n1, n2, saturate((modT - 0.7 * totalT) / (totalT * 0.3)));
-
-  q.y += abs(n);
-  vec3 s = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0., 0.);
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 0., 0.);
+  s.x -= 0.02 * cellular(3.1 * q);
   d = dMin(d, s);
-
-  d.x *= 0.3;
 
   return d;
 }
@@ -773,7 +766,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.1);
+  vec3 color = vec3(background * 0.85);
 
   return color;
 }
@@ -843,19 +836,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.3;
+      float freCo = 1.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, normalize(lightPos)));
+        float dif = 1.0; // max(0.5, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float sha = max(0.0, softshadow(pos, normalize(lightPos), 0.001, 4.75));
+        float sha = 1.0; // max(0.0, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
