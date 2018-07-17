@@ -974,29 +974,32 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  float size = 0.1;
-  vec2 c = pMod2(q, vec2(size));
+  q += 0.12000 * cos( 3.0 * q.yx + cosT);
+  q += 0.10000 * cnoise2(2.0 * q.yx);
+  q += 0.06000 * cos( 5.0 * q.yx + cosT);
+  q += 0.03000 * cos( 7.0 * q.yx + cosT);
+  q += 0.01500 * cos(11.0 * q.yx + cosT);
+  q += 0.00750 * cos(13.0 * q.yx + cosT);
 
-  q += size * 0.10000 * cos( 3.0 * q.yx + c.yx + cosT);
-  q += size * 0.05000 * cos( 5.0 * q.yx + c.yx + cosT);
-  q += size * 0.02500 * cos( 7.0 * q.yx + c.yx + cosT);
-  q += size * 0.01250 * cos(11.0 * q.yx + c.yx + cosT);
-  q += size * 0.00625 * cos(13.0 * q.yx + c.yx + cosT);
+  float size = 0.15;
+  float halfsize = size*0.5;
 
-  float r = size * 0.25;
-  float n = smoothstep(0., 0.02 * size, length(q) - r);
+  float c = floor((q.x + halfsize)/size);
 
-  const float maskR = 5.0;
-  vec2 absC = abs(c);
-  float mask = smoothstep(0., 0.01, max(absC.x, absC.y) - maskR);
-  n = mix(n, 1., mask);
+  vec2 unit = vec2(1, 0);
+  float angle = cnoise2(vec2(1.4259 * c, 0.2));
+  unit *= rotMat2(PI * angle);
 
-  color = mix(pow(#333333, vec3(2.2)), background, n);
+  float i = 57.0 * dot(uv, unit);
+  float n = smoothstep(0., 0.03, sin(PI * i));
+
+  color = vec3(n);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

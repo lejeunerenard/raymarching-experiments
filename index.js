@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'sugar-render1',
+    name: 'between-the-lines-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
