@@ -399,7 +399,7 @@ float fCorner (vec2 p) {
 // #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=3, kifsM=kifsM, trapCalc=trapCalc)
 // 
 #pragma glslify: fold = require(./folds)
-// #pragma glslify: foldNd = require(./foldNd)
+#pragma glslify: foldNd = require(./foldNd)
 #pragma glslify: twist = require(./twist)
 
 void opCheapBend (inout vec3 p, float a) {
@@ -587,8 +587,15 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
+  mat3 rot = rotationMatrix(normalize(vec3(2, 0.5, 4)), 0.1 + cosT);
+
+  for (int i = 0; i < 2; i++) {
+    foldNd(q, normalize(vec3(1, 2, 3)));
+    q *= rot;
+    q -= 0.01;
+  }
+
   vec3 s = vec3(sdBox(q, vec3(0.5)), 0., 0.);
-  s.x -= 0.02 * cellular(3.1 * q);
   d = dMin(d, s);
 
   return d;
@@ -766,7 +773,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background * 0.85);
+  vec3 color = vec3(background * 0.75);
 
   return color;
 }
@@ -886,7 +893,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color +=  0.8 * dispersionColor;
+      color +=  1.0 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
@@ -999,7 +1006,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
