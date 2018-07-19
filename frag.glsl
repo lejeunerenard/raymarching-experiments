@@ -585,18 +585,20 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= globalRot;
 
+  p.xy = abs(p.xy);
   vec3 q = p;
 
-  mat3 rot = rotationMatrix(normalize(vec3(2, 0.5, 4)), 0.1 + cosT);
-
-  for (int i = 0; i < 2; i++) {
-    foldNd(q, normalize(vec3(1, 2, 3)));
+  vec3 axis = normalize(vec3(2, 0.5, 4));
+  for (int i = 0; i < 5; i++) {
+    q = p;
+    q.x -= float(i) * 0.1;
+    mat3 rot = rotationMatrix(axis, 0.1 + PI * sin(float(i) * 0.1 + cosT));
     q *= rot;
-    q -= 0.01;
-  }
+    q.y += 0.1;
 
-  vec3 s = vec3(sdBox(q, vec3(0.5)), 0., 0.);
-  d = dMin(d, s);
+    vec3 s = vec3(sdBox(q, vec3(0.3)), 0., 0.);
+    d = dMin(d, s);
+  }
 
   return d;
 }
@@ -686,7 +688,7 @@ vec3 textures (in vec3 rd) {
 
   vec3 spaceScaling = vec3(0.734, 1.14, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.0, 1.00, n);
+  n = smoothstep(0.5, 1.00, n);
 
   // vec3 spaceScaling = vec3(0.5);
   // float n = vfbmWarp(spaceScaling * rd + startPoint);
@@ -773,7 +775,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background * 0.75);
+  vec3 color = vec3(background * 1.50);
+
+  color += 0.25 * ( 0.5 + 0.5 * cos( TWO_PI * (dot(nor, -rd) + sin(pos + cosT) + vec3(0, 0.33, 0.67)) ) );
 
   return color;
 }
