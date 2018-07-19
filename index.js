@@ -1,4 +1,3 @@
-import CCapture from 'ccapture.js'
 import WebVRManager from 'shader-webvr-manager'
 import ShaderVREffect from 'shader-vr-effect'
 import ShaderVROrbitControls from 'shader-vr-orbit-controls'
