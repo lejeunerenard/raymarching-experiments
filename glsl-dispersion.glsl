@@ -99,7 +99,7 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior);
 
     // float dI = dot(nor, -eye);
-    float dI = 0.5 * cnoise3(2.0 * nor + 0.25 * time);
+    float dI = 0.5 * cnoise3(2.0 * nor);
 
     vec3 sceneResult = scene(iorRefract, ior);
     vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0);
