@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'im-not-here-render1',
+    name: 'dreamy-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -583,16 +583,18 @@ mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  vec3 s = vec3(sdBox(q, vec3(0.3)), 0., 0.);
-  vec3 offset = vec3(0.4, .1, .35) * rotationMatrix(normalize(vec3(1, 3, 7)), TWO_PI * smoothstep(0.70, 1., norT));
-  s.x -= 0.5 * cellular(q + offset);
-  d = dMin(d, s);
+  q += 0.10000 * cos( 3.1 * q.yzx + cosT );
+  q += 0.07500 * cos( 5.1 * q.yzx + cosT );
+  q += 0.05000 * cos( 7.1 * q.yzx + cosT );
+  q += 0.05000 * cnoise3( 3.1 * q.yzx);
+  q += 0.02500 * cos(13.1 * q.yzx + cosT );
 
-  d.x *= 0.3;
+  vec3 s = vec3(sdBox(q, vec3(5, 5, 0.1)), 0., 0.);
+  d = dMin(d, s);
 
   return d;
 }
@@ -808,9 +810,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(0, 1.4, 1.0) * globalLRot, #FFBBBB, 1.0);
-    lights[1] = light(vec3(0.4, 0.4, 1.0) * globalLRot, #BBFFFF, 1.0);
-    lights[2] = light(vec3(0.4, 0, 1.0) * globalLRot, #FFFFFF, 1.0);
+    lights[0] = light(vec3(0, 1.4, 1.0), #FFBBBB, 1.0);
+    lights[1] = light(vec3(0.4, 0.4, 1.0), #BBFFFF, 1.0);
+    lights[2] = light(vec3(0.4, 0, 1.0), #FFFFFF, 1.0);
 
     if (t.x>0.) {
       vec3 color = vec3(0.0);
