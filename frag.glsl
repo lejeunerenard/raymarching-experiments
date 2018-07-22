@@ -981,23 +981,18 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  q += 0.12000 * cos( 3.0 * q.yx + cosT);
-  q += 0.10000 * cnoise2(2.0 * q.yx);
-  q += 0.06000 * cos( 5.0 * q.yx + cosT);
-  q += 0.03000 * cos( 7.0 * q.yx + cosT);
-  q += 0.01500 * cos(11.0 * q.yx + cosT);
-  q += 0.00750 * cos(13.0 * q.yx + cosT);
+  q += 0.1000 * cos(3. * q.yx + cosT);
+  q += 0.0500 * cos(5. * q.yx + cosT);
+  q += 0.0250 * cos(7. * q.yx + cosT);
 
-  float size = 0.15;
-  float halfsize = size*0.5;
+  vec2 unit = vec2(1);
 
-  float c = floor((q.x + halfsize)/size);
+  vec2 absQ = abs(q);
+  float angle = cosT * smoothstep(0.0001, 0.0, max(absQ.x, absQ.y) - 0.5);
 
-  vec2 unit = vec2(1, 0);
-  float angle = cnoise2(vec2(1.4259 * c, 0.2));
-  unit *= rotMat2(PI * angle);
+  unit *= rotMat2(angle);
 
-  float i = 57.0 * dot(uv, unit);
+  float i = 18. * dot(q, unit);
   float n = smoothstep(0., 0.03, sin(PI * i));
 
   color = vec3(n);
@@ -1006,6 +1001,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
