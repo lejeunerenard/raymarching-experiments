@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'in-the-depths-render1',
+    name: '𝙃𝙀𝙍𝙀-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
