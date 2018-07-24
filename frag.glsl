@@ -981,24 +981,27 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  q += 0.1000 * cos(2. * q.yx + cosT);
-  q += 0.0500 * cos(5. * q.yx + cosT);
-  q += 0.0250 * cos(7. * q.yx + cosT);
+  q += 0.1000 * cos( 2. * q.yx + cosT + 0.5 * PI * cnoise2(1.2 * q));
+  q += 0.0500 * cos( 5. * q.yx + cosT);
+  q += 0.0250 * cos( 7. * q.yx + cosT);
+  q += 0.0125 * cos(11. * q.yx + cosT);
 
-  vec2 unit = vec2(-1, 1);
+  vec2 unit = vec2(1, 1);
 
   vec2 absQ = abs(q);
   float angle = 0.05;
 
   unit *= rotMat2(angle);
 
-  float i = 18. * dot(q, unit);
+  float density = 18.;
+  float i = density * dot(q, unit);
   float n = smoothstep(0.3, 0.33, sin(PI * i));
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dot(vec2(-18., 18.), q) + vec3(0.0, 0.1, 0.2)));
-  color *= n;
-  absQ = abs(uv);
-  color *= smoothstep(0.001, 0., max(absQ.x, absQ.y) - 0.75);
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(vec2(density, density), q) + vec3(0.0, 0.1, 0.2)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (1.1 * dot(uv, q)               + vec3(0.0, 0.2, 0.5)));
+  color *= 0.5;
+  n *= smoothstep(0.001, 0., length(uv) - 0.75);
+  color = mix(vec3(1), color, n);
 
   return color;
 }
