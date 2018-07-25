@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -981,10 +981,10 @@ vec3 two_dimensional (in vec2 uv) {
 
   vec2 q = uv;
 
-  q += 0.1000 * cos( 2. * q.yx + cosT + 0.5 * PI * cnoise2(1.2 * q));
-  q += 0.0500 * cos( 5. * q.yx + cosT);
-  q += 0.0250 * cos( 7. * q.yx + cosT);
-  q += 0.0125 * cos(11. * q.yx + cosT);
+  q += 0.05000 * cos( 2. * q.yx + cosT + 0.5 * PI * cnoise2(1.2 * q));
+  q += 0.02500 * cnoise2(3. * q.yx);
+  q += 0.01250 * cos( 5. * q.yx + cosT + 0.5 * PI * cnoise2(1.2 * q));
+  q += 0.00625 * cnoise2(7. * q.yx);
 
   vec2 unit = vec2(1, 1);
 
@@ -993,15 +993,13 @@ vec3 two_dimensional (in vec2 uv) {
 
   unit *= rotMat2(angle);
 
-  float density = 18.;
+  float density = 24.;
   float i = density * dot(q, unit);
-  float n = smoothstep(0.3, 0.33, sin(PI * i));
+  float n = smoothstep(0.3, 0.33, sin(PI * length(density * q)));
 
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(vec2(density, density), q) + vec3(0.0, 0.1, 0.2)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (1.1 * dot(uv, q)               + vec3(0.0, 0.2, 0.5)));
-  color *= 0.5;
-  n *= smoothstep(0.001, 0., length(uv) - 0.75);
-  color = mix(vec3(1), color, n);
+  color += vec3(0.8, 0.5, 0.5) + vec3(0.3, 0.5, 0.5) * cos(TWO_PI * (length(density * q + uv) + vec3(0.0, 0.1, 0.2)));
+  n *= smoothstep(0.001, 0., length(q) - 0.75);
+  color = mix(#020101, color, n);
 
   return color;
 }
