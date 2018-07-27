@@ -981,35 +981,67 @@ vec2 hash( vec2 p  ) {
   return fract(sin(p)*18.5453);
 }
 
+float noiseDots (vec2 uv, float size) {
+  vec2 q = uv;
+  vec2 c = pMod2(q, vec2(size));
+
+  float r = size * 0.2;
+  r += 0.35 * r * cnoise2(c + 5.0 * q / size);
+
+  return 1. - smoothstep(0., 0.002, length(q) - r);
+}
+
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  vec2 q = uv;
+  vec2 q = 1.2 * uv;
+  float timeOffset = 0.;
+  float colorLikelyHood = 0.96;
 
-  q += 0.05000 * cos( 2. * q.yx + cosT + 0.5 * PI * cnoise2(1.2 * q));
-  q += 0.02500 * cnoise2(3. * q.yx);
-  q += 0.01250 * cos( 5. * q.yx + cosT + 0.5 * PI * cnoise2(1.2 * q));
-  q += 0.00625 * cnoise2(7. * q.yx);
+// TODO Uncomment these for different styles
+// #define ONLY_DOTS 1
+// #define ONLY_LINES 1
+#ifdef ONLY_DOTS
+  const float size = 0.04;
+  timeOffset = 1.423;
+#else
+  const float size = 0.05;
+#ifdef ONLY_LINES
+  timeOffset = 4.129;
+  colorLikelyHood = 0.78;
+#endif
+#endif
 
-  vec2 unit = vec2(1, 1);
+  vec2 c = voronoi(3.4 * q, timeOffset);
 
-  vec2 absQ = abs(q);
-  float angle = 0.05;
+  // --- Two Pattern ---
+  // Dots
+  vec3 nDots = vec3(noiseDots(q + c.y, size));
 
-  unit *= rotMat2(angle);
+  // Lines
+  vec2 dir = mix(vec2(1), vec2(-1, 1), smoothstep(0.5, 0.51, noise(vec2(50. * c.y))));
+  float disturbLine = 0.4 * cnoise2(29.5 * q);
+  vec3 nLines = vec3(smoothstep(0., 0.01, sin(dot(q + 2.5 * c.y, 210. * dir)) + disturbLine));
+  float colorOrNot = smoothstep(colorLikelyHood, colorLikelyHood + 0.0001, noise(vec2(912.353 * c.y)));
+  nLines *= mix(vec3(1), pow(#1627FF, vec3(2.2)), colorOrNot);
 
-  float density = 24.;
-  float i = density * dot(q, unit);
-  float n = smoothstep(0.3, 0.33, sin(PI * length(density * q)));
+  // Select which pattern
+  float which = smoothstep(0.3, 0.31, sin(c.y * PI * 2.324));
+#ifdef ONLY_DOTS
+  which = 0.; // Only Dots
+#else
+#ifdef ONLY_LINES
+  which = 1.; // Only Lines
+#endif
+#endif
 
-  color += vec3(0.8, 0.5, 0.5) + vec3(0.3, 0.5, 0.5) * cos(TWO_PI * (length(density * q + uv) + vec3(0.0, 0.1, 0.2)));
-  n *= smoothstep(0.001, 0., length(q) - 0.75);
-  color = mix(#020101, color, n);
+  color = mix(nDots, nLines, which);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
