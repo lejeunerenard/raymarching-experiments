@@ -997,55 +997,39 @@ float noiseDots (vec2 uv, float size) {
 }
 
 vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  vec2 q = 1.2 * uv;
-  float timeOffset = 0.;
-  float colorLikelyHood = 0.96;
+  vec2 q = uv;
+  vec2 absQ = abs(q);
+  const float size = 0.1;
 
-// TODO Uncomment these for different styles
-// #define ONLY_DOTS 1
-// #define ONLY_LINES 1
-#ifdef ONLY_DOTS
-  const float size = 0.04;
-  timeOffset = 1.423;
-#else
-  const float size = 0.05;
-#ifdef ONLY_LINES
-  timeOffset = 4.129;
-  colorLikelyHood = 0.78;
-#endif
-#endif
+	vec2 c = floor((q + size*0.5)/size);
+  q.y += 0.25 * sin(PI * 0.234 * c.x + cosT);
+  pMod2(q, vec2(size));
 
-  vec2 c = voronoi(3.4 * q, timeOffset);
+  const float circR = 0.025;
+  const float cirThickness = 0.004;
 
-  // --- Two Pattern ---
-  // Dots
-  vec3 nDots = vec3(noiseDots(q + c.y, size));
+  color *= smoothstep(cirThickness, cirThickness * 1.2, abs(length(q) - circR));
 
-  // Lines
-  vec2 dir = mix(vec2(1), vec2(-1, 1), smoothstep(0.5, 0.51, noise(vec2(50. * c.y))));
-  float disturbLine = 0.4 * cnoise2(29.5 * q);
-  vec3 nLines = vec3(smoothstep(0., 0.01, sin(dot(q + 2.5 * c.y, 210. * dir)) + disturbLine));
-  float colorOrNot = smoothstep(colorLikelyHood, colorLikelyHood + 0.0001, noise(vec2(912.353 * c.y)));
-  nLines *= mix(vec3(1), pow(#1627FF, vec3(2.2)), colorOrNot);
+  // --- Frame ---
+  q = uv;
+  const float borderR = size * (6.5 + 0.25);
+  const float thickness = 0.0125;
 
-  // Select which pattern
-  float which = smoothstep(0.3, 0.31, sin(c.y * PI * 2.324));
-#ifdef ONLY_DOTS
-  which = 0.; // Only Dots
-#else
-#ifdef ONLY_LINES
-  which = 1.; // Only Lines
-#endif
-#endif
+  float toBorder = max(absQ.x, absQ.y) - borderR;
 
-  color = mix(nDots, nLines, which);
+  // Mask
+  color = mix(color, vec3(1), smoothstep(0., thickness * 0.15, toBorder));
+
+  // Border
+  color *= smoothstep(thickness, thickness * 1.15, abs(toBorder));
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
