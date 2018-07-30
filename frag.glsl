@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1000,24 +1000,34 @@ vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
-  vec2 absQ = abs(q);
   const float size = 0.1;
+  const float numOfSquares = 6.;
+  const float numOfSquaresPadded = numOfSquares + 0.5 + 0.25;
 
 	vec2 c = floor((q + size*0.5)/size);
-  q.y += 0.25 * sin(PI * 0.234 * c.x + cosT);
+  float y = c.y - numOfSquares;
+  float yNor = y / (2. * numOfSquares + 1.);
+  float x = c.x - numOfSquares;
+  float xNor = x / (2. * numOfSquares + 1.);
+
+  float movementI = PI * saturate(xNor + 2.0 * norT);
+  q.y += 2.0 * size * (0.5 + 0.5 * sin(movementI + PI * 0.5));
   pMod2(q, vec2(size));
 
-  const float circR = 0.025;
+  const float circR = 0.030;
   const float cirThickness = 0.004;
 
-  color *= smoothstep(cirThickness, cirThickness * 1.2, abs(length(q) - circR));
+  vec2 absQ = abs(q);
+  float dist = max(absQ.x, absQ.y) - circR;
+  color *= smoothstep(cirThickness, cirThickness * 1.2, abs(dist));
 
   // --- Frame ---
+  vec2 absUv = abs(uv);
   q = uv;
-  const float borderR = size * (6.5 + 0.25);
+  const float borderR = size * numOfSquaresPadded;
   const float thickness = 0.0125;
 
-  float toBorder = max(absQ.x, absQ.y) - borderR;
+  float toBorder = max(absUv.x, absUv.y) - borderR;
 
   // Mask
   color = mix(color, vec3(1), smoothstep(0., thickness * 0.15, toBorder));
