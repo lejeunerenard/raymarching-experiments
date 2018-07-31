@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -999,41 +999,44 @@ float noiseDots (vec2 uv, float size) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(1);
 
+  const float maskR = 0.7;
   vec2 q = uv;
-  const float size = 0.1;
-  const float numOfSquares = 6.;
-  const float numOfSquaresPadded = numOfSquares + 0.5 + 0.25;
 
-	vec2 c = floor((q + size*0.5)/size);
-  float y = c.y - numOfSquares;
-  float yNor = y / (2. * numOfSquares + 1.);
-  float x = c.x - numOfSquares;
-  float xNor = x / (2. * numOfSquares + 1.);
+  q += 0.07500 * cos( 4.0 * q.yx + cosT);
+  q += 0.05000 * cnoise2( 5.1 * q.yx );
+  q += 0.02500 * cos( 5.0 * q.yx + cosT);
+  q += 0.01250 * cnoise2( 7.1 * q.yx );
+  q += 0.01250 * cos( 7.0 * q.yx + cosT);
+  q += 0.00625 * cnoise2(11.1 * q.yx );
+  q += 0.00625 * cos(11.0 * q.yx + cosT);
 
-  float movementI = PI * saturate(xNor + 2.0 * norT);
-  q.y += 2.0 * size * (0.5 + 0.5 * sin(movementI + PI * 0.5));
-  pMod2(q, vec2(size));
+  // Lines
+  const float edge = 0.001;
+  const float borderThickness = 0.0075;
+  const int total = 31;
+  for (int i = (total - 1) / 2; i >= -(total - 1) / 2; i--) {
+    vec2 qN = q;
+    qN += cnoise2(qN.yx + 0.87 * float(i) + 0.125 * sin(cosT));
 
-  const float circR = 0.030;
-  const float cirThickness = 0.004;
+    vec2 nQN = qN;
+    nQN *= rotMat2(float(i) * TWO_PI / float(total / 2));
+    float n = noise(vec2(1., 41.) * nQN);
 
-  vec2 absQ = abs(q);
-  float dist = max(absQ.x, absQ.y) - circR;
-  color *= smoothstep(cirThickness, cirThickness * 1.2, abs(dist));
+    float left = float(i) * maskR / float(total / 2);
+    // Decide whether to render this layer
+    float render = smoothstep(left + edge, left, qN.x);
+    vec3 layerColor = vec3(n);
+    layerColor *= smoothstep(left - borderThickness, left - borderThickness - edge, qN.x);
 
-  // --- Frame ---
-  vec2 absUv = abs(uv);
-  q = uv;
-  const float borderR = size * numOfSquaresPadded;
-  const float thickness = 0.0125;
+    // color = vec3(render);
+    color = mix(color, layerColor, render);
+  }
 
-  float toBorder = max(absUv.x, absUv.y) - borderR;
-
-  // Mask
-  color = mix(color, vec3(1), smoothstep(0., thickness * 0.15, toBorder));
-
-  // Border
-  color *= smoothstep(thickness, thickness * 1.15, abs(toBorder));
+  vec2 absUV = abs(uv);
+  float maskD = length(absUV) - maskR;
+  color = saturate(color);
+  color += smoothstep(-0.01, -0.009, maskD); // Border
+  color *= 1. - smoothstep(0., 0.005, maskD);
 
   return color;
 }
