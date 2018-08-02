@@ -991,48 +991,39 @@ vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(1);
 
   const float maskR = 0.7;
+
   vec2 q = uv;
 
-  q += 0.07500 * cos( 4.0 * q.yx + cosT);
-  q += 0.05000 * cnoise2( 5.1 * q.yx );
-  q += 0.02500 * cos( 5.0 * q.yx + cosT);
-  q += 0.01250 * cnoise2( 7.1 * q.yx );
-  q += 0.01250 * cos( 7.0 * q.yx + cosT);
-  q += 0.00625 * cnoise2(11.1 * q.yx );
-  q += 0.00625 * cos(11.0 * q.yx + cosT);
+  q = uv;
+  q += 0.10000 * cos( 3. * q.yx + cosT);
+  q += 0.05000 * cnoise2(3. * q.yx);
+  q += 0.05000 * cos( 4. * q.yx + cosT);
+  q += 0.02500 * cnoise2(5. * q.yx);
+  q += 0.02500 * cos( 5. * q.yx + cosT);
+  q += 0.01250 * cos( 7. * q.yx + cosT);
+  q += 0.00625 * cos(13. * q.yx + cosT);
 
-  // Lines
-  const float edge = 0.001;
-  const float borderThickness = 0.0075;
-  const int total = 31;
-  for (int i = (total - 1) / 2; i >= -(total - 1) / 2; i--) {
-    vec2 qN = q;
-    qN += cnoise2(qN.yx + 0.87 * float(i) + 0.125 * sin(cosT));
+  float d = dot(q, vec2(241));
+  float n = smoothstep(0., 0.001, sin(d));
 
-    vec2 nQN = qN;
-    nQN *= rotMat2(float(i) * TWO_PI / float(total / 2));
-    float n = noise(vec2(1., 41.) * nQN);
+  float cropD = 75.0;
+  color = mix(color, vec3(n), smoothstep(cropD + 0.1, cropD, abs(d)));
 
-    float left = float(i) * maskR / float(total / 2);
-    // Decide whether to render this layer
-    float render = smoothstep(left + edge, left, qN.x);
-    vec3 layerColor = vec3(n);
-    layerColor *= smoothstep(left - borderThickness, left - borderThickness - edge, qN.x);
+  // Circle
+  q = uv;
+  const float radius = 0.5;
+  float circD = length(q) - radius;
+  vec3 circColor = mix(pow(#FF27C5, vec3(2.2)), pow(#3227FF, vec3(2.2)), saturate(-0.35 * circD / radius + vfbmWarp(vec3(3.5 * q, 0.3 * sin(cosT)))));
+  circColor = mix(circColor, circColor + 0.25 * vec3(1), smoothstep(-0.1, 0., circD));
+  color = mix(color, circColor, smoothstep(0.01, 0., circD));
 
-    // color = vec3(render);
-    color = mix(color, layerColor, render);
-  }
-
-  vec2 absUV = abs(uv);
-  float maskD = length(absUV) - maskR;
-  color = saturate(color);
-  color += smoothstep(-0.01, -0.009, maskD); // Border
-  color *= 1. - smoothstep(0., 0.005, maskD);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
