@@ -986,41 +986,71 @@ float noiseDots (vec2 uv, float size) {
   return 1. - smoothstep(0., 0.002, length(q) - r);
 }
 
+vec4 tile (in vec2 uv) {
+  const float scale = 0.25;
+  uv *= scale;
+  return vec4(
+      step(0.25, cnoise2(scale * 9.0 * uv +   0.0)),
+      step(0.25, cnoise2(scale * 9.4 * uv + 110.4)),
+      step(0.25, cnoise2(scale * 9.4 * uv + 813.1)),
+      step(0.25, cnoise2(scale * 9.4 * uv - 310.0)));
+}
+
+vec4 neighborsTile (in vec2 uv) {
+  return vec4(
+      tile(uv - vec2(1, 0)).z,
+      tile(uv - vec2(0, 1)).w,
+      tile(uv + vec2(1, 0)).x,
+      tile(uv + vec2(0, 1)).y);
+}
+
+float tileColor (vec2 q, vec4 sides, in float size) {
+  vec2 absQ = abs(q);
+  float primaryColor = 0.0;
+
+  // Left
+  primaryColor += sides.x * smoothstep(0.1251 * size, 0.1250 * size, absQ.y)
+    * smoothstep(0.0, -size * 0.01, q.x);
+  // Right
+  primaryColor += sides.z * smoothstep(0.1251 * size, 0.1250 * size, absQ.y)
+    * smoothstep(0.0, size * 0.01, q.x);
+
+  // Top
+  primaryColor += sides.y * smoothstep(0.1251 * size, 0.1250 * size, absQ.x)
+    * smoothstep(0.0, -size * 0.01, q.y);
+  // Bottom
+  primaryColor += sides.w * smoothstep(0.1251 * size, 0.1250 * size, absQ.x)
+    * smoothstep(0.0, size * 0.01, q.y);
+
+  return primaryColor;
+}
+
 vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
 
-  const float maskR = 0.7;
-
+  const float size = 0.02;
   vec2 q = uv;
+  vec2 c = pMod2(q, vec2(size));
 
-  q = uv;
-  q += 0.10000 * cos( 3. * q.yx + cosT);
-  q += 0.05000 * cnoise2(3. * q.yx);
-  q += 0.05000 * cos( 4. * q.yx + cosT);
-  q += 0.02500 * cnoise2(5. * q.yx);
-  q += 0.02500 * cos( 5. * q.yx + cosT);
-  q += 0.01250 * cos( 7. * q.yx + cosT);
-  q += 0.00625 * cos(13. * q.yx + cosT);
+  // Show Borders
+  // vec2 absQ = abs(q);
+  // float borderD = max(absQ.x, absQ.y) - 0.45 * size;
+  // color = mix(color, vec3(0, 0, 1), smoothstep(0., 0.001, borderD));
 
-  float d = dot(q, vec2(241));
-  float n = smoothstep(0., 0.001, sin(d));
+  vec4 sides = tile(c);
+  float isPrimary = mod(dot(c, vec2(1)), 2.);
 
-  float cropD = 75.0;
-  color = mix(color, vec3(n), smoothstep(cropD + 0.1, cropD, abs(d)));
+  float primaryColor = tileColor(q, sides, size);
+  float secondaryColor = tileColor(q, neighborsTile(c), size);
 
-  // Circle
-  q = uv;
-  const float radius = 0.5;
-  float circD = length(q) - radius;
-  vec3 circColor = mix(pow(#FF27C5, vec3(2.2)), pow(#3227FF, vec3(2.2)), saturate(-0.35 * circD / radius + vfbmWarp(vec3(3.5 * q, 0.3 * sin(cosT)))));
-  circColor = mix(circColor, circColor + 0.25 * vec3(1), smoothstep(-0.1, 0., circD));
-  color = mix(color, circColor, smoothstep(0.01, 0., circD));
-
+  color = mix(color, vec3(primaryColor), isPrimary * primaryColor);
+  color = mix(vec3(secondaryColor), color, isPrimary);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
