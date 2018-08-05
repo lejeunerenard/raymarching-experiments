@@ -990,10 +990,10 @@ vec4 tile (in vec2 uv) {
   const float scale = 0.25;
   uv *= scale;
   return vec4(
-      step(0.25, cnoise2(scale * 9.0 * uv +   0.0)),
-      step(0.25, cnoise2(scale * 9.4 * uv + 110.4)),
-      step(0.25, cnoise2(scale * 9.4 * uv + 813.1)),
-      step(0.25, cnoise2(scale * 9.4 * uv - 310.0)));
+      step(0.125, cnoise2(scale * 9.0 * uv +   0.0)),
+      step(0.125, cnoise2(scale * 9.4 * uv + 110.4)),
+      step(0.125, cnoise2(scale * 9.4 * uv + 813.1)),
+      step(0.125, cnoise2(scale * 9.4 * uv - 310.0)));
 }
 
 vec4 neighborsTile (in vec2 uv) {
@@ -1004,47 +1004,112 @@ vec4 neighborsTile (in vec2 uv) {
       tile(uv + vec2(0, 1)).y);
 }
 
-float tileColor (vec2 q, vec4 sides, in float size) {
-  vec2 absQ = abs(q);
-  float primaryColor = 0.0;
+float edgeDist (in vec2 q, in float edge) {
+  float d = 100.0;
 
-  // Left
-  primaryColor += sides.x * smoothstep(0.1251 * size, 0.1250 * size, absQ.y)
-    * smoothstep(0.0, -size * 0.01, q.x);
-  // Right
-  primaryColor += sides.z * smoothstep(0.1251 * size, 0.1250 * size, absQ.y)
-    * smoothstep(0.0, size * 0.01, q.x);
+  float capMask = smoothstep(0.0, edge, q.x);
+  float axisD = abs(q.y);
+  axisD = mix(100.0, axisD, capMask);
+  d = min(d, axisD);
 
-  // Top
-  primaryColor += sides.y * smoothstep(0.1251 * size, 0.1250 * size, absQ.x)
-    * smoothstep(0.0, -size * 0.01, q.y);
-  // Bottom
-  primaryColor += sides.w * smoothstep(0.1251 * size, 0.1250 * size, absQ.x)
-    * smoothstep(0.0, size * 0.01, q.y);
+  float roundMask = length(q);
+  d = min(d, roundMask);
 
-  return primaryColor;
+  return d;
+}
+float edgeBand (in vec2 q, in float thickness, in float edge) {
+  return smoothstep(thickness + edge, thickness, edgeDist(q, edge));
 }
 
-vec3 two_dimensional (in vec2 uv) {
+vec3 tileColor (vec2 q, vec4 sides, in float size, in float colorOffset) {
+  vec2 absQ = abs(q);
+  vec3 primaryColor = vec3(0);
+  float mask = 0.;
+
+  const float edge = 0.0001;
+  const float thickness = 0.333333;
+
+  float d = 100.0;
+  // Left
+  vec2 inputQ = q.xy * vec2(-1, 1);
+  float edgeMask = edgeBand(inputQ, thickness * size, edge * size);
+  mask += sides.x * edgeMask;
+  float spaceD = edgeDist(inputQ, edge * size);
+  float edgeD = mix(100., spaceD, sides.x * edgeMask);
+  d = min(d, edgeD);
+  // Right
+  inputQ = q.xy * vec2( 1, 1);
+  edgeMask = edgeBand(inputQ, thickness * size, edge * size);
+  spaceD = edgeDist(inputQ, edge * size);
+  edgeD = mix(100., spaceD, sides.z * edgeMask);
+  d = min(d, edgeD);
+  mask += sides.z * edgeMask;
+
+  // Top
+  inputQ = q.yx * vec2(-1, 1);
+  edgeMask = edgeBand(inputQ, thickness * size, edge * size);
+  spaceD = edgeDist(inputQ, edge * size);
+  edgeD = mix(100., spaceD, sides.y * edgeMask);
+  d = min(d, edgeD);
+  mask += sides.y * edgeMask;
+  // Bottom
+  inputQ = q.yx * vec2( 1, 1);
+  edgeMask = edgeBand(inputQ, thickness * size, edge * size);
+  spaceD = edgeDist(inputQ, edge * size);
+  edgeD = mix(100., spaceD, sides.w * edgeMask);
+  d = min(d, edgeD);
+  mask += sides.w * edgeMask;
+
+  // Colors
+  float colorI = d / (thickness * size);
+
+  float numColors = 3.0;
+  colorI = floor(colorI * numColors) / numColors;
+  colorI *= 0.5;
+  colorI += colorOffset;
+  primaryColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+
+  return saturate(mask) * primaryColor;
+}
+
+vec3 grid (in vec2 uv, in float size, in float colorOffset) {
   vec3 color = vec3(0);
 
-  const float size = 0.02;
   vec2 q = uv;
   vec2 c = pMod2(q, vec2(size));
 
   // Show Borders
   // vec2 absQ = abs(q);
-  // float borderD = max(absQ.x, absQ.y) - 0.45 * size;
+  // float borderD = max(absQ.x, absQ.y) - 0.4 * size;
   // color = mix(color, vec3(0, 0, 1), smoothstep(0., 0.001, borderD));
 
   vec4 sides = tile(c);
-  float isPrimary = mod(dot(c, vec2(1)), 2.);
+  float isPrimary = floor(mod(dot(c, vec2(1)), 2.));
 
-  float primaryColor = tileColor(q, sides, size);
-  float secondaryColor = tileColor(q, neighborsTile(c), size);
+  vec3 primaryColor = tileColor(q, sides, size, colorOffset);
+  vec3 secondaryColor = tileColor(q, neighborsTile(c), size, colorOffset);
 
-  color = mix(color, vec3(primaryColor), isPrimary * primaryColor);
-  color = mix(vec3(secondaryColor), color, isPrimary);
+  color = mix(color, primaryColor, isPrimary * smoothstep(0., 0.01, length(primaryColor)));
+  color = mix(secondaryColor, color, isPrimary);
+
+  return color;
+}
+
+vec3 two_dimensional (in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float size = 0.1;
+  vec2 q = uv;
+  vec3 layer1 = grid(q, size, 0.);
+  color = mix(color, layer1, smoothstep(0., 0.01, length(layer1)));
+  color *= 0.85;
+
+  vec3 layer2 = grid(q + 3.0, size, 0.15);
+  color = mix(color, layer2, smoothstep(0., 0.01, length(layer2)));
+  color *= 0.85;
+
+  vec3 layer3 = grid(q + 9.0, size, 0.37);
+  color = mix(color, layer3, smoothstep(0., 0.01, length(layer3)));
 
   return color;
 }
