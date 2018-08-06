@@ -1063,11 +1063,10 @@ vec3 tileColor (vec2 q, vec4 sides, in float size, in float colorOffset) {
   // Colors
   float colorI = d / (thickness * size);
 
-  float numColors = 3.0;
-  colorI = floor(colorI * numColors) / numColors;
-  colorI *= 0.5;
+  float numColors = 4.0;
+  // colorI = floor(colorI * numColors) / numColors;
   colorI += colorOffset;
-  primaryColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+  primaryColor = vec3(0.51 + 0.5 * cos(TWO_PI * colorI * 4.5));
 
   return saturate(mask) * primaryColor;
 }
@@ -1098,15 +1097,15 @@ vec3 grid (in vec2 uv, in float size, in float colorOffset) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float size = 0.1;
+  const float size = 0.05;
   vec2 q = uv;
   vec3 layer1 = grid(q, size, 0.);
   color = mix(color, layer1, smoothstep(0., 0.01, length(layer1)));
-  color *= 0.85;
+  color *= 0.75;
 
   vec3 layer2 = grid(q + 3.0, size, 0.15);
   color = mix(color, layer2, smoothstep(0., 0.01, length(layer2)));
-  color *= 0.85;
+  color *= 0.75;
 
   vec3 layer3 = grid(q + 9.0, size, 0.37);
   color = mix(color, layer3, smoothstep(0., 0.01, length(layer3)));
