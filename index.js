@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'come-with-us-render1',
+    name: 'levitate-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
