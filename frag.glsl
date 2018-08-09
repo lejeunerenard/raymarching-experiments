@@ -463,7 +463,7 @@ float sdCappedCylinder( vec3 p, vec2 h )
 // p as usual, e exponent (p in the paper), r radius or something like that
 #pragma glslify: octahedral = require(./model/octahedral)
 #pragma glslify: dodecahedral = require(./model/dodecahedral)
-// #pragma glslify: icosahedral = require(./model/icosahedral)
+#pragma glslify: icosahedral = require(./model/icosahedral)
 
 #pragma glslify: sdTriPrism = require(./model/tri-prism)
 
@@ -586,17 +586,13 @@ vec3 map (in vec3 p, in float dT) { vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
 
-  q += 0.15000 * cos( 5. * q.yzx + cosT);
-  q += 0.07500 * cos( 7. * q.yzx + cosT);
-  q.xzy = twist(q, 4. * q.y);
-  q += 0.03750 * cos(11. * q.yzx + cosT);
-  q += 0.01875 * cos(17. * q.yzx + cosT);
-  q.xzy = twist(q, 4. * q.y);
-  q += 0.009375 * cos(17. * q.yzx + cosT);
-  q += 0.004687 * cos(17. * q.yzx + cosT);
-
-  vec3 s = vec3(sdBox(q, vec3(0.4)), 0., 0.);
+  const float size = 0.6;
+  vec3 s = vec3(icosahedral(q, 41., size), 0., 0.);
   d = dMin(d, s);
+
+  q *= rotationMatrix(vec3(1., 0.3, 0.7), 0.01);
+  vec3 r = vec3(-icosahedral(q, 41., size * 0.6), 0., 0.);
+  d = dMax(d, r);
 
   d.x *= 0.2;
 
@@ -681,7 +677,7 @@ const float amount = 0.05;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = saturate(1.0 - 8.0 * dot(-rd, gNor));
+  float spread = 1.; // saturate(1.0 - 8.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.1;
@@ -824,11 +820,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
       float bumpsScale = 0.5;
       float bumpIntensity = 0.1;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * pos),
-          cnoise3(bumpsScale * 670.0 * pos + 234.634),
-          cnoise3(bumpsScale * 310.0 * pos + 23.4634));
-      nor = normalize(nor);
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * pos),
+      //     cnoise3(bumpsScale * 670.0 * pos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * pos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -845,7 +841,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.9;
       float specCo = 1.0;
 
       float specAll = 0.0;
