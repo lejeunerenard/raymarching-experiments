@@ -579,22 +579,48 @@ vec3 DF_repeatHex(vec3 p)
 vec3 mPos = vec3(0);
 mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
+vec3 crystal (vec3 q, vec3 offset) {
+  vec3 d = vec3(maxDistance, 0, 0);
+
+  vec3 base = vec3(sdHexPrism(q, vec2(0.1, 0.5)), 0, 0);
+  d = dMin(d, base);
+
+  // Cap
+  vec3 dQ = q.xzy * vec3(1.5, 0.5, 1.6);
+  vec3 cap = vec3(dodecahedral(dQ, 62., 0.3));
+  cap -= 0.05 * cellular(1.2 * q + offset);
+  d = dMin(d, cap);
+
+  // Inclusions
+  d.x = max(d.x, -0.2 * cellular(q));
+
+  return d;
+}
+
+vec3 crystal(vec3 q) {
+  return crystal(q, vec3(0));
+}
+
 // Return value is (distance, material, orbit trap)
-vec3 map (in vec3 p, in float dT) { vec3 d = vec3(maxDistance, 0, 0);
+vec3 map (in vec3 p, in float dT) {
+  vec3 d = vec3(maxDistance, 0, 0);
 
   p *= globalRot;
 
   vec3 q = p;
+  q.y -= 0.064 * sin(cosT);
 
-  const float size = 0.6;
-  vec3 s = vec3(icosahedral(q, 41., size), 0., 0.);
-  d = dMin(d, s);
+  // Crystal
+  // for (int i = 0; i < 5; i++) {
+    // vec3 axis = vec3(
+    //     noise(1.0 * vec3(i) + 0.),
+    //     noise(1.4 * vec3(i) + 1.2349),
+    //     noise(0.8 * vec3(i) + 9.2349));
+    vec3 cQ = q; //  * rotationMatrix(normalize(axis), PI * 1.0 * noise(vec2(float(i) * 0.5)));
+    d = dMin(d, crystal(cQ.xzy));
+  // }
 
-  q *= rotationMatrix(vec3(1., 0.3, 0.7), 0.01);
-  vec3 r = vec3(-icosahedral(q, 41., size * 0.6), 0., 0.);
-  d = dMax(d, r);
-
-  d.x *= 0.2;
+  d.x *= 0.3;
 
   return d;
 }
