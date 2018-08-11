@@ -1121,27 +1121,32 @@ vec3 grid (in vec2 uv, in float size, in float colorOffset) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  float size = 0.09;
-  vec2 q = uv;
-  vec3 layer1 = grid(q, size, 0.);
-  color = mix(color, layer1, smoothstep(0., 0.01, length(layer1)));
-  color *= 0.6;
+  vec2 q = 2. * uv;
+  q = abs(q);
 
-  size *= 1.125;
+  float l = 5.0 * PI * length(uv);
+  q += 0.20000 * cos( 3.0 * q.yx + cosT);
+  q *= rotMat2(0.15);
+  q += 0.05000 * noise(2.0 * q.yx);
+  q *= rotMat2(0.15);
+  q += 0.05000 * cos( 7.0 * q.yx + cosT + l);
+  q *= rotMat2(0.15);
+  q += 0.02500 * noise(2.0 * q.yx);
+  q *= rotMat2(0.15);
+  q += 0.02500 * cos(13.0 * q.yx + cosT + l);
+  q *= rotMat2(0.15);
+  q += 0.01250 * cos(23.0 * q.yx + cosT + l);
+  q *= rotMat2(0.15);
+  q = q.xy * vec2(-1, 1);
 
-  vec3 layer2 = grid(q + 3.0, size, 0.15);
-  color = mix(color, layer2, smoothstep(0., 0.01, length(layer2)));
-  color *= 0.6;
-
-  size *= 1.125;
-
-  vec3 layer3 = grid(q + 9.0, size, 0.37);
-  color = mix(color, layer3, smoothstep(0., 0.01, length(layer3)));
+  float n = smoothstep(0., 0.01, sin(dot(q, vec2(41.5))) + 0.05 * noise(q * 72.1));
+  color = vec3(n);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1.);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
