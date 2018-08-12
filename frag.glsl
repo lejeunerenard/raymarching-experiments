@@ -1121,26 +1121,20 @@ vec3 grid (in vec2 uv, in float size, in float colorOffset) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  vec2 q = 2. * uv;
-  q = abs(q);
+  vec2 q = uv;
 
-  float l = 5.0 * PI * length(uv);
-  q += 0.20000 * cos( 3.0 * q.yx + cosT);
-  q *= rotMat2(0.15);
-  q += 0.05000 * noise(2.0 * q.yx);
-  q *= rotMat2(0.15);
-  q += 0.05000 * cos( 7.0 * q.yx + cosT + l);
-  q *= rotMat2(0.15);
-  q += 0.02500 * noise(2.0 * q.yx);
-  q *= rotMat2(0.15);
-  q += 0.02500 * cos(13.0 * q.yx + cosT + l);
-  q *= rotMat2(0.15);
-  q += 0.01250 * cos(23.0 * q.yx + cosT + l);
-  q *= rotMat2(0.15);
-  q = q.xy * vec2(-1, 1);
+  q += 0.1000 * cos(2. * q.yx + cosT);
+  vec2 nOffset = vec2(1, 0) * rotMat2(cosT);
+  q += 0.0500 * cnoise2(2. * q.yx + nOffset);
+  q += 0.0500 * cos(5. * q.yx + cosT);
+  q += 0.0250 * cos(7. * q.yx + cosT);
 
-  float n = smoothstep(0., 0.01, sin(dot(q, vec2(41.5))) + 0.05 * noise(q * 72.1));
-  color = vec3(n);
+  float i = length(31.0 * q);
+  float n = smoothstep(-0.1, -0.09, sin(PI * i));
+
+  float colorI = cnoise2(uv) + i;
+  color = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0.0, -0.2, -0.3)));
+  color = mix(background, color, n);
 
   return color;
 }
