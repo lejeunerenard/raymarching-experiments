@@ -1121,20 +1121,35 @@ vec3 grid (in vec2 uv, in float size, in float colorOffset) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  vec2 q = uv;
+  const float thickness = 0.04;
+  const float edgeThickness = thickness * 0.4;
+  const float edge = thickness * 0.0015;
 
-  q += 0.1000 * cos(2. * q.yx + cosT);
-  vec2 nOffset = vec2(1, 0) * rotMat2(cosT);
-  q += 0.0500 * cnoise2(2. * q.yx + nOffset);
-  q += 0.0500 * cos(5. * q.yx + cosT);
-  q += 0.0250 * cos(7. * q.yx + cosT);
+  vec2 q = uv.yx;
+  float r = length(q) + 0.01;
+  float a = atan(q.y, q.x) + PI;
 
-  float i = length(31.0 * q);
-  float n = smoothstep(-0.1, -0.09, sin(PI * i));
+  float c = floor(r / thickness) + 1.;
+  float layerI = mod(r, thickness);
+  const float layerEdgeThickness = edge * 80.;
+  float n = (1. - smoothstep(0., edge, layerI))
+    + smoothstep(layerEdgeThickness, layerEdgeThickness + edge, layerI);
 
-  float colorI = cnoise2(uv) + i;
-  color = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0.0, -0.2, -0.3)));
-  color = mix(background, color, n);
+  // Arch Segment
+  float archI = mod(a * c / TWO_PI, 1.);
+  float archC = floor(a * c / TWO_PI);
+  n *=
+    (1. - smoothstep(0., edge, archI))
+    + smoothstep(edgeThickness, edgeThickness + edge, archI);
+
+  // Checker
+  n *= mod(archC, 2.);
+
+  n += smoothstep(0., 0.01, r - thickness * 18.);
+  n += smoothstep(0., -0.001, r - thickness);
+
+  n = saturate(n);
+  color = vec3(n);
 
   return color;
 }
