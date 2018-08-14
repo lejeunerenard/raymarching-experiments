@@ -608,19 +608,19 @@ vec3 map (in vec3 p, in float dT) {
   p *= globalRot;
 
   vec3 q = p;
-  q.y -= 0.064 * sin(cosT);
+  vec3 qW = q;
 
-  // Crystal
-  // for (int i = 0; i < 5; i++) {
-    // vec3 axis = vec3(
-    //     noise(1.0 * vec3(i) + 0.),
-    //     noise(1.4 * vec3(i) + 1.2349),
-    //     noise(0.8 * vec3(i) + 9.2349));
-    vec3 cQ = q; //  * rotationMatrix(normalize(axis), PI * 1.0 * noise(vec2(float(i) * 0.5)));
-    d = dMin(d, crystal(cQ.xzy));
-  // }
+  float l = length(q);
+  qW += 0.02500 * cos(17. * q.yzx + cosT + l);
+  qW += 0.01250 * cnoise3( 7. * q.yzx + l);
+  qW += 0.01250 * cos(23. * q.yzx + cosT + l);
+  qW += 0.00625 * cnoise3(13. * q.yzx + l);
+  qW += 0.00625 * cos(37. * q.yzx + cosT + l);
 
-  d.x *= 0.3;
+  q = mix(q, qW, smoothstep(-0.2, 1., sin(cosT - 8. * l + PI)));
+
+  vec3 c = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  d = dMin(d, c);
 
   return d;
 }
@@ -697,13 +697,13 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.8;
+const float n2 = 1.3;
 const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.; // saturate(1.0 - 8.0 * dot(-rd, gNor));
+  float spread = saturate(1.0 - 2.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.1;
@@ -797,9 +797,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background * 0.70);
-
-  color += 0.3 * (0.5 + 0.5 * cos(TWO_PI * (dot(pos, rd) + dot(nor, -rd) + vec3(0, 0.33, 0.67))));
+  vec3 color = vec3(background * 1.00);
 
   return color;
 }
@@ -867,7 +865,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
+      float freCo = 0.4;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -919,7 +917,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       color += dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // color = pow(color, vec3(1.2));
+      color = pow(color, vec3(1.2));
 
       // Fog
       float d = max(0.0, t.x);
@@ -1155,7 +1153,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1.);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -1166,7 +1163,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(

@@ -13,13 +13,14 @@ const FOV = 70
 
 let app = new App()
 window.app = app
+window.time = 0
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'waft-render1',
+    name: 'experience-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
