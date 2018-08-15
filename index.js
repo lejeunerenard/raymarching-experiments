@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'experience-render2',
+    name: 'behemoth-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

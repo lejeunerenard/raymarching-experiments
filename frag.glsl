@@ -605,22 +605,24 @@ vec3 crystal(vec3 q) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
   vec3 qW = q;
 
   float l = length(q);
-  qW += 0.02500 * cos(17. * q.yzx + cosT + l);
-  qW += 0.01250 * cnoise3( 7. * q.yzx + l);
-  qW += 0.01250 * cos(23. * q.yzx + cosT + l);
-  qW += 0.00625 * cnoise3(13. * q.yzx + l);
-  qW += 0.00625 * cos(37. * q.yzx + cosT + l);
+  qW.xzy = twist(qW, 0.25 * PI * cos(cosT + 2.0 * qW.y));
+  qW += 0.05000 * cos(11. * qW.yzx + cosT + l);
+  qW += 0.02500 * cos(23. * qW.yzx + cosT + l);
+  qW += 0.01250 * cos(37. * qW.yzx + cosT + l);
 
-  q = mix(q, qW, smoothstep(-0.2, 1., sin(cosT - 8. * l + PI)));
+  q = qW;
+  // q = mix(q, qW, smoothstep(-0.2, 1., sin(cosT - 8. * l + PI)));
 
   vec3 c = vec3(sdBox(q, vec3(0.5)), 0, 0);
   d = dMin(d, c);
+
+  d.x *= 0.7;
 
   return d;
 }
