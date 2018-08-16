@@ -1121,33 +1121,18 @@ vec3 grid (in vec2 uv, in float size, in float colorOffset) {
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float thickness = 0.04;
-  const float edgeThickness = thickness * 0.4;
-  const float edge = thickness * 0.0015;
+  vec2 q = uv.xy;
+  float l = length(q);
 
-  vec2 q = uv.yx;
-  float r = length(q) + 0.01;
-  float a = atan(q.y, q.x) + PI;
+  vec2 qW = q;
+  qW += 0.2000 * cos(3.0 * qW.yx + cosT);
+  qW += 0.0500 * cnoise2(4.3 * qW.yx);
+  qW += 0.1000 * cos(5.0 * qW.yx + cosT);
+  qW += 0.0500 * cos(7.0 * qW.yx + cosT);
 
-  float c = floor(r / thickness) + 1.;
-  float layerI = mod(r, thickness);
-  const float layerEdgeThickness = edge * 80.;
-  float n = (1. - smoothstep(0., edge, layerI))
-    + smoothstep(layerEdgeThickness, layerEdgeThickness + edge, layerI);
+  q = mix(q, qW, smoothstep(-.24, 1., sin(cosT - 1.5 * l)));
 
-  // Arch Segment
-  float archI = mod(a * c / TWO_PI, 1.);
-  float archC = floor(a * c / TWO_PI);
-  n *=
-    (1. - smoothstep(0., edge, archI))
-    + smoothstep(edgeThickness, edgeThickness + edge, archI);
-
-  // Checker
-  n *= mod(archC, 2.);
-
-  n += smoothstep(0., 0.01, r - thickness * 18.);
-  n += smoothstep(0., -0.001, r - thickness);
-
+  float n = smoothstep(0., 0.01, sin(122.0 * dot(q, vec2(1))));
   n = saturate(n);
   color = vec3(n);
 
@@ -1155,6 +1140,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }

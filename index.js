@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'behemoth-render2',
+    name: 'distort-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
