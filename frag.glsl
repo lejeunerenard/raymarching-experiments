@@ -1118,23 +1118,62 @@ vec3 grid (in vec2 uv, in float size, in float colorOffset) {
   return color;
 }
 
+vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
+
+#define MOVING_SQR 1
+#ifdef MOVING_SQR
+  float moveRate = 0.05;
+#else
+  float moveRate = 0.;
+#endif
+
+  vec2 d = vec2(200, 1);
+  for (int i = 0; i < 6; i++) {
+    vec2 qB = q + 1.3 * cellSize * vec2(
+        noise(1.32345 * vec2(i) + c + 2.0 * moveRate * time + 0.),
+        noise(2.92345 * vec2(i) + c + 1.0 * moveRate * time + 123.));
+    float r = 0.2 * cellSize;
+    vec2 absQ = abs(qB);
+    float sqrD = max(absQ.x, absQ.y);
+    float m = smoothstep(0., 0.01, sqrD - r);
+    float n = smoothstep(0.001, 0.0, sqrD - 0.95 * r);
+
+    vec2 crossQ = qB * rotMat2(PI * 0.25);
+    absQ = abs(crossQ);
+    sqrD = max(absQ.x, absQ.y);
+    float axisD = min(absQ.x, absQ.y) - 0.05 * r;
+    float axis = smoothstep(0.001, 0.0, axisD);
+    float crossR = r * 0.5;
+    float cross = axis * smoothstep(0.001, 0., sqrD - crossR);
+    cross = 1. - cross;
+    n *= cross;
+
+    float z = 1.; // noise(vec2(i));
+
+    vec2 b = vec2(m * 100. + z, n);
+    d = dMin(d, b);
+  }
+
+  return d;
+}
+
 vec3 two_dimensional (in vec2 uv) {
   vec3 color = vec3(0);
+  float stripes = smoothstep(0.0, 0.01, sin(182. * dot(uv, vec2(1))));
+  vec2 d = vec2(100., stripes);
 
+  const float cellSize = 0.4;
   vec2 q = uv.xy;
-  float l = length(q);
 
-  vec2 qW = q;
-  qW += 0.2000 * cos(3.0 * qW.yx + cosT);
-  qW += 0.0500 * cnoise2(4.3 * qW.yx);
-  qW += 0.1000 * cos(5.0 * qW.yx + cosT);
-  qW += 0.0500 * cos(7.0 * qW.yx + cosT);
+  vec2 c = pMod2(q, vec2(cellSize));
 
-  q = mix(q, qW, smoothstep(-.24, 1., sin(cosT - 1.5 * l)));
+  for (int i = -1; i < 2; i++)
+  for (int j = -1; j < 2; j++) {
+    vec2 b = cellBoxes(q - vec2(i, j) * cellSize, c + vec2(i, j), cellSize);
+    d = dMin(d, b);
+  }
 
-  float n = smoothstep(0., 0.01, sin(122.0 * dot(q, vec2(1))));
-  n = saturate(n);
-  color = vec3(n);
+  color = vec3(d.y);
 
   return color;
 }
