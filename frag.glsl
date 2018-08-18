@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -605,24 +605,16 @@ vec3 crystal(vec3 q) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
-  vec3 qW = q;
 
-  float l = length(q);
-  qW.xzy = twist(qW, 0.25 * PI * cos(cosT + 2.0 * qW.y));
-  qW += 0.05000 * cos(11. * qW.yzx + cosT + l);
-  qW += 0.02500 * cos(23. * qW.yzx + cosT + l);
-  qW += 0.01250 * cos(37. * qW.yzx + cosT + l);
+  q = abs(q);
+  q *= rotationMatrix(vec3(1, 3, 4), cosT);
 
-  q = qW;
-  // q = mix(q, qW, smoothstep(-0.2, 1., sin(cosT - 8. * l + PI)));
-
-  vec3 c = vec3(sdBox(q, vec3(0.5)), 0, 0);
-  d = dMin(d, c);
-
-  d.x *= 0.7;
+  mPos = q;
+  vec3 i = vec3(icosahedral(q, 52., 0.61), 0, 0);
+  d = dMin(d, i);
 
   return d;
 }
@@ -799,7 +791,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background * 1.00);
+  vec3 color = vec3(1);
+
+  float n1 = 1.; // smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(1))));
+  float n2 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(-1, 1, 1))));
+  float n3 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(1, -1, 1))));
+  float n4 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(1, 1, -1))));
+  float n5 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(-1, 1, -1))));
+  float n =  n1 * n2 * n3 * n4 * n5;
+
+  color = vec3(n);
 
   return color;
 }
@@ -875,7 +876,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = 1.; //max(0.3, diffuse(nor, normalize(lightPos)));
+        float dif = max(0.7, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -910,25 +911,25 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += dispersionColor;
-      // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.2));
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // color += dispersionColor;
+      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      // color = pow(color, vec3(1.2));
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       // color += directLighting * exp(-d * 0.0005);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -1179,7 +1180,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
@@ -1190,7 +1190,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = PI * mod(time, totalT) / totalT;
+    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
