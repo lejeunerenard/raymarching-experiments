@@ -605,16 +605,23 @@ vec3 crystal(vec3 q) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  q = abs(q);
-  q *= rotationMatrix(vec3(1, 3, 4), cosT);
+  vec3 qW = q;
+  qW += 0.200 * cos( 3. * qW.yzx + cosT );
+  qW += 0.100 * cos( 5. * qW.yzx + cosT );
+  qW += 0.050 * cos( 7. * qW.yzx + cosT );
+  qW += 0.025 * cos(13. * qW.yzx + cosT );
+
+  q = mix(q, qW, smoothstep(0.1, 0.9, 0.5 + 0.5 * sin(cosT - PI * 0.5)));
 
   mPos = q;
-  vec3 i = vec3(icosahedral(q, 52., 0.61), 0, 0);
-  d = dMin(d, i);
+  vec3 b = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  d = dMin(d, b);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -793,12 +800,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  float n1 = 1.; // smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(1))));
-  float n2 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(-1, 1, 1))));
-  float n3 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(1, -1, 1))));
-  float n4 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(1, 1, -1))));
-  float n5 = smoothstep(-0.8, -0.79, sin(dot(mPos, 50.0 * vec3(-1, 1, -1))));
-  float n =  n1 * n2 * n3 * n4 * n5;
+  float n =  smoothstep(0., 0.01, sin(62. * max(mPos.x, -mPos.y) + PI * 0.5));
 
   color = vec3(n);
 
