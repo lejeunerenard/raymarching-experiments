@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 16.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1161,27 +1161,98 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
 }
 
 vec3 two_dimensional (in vec2 uv) {
-  vec3 color = vec3(0);
-  float stripes = smoothstep(0.0, 0.01, sin(182. * dot(uv, vec2(1))));
-  vec2 d = vec2(100., stripes);
+  vec3 color = vec3(background);
 
-  const float cellSize = 0.4;
+  const float sqrR = 0.3;
+  float scale = mix(1.0, 3.0, norT);
+  uv *= scale;
+
   vec2 q = uv.xy;
+  vec2 dir = vec2(0);
 
-  vec2 c = pMod2(q, vec2(cellSize));
+  // Main Square
+  vec2 absQ = abs(q);
+  float n = smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
 
-  for (int i = -1; i < 2; i++)
-  for (int j = -1; j < 2; j++) {
-    vec2 b = cellBoxes(q - vec2(i, j) * cellSize, c + vec2(i, j), cellSize);
-    d = dMin(d, b);
-  }
+  // Top Left
+  q = uv;
+  dir = vec2(1, 1);
+  float timeTL = smoothstep(0., totalT * 0.125, modT);
+  q -= mix(1.5, 1., timeTL) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeTL);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
 
-  color = vec3(d.y);
+  // Top Middle
+  q = uv;
+  dir = vec2(0, 1);
+  float timeTM = smoothstep(totalT * 0.125 * 1., totalT * 0.125 * 2., modT);
+  q -= mix(1.5, 1., timeTM) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeTM);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  // Top Right
+  q = uv;
+  dir = vec2(-1, 1);
+  float timeTR = smoothstep(totalT * 0.125 * 2., totalT * 0.125 * 3., modT);
+  q -= mix(1.5, 1., timeTR) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeTR);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  // Right
+  q = uv;
+  dir = vec2(-1, 0);
+  float timeR = smoothstep(totalT * 0.125 * 3., totalT * 0.125 * 4., modT);
+  q -= mix(1.5, 1., timeR) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeR);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  // Bottom Right
+  q = uv;
+  dir = vec2(-1, -1);
+  float timeBR = smoothstep(totalT * 0.125 * 4., totalT * 0.125 * 5., modT);
+  q -= mix(1.5, 1., timeBR) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeBR);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  // Bottom Middle
+  q = uv;
+  dir = vec2(0, -1);
+  float timeB = smoothstep(totalT * 0.125 * 5., totalT * 0.125 * 6., modT);
+  q -= mix(1.5, 1., timeB) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeB);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  // Bottom Left
+  q = uv;
+  dir = vec2(1, -1);
+  float timeBL = smoothstep(totalT * 0.125 * 6., totalT * 0.125 * 7., modT);
+  q -= mix(1.5, 1., timeBL) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeBL);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  // Left
+  q = uv;
+  dir = vec2(1, 0);
+  float timeL = smoothstep(totalT * 0.125 * 7., totalT * 0.125 * 8., modT);
+  q -= mix(1.5, 1., timeL) * dir * sqrR * 2.;
+  q *= mix(2000.0, 1., timeL);
+  absQ = abs(q);
+  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+
+  color = vec3(n);
 
   return color;
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1.);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
