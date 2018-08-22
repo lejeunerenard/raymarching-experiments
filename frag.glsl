@@ -602,6 +602,40 @@ vec3 crystal(vec3 q) {
   return crystal(q, vec3(0));
 }
 
+vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
+  vec3 d = vec3(maxDistance, 0, 0);
+
+  vec3 b;
+  b = vec3(sdBox(q + 2. * (size + r) * vec3( 0, 0,  0), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3( 0, 0,  1), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3( 1, 0,  1), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3( 1, 0,  0), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3( 1, 0, -1), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3( 0, 0, -1), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3(-1, 0, -1), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3(-1, 0,  0), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q - 2. * (size + r) * vec3(-1, 0,  1), vec3(size)), 0, 0);
+  d = dMin(d, b);
+
+  return d;
+}
+
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -610,19 +644,38 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  vec3 qW = q;
-  qW += 0.200 * cos( 3. * qW.yzx + cosT );
-  qW += 0.100 * cos( 5. * qW.yzx + cosT );
-  qW += 0.050 * cos( 7. * qW.yzx + cosT );
-  qW += 0.025 * cos(13. * qW.yzx + cosT );
-
-  q = mix(q, qW, smoothstep(0.1, 0.9, 0.5 + 0.5 * sin(cosT - PI * 0.5)));
-
+  const float size = 0.1;
+  float yC = floor(q.y / size) * size;
   mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(0.5)), 0, 0);
+
+  q.y -= 2.0 * size;
+
+  vec3 rowQ = q;
+
+  vec3 b;
+
+  // Top
+  rowQ = q;
+  float rowT = saturate(sin(cosT - 0.000 * PI));
+  rowQ *= rotationMatrix(vec3(0, 1, 0), rowT * PI * 0.5);
+  b = rowOfBoxes(rowQ, size, size * rowT);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  // Middle
+  q.y += 2.0 * size;
+  rowQ = q;
+  rowT = saturate(sin(cosT - 0.125 * PI));
+  rowQ *= rotationMatrix(vec3(0, 1, 0), rowT * PI * 0.5);
+  b = rowOfBoxes(rowQ, size, size * rowT);
+  d = dMin(d, b);
+
+  // Bottom
+  q.y += 2.0 * size;
+  rowQ = q;
+  rowT = saturate(sin(cosT - 0.250 * PI));
+  rowQ *= rotationMatrix(vec3(0, 1, 0), rowT * PI * 0.5);
+  b = rowOfBoxes(rowQ, size, size * rowT);
+  d = dMin(d, b);
 
   return d;
 }
@@ -801,9 +854,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  float n =  smoothstep(0., 0.01, sin(62. * max(mPos.x, -mPos.y) + PI * 0.5));
-
-  color = vec3(n);
+  float n = -0.5 * pos.y + 0.11 + 0.1 * dot(-rd, vec3(0, 0, 1));
+  n *= 0.5;
+  // n += 0.1 * cnoise3(324. * pos);
+  color = vec3(saturate(n));
 
   return color;
 }
@@ -879,7 +933,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.7, diffuse(nor, normalize(lightPos)));
+        float dif = max(0.0, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
@@ -968,9 +1022,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      // float i = 1.0 * pow(saturate(t.z / (1.01 * float(maxSteps))), 3.5);
-      // vec3 glowColor = pow(mix(#FF8F45, #ffffff, saturate(i)), vec3(2.2));
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = saturate(t.z / (0.91 * float(maxSteps)));
+      vec3 glowColor = pow(#D93741, vec3(2.2));
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -1267,16 +1321,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 color = vec4(1);
-  const float inc = 0.05;
-  color.r  *= two_dimensional(uv, mod(time + 0. * inc, totalT)).r;
-  // color.rg *= two_dimensional(uv, mod(time + 1. * inc, totalT)).r;
-  color.g  *= two_dimensional(uv, mod(time + 1. * inc, totalT)).r;
-  // color.gb *= two_dimensional(uv, mod(time + 3. * inc, totalT)).r;
-  color.b  *= two_dimensional(uv, mod(time + 2. * inc, totalT)).r;
-  // color.br *= two_dimensional(uv, mod(time + 5. * inc, totalT)).r;
-  return color;
-
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
