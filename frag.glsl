@@ -1218,100 +1218,18 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  const float sqrR = 0.3;
-  float scale = mix(1.0, 3.0, generalT / totalT);
-  uv *= scale;
-  uv *= rotMat2(PI * 0.5 * circ(smoothstep(totalT * 0.75, totalT, generalT)));
-
   vec2 q = uv.xy;
-  vec2 dir = vec2(0);
+  /// q = abs(q);
 
-  // Main Square
-  vec2 absQ = abs(q);
-  float n = smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
+  q += 0.100 * cos (TWO_PI * q.yx + cosT);
+  q += 0.050 * cnoise2(3.0 * q.yx);
+  q += length(q);
+  q += 0.050 * cnoise2(3.0 * q.yx);
+  q += 0.050 * cnoise2(3.0 * q.yx);
+  q += 0.050 * cnoise2(3.0 * q.yx);
+  q += 0.025 * cos (TWO_PI * 2.0 * q.yx + cosT + 3.0 * dot(q, vec2(-1, 1)));
 
-  const float maxScale = 150.0;
-  const float maxTrans = 4.;
-  // Top Left
-  q = uv;
-  dir = vec2(1, 1);
-  float timeTL = smoothstep(totalT * 0.125 * 0., totalT * 0.125 * 2., generalT);
-  q -= mix(maxTrans, 1., timeTL) * dir * sqrR * 2.;
-  q *= mix(maxScale, 1., timeTL);
-  q *= rotMat2(3. * TWO_PI * timeTL);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Top Middle
-  q = uv;
-  dir = vec2(0, 1);
-  float timeTM = smoothstep(totalT * 0.125 * 0.5, totalT * 0.125 * 2.5, generalT);
-  q -= mix(maxTrans, 1., bounceOut(timeTM)) * dir * sqrR * 2.;
-  // q *= mix(maxScale, 1., timeTM);
-  // q *= rotMat2(3. * TWO_PI * timeTM);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Top Right
-  q = uv;
-  dir = vec2(-1, 1);
-  float timeTR = smoothstep(totalT * 0.125 * 1., totalT * 0.125 * 3.0, generalT);
-  q -= mix(maxTrans, 1., timeTR) * dir * sqrR * 2.;
-  q *= mix(maxScale, 1., timeTR);
-  q *= rotMat2(3. * TWO_PI * timeTR);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Right
-  q = uv;
-  dir = vec2(-1, 0);
-  float timeR = smoothstep(totalT * 0.125 * 1.5, totalT * 0.125 * 3.5, generalT);
-  q -= mix(maxTrans, 1., bounceOut(timeR)) * dir * sqrR * 2.;
-  // q *= mix(maxScale, 1., timeR);
-  // q *= rotMat2(3. * TWO_PI * timeR);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Bottom Right
-  q = uv;
-  dir = vec2(-1, -1);
-  float timeBR = smoothstep(totalT * 0.125 * 2., totalT * 0.125 * 4.0, generalT);
-  q -= mix(maxTrans, 1., timeBR) * dir * sqrR * 2.;
-  q *= mix(maxScale, 1., timeBR);
-  q *= rotMat2(3. * TWO_PI * timeBR);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Bottom Middle
-  q = uv;
-  dir = vec2(0, -1);
-  float timeB = smoothstep(totalT * 0.125 * 2.5, totalT * 0.125 * 4.5, generalT);
-  q -= mix(maxTrans, 1., bounceOut(timeB)) * dir * sqrR * 2.;
-  // q *= mix(maxScale, 1., timeB);
-  // q *= rotMat2(3. * TWO_PI * timeB);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Bottom Left
-  q = uv;
-  dir = vec2(1, -1);
-  float timeBL = smoothstep(totalT * 0.125 * 3.0, totalT * 0.125 * 5.0, generalT);
-  q -= mix(maxTrans, 1., timeBL) * dir * sqrR * 2.;
-  q *= mix(maxScale, 1., timeBL);
-  q *= rotMat2(3. * TWO_PI * timeBL);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
-  // Left
-  q = uv;
-  dir = vec2(1, 0);
-  float timeL = smoothstep(totalT * 0.125 * 3.5, totalT * 0.125 * 5.5, generalT);
-  q -= mix(maxTrans, 1., bounceOut(timeL)) * dir * sqrR * 2.;
-  // q *= mix(maxScale, 1., timeL);
-  // q *= rotMat2(3. * TWO_PI * timeL);
-  absQ = abs(q);
-  n *= smoothstep(0., 0.005, max(absQ.x, absQ.y) - sqrR);
-
+  float n = smoothstep(0., 0.001, sin(dot(q, vec2(70))));
   color = vec3(n);
 
   return color;
@@ -1321,6 +1239,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd);
   return shade(ro, rd, t, uv);
 }
