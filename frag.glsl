@@ -642,40 +642,63 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= globalRot;
 
+  const float stageLength = 0.15 * totalT;
+  const vec3 axis = normalize(vec3(1, 0, 1));
   vec3 q = p;
 
-  const float size = 0.1;
-  float yC = floor(q.y / size) * size;
-  mPos = q;
+  dT += PI * 1.25;
+  float radius = 0.3 * 1.3;
+  const float radiusScale = 1.2;
+  const float timeSlip = 0.25;
 
-  q.y -= 2.0 * size;
+  vec3 r = vec3(0);
 
-  vec3 rowQ = q;
+  q = p;
+  q *= rotationMatrix(axis, sin(cosT + 0.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
 
-  vec3 b;
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 1.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
 
-  // Top
-  rowQ = q;
-  float rowT = saturate(sin(cosT - 0.000 * PI));
-  rowQ *= rotationMatrix(vec3(0, 1, 0), rowT * PI * 0.5);
-  b = rowOfBoxes(rowQ, size, size * rowT);
-  d = dMin(d, b);
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 2.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
 
-  // Middle
-  q.y += 2.0 * size;
-  rowQ = q;
-  rowT = saturate(sin(cosT - 0.125 * PI));
-  rowQ *= rotationMatrix(vec3(0, 1, 0), rowT * PI * 0.5);
-  b = rowOfBoxes(rowQ, size, size * rowT);
-  d = dMin(d, b);
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 3.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
 
-  // Bottom
-  q.y += 2.0 * size;
-  rowQ = q;
-  rowT = saturate(sin(cosT - 0.250 * PI));
-  rowQ *= rotationMatrix(vec3(0, 1, 0), rowT * PI * 0.5);
-  b = rowOfBoxes(rowQ, size, size * rowT);
-  d = dMin(d, b);
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 4.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
+
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 5.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
+
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 6.0 * timeSlip + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
+
+  q = p;
+  radius *= radiusScale;
+  q *= rotationMatrix(axis, sin(cosT + 7.0 + dT));
+  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
+  d = dMin(d, r);
 
   return d;
 }
@@ -683,13 +706,12 @@ vec3 map (in vec3 p) {
   return map(p, 0.);
 }
 
-vec4 march (in vec3 rayOrigin, in vec3 rayDirection) {
+vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT) {
   float t = 0.;
   float maxI = 0.;
 
   float trap = maxDistance;
 
-  float deltaT = 0.;
   const float deltaTDelta = 0.000;
 // #define OVERSTEP 1
 #ifdef OVERSTEP
@@ -852,12 +874,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
-
-  float n = -0.5 * pos.y + 0.11 + 0.1 * dot(-rd, vec3(0, 0, 1));
-  n *= 0.5;
-  // n += 0.1 * cnoise3(324. * pos);
-  color = vec3(saturate(n));
+  vec3 color = vec3(0.8);
 
   return color;
 }
@@ -894,8 +911,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(0, 1.4, 1.0), #FFAAAA, 1.0);
-    lights[1] = light(vec3(0.4, 0.4, 1.0), #AAFFFF, 1.0);
+    lights[0] = light(vec3(0, 1.4, 1.0), #FFCCCC, 1.0);
+    lights[1] = light(vec3(0.4, 0.4, 1.0), #CCFFFF, 1.0);
     lights[2] = light(vec3(0.4, 0, 1.0), #FFFFFF, 1.0);
 
     if (t.x>0.) {
@@ -925,7 +942,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
+      float freCo = 1.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -937,7 +954,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float sha = 1.; // max(0.5, softshadow(pos, normalize(lightPos), 0.001, 4.75));
+        float sha = max(0.5, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -949,7 +966,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.5 * amb * diffuseColor;
+        lin += 0.5 * amb * diffuseColor;
 
         float distIntensity = 1.0; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
@@ -986,7 +1003,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += directLighting * exp(-d * 0.0005);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -1239,9 +1256,15 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
-  vec4 t = march(ro, rd);
-  return shade(ro, rd, t, uv);
+  vec4 color = vec4(0);
+
+  vec4 t = march(ro, rd, 0.);
+  color += vec4(1, 1, 0, 1) * shade(ro, rd, t, uv);
+  t = march(ro, rd, 0.05);
+  color += vec4(0, 1, 1, 1) * shade(ro, rd, t, uv);
+  t = march(ro, rd, 0.10);
+  color += vec4(1, 0, 1, 1) * shade(ro, rd, t, uv);
+  return color;
 }
 
 void main() {
