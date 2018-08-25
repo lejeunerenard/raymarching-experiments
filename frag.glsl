@@ -1236,17 +1236,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv.xy;
-  /// q = abs(q);
 
-  q += 0.100 * cos (TWO_PI * q.yx + cosT);
-  q += 0.050 * cnoise2(3.0 * q.yx);
-  q += length(q);
-  q += 0.050 * cnoise2(3.0 * q.yx);
-  q += 0.050 * cnoise2(3.0 * q.yx);
-  q += 0.050 * cnoise2(3.0 * q.yx);
-  q += 0.025 * cos (TWO_PI * 2.0 * q.yx + cosT + 3.0 * dot(q, vec2(-1, 1)));
+  pMod2(q, vec2(0.55));
 
-  float n = smoothstep(0., 0.001, sin(dot(q, vec2(70))));
+  q += 0.025000 * cos( 4.0 * q.yx + cosT);
+  q += 0.012500 * cos( 7.0 * q.yx + cosT);
+  q += 0.006250 * cos(13.0 * q.yx + cosT);
+  q += 0.003125 * cos(17.0 * q.yx + cosT);
+  q += 0.160000 * sin(cosT - 2.0 * length(q));
+
+  q.y += 0.25 * sin(2. * PI * q.x);
+
+  float n = smoothstep(0., 0.001, sin(dot(q.yy, vec2(30))));
   color = vec3(n);
 
   return color;
@@ -1256,15 +1257,16 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 color = vec4(0);
+  vec3 color = vec3(0);
+
+  color.r += two_dimensional(uv + 0.0000).r;
+  color.g += two_dimensional(uv + 0.0030).g;
+  color.b += two_dimensional(uv + 0.0060).b;
+
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.);
-  color += vec4(1, 1, 0, 1) * shade(ro, rd, t, uv);
-  t = march(ro, rd, 0.05);
-  color += vec4(0, 1, 1, 1) * shade(ro, rd, t, uv);
-  t = march(ro, rd, 0.10);
-  color += vec4(1, 0, 1, 1) * shade(ro, rd, t, uv);
-  return color;
+  return shade(ro, rd, t, uv);
 }
 
 void main() {
