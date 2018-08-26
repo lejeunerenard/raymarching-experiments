@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -642,63 +642,18 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= globalRot;
 
-  const float stageLength = 0.15 * totalT;
-  const vec3 axis = normalize(vec3(1, 0, 1));
   vec3 q = p;
 
-  dT += PI * 1.25;
-  float radius = 0.3 * 1.3;
-  const float radiusScale = 1.2;
-  const float timeSlip = 0.25;
+  const float size = 0.175;
+  vec2 c = pMod2(q.xy, vec2(size));
 
-  vec3 r = vec3(0);
+  float waveT = smoothstep(-0.5, 1.0, sin(cosT - 0.75 * length(c) - dT));
+  q.z += 0.5 * size * waveT;
+  q *= rotationMatrix(normalize(vec3(1)), 1.0 * PI * waveT);
+  vec3 b = vec3(sdBox(q, vec3(0.35 * size)), 0, 0);
+  d = dMin(d, b);
 
-  q = p;
-  q *= rotationMatrix(axis, sin(cosT + 0.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 1.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 2.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 3.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 4.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 5.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 6.0 * timeSlip + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
-
-  q = p;
-  radius *= radiusScale;
-  q *= rotationMatrix(axis, sin(cosT + 7.0 + dT));
-  r = vec3(sdTorus88(q, vec2(radius, 0.03)), 0, 0);
-  d = dMin(d, r);
+  d.x *= 0.5;
 
   return d;
 }
@@ -874,7 +829,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.8);
+  vec3 color = vec3(1.0);
 
   return color;
 }
@@ -942,7 +897,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.2;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1257,16 +1212,22 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
+  vec4 color = vec4(vec3(0), 1);
+  vec4 t;
 
-  color.r += two_dimensional(uv + 0.0000).r;
-  color.g += two_dimensional(uv + 0.0030).g;
-  color.b += two_dimensional(uv + 0.0060).b;
+  t = march(ro, rd, 0.);
+  color.r += shade(ro, rd, t, uv).r;
+  t = march(ro, rd, 0.05);
+  color.g += shade(ro, rd, t, uv).r;
+  t = march(ro, rd, 0.10);
+  color.b += shade(ro, rd, t, uv).r;
 
-  return vec4(color, 1);
+  t = march(ro, rd, 0.15);
+  color.r += shade(ro, rd, t, uv).r;
+  t = march(ro, rd, 0.20);
+  color.gb += shade(ro, rd, t, uv).r;
 
-  vec4 t = march(ro, rd, 0.);
-  return shade(ro, rd, t, uv);
+  return 0.5 * color;
 }
 
 void main() {
