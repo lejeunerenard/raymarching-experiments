@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'indent-render2',
+    name: 'wander-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

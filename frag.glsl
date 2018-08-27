@@ -1190,44 +1190,56 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = uv.xy;
+  vec2 q = uv;
 
-  pMod2(q, vec2(0.55));
+  float n = 0.;
 
-  q += 0.025000 * cos( 4.0 * q.yx + cosT);
-  q += 0.012500 * cos( 7.0 * q.yx + cosT);
-  q += 0.006250 * cos(13.0 * q.yx + cosT);
-  q += 0.003125 * cos(17.0 * q.yx + cosT);
-  q += 0.160000 * sin(cosT - 2.0 * length(q));
+  q = abs(q);
 
-  q.y += 0.25 * sin(2. * PI * q.x);
+  foldNd(q, vec2(
+        cnoise2(q),
+        cnoise2(q + vec2(0.2, 234.))));
 
-  float n = smoothstep(0., 0.001, sin(dot(q.yy, vec2(30))));
-  color = vec3(n);
+  q *= 1.1;
+  foldNd(q, vec2(
+        cnoise2(q),
+        cnoise2(q + vec2(4555.2, 34.))));
+  q *= 1.1;
 
-  return color;
+  vec2 r;
+  vec2 s;
+  vec2 t;
+
+  q += 0.100 * cos(3. * q.yx);
+  q += 0.050 * cos(5. * q.yx);
+
+  q += vec2(
+      vfbmWarp(q, r, s, t),
+      cnoise2(q)
+  );
+
+  n = vfbmWarp(q);
+
+  color = vec3(0.5) + vec3(0.3, 0.7, 0.3) * cos(TWO_PI * (n + 0.675 + vec3(0., 0.15, 0.3)));
+  color -= dot(r, s);
+  color *= 0.85 + 0.15 * dot(r + s, vec2(2));
+
+  return 0.5 * color;
 }
+
 vec3 two_dimensional (in vec2 uv) {
   return two_dimensional(uv, modT);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 color = vec4(vec3(0), 1);
-  vec4 t;
+  return vec4(two_dimensional(uv), 1);
 
-  t = march(ro, rd, 0.);
-  color.r += shade(ro, rd, t, uv).r;
-  t = march(ro, rd, 0.05);
-  color.g += shade(ro, rd, t, uv).r;
-  t = march(ro, rd, 0.10);
-  color.b += shade(ro, rd, t, uv).r;
+  vec4 color = vec4(0);
 
-  t = march(ro, rd, 0.15);
-  color.r += shade(ro, rd, t, uv).r;
-  t = march(ro, rd, 0.20);
-  color.gb += shade(ro, rd, t, uv).r;
+  vec4 t = march(ro, rd, 0.20);
+  color = shade(ro, rd, t, uv);
 
-  return 0.5 * color;
+  return color;
 }
 
 void main() {
