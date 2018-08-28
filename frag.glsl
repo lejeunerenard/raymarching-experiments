@@ -478,7 +478,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: pModInterval1 = require(./hg_sdf/p-mod-interval1)
 #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-// #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
+#pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
@@ -644,16 +644,19 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.175;
-  vec2 c = pMod2(q.xy, vec2(size));
+  vec3 h = vec3(dodecahedral(q, 53., 0.275), 0, 0);
+  d = dMin(d, h);
 
-  float waveT = smoothstep(-0.5, 1.0, sin(cosT - 0.75 * length(c) - dT));
-  q.z += 0.5 * size * waveT;
-  q *= rotationMatrix(normalize(vec3(1)), 1.0 * PI * waveT);
-  vec3 b = vec3(sdBox(q, vec3(0.35 * size)), 0, 0);
-  d = dMin(d, b);
+  q.xz -= 0.1;
+  float gridSize = 0.05;
+  float c = floor(q.y / gridSize);
+  q.xz += vec2(0.8, 0) * rotMat2(PI * 0.25 * c);
+  vec3 g = vec3(sdBox(q, vec3(0.4)), 1, 0);
+  d = dMin(d, g);
 
-  d.x *= 0.5;
+  q = p + vec3(0, 0, 2);
+  vec3 f = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 2, 0);
+  d = dMin(d, f);
 
   return d;
 }
@@ -831,6 +834,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
+  // Dots
+  vec3 q = pos;
+  float dotSize = 0.03;
+  pMod3(q, vec3(dotSize));
+  float n = smoothstep(0.0, 0.001, length(q) - 0.3 * dotSize);
+  color = vec3(n);
+
+  vec3 shatterLines = vec3(smoothstep(0., 0.01, sin(30.0 * q.x)));
+  color = mix(color, shatterLines, isMaterialSmooth(m, 1.));
+
+  vec3 grad = mix(pow(#FF0000, vec3(2.2)), pow(#FF0DFF, vec3(2.2)), 0.8 * pos.y);
+  color = mix(color, grad, isMaterialSmooth(m, 2.));
+
   return color;
 }
 
@@ -994,9 +1010,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float i = saturate(t.z / (0.91 * float(maxSteps)));
-      vec3 glowColor = pow(#D93741, vec3(2.2));
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // float i = saturate(t.z / (0.91 * float(maxSteps)));
+      // vec3 glowColor = pow(#D93741, vec3(2.2));
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -1232,14 +1248,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
-
-  vec4 color = vec4(0);
-
   vec4 t = march(ro, rd, 0.20);
-  color = shade(ro, rd, t, uv);
-
-  return color;
+  return shade(ro, rd, t, uv);
 }
 
 void main() {
