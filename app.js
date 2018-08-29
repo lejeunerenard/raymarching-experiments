@@ -208,7 +208,7 @@ export default class App {
     preset.cameraAngles = [-0.035, 0, 0]
 
     this.d = preset.d
-    const dist = 2.5
+    const dist = 3.5
     this.cameraRo = vec3.fromValues(-dist, dist, dist)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 

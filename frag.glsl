@@ -636,27 +636,30 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
   return d;
 }
 
+vec3 twistedCol (in vec3 q, in float offset) {
+  q.xzy = twist(q, 1.5 * q.y);
+  // Single strand
+  float a = atan(q.z, q.x) + cosT;
+  float baseR = 0.3 + 0.1 * sin(1.5 * q.y + cosT);;
+  float r = abs(sin(4.0 * a));
+  return vec3(sdCylinder(q, vec3(0, 0, baseR + baseR * 0.4 * r)), 0, 0);
+}
+
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // p *= globalRot;
 
-  vec3 q = p;
+  vec3 q = p + vec3(0.8 * 3., 0, 0);
 
-  vec3 h = vec3(dodecahedral(q, 53., 0.275), 0, 0);
-  d = dMin(d, h);
+  for (int i = -2; i < 3; i++) {
+    q.x -= 0.8;
+    vec3 c1 = twistedCol(q, 0.55 * PI * float(i));
+    d = dMin(d, c1);
+  }
 
-  q.xz -= 0.1;
-  float gridSize = 0.05;
-  float c = floor(q.y / gridSize);
-  q.xz += vec2(0.8, 0) * rotMat2(PI * 0.25 * c);
-  vec3 g = vec3(sdBox(q, vec3(0.4)), 1, 0);
-  d = dMin(d, g);
-
-  q = p + vec3(0, 0, 2);
-  vec3 f = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 2, 0);
-  d = dMin(d, f);
+  d.x *= 0.6;
 
   return d;
 }
@@ -834,19 +837,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.0);
 
-  // Dots
-  vec3 q = pos;
-  float dotSize = 0.03;
-  pMod3(q, vec3(dotSize));
-  float n = smoothstep(0.0, 0.001, length(q) - 0.3 * dotSize);
-  color = vec3(n);
-
-  vec3 shatterLines = vec3(smoothstep(0., 0.01, sin(30.0 * q.x)));
-  color = mix(color, shatterLines, isMaterialSmooth(m, 1.));
-
-  vec3 grad = mix(pow(#FF0000, vec3(2.2)), pow(#FF0DFF, vec3(2.2)), 0.8 * pos.y);
-  color = mix(color, grad, isMaterialSmooth(m, 2.));
-
   return color;
 }
 
@@ -882,8 +872,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(0, 1.4, 1.0), #FFCCCC, 1.0);
-    lights[1] = light(vec3(0.4, 0.4, 1.0), #CCFFFF, 1.0);
+    lights[0] = light(vec3(0, 1.4, 1.0), #FFAAAA, 1.0);
+    lights[1] = light(vec3(0.4, 0.4, 1.0), #AAFFFF, 1.0);
     lights[2] = light(vec3(0.4, 0, 1.0), #FFFFFF, 1.0);
 
     if (t.x>0.) {
@@ -892,11 +882,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
       float bumpsScale = 0.5;
       float bumpIntensity = 0.1;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * pos),
-      //     cnoise3(bumpsScale * 670.0 * pos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * pos + 23.4634));
-      // nor = normalize(nor);
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * pos),
+          cnoise3(bumpsScale * 670.0 * pos + 234.634),
+          cnoise3(bumpsScale * 310.0 * pos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -913,8 +903,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 1.0;
+      float freCo = 0.4;
+      float specCo = 0.7;
 
       float specAll = 0.0;
 
@@ -925,7 +915,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float sha = max(0.5, softshadow(pos, normalize(lightPos), 0.001, 4.75));
+        float sha = max(0.3, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -937,7 +927,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.5 * amb * diffuseColor;
+        lin += 0.2 * amb * diffuseColor;
 
         float distIntensity = 1.0; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
