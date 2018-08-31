@@ -1196,39 +1196,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float n = 0.;
+  const float size = 0.05;
+  vec2 c = pMod2(q, vec2(size));
 
-  q = abs(q);
+  float rot = PI * smoothstep(-0.25, 0.25, sin(cosT - 0.25 * length(c) - 0.125 * PI));
+  q *= rotMat2(rot);
 
-  foldNd(q, vec2(
-        cnoise2(q),
-        cnoise2(q + vec2(0.2, 234.))));
+  float n = smoothstep(0., 0.1 * size, abs(sin(dot(q, vec2(1)) / (10.0 * size))) - 0.0625 * size);
+  n = 1. - n;
 
-  q *= 1.1;
-  foldNd(q, vec2(
-        cnoise2(q),
-        cnoise2(q + vec2(4555.2, 34.))));
-  q *= 1.1;
-
-  vec2 r;
-  vec2 s;
-  vec2 t;
-
-  q += 0.100 * cos(3. * q.yx);
-  q += 0.050 * cos(5. * q.yx);
-
-  q += vec2(
-      vfbmWarp(q, r, s, t),
-      cnoise2(q)
-  );
-
-  n = vfbmWarp(q);
-
-  color = vec3(0.5) + vec3(0.3, 0.7, 0.3) * cos(TWO_PI * (n + 0.675 + vec3(0., 0.15, 0.3)));
-  color -= dot(r, s);
-  color *= 0.85 + 0.15 * dot(r + s, vec2(2));
-
-  return 0.5 * color;
+  n *= smoothstep(0.01, 0., length(c) - 17.0);
+  color = mix(color, vec3(0), n);
+  return color;
 }
 
 vec3 two_dimensional (in vec2 uv) {
@@ -1236,6 +1215,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
