@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -642,15 +642,29 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= globalRot;
 
+  const float size = 0.65;
   vec3 q = p;
+  q -= vec3(0., 0.125, 0.);
 
-  pModPolar(q.xy, 5.);
-  q.y = abs(q.y);
-  q *= rotationMatrix(normalize(vec3(1, 1, 1)), cosT);
+  // Floor
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0., 0.);
+  d = dMin(d, f);
 
-  vec3 s = vec3(sdBox(q, vec3(0.5)), 0., 0.);
-  s.x -= mix(0.05, 0.2, 0.5 + 0.5 * sin(cosT)) * cellular(2.1 * q);
-  d = dMin(d, s);
+  vec2 c = pMod2(q.xz, vec2(size));
+  // Floor Cut out
+  float tR = 0.25 * size;
+  vec3 tC = vec3(sdTorus(q.xzy, vec2(tR, 0.115 * size)), 0., 0);
+  tC.x *= -1.;
+  d = dMax(d, tC);
+  // d = dMin(d, tC);
+
+  // Inner Rings
+  q *= rotationMatrix(vec3(0, 0, 1), TWO_PI * quint(saturate(2.7 * norT - 0.175 * length(c))));
+  mPos = q;
+  vec3 r = vec3(sdTorus(q.xzy, vec2(tR, 0.100 * size)), 1., 0);
+  float halfRing = tR + 0.2 * size;
+  r.x = max(r.x, -sdBox(q - vec3(0, halfRing, 0), vec3(halfRing * 1.01)));
+  d = dMin(d, r);
 
   d.x *= 0.6;
 
@@ -828,12 +842,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
+  vec3 color = vec3(0.124 + 0.8 * vfbmWarp(1.0 * pos));
 
-  float dI = dot(nor, -rd);
-  vec2 deltaNor = vec2(dFdx(dI), dFdy(dI));
-  float n = smoothstep(0.05, 0.6, length(deltaNor));
-  color = vec3(n);
+  color = mix(color, pow(#3D7CFF, vec3(2.2)), isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -878,13 +889,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      // float bumpsScale = 0.5;
-      // float bumpIntensity = 0.1;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * pos),
-      //     cnoise3(bumpsScale * 670.0 * pos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * pos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 0.5;
+      float bumpIntensity = 0.2 * isMaterialSmooth(t.y, 1.);
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -902,7 +913,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.6;
-      float specCo = 0.1;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -1215,8 +1226,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
