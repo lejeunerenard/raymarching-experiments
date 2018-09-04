@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 512
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -644,22 +644,59 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.5;
-  float c = pMod1(q.z, size);
+  float radius = 2.;
+  const int numLat = 16;
+  const int numLong = 32;
 
-  q *= rotationMatrix(vec3(1, 0, 0), 0.01);
-  q *= rotationMatrix(vec3(0, 0, 1), -c * 0.21 + PI - 0.1);
+  // Mod based
+  // float longitude = atan(q.y, q.x);
+  // float lat = acos(q.z / radius);
+  // vec2 spherical = vec2(lat, longitude);
+  // vec2 c = pMod2(spherical, vec2(PI * 0.125));
 
-  q.y -= 6.90
-    + 1.1 * sin(0.05 * c - 0.1)
-    + 0.10 * sin( cosT + 0.10 * c);
-  vec3 b = vec3(sdBox(q, vec3(12, 6, 0.125 * size)) - 0.05, 0., 0);
-  d = dMin(d, b);
+  // const float angleLong = TWO_PI / float(numLong);
+  // const float angleLat = PI / float(numLat);
 
-  float crop = sdBox(p + vec3(0, 0, 5), vec3(10, 10, 10));
-  d.x = max(d.x, crop);
+  // vec2 sphericalOffset = c * vec2(angleLat, angleLat);
+  // float sinLat = sin(sphericalOffset.x);
+  // vec3 offset = vec3(
+  //     radius * sinLat * cos(sphericalOffset.y),
+  //     radius * sinLat * sin(sphericalOffset.y),
+  //     radius * cos(sphericalOffset.x));
 
-  d.x *= 0.1;
+  // vec3 b = vec3(length(q - offset) - radius * 0.05, 0., 0);
+  // d = dMin(d, b);
+
+  const float angleLong = TWO_PI / float(numLong);
+  const float angleLat = PI / float(numLat);
+
+  // q += 0.200 * cos( 4.0 * q.yzx + cosT);
+  // q += 0.100 * cos( 7.0 * q.yzx + cosT);
+  // q += 0.050 * cos(13.0 * q.yzx + cosT);
+  // q += 0.025 * cos(23.0 * q.yzx + cosT);
+
+  for (int i = 0; i < numLat; i++)
+  for (int j = 0; j < numLong; j++) {
+    float lat = angleLat * float(i);
+    float longitude = angleLong * float(j);
+    vec3 spherical = vec3(lat, longitude, radius);
+
+    spherical += 0.200 * cos( 4.0 * spherical.yzx + cosT);
+    spherical += 0.100 * cos( 7.0 * spherical.yzx + cosT);
+    spherical += 0.050 * cos(13.0 * spherical.yzx + cosT);
+    spherical += 0.025 * cos(23.0 * spherical.yzx + cosT);
+
+    float sinLat = sin(spherical.x);
+
+    vec3 offset = vec3(
+        spherical.z * sinLat * cos(spherical.y),
+        spherical.z * sinLat * sin(spherical.y),
+        spherical.z * cos(spherical.x));
+    vec3 b = vec3(length(q - offset) - radius * 0.115, 0., 0);
+    d = dMin(d, b);
+  }
+
+  // d.x *= 0.1;
 
   return d;
 }
@@ -837,12 +874,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  const vec3 cyan = pow(#23FAFF, vec3(2.2));
-  const vec3 blue = pow(#15ABE8, vec3(2.2));
+  const vec3 yellow = pow(#FFA30E, vec3(2.2));
+  const vec3 red = pow(#FF1A0E, vec3(2.2));
 
   float l = length(pos.xy);
   float i = 0.5 + 0.5 * sin(0.1 * l + 0.9 * pos.z + 0.30 * dot(rd, pos));
-  color = mix(cyan, blue, saturate(i));
+  color = mix(red, yellow, saturate(i));
 
   // color += 0.3 * ( 0.5 + 0.5 * cos( TWO_PI * ( dot(nor, -rd) + vec3(0, 0.33, 0.67) ) ) );
 
@@ -889,8 +926,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      // float bumpsScale = 0.5;
-      // float bumpIntensity = 0.9;
+      // float bumpsScale = 0.1;
+      // float bumpIntensity = 0.2;
       // nor += bumpIntensity * vec3(
       //     cnoise3(bumpsScale * 490.0 * mPos),
       //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -913,7 +950,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.6;
       float specCo = 0.45;
 
       float specAll = 0.0;
@@ -956,10 +993,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += isCube * 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += isCube * 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);

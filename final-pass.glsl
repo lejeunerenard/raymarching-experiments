@@ -34,7 +34,7 @@ void main() {
 
   vec2 uv = vec2(gl_FragCoord.xy / resolution.xy);
   vec2 uvBackground = fragCoord.xy;
-  background = vec3(0); // getBackground(uvBackground);
+  background = getBackground(uvBackground);
 
   vec4 baseColor = texture2D(base, uv);
   baseColor.rgb = pow(baseColor.rgb, gamma);

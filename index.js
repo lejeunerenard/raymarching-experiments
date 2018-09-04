@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'archimedes-render1',
+    name: 'fruit-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
