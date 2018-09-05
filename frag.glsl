@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -640,61 +640,45 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  const float size = 0.1;
+
   // p *= globalRot;
 
-  vec3 q = p;
+  vec3 bobbing = vec3(0., 0.2 * size * sin(cosT), 0.);
+  vec3 q = p + bobbing;
 
-  float radius = 2.;
-  const int numLat = 16;
-  const int numLong = 32;
+  // Cubes
+  mPos = vec3(maxDistance);
+  vec3 c = floor((q + size * 0.5) / size);
+  for (int x = -1; x < 2; x++)
+  for (int y = -1; y < 2; y++)
+  for (int z = -1; z < 2; z++) {
+    vec3 o = vec3(x, y, z) + c;
+    o *= size;
 
-  // Mod based
-  // float longitude = atan(q.y, q.x);
-  // float lat = acos(q.z / radius);
-  // vec2 spherical = vec2(lat, longitude);
-  // vec2 c = pMod2(spherical, vec2(PI * 0.125));
-
-  // const float angleLong = TWO_PI / float(numLong);
-  // const float angleLat = PI / float(numLat);
-
-  // vec2 sphericalOffset = c * vec2(angleLat, angleLat);
-  // float sinLat = sin(sphericalOffset.x);
-  // vec3 offset = vec3(
-  //     radius * sinLat * cos(sphericalOffset.y),
-  //     radius * sinLat * sin(sphericalOffset.y),
-  //     radius * cos(sphericalOffset.x));
-
-  // vec3 b = vec3(length(q - offset) - radius * 0.05, 0., 0);
-  // d = dMin(d, b);
-
-  const float angleLong = TWO_PI / float(numLong);
-  const float angleLat = PI / float(numLat);
-
-  // q += 0.200 * cos( 4.0 * q.yzx + cosT);
-  // q += 0.100 * cos( 7.0 * q.yzx + cosT);
-  // q += 0.050 * cos(13.0 * q.yzx + cosT);
-  // q += 0.025 * cos(23.0 * q.yzx + cosT);
-
-  for (int i = 0; i < numLat; i++)
-  for (int j = 0; j < numLong; j++) {
-    float lat = angleLat * float(i);
-    float longitude = angleLong * float(j);
-    vec3 spherical = vec3(lat, longitude, radius);
-
-    spherical += 0.200 * cos( 4.0 * spherical.yzx + cosT);
-    spherical += 0.100 * cos( 7.0 * spherical.yzx + cosT);
-    spherical += 0.050 * cos(13.0 * spherical.yzx + cosT);
-    spherical += 0.025 * cos(23.0 * spherical.yzx + cosT);
-
-    float sinLat = sin(spherical.x);
-
-    vec3 offset = vec3(
-        spherical.z * sinLat * cos(spherical.y),
-        spherical.z * sinLat * sin(spherical.y),
-        spherical.z * cos(spherical.x));
-    vec3 b = vec3(length(q - offset) - radius * 0.115, 0., 0);
+    float hide = noise(379.9235 * o);
+    float isColor = smoothstep(0.6, 0.61, hide) + 1.;
+    float hue = saturate(noise(4912.2352 * o));
+    vec3 b = vec3(sdBox(q - o, vec3(0.4 * size)), isColor, hue);
+    // float hide = cnoise3(0.9235 * o);
+    hide = 0.;
+    b.x = mix(b.x, maxDistance, smoothstep(0.2, 0.25, hide));
     d = dMin(d, b);
+    if (d.x == b.x) {
+      mPos = q - o;
+    }
   }
+
+  // Crop to box
+  q = p + bobbing;
+  float crop = sdBox(q, vec3(5.5 * size));
+  d.x = max(d.x, crop);
+
+  // Floor
+  q = p;
+  vec3 f = vec3(sdPlane(q + vec3(0, 5.85 * size, 0), vec4(0, 1, 0, 0)), 0., 0.);
+  f.x -= 0.01 * vfbm4(32.435 * q);
+  d = dMin(d, f);
 
   // d.x *= 0.1;
 
@@ -874,14 +858,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  const vec3 yellow = pow(#FFA30E, vec3(2.2));
-  const vec3 red = pow(#FF1A0E, vec3(2.2));
-
-  float l = length(pos.xy);
-  float i = 0.5 + 0.5 * sin(0.1 * l + 0.9 * pos.z + 0.30 * dot(rd, pos));
-  color = mix(red, yellow, saturate(i));
-
-  // color += 0.3 * ( 0.5 + 0.5 * cos( TWO_PI * ( dot(nor, -rd) + vec3(0, 0.33, 0.67) ) ) );
+  color = 0.5 + 0.5 * cos(TWO_PI * (trap + vec3(0, 0.33, 0.67)));
+  color = mix(color, vec3(1), 1. - pow(length(mPos) * 10., 0.25));
+  color *= isMaterialSmooth(m, 2.);
 
   return color;
 }
@@ -925,6 +904,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     if (t.x>0.) {
       vec3 color = vec3(0.0);
 
+      // Material Types
+      float isBlack = isMaterialSmooth(t.y, 1.);
+      float isFloor = isMaterialSmooth(t.y, 0.);
+      float isNeon = 1. - isBlack;
+
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
       // float bumpsScale = 0.1;
       // float bumpIntensity = 0.2;
@@ -940,9 +924,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       gRd = rayDirection;
 
-      // Material Types
-      float isCube = isMaterialSmooth(t.y, 1.);
-
       // Basic Diffusion
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w);
 
@@ -950,18 +931,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
-      float specCo = 0.45;
+      float freCo = mix(0.6, 0.1, isFloor);
+      float specCo = mix(0.8, 0.05, isFloor);
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float dif = max(0.5, diffuse(nor, normalize(lightPos)));
+        float diffMin = mix(0.5, 1., isNeon);
+        float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
+        float shadowMin = mix(0.7, 1.0, isNeon);
         float sha = max(0.7, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -974,7 +957,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.8 * amb * diffuseColor;
+        lin += (1. - isFloor) * 0.3 * amb * diffuseColor;
 
         float distIntensity = 1.0; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
@@ -995,19 +978,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += isCube * 0.1 * reflection(pos, reflectionRd);
+      reflectColor += (isFloor + isBlack) * 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       // color += 0.2 * dispersionColor;
-      // // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.2));
+      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      // color = pow(color, vec3(1.2));
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.005);
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.005);
 
       // color += directLighting * exp(-d * 0.0005);
 
