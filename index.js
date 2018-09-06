@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'mind-hive-render2',
+    name: 'undulate-under-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

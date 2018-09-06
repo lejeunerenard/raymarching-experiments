@@ -644,38 +644,27 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= globalRot;
 
-  vec3 bobbing = vec3(0., 0.2 * size * sin(cosT), 0.);
-  vec3 q = p + bobbing;
+  vec3 q = p;
 
-  // Cubes
-  mPos = vec3(maxDistance);
-  vec3 c = floor((q + size * 0.5) / size);
-  for (int x = -1; x < 2; x++)
-  for (int y = -1; y < 2; y++)
-  for (int z = -1; z < 2; z++) {
-    vec3 o = vec3(x, y, z) + c;
-    o *= size;
+  float height = 0.1 *
+    (cos(3.0 * q.x + cosT)
+     + cos( 5.0 * q.z + cosT)
+     + cos( 7.0 * q.x + cosT));
+    // + cos(13.0 * q.y + cosT);
 
-    float hide = noise(379.9235 * o);
-    float isColor = smoothstep(0.6, 0.61, hide) + 1.;
-    float hue = saturate(noise(4912.2352 * o));
-    vec3 b = vec3(sdBox(q - o, vec3(0.4 * size)), isColor, hue);
-    // float hide = cnoise3(0.9235 * o);
-    hide = 0.;
-    b.x = mix(b.x, maxDistance, smoothstep(0.2, 0.25, hide));
-    d = dMin(d, b);
-    if (d.x == b.x) {
-      mPos = q - o;
-    }
-  }
+  // height *= 0.25 * 0.6;
+  height *= 0.6;
 
-  // Crop to box
-  q = p + bobbing;
-  float crop = sdBox(q, vec3(5.5 * size));
-  d.x = max(d.x, crop);
+  height -= 0.6;
+  q.y -= height - 0.6;
+
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  vec3 b = vec3(length(q - vec3(0, 0.1, 0)) - 0.3 * size, 1., 0.);
+  d = dMin(d, b);
 
   // Floor
-  q = p;
+  q = p - vec3(0, height, 0);
   vec3 f = vec3(sdPlane(q + vec3(0, 5.85 * size, 0), vec4(0, 1, 0, 0)), 0., 0.);
   f.x -= 0.01 * vfbm4(32.435 * q);
   d = dMin(d, f);
@@ -858,9 +847,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (trap + vec3(0, 0.33, 0.67)));
-  color = mix(color, vec3(1), 1. - pow(length(mPos) * 10., 0.25));
-  color *= isMaterialSmooth(m, 2.);
+  color = mix(color, pow(#56FFF0, vec3(2.2)), isMaterialSmooth(m, 0.));
+  // float a = atan(mPos.y, mPos.x);
+  // float sector = floor(a / (PI * 0.333));
+  // vec3 beachBallColor = mix(
+  //     0.5 + 0.5 * cos(TWO_PI * (noise(mPos) + vec3(0, 0.33, 0.67))),
+  //     0.5 + 0.5 * cos(TWO_PI * (noise(mPos) + vec3(0.5, 0.33, 0.67))));
+  color = mix(color, pow(#FF0000, vec3(2.2)), isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -931,21 +924,24 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(0.6, 0.1, isFloor);
-      float specCo = mix(0.8, 0.05, isFloor);
+      float freCo = 0.1;
+      float specCo = 0.3;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = mix(0.5, 1., isNeon);
+        float diffMin = 0.6;;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         float shadowMin = mix(0.7, 1.0, isNeon);
         float sha = max(0.7, softshadow(pos, normalize(lightPos), 0.001, 4.75));
+        sha = smoothstep(0.05, 0.06, sha);
+
+        sha = max(0.01, sha);
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -957,7 +953,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += (1. - isFloor) * 0.3 * amb * diffuseColor;
+        lin += 0.3 * amb * diffuseColor;
 
         float distIntensity = 1.0; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
@@ -976,10 +972,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += (isFloor + isBlack) * 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += (isFloor + isBlack) * 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
