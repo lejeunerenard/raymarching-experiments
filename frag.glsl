@@ -39,7 +39,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 2048
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -646,30 +646,15 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float height = 0.1 *
-    (cos(3.0 * q.x + cosT)
-     + cos( 5.0 * q.z + cosT)
-     + cos( 7.0 * q.x + cosT));
-    // + cos(13.0 * q.y + cosT);
+  q += 0.20 * cos( 5.1 * q.yzx + vec3(0, 0, cosT));
+  q.xzy = twist(q, 5.0 * q.y);
+  q += 0.10 * cos(11.1 * q.yzx + vec3(cosT, -cosT, 0));
+  q += 0.05 * cos(17.1 * q.yzx + vec3(cosT));
 
-  // height *= 0.25 * 0.6;
-  height *= 0.6;
-
-  height -= 0.6;
-  q.y -= height - 0.6;
-
-  vec2 c = pMod2(q.xz, vec2(size));
-
-  vec3 b = vec3(length(q - vec3(0, 0.1, 0)) - 0.3 * size, 1., 0.);
+  vec3 b = vec3(length(q) - 0.45, 0, 0);
   d = dMin(d, b);
 
-  // Floor
-  q = p - vec3(0, height, 0);
-  vec3 f = vec3(sdPlane(q + vec3(0, 5.85 * size, 0), vec4(0, 1, 0, 0)), 0., 0.);
-  f.x -= 0.01 * vfbm4(32.435 * q);
-  d = dMin(d, f);
-
-  // d.x *= 0.1;
+  d.x *= 0.05;
 
   return d;
 }
@@ -847,13 +832,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  color = mix(color, pow(#56FFF0, vec3(2.2)), isMaterialSmooth(m, 0.));
-  // float a = atan(mPos.y, mPos.x);
-  // float sector = floor(a / (PI * 0.333));
-  // vec3 beachBallColor = mix(
-  //     0.5 + 0.5 * cos(TWO_PI * (noise(mPos) + vec3(0, 0.33, 0.67))),
-  //     0.5 + 0.5 * cos(TWO_PI * (noise(mPos) + vec3(0.5, 0.33, 0.67))));
-  color = mix(color, pow(#FF0000, vec3(2.2)), isMaterialSmooth(m, 1.));
+  vec3 thingyColor = pow(#3DFFD2, vec3(2.2));
+  float dI = dot(nor, -rd);
+  thingyColor += 0.2 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  color = mix(color, thingyColor, isMaterialSmooth(m, 0.));
+  color *= 0.95;
 
   return color;
 }
@@ -903,13 +886,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isNeon = 1. - isBlack;
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      // float bumpsScale = 0.1;
-      // float bumpIntensity = 0.2;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 0.01;
+      float bumpIntensity = 1.0;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -925,7 +908,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.1;
-      float specCo = 0.3;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
