@@ -1207,17 +1207,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float size = 0.05;
+  const float size = 0.2;
   vec2 c = pMod2(q, vec2(size));
 
-  float rot = PI * smoothstep(-0.25, 0.25, sin(cosT - 0.25 * length(c) - 0.125 * PI));
-  q *= rotMat2(rot);
+  q *= rotMat2(PI * mod(dot(c, vec2(1)), 2.0));
 
-  float n = smoothstep(0., 0.1 * size, abs(sin(dot(q, vec2(1)) / (10.0 * size))) - 0.0625 * size);
-  n = 1. - n;
+  const float edge = 0.1;
+  const float stripeRate = 18.0;
+  const float stopPoint = stripeRate * 0.5 - 1.;
 
-  n *= smoothstep(0.01, 0., length(c) - 17.0);
-  color = mix(color, vec3(0), n);
+  float l = length(q + 0.5 * vec2(-size, size)) / (2.0 * size);
+  float n = smoothstep(0., 0.1, sin(stripeRate * PI * l));
+  n *= smoothstep(stopPoint, stopPoint - edge, stripeRate * l);
+  color = vec3(n);
   return color;
 }
 
@@ -1226,6 +1228,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
