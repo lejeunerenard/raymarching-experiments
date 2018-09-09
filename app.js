@@ -203,7 +203,19 @@ export default class App {
       cameraAngles: [-0.203, -0.009, 0]
     }
 
-    const preset = this.presets.blend1
+    this.presets.barFitSparkle = {
+      offset: {
+        x: -0.113,
+        y: 0.152,
+        z: 0
+      },
+      d: 5,
+      scale: 1.97,
+      rot2angle: [-0.342, -0.411, 0.767],
+      cameraAngles: [-0.203, -0.009, 0]
+    }
+
+    const preset = this.presets.barFitSparkle
     const preset2 = this.presets.blend2
     preset.cameraAngles = [-0.035, 0, 0]
 
@@ -223,14 +235,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.offset2 = (preset2.offset)
-      ? vec3.fromValues(preset2.offset.x, preset2.offset.y, preset2.offset.z)
-      : vec3.fromValues(0, 0, 0)
-    this.scale2 = preset2.scale
-
-    this.angle1C = 0.136
-    this.angle2C = 0.705
-    this.angle3C = 0.143
+    this.angle1C = this.rot2angle[0]
+    this.angle2C = this.rot2angle[1]
+    this.angle3C = this.rot2angle[2]
 
     this.setupAnimation(preset)
 
@@ -388,9 +395,9 @@ export default class App {
     offsetTween1
       .to([
         this.offset[0],
-        0.961,
+        1.441,
         this.offset[2]
-      ], 60 * 1000)
+      ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.start(0)
@@ -603,7 +610,6 @@ export default class App {
     this.shader.uniforms.cameraMatrix = (updates[1])
 
     this.shader.uniforms.kifsM = this.kifsM(t, this.scale, this.offset)
-    this.shader.uniforms.kifsM2 = this.kifsM(t, this.scale2, this.offset2)
     this.shader.uniforms.offsetC = this.offsetC
 
     this.shader.uniforms.angle1C = this.angle1C

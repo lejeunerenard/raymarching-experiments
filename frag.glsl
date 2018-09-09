@@ -1207,18 +1207,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float size = 0.2;
-  vec2 c = pMod2(q, vec2(size));
+  q = abs(q);
 
-  q *= rotMat2(PI * mod(dot(c, vec2(1)), 2.0));
+  for (int i = 0; i < 15; i ++) {
+    q -= offset.xy;
+    q = abs(q);
+    foldNd(q, vec2(angle1C, angle2C));
+    q *= rotMat2(angle3C);
+    q *= scale;
+  }
 
-  const float edge = 0.1;
-  const float stripeRate = 18.0;
-  const float stopPoint = stripeRate * 0.5 - 1.;
+  float n = smoothstep(0., 0.01, length(q) - 1.0);
 
-  float l = length(q + 0.5 * vec2(-size, size)) / (2.0 * size);
-  float n = smoothstep(0., 0.1, sin(stripeRate * PI * l));
-  n *= smoothstep(stopPoint, stopPoint - edge, stripeRate * l);
   color = vec3(n);
   return color;
 }
