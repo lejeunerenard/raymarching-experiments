@@ -6,21 +6,20 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 4
+const secondsLong = 20
 const capturing = false
 
 const FOV = 70
 
 let app = new App()
 window.app = app
-window.time = 0
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'thorns-render1',
+    name: 'manifold-empty-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

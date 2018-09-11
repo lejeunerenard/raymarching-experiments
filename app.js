@@ -215,8 +215,19 @@ export default class App {
       cameraAngles: [-0.203, -0.009, 0]
     }
 
-    const preset = this.presets.barFitSparkle
-    const preset2 = this.presets.blend2
+    this.presets.fractalUnfurl = {
+      offset: {
+        x: -0.411,
+        y: 0.027,
+        z: 0
+      },
+      d: 5,
+      scale: 0.94,
+      rot2angle: [-0.827, 1.11, 0.161],
+      cameraAngles: [-0.203, -0.009, 0]
+    }
+
+    const preset = this.presets.fractalUnfurl
     preset.cameraAngles = [-0.035, 0, 0]
 
     this.d = preset.d
@@ -393,14 +404,26 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([
-        this.offset[0],
-        1.441,
-        this.offset[2]
-      ], 10 * 1000)
+      .to([ -0.349, this.offset[1], this.offset[2] ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.start(0)
+
+    // AngleC 1 Tween
+    let angleCTween1 = new TWEEN.Tween(self)
+    angleCTween1
+      .to({ angle1C: -0.516 }, 20 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    angleCTween1.start(0)
+
+    // AngleC 2 Tween
+    let angleCTween2 = new TWEEN.Tween(self)
+    angleCTween2
+      .to({ angle2C: 0.865 }, 20 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    angleCTween2.start(0)
   }
 
   setupAudio () {

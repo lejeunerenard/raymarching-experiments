@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1209,11 +1209,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q = abs(q);
 
-  for (int i = 0; i < 15; i ++) {
+  for (int i = 0; i < 22; i ++) {
     q -= offset.xy;
     q = abs(q);
     foldNd(q, vec2(angle1C, angle2C));
-    q *= rotMat2(angle3C);
+    vec2 qAngle1 = q * rotMat2(angle3C);
+    vec2 qAngle2 = q * rotMat2(angle3C + 0.2);
+    q = mix(qAngle1, qAngle2, smoothstep(0.5, 0.51, noise(q)));
     q *= scale;
   }
 
