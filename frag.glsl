@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -646,15 +646,10 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q += 0.20 * cos( 5.1 * q.yzx + vec3(0, 0, cosT));
-  q.xzy = twist(q, 5.0 * q.y);
-  q += 0.10 * cos(11.1 * q.yzx + vec3(cosT, -cosT, 0));
-  q += 0.05 * cos(17.1 * q.yzx + vec3(cosT));
-
   vec3 b = vec3(length(q) - 0.45, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.05;
+  // d.x *= 0.5;
 
   return d;
 }
@@ -736,6 +731,7 @@ const float amount = 0.05;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
+  return getBackground(rd.xy);
   float spread = 1.0; // saturate(1.0 - 2.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
@@ -830,13 +826,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.);
-
-  vec3 thingyColor = pow(#3DFFD2, vec3(2.2));
-  float dI = dot(nor, -rd);
-  thingyColor += 0.2 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-  color = mix(color, thingyColor, isMaterialSmooth(m, 0.));
-  color *= 0.95;
+  vec3 color = vec3(background);
 
   return color;
 }
@@ -957,12 +947,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += (isFloor + isBlack) * 0.1 * reflection(pos, reflectionRd);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
       // color += reflectColor;
+
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += textures(refractionRd);
+      color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 0.2 * dispersionColor;
+      // color = 1.0 * dispersionColor;
       // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
@@ -1203,25 +1198,58 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(1);
 
   vec2 q = uv;
 
-  q = abs(q);
+  const float r = 0.4;
+  float basePosR = 0.8 * r;
+  const float adjustR = 0.2 * r;
+  float posR = basePosR;
+  float angle = 0.;
+  const float angleInc = TWO_PI * 0.125;
 
-  for (int i = 0; i < 22; i ++) {
-    q -= offset.xy;
-    q = abs(q);
-    foldNd(q, vec2(angle1C, angle2C));
-    vec2 qAngle1 = q * rotMat2(angle3C);
-    vec2 qAngle2 = q * rotMat2(angle3C + 0.2);
-    q = mix(qAngle1, qAngle2, smoothstep(0.5, 0.51, noise(q)));
-    q *= scale;
-  }
+  const float reduced = 0.2;
 
-  float n = smoothstep(0., 0.01, length(q) - 1.0);
+  posR = basePosR + adjustR * sin(angle + cosT);
+  float n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(1, 1, reduced), vec3(1), n);
 
-  color = vec3(n);
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(1, reduced, 1), vec3(1), n);
+
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(reduced, 1, 1), vec3(1), n);
+
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(reduced, 1, reduced), vec3(1), n);
+
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(1, reduced, reduced), vec3(1), n);
+
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(reduced, reduced, 1), vec3(1), n);
+
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(1.0, reduced, reduced), vec3(1), n);
+
+  angle += angleInc;
+  posR = basePosR + adjustR * sin(angle + cosT);
+  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
+  color *= mix(vec3(reduced, 1.0, 0.8), vec3(1), n);
+
   return color;
 }
 
