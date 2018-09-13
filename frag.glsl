@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -640,16 +640,31 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float size = 0.1;
+  p *= globalRot;
 
-  // p *= globalRot;
+  vec3 q = p + vec3(0, 0.4, 0);
 
-  vec3 q = p;
+  float mQY = q.y + time;
+  const float baseR = 0.2;
+  float r = baseR + 0.11 * cnoise3(vec3(3.0 * q.xz, mQY));
 
-  vec3 b = vec3(length(q) - 0.45, 0, 0);
+  mPos = vec3(q.x, mQY, q.z);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 1.0)), 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.5;
+  b = vec3(sdCappedCylinder(q - vec3(baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3(baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3(baseR * 2., 0, -baseR * 2.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3(-baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  d.x *= 0.60;
 
   return d;
 }
@@ -826,7 +841,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(1.);
+
+  float mI = 0.2 * mPos.y;
+  mI += 0.1 * dot(nor, -rd);
+  color = 0.5 + 0.5 * cos(TWO_PI * (mI + vec3(0, 0.1, 0.2)));
+  float mask = 0.75 + 0.25 * smoothstep(-0.6, -0.59, sin(352.0 * mPos.y));
+  float maskTopSlice = smoothstep(0.59, 0.6, pos.y);
+  mask = mix(mask, 1., maskTopSlice);
+  color *= mask;
 
   return color;
 }
@@ -876,13 +899,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isNeon = 1. - isBlack;
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      float bumpsScale = 0.01;
-      float bumpIntensity = 1.0;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 0.01;
+      // float bumpIntensity = 1.0;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -905,16 +928,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.6;;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = mix(0.7, 1.0, isNeon);
+        float shadowMin = 0.7;
         float sha = max(0.7, softshadow(pos, normalize(lightPos), 0.001, 4.75));
-        sha = smoothstep(0.05, 0.06, sha);
-
-        sha = max(0.01, sha);
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -950,10 +970,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // reflectColor += 0.1 * reflection(pos, reflectionRd);
       // color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += textures(refractionRd);
+      // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
@@ -1258,7 +1278,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
