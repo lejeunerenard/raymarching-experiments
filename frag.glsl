@@ -642,7 +642,7 @@ vec3 map (in vec3 p, in float dT) {
 
   p *= globalRot;
 
-  vec3 q = p + vec3(0, 0.4, 0);
+  vec3 q = p + vec3(0, 0.7, 0);
 
   float mQY = q.y + time;
   const float baseR = 0.2;
@@ -662,6 +662,18 @@ vec3 map (in vec3 p, in float dT) {
   d = dMin(d, b);
 
   b = vec3(sdCappedCylinder(q + vec3(-baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3(-baseR * 4., 0, 0.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3( baseR * 4., 0, 0.), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3( 0., 0, baseR * 4.0), vec2(r, 1.0)), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdCappedCylinder(q + vec3( 0., 0, -baseR * 4.0), vec2(r, 1.0)), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.60;
@@ -843,13 +855,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  float mI = 0.2 * mPos.y;
-  mI += 0.1 * dot(nor, -rd);
-  color = 0.5 + 0.5 * cos(TWO_PI * (mI + vec3(0, 0.1, 0.2)));
-  float mask = 0.75 + 0.25 * smoothstep(-0.6, -0.59, sin(352.0 * mPos.y));
-  float maskTopSlice = smoothstep(0.59, 0.6, pos.y);
-  mask = mix(mask, 1., maskTopSlice);
-  color *= mask;
+  float mI = 0.6 * pos.y;
+  float maskTopSlice = smoothstep(0.29, 0.3, pos.y);
+  mI = mix(mI, 1., maskTopSlice);
+  color = mix(background, vec3(0), mI);
 
   return color;
 }
@@ -920,8 +929,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.1;
-      float specCo = 0.5;
+      float freCo = 0.2;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
