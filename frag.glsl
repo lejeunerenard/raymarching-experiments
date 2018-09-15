@@ -640,13 +640,18 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  p.xzy *= rotationMatrix(vec3(0, 1, 0), cosT + p.z);
 
-  vec3 q = p + vec3(0, 0.7, 0);
+  vec3 q = p + vec3(0, 0.0, 0.7);
 
   float mQY = q.y + time;
   const float baseR = 0.2;
-  float r = baseR + 0.11 * cnoise3(vec3(3.0 * q.xz, mQY));
+  float r = baseR; //  + 0.11 * cnoise3(vec3(3.0 * q.xz, mQY));
+
+  q.yz = q.zy;
+
+  const float scale = 0.9;
+  q.xz *= (1. + 0.35 * snoise3(vec3(scale, 0.6, scale) * q + vec3(0, slowTime, 0)));
 
   mPos = vec3(q.x, mQY, q.z);
   vec3 b = vec3(sdCappedCylinder(q, vec2(r, 1.0)), 0, 0);
@@ -676,7 +681,7 @@ vec3 map (in vec3 p, in float dT) {
   b = vec3(sdCappedCylinder(q + vec3( 0., 0, -baseR * 4.0), vec2(r, 1.0)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.60;
+  d.x *= 0.40;
 
   return d;
 }
@@ -855,10 +860,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  float mI = 0.6 * pos.y;
-  float maskTopSlice = smoothstep(0.29, 0.3, pos.y);
-  mI = mix(mI, 1., maskTopSlice);
-  color = mix(background, vec3(0), mI);
+  float mI = sin(TWO_PI * 18. * (pos.z + cosT));
+  color = vec3(smoothstep(0.8, 0.81, mI));
+
+  float maskTopSlice = smoothstep(0.29, 0.3, pos.z);
+  color = mix(color, vec3(1.), maskTopSlice);
 
   return color;
 }
@@ -895,8 +901,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(0, 0.2, 1.0), #FFFF22, 1.0);
-    lights[1] = light(vec3(0.4, 0.4, 1.0), #AAFFFF, 1.0);
+    lights[0] = light(vec3(0, 0.2, 1.0), #FFFFFF, 1.0);
+    lights[1] = light(vec3(0.4, 0.4, 1.0), #FFFFFF, 1.0);
     lights[2] = light(vec3(0.4, 0, 1.0), #FFFFFF, 1.0);
 
     if (t.x>0.) {
