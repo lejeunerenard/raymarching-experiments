@@ -642,44 +642,25 @@ vec3 map (in vec3 p, in float dT) {
 
   p.xzy *= rotationMatrix(vec3(0, 1, 0), cosT + p.z);
 
-  vec3 q = p + vec3(0, 0.0, 0.7);
+  vec3 q = p + vec3(0, 0.0, 0.2);
 
   float mQY = q.y + time;
-  const float baseR = 0.2;
+  const float baseR = 0.025;
   float r = baseR; //  + 0.11 * cnoise3(vec3(3.0 * q.xz, mQY));
 
   q.yz = q.zy;
 
-  const float scale = 0.9;
-  q.xz *= (1. + 0.35 * snoise3(vec3(scale, 0.6, scale) * q + vec3(0, slowTime, 0)));
+  float scale = r * 2.0;
+  q.xz *= (1. + 0.4 * snoise3(vec3(1.0, 0.2, 1.0) * q + vec3(0, slowTime, 0)));
+
+  float c = pMod1(q.y, scale);
 
   mPos = vec3(q.x, mQY, q.z);
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 1.0)), 0, 0);
+  vec3 b = vec3(sdTorus(q, vec2(0.5, r)), 0, 0);
   d = dMin(d, b);
 
-  b = vec3(sdCappedCylinder(q - vec3(baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3(baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3(baseR * 2., 0, -baseR * 2.), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3(-baseR * 2., 0, baseR * 2.), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3(-baseR * 4., 0, 0.), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3( baseR * 4., 0, 0.), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3( 0., 0, baseR * 4.0), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdCappedCylinder(q + vec3( 0., 0, -baseR * 4.0), vec2(r, 1.0)), 0, 0);
-  d = dMin(d, b);
+  float crop = sdBox(p + vec3(0, 0, 10. - r), vec3(5.01 + r, 5.01 + r, 10.0));
+  d.x = max(d.x, crop);
 
   d.x *= 0.40;
 
@@ -860,10 +841,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  float mI = sin(TWO_PI * 18. * (pos.z + cosT));
+  float mI = sin(TWO_PI * 4. * (pos.z + cosT));
   color = vec3(smoothstep(0.8, 0.81, mI));
 
-  float maskTopSlice = smoothstep(0.29, 0.3, pos.z);
+  float maskTopSlice = smoothstep(-0.026, -0.025, pos.z);
   color = mix(color, vec3(1.), maskTopSlice);
 
   return color;
@@ -935,7 +916,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
+      float freCo = 1.0;
       float specCo = 0.0;
 
       float specAll = 0.0;
@@ -1259,31 +1240,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   posR = basePosR + adjustR * sin(angle + cosT);
   n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
   color *= mix(vec3(reduced, 1, 1), vec3(1), n);
-
-  angle += angleInc;
-  posR = basePosR + adjustR * sin(angle + cosT);
-  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
-  color *= mix(vec3(reduced, 1, reduced), vec3(1), n);
-
-  angle += angleInc;
-  posR = basePosR + adjustR * sin(angle + cosT);
-  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
-  color *= mix(vec3(1, reduced, reduced), vec3(1), n);
-
-  angle += angleInc;
-  posR = basePosR + adjustR * sin(angle + cosT);
-  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
-  color *= mix(vec3(reduced, reduced, 1), vec3(1), n);
-
-  angle += angleInc;
-  posR = basePosR + adjustR * sin(angle + cosT);
-  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
-  color *= mix(vec3(1.0, reduced, reduced), vec3(1), n);
-
-  angle += angleInc;
-  posR = basePosR + adjustR * sin(angle + cosT);
-  n = smoothstep(0., 0.01, length(q - vec2(0, posR) * rotMat2(angle)) - r);
-  color *= mix(vec3(reduced, 1.0, 0.8), vec3(1), n);
 
   return color;
 }

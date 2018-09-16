@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'hanging-over-my-head-render1',
+    name: 'avarice-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
