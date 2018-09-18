@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'honeycomb-snack-render1',
+    name: 'established-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

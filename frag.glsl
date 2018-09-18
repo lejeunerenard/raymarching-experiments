@@ -640,7 +640,7 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p.xzy *= rotationMatrix(vec3(0, 1, 0), cosT + p.z);
+  // p.xzy *= rotationMatrix(vec3(0, 1, 0), cosT + p.z);
 
   vec3 q = p + vec3(0, 0.0, 0.2);
 
@@ -648,6 +648,7 @@ vec3 map (in vec3 p, in float dT) {
 
   const float scale = 0.5;
 
+  q.xz *= 1.2 + 0.3 * cnoise3(vec3(2.6 * q.xz, slowTime));
   q.xz += 0.07500 * cos( 4. * q.zx + cosT );
   q.xz += 0.0450 * cos( 7. * q.zx + cosT );
   q.xz += 0.0225 * cos( 9. * q.zx + cosT );
@@ -849,7 +850,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(1.);
 
   float mI = sin(1.0 * (pos.z + cosT));
-  color = 0.5 + 0.5 * cos( TWO_PI * (mI + vec3(0., 0.1, 0.2)) );
+  color = vec3(0.7, 0.5, 0.4) + vec3(0.3, 0.5, 0.6) * cos( TWO_PI * (mI + vec3(0., 0.1, 0.2)) );
 
   // float maskTopSlice = smoothstep(-0.026, -0.025, pos.z);
   // color = mix(color, vec3(1.), maskTopSlice);
