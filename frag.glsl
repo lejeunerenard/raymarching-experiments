@@ -644,7 +644,7 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p + vec3(0, 0.0, 0.2);
 
-  q.yz = q.zy;
+  // q.yz = q.zy;
 
   const float scale = 0.5;
 
@@ -660,17 +660,17 @@ vec3 map (in vec3 p, in float dT) {
   float r = scale * 0.45 + 0.1 * noise(0.1235423 * c);
 
   mPos = q;
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 4.0)), 0, 0);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 4.0)), r, 3.234 * cnoise2(4234.5343 * c));
   d = dMin(d, b);
-  float core = sdCappedCylinder(q, vec2(r * 0.9, 4.0));
-  d.x = max(d.x, -core);
+  // float core = sdCappedCylinder(q, vec2(r * 0.9, 4.0));
+  // d.x = max(d.x, -core);
 
   float cropLength = 0.25;
-  const float gridW = 1.0;
+  const float gridW = 3.0;
   float crop = sdBox(qW.xzy + vec3(0, 0, cropLength - r), vec3((gridW + 0.5) * scale, (gridW + 0.5) * scale, cropLength));
   d.x = max(d.x, crop);
 
-  d.x *= 0.20;
+  d.x *= 0.70;
 
   return d;
 }
@@ -849,11 +849,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  float mI = sin(1.0 * (pos.z + cosT));
-  color = vec3(0.7, 0.5, 0.4) + vec3(0.3, 0.5, 0.6) * cos( TWO_PI * (mI + vec3(0., 0.1, 0.2)) );
+  float angle = atan(mPos.z, mPos.x);
+  float mI = sin(angle + TWO_PI * sin(cosT + trap) + 0.5 * trap);
+  color = vec3(1. - smoothstep(-0.85, -0.849, mI));
 
-  // float maskTopSlice = smoothstep(-0.026, -0.025, pos.z);
-  // color = mix(color, vec3(1.), maskTopSlice);
+  float maskTopSlice = smoothstep(0.196, 0.197, pos.y) * smoothstep(-0.005, -0.007, length(mPos.xz) - m);
+  color = mix(color, vec3(1.), maskTopSlice);
 
   return color;
 }
@@ -969,10 +970,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -992,7 +993,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // color += directLighting * exp(-d * 0.0005);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
