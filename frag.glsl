@@ -646,9 +646,9 @@ vec3 map (in vec3 p, in float dT) {
 
   // q.yz = q.zy;
 
-  const float scale = 0.5;
+  const float scale = 0.3;
 
-  q.xz *= 1.2 + 0.3 * cnoise3(vec3(2.6 * q.xz, slowTime));
+  q.xz *= 1.2 + 0.3 * cnoise3(vec3(3.6 * q.xz, slowTime));
   q.xz += 0.07500 * cos( 4. * q.zx + cosT );
   q.xz += 0.0450 * cos( 7. * q.zx + cosT );
   q.xz += 0.0225 * cos( 9. * q.zx + cosT );
@@ -657,16 +657,16 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 qW = q;
   vec2 c = pMod2(q.xz, vec2(scale));
-  float r = scale * 0.45 + 0.1 * noise(0.1235423 * c);
+  float r = scale * 0.35 + scale * 0.1 * cnoise2(1.2348523 * c);
 
   mPos = q;
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 4.0)), r, 3.234 * cnoise2(4234.5343 * c));
+  vec3 b = vec3(sdBox(q, vec3(r, 4.0, r)), r, 3.234 * cnoise2(4234.5343 * c));
   d = dMin(d, b);
-  // float core = sdCappedCylinder(q, vec2(r * 0.9, 4.0));
-  // d.x = max(d.x, -core);
+  float core = sdBox(q, vec3(r * 0.9, 4.0, r * 0.9));
+  d.x = max(d.x, -core);
 
   float cropLength = 0.25;
-  const float gridW = 3.0;
+  const float gridW = 6.0;
   float crop = sdBox(qW.xzy + vec3(0, 0, cropLength - r), vec3((gridW + 0.5) * scale, (gridW + 0.5) * scale, cropLength));
   d.x = max(d.x, crop);
 
@@ -849,9 +849,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
-  float angle = atan(mPos.z, mPos.x);
-  float mI = sin(angle + TWO_PI * sin(cosT + trap) + 0.5 * trap);
-  color = vec3(1. - smoothstep(-0.85, -0.849, mI));
+  float mI = smoothstep(-0.5, 0.196, pos.y);
+  color = vec3(mI);
 
   float maskTopSlice = smoothstep(0.196, 0.197, pos.y) * smoothstep(-0.005, -0.007, length(mPos.xz) - m);
   color = mix(color, vec3(1.), maskTopSlice);

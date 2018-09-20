@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'delicate-dimension-render1',
+    name: 'paper-thin-walls-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
