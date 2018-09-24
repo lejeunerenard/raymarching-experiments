@@ -640,35 +640,19 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p.xzy *= rotationMatrix(vec3(0, 1, 0), cosT + p.z);
+  vec3 q = p;
 
-  vec3 q = p - vec3(0, 0.0, 0.2);
-
-  // q.yz = q.zy;
-
-  const float scale = 0.2;
-
-  q.xz *= 1.4 + 0.4 * cnoise3(vec3(3.6 * q.xz, slowTime));
-  q.xz += 0.07500 * cos( 4. * q.zx + cosT );
-  q.xz += 0.0450 * cos( 7. * q.zx + cosT );
-  q.xz += 0.0225 * cos( 9. * q.zx + cosT );
-
-  vec3 qW = q;
-  vec2 c = pMod2(q.xz, vec2(scale));
-  float r = scale * 0.40 + scale * 0.1 * cnoise2(1.2348523 * c);
+  q *= 1.4 + 0.4 * cnoise3(vec3(3.6 * q.xz, slowTime));
+  q += 0.07500 * cos( 4. * q.yzx + cosT );
+  q += 0.0450 * cos( 7. * q.yzx + cosT );
+  q += 0.0225 * cos( 9. * q.yzx + cosT );
+  q += 0.0125 * cos(13. * q.yzx + cosT );
 
   mPos = q;
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 4.0)), r, 3.234 * cnoise2(4234.5343 * c));
+  vec3 b = vec3(dodecahedral(q, 42., 1.25), 0, 0);
   d = dMin(d, b);
-  float core = sdCappedCylinder(q, vec2(r * 0.9, 4.0));
-  d.x = max(d.x, -core);
 
-  float cropLength = 0.25;
-  const float gridW = 6.0;
-  float crop = sdCappedCylinder(qW.xyz + vec3(0, 0, cropLength - r), vec2((gridW + 0.5) * scale, cropLength));
-  d.x = max(d.x, crop);
-
-  d.x *= 0.70;
+  d.x *= 0.60;
 
   return d;
 }
@@ -750,7 +734,6 @@ const float amount = 0.05;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  return getBackground(rd.xy);
   float spread = 1.0; // saturate(1.0 - 2.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
@@ -845,15 +828,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.);
+  vec3 color = vec3(background * 0.8);
 
-  float mI = smoothstep(-0.5, 0.196, pos.y);
-  mI *= mI;
-  mI *= mI;
-  color = vec3(mI);
+  float dI = dot(nor, -rd);
 
-  float maskTopSlice = smoothstep(0.196, 0.197, pos.y) * smoothstep(-0.005, -0.007, length(mPos.xz) - m);
-  color = mix(color, vec3(1.), maskTopSlice);
+  color += 0.7 * (0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) ));
 
   return color;
 }
@@ -979,10 +958,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color = 1.0 * dispersionColor;
-      // // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      color = 1.0 * dispersionColor;
+      // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
       // Fog
@@ -991,8 +970,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color *= exp(-d * 0.005);
 
       // color += directLighting * exp(-d * 0.0005);
-
-      color = diffuseColor;
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
@@ -1245,14 +1222,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  const float split = 0.05;
-
-  vec3 color = vec3(
-    two_dimensional(uv, 0. * split).r,
-    two_dimensional(uv, 1. * split).g,
-    two_dimensional(uv, 2. * split).b);
-
-  return vec4(color, 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
