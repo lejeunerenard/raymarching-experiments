@@ -1201,18 +1201,37 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
+  // ratio = 0.57735 = w / h
+  const float height = 0.25;
+  const vec2 size = vec2(height * 0.57735, height);
   vec2 q = uv;
 
-  const float r = 0.3;
+  const float amp = 0.025;
 
-  float l = length(uv);
-  q *= rotMat2(PI * 0.5 * sin(cosT + generalT + l));
-  vec2 absQ = abs(q);
-  float d = max(absQ.x, absQ.y);
-  d = mod(d, 0.175);
+  // Bottom wavy line
+  q.y += amp * sin(q.x / size.x * PI + 0.5 * PI);
 
-  float n = smoothstep(0., 0.01, sin(PI * 10. * d));
-  color = vec3(n) * (0.5 + 0.5 * cos(TWO_PI * (1.534 * d + vec3(0., 0.33, 0.67))));
+  vec2 c = pMod2(q, vec2(size));
+  q /= (0.5 * size);
+  q = 0.5 * (q + 1.);
+
+  c.x += mod(c.y, 2.0);
+
+  float isOddH = mod(c.x, 2.0);
+
+  // Flip horizontally
+  q = mix(q, vec2(1.0 - q.x, q.y), mod(c, 2.));
+
+  float d = dot(q, vec2(1));
+
+  float radius = 1.0;
+
+  float perpD = dot(q, vec2(-1, 1));
+  radius += 0.1 * radius * sin(1.0 * PI * (perpD + isOddH));
+
+  float n = smoothstep(radius, radius + 0.001, d);
+
+  color = vec3(n);
 
   return color;
 }
@@ -1222,6 +1241,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
