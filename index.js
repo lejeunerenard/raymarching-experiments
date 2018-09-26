@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'oily-victory-render1',
+    name: 'soul-core-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
