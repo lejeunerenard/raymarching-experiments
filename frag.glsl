@@ -1203,31 +1203,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
+  q.x = abs(q.x);
 
-  q = abs(q);
+  float scale = 8.345 + 0.2 * cnoise2(vec2(18.0 * q.y + time));
+  float n = dot(q, vec2(scale));
+  n -= cosT;
 
-  vec3 r;
-  vec3 s;
-  vec3 t;
-  float n = vfbmWarp(vec3(q, slowTime), r, s);
-  n = smoothstep(0.55, 1.385, n);
+  float v = 0.5 + 0.5 * sin(n);
+  v = max(v, 0.5 + 0.5 * sin(4. * n - cosT));
 
-  // n *= 2.;
+  v *= v;
+  v *= v;
+  // v = smoothstep(0.6, 0.61, v);
 
-  color = vec3(n);
-  // color = vec3(dot(s, vec3(0.5)));
-  float sI = dot(s, vec3(1)) + length(uv) + 0.6 * n + vfbm6(1.0 * q);
-  color += 0.5 + 0.5 * cos(TWO_PI * (sI + vec3(0., 0.1, 0.2)));
+  v -= 0.1 * noise(vec2(34.5 * n + time, time));
 
-  float n2 = vfbmWarp(vec3(1.23 * q + 2349.342, slowTime));
-  n2 = smoothstep(0.55, 1.4, n2);
-  color *= n2;
-
-  // color *= 0.8;
-  //
-  color = pow(color, vec3(0.85));
-
-  color *= 2.3;
+  color = vec3(v);
 
   return color;
 }

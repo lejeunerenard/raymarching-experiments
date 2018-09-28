@@ -255,7 +255,7 @@ export default class App {
     this.glInit(gl)
 
     // Audio
-    this.audioFFT = 512
+    this.audioFFT = 32
     this.audioTexArray = new Uint8Array(1 * this.audioFFT)
     this.audioNday = ndarray(this.audioTexArray, [this.audioFFT, 1])
     this.audioTex = createTexture(gl, this.audioNday)
@@ -276,7 +276,7 @@ export default class App {
 
     this.loaded = Promise.all([tMatCapImgLoaded])
       .then(() => {
-        // this.setupAudio()
+        this.setupAudio()
       })
 
     // Scene Rendering
@@ -434,59 +434,8 @@ export default class App {
       output.gain.setValueAtTime(0.2, audioCtx.currentTime)
       output.connect(audioCtx.destination)
 
-      const start = audioCtx.currentTime + 5 * (1 + Math.floor(window.performance.now() / (5 * 1000))) + 2.20
-
-      // Tones
-      const swell1 = createSwell(audioCtx, 'E2', start, 5)
-      swell1.gain.setValueAtTime(0.5, start + 0.001)
-      swell1.connect(output)
-
-      // Low tone
-      const lowTone = audioCtx.createOscillator()
-      lowTone.type = 'sawtooth'
-      lowTone.frequency.setValueAtTime((new Octavian.Note('D#2')).frequency, start)
-
-      const lowToneGain = audioCtx.createGain()
-      lowToneGain.gain.setValueAtTime(0.4, start)
-
-      const lowToneFilter = audioCtx.createBiquadFilter()
-      lowToneFilter.type = 'lowpass'
-      lowToneFilter.frequency.setValueAtTime(0, start)
-      lowToneFilter.frequency.linearRampToValueAtTime(1000, start + 5 / 2)
-      lowToneFilter.frequency.linearRampToValueAtTime(0, start + 5)
-
-      lowTone.connect(lowToneFilter)
-      lowToneFilter.connect(lowToneGain)
-      lowToneGain.connect(output)
-
-      lowTone.start(start)
-
-      const start2 = start + 5
-
-      // Tones
-      const swell2 = createSwell(audioCtx, 'E2', start2, 5)
-      swell2.gain.setValueAtTime(0.5, start2 + 0.001)
-      swell2.connect(output)
-
-      // Low tone
-      const lowTone2 = audioCtx.createOscillator()
-      lowTone2.type = 'sawtooth'
-      lowTone2.frequency.setValueAtTime((new Octavian.Note('D#2')).frequency, start2)
-
-      const lowToneGain2 = audioCtx.createGain()
-      lowToneGain2.gain.setValueAtTime(0.4, start2)
-
-      const lowToneFilter2 = audioCtx.createBiquadFilter()
-      lowToneFilter2.type = 'lowpass'
-      lowToneFilter2.frequency.setValueAtTime(0, start2)
-      lowToneFilter2.frequency.linearRampToValueAtTime(1000, start2 + 5 / 2)
-      lowToneFilter2.frequency.linearRampToValueAtTime(0, start2 + 5)
-
-      lowTone2.connect(lowToneFilter2)
-      lowToneFilter2.connect(lowToneGain2)
-      lowToneGain2.connect(output)
-
-      lowTone2.start(start2)
+      this.analyser = audioCtx.createAnalyser()
+      this.analyser.fftSize = this.audioFFT
     })
   }
 

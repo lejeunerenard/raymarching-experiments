@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'storm-in-a-tea-cup-render1',
+    name: 'technophobia-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
