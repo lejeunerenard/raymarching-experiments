@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -641,20 +641,19 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
-  // q.xy = abs(q.xy);
+  q += 0.100000 * cos( 5. * q.yzx + cosT );
+  q += 0.050000 * cos( 7. * q.yzx + cosT );
+  vec3 midQ = q;
+  q += 0.025000 * cos(11. * q.yzx + cosT );
+  q += 0.012500 * cos(17. * q.yzx + cosT );
+  q += 0.006250 * cos(23. * q.yzx + cosT );
+  q += 0.003125 * cos(29. * q.yzx + cosT );
 
-  q *= 1.2 + 0.2 * cnoise3(vec3(3.6 * q.xz, slowTime));
-  // q.xy = abs(q.xy);
-  q += 0.0750 * cos( 4. * q.yzx + cosT );
-  q += 0.0450 * cos( 7. * q.yzx + cosT );
-  // q.xy = abs(q.xy);
-  q += 0.0225 * cos( 9. * q.yzx + cosT );
-  // q.xy = abs(q.xy);
-  q += 0.0125 * cos(13. * q.yzx + cosT );
+  q += 0.000500 * snoise3(73. * midQ.yzx);
 
   mPos = q;
   // vec3 b = vec3(sdBox(q, vec3(0.6)), 0, 0);
-  vec3 b = vec3(length(q) - 0.85, 0, 0);
+  vec3 b = vec3(length(q) - 0.5, 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.60;
@@ -833,7 +832,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 // #pragma glslify: rainbow = require(./color-map/rainbow)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background * 0.8);
+  vec3 color = vec3(1.);
 
   return color;
 }
@@ -871,8 +870,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // }
 
     lights[0] = light(vec3(0, 0.2, 1.0), #FFFFFF, 1.0);
-    lights[1] = light(vec3(0.4, 0.4, 1.0), #FFFFFF, 1.0);
-    lights[2] = light(vec3(0.4, 0, 1.0), #FFFFFF, 1.0);
+    // lights[0] = light(vec3(0, 0.2, 1.0), 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67))), 1.0);
+    lights[1] = light(vec3(0.4, 0.4, 1.0), 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.1, 0.2))), 1.0);
+    lights[2] = light(vec3(0.4, 0, 1.0), 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0.2, 0.3, 0.4))), 1.0);
+    // lights[0] = light(vec3(0, 0.2, 1.0), #FFFFFF, 1.0);
+    // lights[1] = light(vec3(0.4, 0.4, 1.0), #FFFFFF, 1.0);
+    // lights[2] = light(vec3(0.4, 0, 1.0), #FFFFFF, 1.0);
 
     if (t.x>0.) {
       vec3 color = vec3(0.0);
@@ -883,13 +886,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isNeon = 1. - isBlack;
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      float bumpsScale = 0.01;
-      float bumpIntensity = 1.0;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 0.01;
+      // float bumpIntensity = 1.0;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -905,7 +908,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.25;
-      float specCo = 0.05;
+      float specCo = 0.10;
 
       float specAll = 0.0;
 
@@ -918,7 +921,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         float shadowMin = 0.7;
-        float sha = 1.0; // max(0.7, softshadow(pos, normalize(lightPos), 0.001, 4.75));
+        float sha = 1.; // max(0.7, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -949,19 +952,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.3 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 1.0 * dispersionColor;
+      // color += 1.0 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
@@ -1228,7 +1231,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
