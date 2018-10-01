@@ -53,11 +53,11 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 2.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
-const float edge = 0.001;
+const float edge = 0.01;
 const float thickness = 0.75;
 
 // Utils
@@ -1249,26 +1249,62 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
   return d;
 }
 
+float sqrD (in vec2 uv, in float r) {
+  uv = abs(uv);
+  return max(uv.x, uv.y) - r;
+}
+float circD (in vec2 uv, in float r) {
+  // uv = abs(uv);
+  return length(uv) - r;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
-  q.x = abs(q.x);
+  q.y *= 2.5;
 
-  float scale = 8.345 + 0.2 * cnoise2(vec2(18.0 * q.y + time));
-  float n = dot(q, vec2(scale));
-  n -= cosT;
+  const float edge = 0.001;
+  const float edgeDelta = 0.03;
+  const float maxR = 0.6;
+  float r = maxR;
 
-  float v = 0.5 + 0.5 * sin(n);
-  v = max(v, 0.5 + 0.5 * sin(4. * n - cosT));
+  float m = 1.; // All visible
+  float v = 0.;
+  float d = 0.;
 
-  v *= v;
-  v *= v;
-  // v = smoothstep(0.6, 0.61, v);
+  const int totalLayers = 10;
+  const float totalDistance = 3.2;
+  q.y -= totalDistance * 0.5;
+  mat2 rot = rotMat2(PI * 0.25);
 
-  v -= 0.1 * noise(vec2(34.5 * n + time, time));
+  for (int i = 0; i < totalLayers; i++) {
+    vec2 myQ = q;
 
-  color = vec3(v);
+    // Vertical motion
+    myQ.y += (norT + float(i)) * totalDistance / float(totalLayers);
+
+    // Wiggle
+    // myQ.x += maxR * 0.045 * sin(cosT + PI * 0.1 * float(i));
+
+    // Transform to diamonds
+    myQ *= rot;
+
+    // Adjust Square Radius
+    float rI = (float(i) + norT) / float(totalLayers);
+    r = maxR * (2.0 * rI + saturate(2.0 * rI - 1.0) * -2.);
+
+    // Get Square values
+    d = smoothstep(edge, 0., sqrD(myQ, r));
+    v = max(v, d);
+
+    // Get Mask values
+    m *= d + smoothstep(0., edge, sqrD(myQ, r + edgeDelta));
+  }
+
+  v *= m;
+  const vec3 foregroundColor = vec3(1);
+  color = mix(background, foregroundColor, v);
 
   return color;
 }
@@ -1278,6 +1314,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
