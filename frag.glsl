@@ -1264,8 +1264,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
   q.y *= 2.5;
 
-  const float edge = 0.001;
-  const float edgeDelta = 0.03;
+  const float edge = 0.005;
+  const float edgeDelta = 0.01;
   const float maxR = 0.6;
   float r = maxR;
 
@@ -1273,36 +1273,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float v = 0.;
   float d = 0.;
 
-  const int totalLayers = 10;
-  const float totalDistance = 3.2;
-  q.y -= totalDistance * 0.5;
+  const int totalLayers = 30;
+  const float totalDistance = 3.0;
+  q.y += totalDistance * 0.5;
   mat2 rot = rotMat2(PI * 0.25);
 
   for (int i = 0; i < totalLayers; i++) {
     vec2 myQ = q;
 
-    // Vertical motion
-    myQ.y += (norT + float(i)) * totalDistance / float(totalLayers);
+    // Vertical motion/position
+    myQ.y -= float(i) * totalDistance / float(totalLayers);
 
     // Wiggle
     // myQ.x += maxR * 0.045 * sin(cosT + PI * 0.1 * float(i));
 
-    // Transform to diamonds
+    // Foreshorten depth
     myQ *= rot;
 
-    // Adjust Square Radius
-    float rI = (float(i) + norT) / float(totalLayers);
-    r = maxR * (2.0 * rI + saturate(2.0 * rI - 1.0) * -2.);
+    // Adjust Shape Radius
+    float a = atan(myQ.y, myQ.x);
+    r = maxR + 0.125 * cnoise2(vec2(4. * a, time + 0.2 * float(i)));
 
-    // Get Square values
-    d = smoothstep(edge, 0., sqrD(myQ, r));
-    v = max(v, d);
+    // Get Shape values
+    d = smoothstep(edge, 0., circD(myQ, r));
+    v += d;
 
     // Get Mask values
-    m *= d + smoothstep(0., edge, sqrD(myQ, r + edgeDelta));
+    m = d + smoothstep(0., edge, circD(myQ, r + edgeDelta));
+    v *= m;
   }
 
-  v *= m;
+  v = saturate(v);
   const vec3 foregroundColor = vec3(1);
   color = mix(background, foregroundColor, v);
 
