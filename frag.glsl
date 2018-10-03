@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 2.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1257,6 +1257,9 @@ float circD (in vec2 uv, in float r) {
   // uv = abs(uv);
   return length(uv) - r;
 }
+float triD (in vec2 uv, in float r) {
+  return sdTriPrism(vec3(uv, 0), vec2(r, 0));
+}
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
@@ -1265,7 +1268,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q.y *= 2.5;
 
   const float edge = 0.005;
-  const float edgeDelta = 0.01;
+  const float edgeDelta = 0.03;
   const float maxR = 0.6;
   float r = maxR;
 
@@ -1274,9 +1277,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float d = 0.;
 
   const int totalLayers = 30;
-  const float totalDistance = 3.0;
+  const float totalDistance = 2.0;
   q.y += totalDistance * 0.5;
-  mat2 rot = rotMat2(PI * 0.25);
+  mat2 rot = rotMat2(PI * 0.33);
 
   for (int i = 0; i < totalLayers; i++) {
     vec2 myQ = q;
@@ -1289,17 +1292,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     // Foreshorten depth
     myQ *= rot;
+    myQ *= rotMat2(0.1 * sin(PI * 0.123 * float(i)) + PI * 0.0625 * sin(cosT + PI * 0.05 * float(i)));
 
     // Adjust Shape Radius
     float a = atan(myQ.y, myQ.x);
-    r = maxR + 0.125 * cnoise2(vec2(4. * a, time + 0.2 * float(i)));
+    r = maxR + 0.025 * cnoise2(vec2(4. * a, time + 0.2 * float(i)));
 
     // Get Shape values
-    d = smoothstep(edge, 0., circD(myQ, r));
+    d = smoothstep(edge, 0., triD(myQ, r));
     v += d;
 
     // Get Mask values
-    m = d + smoothstep(0., edge, circD(myQ, r + edgeDelta));
+    m = d + smoothstep(0., edge, triD(myQ, r + edgeDelta));
     v *= m;
   }
 
