@@ -1260,52 +1260,22 @@ float circD (in vec2 uv, in float r) {
 float triD (in vec2 uv, in float r) {
   return sdTriPrism(vec3(uv, 0), vec2(r, 0));
 }
+float hexD (in vec2 uv, in float r) {
+  return sdHexPrism(vec3(uv, 0), vec2(r, 0));
+}
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
-  q.y *= 2.5;
 
-  const float edge = 0.005;
-  const float edgeDelta = 0.03;
-  const float maxR = 0.6;
-  float r = maxR;
+  float v = 300.0;
 
-  float m = 1.; // All visible
-  float v = 0.;
-  float d = 0.;
+  float d = hexD(q, 0.1);
+  v = min(v, d);
 
-  const int totalLayers = 30;
-  const float totalDistance = 2.0;
-  q.y += totalDistance * 0.5;
-  mat2 rot = rotMat2(PI * 0.33);
-
-  for (int i = 0; i < totalLayers; i++) {
-    vec2 myQ = q;
-
-    // Vertical motion/position
-    myQ.y -= float(i) * totalDistance / float(totalLayers);
-
-    // Wiggle
-    // myQ.x += maxR * 0.045 * sin(cosT + PI * 0.1 * float(i));
-
-    // Foreshorten depth
-    myQ *= rot;
-    myQ *= rotMat2(0.1 * sin(PI * 0.123 * float(i)) + PI * 0.0625 * sin(cosT + PI * 0.05 * float(i)));
-
-    // Adjust Shape Radius
-    float a = atan(myQ.y, myQ.x);
-    r = maxR + 0.025 * cnoise2(vec2(4. * a, time + 0.2 * float(i)));
-
-    // Get Shape values
-    d = smoothstep(edge, 0., triD(myQ, r));
-    v += d;
-
-    // Get Mask values
-    m = d + smoothstep(0., edge, triD(myQ, r + edgeDelta));
-    v *= m;
-  }
+  v += 0.0075 * sin(19. * PI * v);
+  v = mix(v, sin(19. * PI * v - cosT), smoothstep(-0.8, 1., sin(cosT - length(q))));
 
   v = saturate(v);
   const vec3 foregroundColor = vec3(1);
