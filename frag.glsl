@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1249,33 +1249,29 @@ vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
   return d;
 }
 
-float sqrD (in vec2 uv, in float r) {
-  uv = abs(uv);
-  return max(uv.x, uv.y) - r;
-}
-float circD (in vec2 uv, in float r) {
-  // uv = abs(uv);
-  return length(uv) - r;
-}
-float triD (in vec2 uv, in float r) {
-  return sdTriPrism(vec3(uv, 0), vec2(r, 0));
-}
-float hexD (in vec2 uv, in float r) {
-  return sdHexPrism(vec3(uv, 0), vec2(r, 0));
-}
-
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
+  const float stretch = 0.3;
 
-  float v = 300.0;
+  float inShape = 0.;
 
-  float d = hexD(q, 0.1);
-  v = min(v, d);
+  vec2 shapeQ = q * rotMat2(cosT);
+  vec2 absQ = abs(shapeQ);
+  const float r = 0.6;
+  float sqrD = max(absQ.x, absQ.y);
+  inShape = 1. - step(0., sqrD - r);
 
-  v += 0.0075 * sin(19. * PI * v);
-  v = mix(v, sin(19. * PI * v - cosT), smoothstep(-0.8, 1., sin(cosT - length(q))));
+  float cutAway = step(0., sqrD - 0.4 * r);
+  inShape = min(inShape, cutAway);
+
+  q *= 12.0;
+
+  vec2 axis = mix(vec2(1, stretch), vec2(stretch, 1), inShape);
+  vec2 c = pMod2(q, axis);
+
+  float v = mod(dot(c, vec2(1)), 2.);
 
   v = saturate(v);
   const vec3 foregroundColor = vec3(1);
