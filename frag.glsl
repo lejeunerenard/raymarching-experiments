@@ -24,8 +24,7 @@ uniform vec4 offsetC;
 uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
-uniform sampler2D tMatCap;
-uniform sampler2D audioTexture;
+uniform sampler2D textTex;
 
 uniform float angle1C;
 uniform float angle2C;
@@ -888,7 +887,6 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 const vec3 glowColor = pow(#ED4F2C, vec3(2.2));
 
 #pragma glslify: innerGlow = require(./inner-glow, glowColor=glowColor)
-#pragma glslify: matCap = require(./matCap, texture=tMatCap)
 
 vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec3 pos = rayOrigin + rayDirection * t.x;
@@ -1253,20 +1251,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
-  const float stretch = 0.3;
+
+  const float gridScale = 20.0;
+  const float invGridScale = 0.05;
+  const float stretch = 0.20;
+
+  q += vec2(
+      2.0 *invGridScale,
+      2.0 *invGridScale * stretch)
+    * smoothstep(0.3, 1., sin(cosT - length(q)));
+
+  const float size = 0.01;
+  const float halfsize = size * 0.5;
 
   float inShape = 0.;
 
-  vec2 shapeQ = q * rotMat2(cosT);
-  vec2 absQ = abs(shapeQ);
-  const float r = 0.6;
-  float sqrD = max(absQ.x, absQ.y);
-  inShape = 1. - step(0., sqrD - r);
+  vec2 fontUV = 0.5 * (uv + 1.);
+  fontUV.y = 1. - fontUV.y;
 
-  float cutAway = step(0., sqrD - 0.4 * r);
-  inShape = min(inShape, cutAway);
+  inShape = texture2D(textTex, fontUV).r;
+  inShape = step(0.3, inShape);
 
-  q *= 12.0;
+  // Grid
+  q *= gridScale;
 
   vec2 axis = mix(vec2(1, stretch), vec2(stretch, 1), inShape);
   vec2 c = pMod2(q, axis);

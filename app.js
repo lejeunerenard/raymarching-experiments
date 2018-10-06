@@ -264,17 +264,37 @@ export default class App {
     // Capturing state
     this.capturing = defined(options.capturing, false)
 
-    let tMatCapImg = new Image()
-    tMatCapImg.src = './env.jpg'
+    // Create font texture
+    const texCanvas = document.createElement('canvas')
+    const fontCtx = texCanvas.getContext('2d')
+    document.body.appendChild(texCanvas)
 
-    let tMatCapImgLoaded = new Promise((resolve, reject) => {
-      tMatCapImg.onload = () => {
-        this.tMatCap = createTexture(gl, tMatCapImg)
-        resolve()
-      }
-    })
+    const fontWidth = 512
+    const fontHeight = 512
+    texCanvas.width = fontWidth
+    texCanvas.height = fontHeight
 
-    this.loaded = Promise.all([tMatCapImgLoaded])
+    let textPos = { x: 65, y: 175 }
+    fontCtx.fillStyle = 'black'
+    fontCtx.fillRect(0, 0, fontWidth, fontHeight)
+
+    // Text
+    let text = `Summer,`
+
+    const fontSize = 100
+    fontCtx.font = `${fontSize}px sans-serif`
+    fontCtx.fillStyle = 'white'
+    fontCtx.fillText(text, textPos.x, textPos.y)
+
+    text = `hoco?`
+    fontCtx.fillText(text, textPos.x, textPos.y + fontSize * 1.25)
+
+    text = `– Jake`
+    fontCtx.fillText(text, textPos.x + 100, textPos.y + 2 * fontSize * 1.25)
+
+    this.textTex = createTexture(gl, texCanvas)
+
+    this.loaded = Promise.resolve()
       .then(() => {
         this.setupAudio()
       })
@@ -563,15 +583,8 @@ export default class App {
     t = (window.time !== undefined) ? window.time : t
     TWEEN.update(t)
 
-    if (this.tMatCap) {
-      this.shader.uniforms.tMatCap = this.tMatCap.bind(0)
-    }
-
-    // Update audio
-    if (this.analyser) {
-      this.analyser.getByteTimeDomainData(this.audioTexArray)
-      this.audioTex.setPixels(this.audioNday)
-      this.shader.uniforms.audioTexture = this.audioTex.bind(1)
+    if (this.textTex) {
+      this.shader.uniforms.textTex = this.textTex.bind(0)
     }
 
     this.shader.uniforms.epsilon = this.epsilon
