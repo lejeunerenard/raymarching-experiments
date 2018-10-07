@@ -639,68 +639,27 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  const float size = 0.1; // 0.2;
   vec3 q = p;
 
-  q += 0.000500 * snoise3(73. * q.yzx);
+  q += 0.2000 * cos( 5. * q.yzx + cosT);
+  q += 0.1000 * cos( 7. * q.yzx + cosT);
+  q += 0.0500 * cos(13. * q.yzx + cosT);
+  q += 0.0250 * cos(17. * q.yzx + cosT);
+  q += 0.0125 * cos(23. * q.yzx + cosT);
+
+  vec3 qWarp = q;
+  vec2 c = pMod2(q.xy, vec2(size));
 
   mPos = q;
+  vec3 o = vec3(sdCapsule(q, vec3(0, 0, 1), vec3(0, 0, -1), size * 0.4), 0, 0);
+  d = dMin(d, o);
 
-  /*
-  const float size = 0.1;
-  // Floor
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  d = dMin(d, f);
+  const float cropWidth = 7.5 * size;
+  float crop = sdBox(qWarp, vec3(cropWidth, cropWidth, 2));
+  d.x = max(d.x, crop);
 
-  // Boxes
-  vec2 c = pMod2(q.xz, vec2(size));
-
-  const float vOffset = 0.05;
-  q.y += 0.75 * vOffset * sin(length(c) - cosT) + vOffset;
-
-  const float lateralScale = size * (0.5 - 0.3);
-  vec3 b = vec3(sdBox(q, vec3(lateralScale, 0.5 * vOffset, lateralScale)), 0, 0);
-  d = dSMin(d, b, 0.05 * scale);
-
-  d.x *= 0.60;
-  */
-
-  // Box
-  const float size = 1.2;
-  vec3 b = vec3(sdBox(q + vec3(0, 0, size), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  // --- Cutout ---
-  float cutoutT = 1. - expo(2. * norT - step(0.5, norT) * 4. * (norT - 0.5));
-
-  q += 0.2 * snoise3(3. * q.yzx - slowTime);
-  float n = length(q) - 0.8 * smoothstep(0., 0.9, sin(cosT));
-  n *= -1.;
-  d.x = max(d.x, n);
-  /*
-  // Center Sphere
-  const float sRadius = 0.4;
-  q.z -= sRadius * cutoutT;
-  vec3 c = vec3(length(q) - sRadius, 0, 0);
-  c.x *= -1.; // Invert
-  d = dMax(d, c);
-
-  // Bar
-  const float bHeight = sRadius * 2.25;
-  const float bWidth = 0.05;
-  q.xy *= rotMat2(PI * 0.25);
-  vec3 bar = vec3(sdBox(q - vec3(0, 0, 0.65 * bWidth), vec3(bWidth, bHeight, bWidth)), 0, 0);
-
-  // ... Buffer Circle
-  const float bSRadius = sRadius * 1.1;;
-  c = vec3(length(q) - bSRadius, 0, 0);
-  c.x *= -1.; // Invert
-  bar = dMax(bar, c);
-
-  bar.x *= -1.; // Invert
-  d = dMax(d, bar);
-  */
-
-  d.x *= 0.2;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1292,7 +1251,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
