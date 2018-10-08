@@ -642,24 +642,27 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1; // 0.2;
   vec3 q = p;
 
-  q += 0.2000 * cos( 5. * q.yzx + cosT);
-  q += 0.1000 * cos( 7. * q.yzx + cosT);
-  q += 0.0500 * cos(13. * q.yzx + cosT);
-  q += 0.0250 * cos(17. * q.yzx + cosT);
-  q += 0.0125 * cos(23. * q.yzx + cosT);
+  q.xy = abs(q.xy);
+
+  q += 0.2000 * cos( 7. * q.yzx + cosT);
+  q += 0.1000 * cos(13. * q.yzx + cosT);
+  // q += 0.0500 * cos(13. * q.yzx + cosT);
+  // q += 0.0250 * cos(17. * q.yzx + cosT);
+  // q += 0.0125 * cos(23. * q.yzx + cosT);
 
   vec3 qWarp = q;
   vec2 c = pMod2(q.xy, vec2(size));
 
-  mPos = q;
+  mPos = vec3(c * size, 0) - q;
   vec3 o = vec3(sdCapsule(q, vec3(0, 0, 1), vec3(0, 0, -1), size * 0.4), 0, 0);
+  // vec3 o = vec3(sdBox(q, vec3(size * 0.4, size * 0.4, 1)), 0, 0);
   d = dMin(d, o);
 
-  const float cropWidth = 7.5 * size;
+  const float cropWidth = 9.5 * size;
   float crop = sdBox(qWarp, vec3(cropWidth, cropWidth, 2));
   d.x = max(d.x, crop);
 
-  d.x *= 0.1;
+  d.x *= 0.3;
 
   return d;
 }
@@ -836,7 +839,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.80);
-  color += 0.175 * snoise3(1345. * vec3(1, 1, 0.01) * pos);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (mPos + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (mPos + vec3(0, 0.1, 0.3)));
 
   return color;
 }
