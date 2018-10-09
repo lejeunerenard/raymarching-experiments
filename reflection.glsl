@@ -24,7 +24,7 @@ vec3 reflection (in vec3 ro, in vec3 rd) {
     color = diffuseColor(pos, nor, rd, t.y, t.w);
     color /= max(1.0, pow(t.x, 1.0));
   } else {
-    color = vec3(getBackground(pos.xy));
+    color = 0.6 * vec3(getBackground(pos.xy));
   }
 
   return color;

@@ -38,7 +38,7 @@ uniform vec3 offset;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 1024
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -642,27 +642,27 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1; // 0.2;
   vec3 q = p;
 
-  q.xy = abs(q.xy);
+  // q.xy = abs(q.xy);
 
-  q += 0.2000 * cos( 7. * q.yzx + cosT);
-  q += 0.1000 * cos(13. * q.yzx + cosT);
-  // q += 0.0500 * cos(13. * q.yzx + cosT);
-  // q += 0.0250 * cos(17. * q.yzx + cosT);
-  // q += 0.0125 * cos(23. * q.yzx + cosT);
+  q += 0.2000 * cos(vec3( 7.) * q.yzx + cosT);
+  q += 0.1000 * cos(vec3(13.) * q.yzx + cosT);
 
   vec3 qWarp = q;
-  vec2 c = pMod2(q.xy, vec2(size));
+  float c = pMod1(q.z, size);
 
-  mPos = vec3(c * size, 0) - q;
-  vec3 o = vec3(sdCapsule(q, vec3(0, 0, 1), vec3(0, 0, -1), size * 0.4), 0, 0);
-  // vec3 o = vec3(sdBox(q, vec3(size * 0.4, size * 0.4, 1)), 0, 0);
+  float r = 0.1;
+  q.x += r;
+  q.xy *= rotMat2(c * 0.021 * PI);
+  q.x -= r;
+
+  // q.x += 0.2 * sin(2.123 * p.z - 0.2 * PI);
+
+  mPos = q; // vec3(c * size, 0) - q;
+  const float width = 1.0;
+  vec3 o = vec3(sdBox(q, vec3(2.0 * width, width, 0.4 * size)), 0, 0);
   d = dMin(d, o);
 
-  const float cropWidth = 9.5 * size;
-  float crop = sdBox(qWarp, vec3(cropWidth, cropWidth, 2));
-  d.x = max(d.x, crop);
-
-  d.x *= 0.3;
+  d.x *= 0.1;
 
   return d;
 }
@@ -840,8 +840,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.80);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (mPos + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * pos + vec3(1, 3, 5) * mPos + vec3(0, 0.33, 0.66)));
   // color = 0.5 + 0.5 * cos(TWO_PI * (mPos + vec3(0, 0.1, 0.3)));
+  //
+  // color = pow(color, vec3(1.6));
 
   return color;
 }
@@ -916,8 +918,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.50;
+      float freCo = 0.75;
+      float specCo = 0.25;
 
       float specAll = 0.0;
 
@@ -929,7 +931,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.3;
+        float shadowMin = 0.6;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -961,10 +963,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.3 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.3 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
