@@ -642,27 +642,24 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1; // 0.2;
   vec3 q = p;
 
-  // q.xy = abs(q.xy);
-
-  q += 0.2000 * cos(vec3( 7.) * q.yzx + cosT);
-  q += 0.1000 * cos(vec3(13.) * q.yzx + cosT);
+  q.x += 0.5;
+  q.yz *= rotMat2(cosT + q.x + 0.2 * sin(q.x + cosT));
+  q.xyz += 0.1000 * cos( 7. * q.xzy + cosT + 2. * q.x);
+  q.xyz += 0.0500 * cos(13. * q.xzy + cosT + 2. * q.x);
 
   vec3 qWarp = q;
-  float c = pMod1(q.z, size);
+  vec2 c = pMod2(q.yz, vec2(size));
 
-  float r = 0.1;
-  q.x += r;
-  q.xy *= rotMat2(c * 0.021 * PI);
-  q.x -= r;
-
-  // q.x += 0.2 * sin(2.123 * p.z - 0.2 * PI);
-
-  mPos = q; // vec3(c * size, 0) - q;
-  const float width = 1.0;
-  vec3 o = vec3(sdBox(q, vec3(2.0 * width, width, 0.4 * size)), 0, 0);
+  mPos = vec3(0, c * size) - q;
+  float r = 0.3 * size;
+  vec3 o = vec3(sdCapsule(q, vec3(-1, 0, 0), vec3(1, 0, 0), r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.1;
+  const float cropWidth = 6.5 * size;
+  float crop = sdBox(qWarp, vec3(1. + 2. * r, cropWidth, cropWidth));
+  d.x = max(d.x, crop);
+
+  d.x *= 0.4;
 
   return d;
 }
@@ -840,9 +837,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.80);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * pos + vec3(1, 3, 5) * mPos + vec3(0, 0.33, 0.66)));
-  // color = 0.5 + 0.5 * cos(TWO_PI * (mPos + vec3(0, 0.1, 0.3)));
-  //
+  // color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * pos + vec3(1, 3, 5) * mPos + vec3(0, 0.33, 0.66)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (norT + vec3(0.4, 1, 1) * mPos + vec3(0, 0.1, 0.3)));
+
   // color = pow(color, vec3(1.6));
 
   return color;
@@ -965,7 +962,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * reflection(pos, reflectionRd);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
