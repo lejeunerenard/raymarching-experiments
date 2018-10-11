@@ -642,7 +642,7 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1; // 0.2;
   vec3 q = p;
 
-  q.x += 0.5;
+  // q.x += 0.5;
   q.yz *= rotMat2(cosT + q.x + 0.2 * sin(q.x + cosT));
   q.xyz += 0.1000 * cos( 7. * q.xzy + cosT + 2. * q.x);
   q.xyz += 0.0500 * cos(13. * q.xzy + cosT + 2. * q.x);
@@ -838,7 +838,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0.80);
 
   // color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * pos + vec3(1, 3, 5) * mPos + vec3(0, 0.33, 0.66)));
-  color = 0.5 + 0.5 * cos(TWO_PI * (norT + vec3(0.4, 1, 1) * mPos + vec3(0, 0.1, 0.3)));
+  color = 0.5 + vec3(0.25, 0.6, 0.5) * cos(TWO_PI * (vec3(-norT, norT, 2. * norT) + 0.5 * mPos + vec3(0, 0.33, 0.67)));
 
   // color = pow(color, vec3(1.6));
 
@@ -894,13 +894,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isNeon = 1. - isBlack;
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      // float bumpsScale = 0.01;
-      // float bumpIntensity = 1.0;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 0.01;
+      float bumpIntensity = 1.0;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -916,7 +916,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.75;
-      float specCo = 0.25;
+      float specCo = 0.35;
 
       float specAll = 0.0;
 
@@ -970,9 +970,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 1.0 * dispersionColor;
+      color += 0.5 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
