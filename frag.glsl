@@ -52,7 +52,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 16.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1038,214 +1038,46 @@ void bnd (inout float v, in float start, in float end, in float eps) {
   v = v1 * v2;
 }
 
-float crcl (in vec2 uv, float r) {
-  return length(uv) - r;
-}
+// Source: https://www.shadertoy.com/view/Xd2GR3
+// { 2d cell id, distance to border, distnace to center )
+vec4 hexagon( vec2 p ) 
+{
+  vec2 q = vec2( p.x*2.0*0.5773503, p.y + p.x*0.5773503 );
 
-float sqr (in vec2 uv, float r) {
-  vec2 absUv = abs(uv);
-  float l = max(absUv.x, absUv.y);
-  return l - r;
-}
+  vec2 pi = floor(q);
+  vec2 pf = fract(q);
 
-vec2 hash( vec2 p  ) {
-  p = vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));
-  return fract(sin(p)*18.5453);
-}
+  float v = mod(pi.x + pi.y, 3.0);
 
-float noiseDots (vec2 uv, float size) {
-  vec2 q = uv;
-  vec2 c = pMod2(q, vec2(size));
+  float ca = step(1.0,v);
+  float cb = step(2.0,v);
+  vec2  ma = step(pf.xy,pf.yx);
 
-  float r = size * 0.2;
-  r += 0.35 * r * cnoise2(c + 5.0 * q / size);
+  // distance to borders
+  float e = dot( ma, 1.0-pf.yx + ca*(pf.x+pf.y-1.0) + cb*(pf.yx-2.0*pf.xy) );
 
-  return 1. - smoothstep(0., 0.002, length(q) - r);
-}
+  // distance to center	
+  p = vec2( q.x + floor(0.5+p.y/1.5), 4.0*p.y/3.0 )*0.5 + 0.5;
+  float f = length( (fract(p) - 0.5)*vec2(1.0,0.85) );		
 
-vec4 tile (in vec2 uv) {
-  const float scale = 0.25;
-  uv *= scale;
-  return vec4(
-      step(0.125, cnoise2(scale * 9.0 * uv +   0.0)),
-      step(0.125, cnoise2(scale * 9.4 * uv + 110.4)),
-      step(0.125, cnoise2(scale * 9.4 * uv + 813.1)),
-      step(0.125, cnoise2(scale * 9.4 * uv - 310.0)));
-}
-
-vec4 neighborsTile (in vec2 uv) {
-  return vec4(
-      tile(uv - vec2(1, 0)).z,
-      tile(uv - vec2(0, 1)).w,
-      tile(uv + vec2(1, 0)).x,
-      tile(uv + vec2(0, 1)).y);
-}
-
-float edgeDist (in vec2 q, in float edge) {
-  float d = 100.0;
-
-  float capMask = smoothstep(0.0, edge, q.x);
-  float axisD = abs(q.y);
-  axisD = mix(100.0, axisD, capMask);
-  d = min(d, axisD);
-
-  float roundMask = length(q);
-  d = min(d, roundMask);
-
-  return d;
-}
-float edgeBand (in vec2 q, in float thickness, in float edge) {
-  return smoothstep(thickness + edge, thickness, edgeDist(q, edge));
-}
-
-vec3 tileColor (vec2 q, vec4 sides, in float size, in float colorOffset) {
-  vec2 absQ = abs(q);
-  vec3 primaryColor = vec3(0);
-  float mask = 0.;
-
-  const float edge = 0.0001;
-  const float thickness = 0.333333;
-
-  float d = 100.0;
-  // Left
-  vec2 inputQ = q.xy * vec2(-1, 1);
-  float edgeMask = edgeBand(inputQ, thickness * size, edge * size);
-  mask += sides.x * edgeMask;
-  float spaceD = edgeDist(inputQ, edge * size);
-  float edgeD = mix(100., spaceD, sides.x * edgeMask);
-  d = min(d, edgeD);
-  // Right
-  inputQ = q.xy * vec2( 1, 1);
-  edgeMask = edgeBand(inputQ, thickness * size, edge * size);
-  spaceD = edgeDist(inputQ, edge * size);
-  edgeD = mix(100., spaceD, sides.z * edgeMask);
-  d = min(d, edgeD);
-  mask += sides.z * edgeMask;
-
-  // Top
-  inputQ = q.yx * vec2(-1, 1);
-  edgeMask = edgeBand(inputQ, thickness * size, edge * size);
-  spaceD = edgeDist(inputQ, edge * size);
-  edgeD = mix(100., spaceD, sides.y * edgeMask);
-  d = min(d, edgeD);
-  mask += sides.y * edgeMask;
-  // Bottom
-  inputQ = q.yx * vec2( 1, 1);
-  edgeMask = edgeBand(inputQ, thickness * size, edge * size);
-  spaceD = edgeDist(inputQ, edge * size);
-  edgeD = mix(100., spaceD, sides.w * edgeMask);
-  d = min(d, edgeD);
-  mask += sides.w * edgeMask;
-
-  // Colors
-  float colorI = d / (thickness * size);
-
-  float numColors = 4.0;
-  // colorI = floor(colorI * numColors) / numColors;
-  colorI += colorOffset;
-  primaryColor = vec3(0.51 + 0.5 * cos(TWO_PI * colorI * 2.5 - 4.0 * cosT));
-
-  return saturate(mask) * primaryColor;
-}
-
-vec3 grid (in vec2 uv, in float size, in float colorOffset) {
-  vec3 color = vec3(0);
-
-  vec2 q = uv;
-  vec2 c = pMod2(q, vec2(size));
-
-  // Show Borders
-  // vec2 absQ = abs(q);
-  // float borderD = max(absQ.x, absQ.y) - 0.4 * size;
-  // color = mix(color, vec3(0, 0, 1), smoothstep(0., 0.001, borderD));
-
-  vec4 sides = tile(c);
-  float isPrimary = floor(mod(dot(c, vec2(1)), 2.));
-
-  vec3 primaryColor = tileColor(q, sides, size, colorOffset);
-  vec3 secondaryColor = tileColor(q, neighborsTile(c), size, colorOffset);
-
-  color = mix(color, primaryColor, isPrimary * smoothstep(0., 0.01, length(primaryColor)));
-  color = mix(secondaryColor, color, isPrimary);
-
-  return color;
-}
-
-vec2 cellBoxes (in vec2 q, in vec2 c, in float cellSize) {
-
-#define MOVING_SQR 1
-#ifdef MOVING_SQR
-  float moveRate = 0.05;
-#else
-  float moveRate = 0.;
-#endif
-
-  vec2 d = vec2(200, 1);
-  for (int i = 0; i < 6; i++) {
-    vec2 qB = q + 1.3 * cellSize * vec2(
-        noise(1.32345 * vec2(i) + c + 2.0 * moveRate * time + 0.),
-        noise(2.92345 * vec2(i) + c + 1.0 * moveRate * time + 123.));
-    float r = 0.2 * cellSize;
-    vec2 absQ = abs(qB);
-    float sqrD = max(absQ.x, absQ.y);
-    float m = smoothstep(0., 0.01, sqrD - r);
-    float n = smoothstep(0.001, 0.0, sqrD - 0.95 * r);
-
-    vec2 crossQ = qB * rotMat2(PI * 0.25);
-    absQ = abs(crossQ);
-    sqrD = max(absQ.x, absQ.y);
-    float axisD = min(absQ.x, absQ.y) - 0.05 * r;
-    float axis = smoothstep(0.001, 0.0, axisD);
-    float crossR = r * 0.5;
-    float cross = axis * smoothstep(0.001, 0., sqrD - crossR);
-    cross = 1. - cross;
-    n *= cross;
-
-    float z = 1.; // noise(vec2(i));
-
-    vec2 b = vec2(m * 100. + z, n);
-    d = dMin(d, b);
-  }
-
-  return d;
+  return vec4( pi + ca - cb*ma, e, f );
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
+  q *= 6.;
+  // q *= (8. + 1. * sin(-3.0 * length(q) + cosT));
 
-  const float gridScale = 20.0;
-  const float invGridScale = 0.05;
-  const float stretch = 0.20;
+  vec4 hex = hexagon(q);
+  float threshold = 0.6 + 0.2 * sin(-length(q) + cosT);
+  float d = sin(-7. * PI * hex.z - cosT);
+  d += 0.18 * cnoise2(534. * uv);
 
-  q += vec2(
-      2.0 *invGridScale,
-      2.0 *invGridScale * stretch)
-    * smoothstep(0.3, 1., sin(cosT - length(q)));
+  float v = smoothstep(threshold, threshold + 0.01, d);
 
-  const float size = 0.01;
-  const float halfsize = size * 0.5;
-
-  float inShape = 0.;
-
-  vec2 fontUV = 0.5 * (uv + 1.);
-  fontUV.y = 1. - fontUV.y;
-
-  inShape = texture2D(textTex, fontUV).r;
-  inShape = step(0.3, inShape);
-
-  // Grid
-  q *= gridScale;
-
-  vec2 axis = mix(vec2(1, stretch), vec2(stretch, 1), inShape);
-  vec2 c = pMod2(q, axis);
-
-  float v = mod(dot(c, vec2(1)), 2.);
-
-  v = saturate(v);
-  const vec3 foregroundColor = vec3(1);
-  color = mix(background, foregroundColor, v);
+  color = vec3(v);
 
   return color;
 }
@@ -1255,6 +1087,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
