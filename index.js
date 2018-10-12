@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: '0x686578-render1',
+    name: 'together-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
