@@ -644,12 +644,13 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1; // 0.2;
   vec3 q = p;
 
-  // q.x = abs(q.x);
+  q.x = abs(q.x);
+  // q = abs(q);
 
-  q.yz *= rotMat2(q.x + 2.0 * sin(q.x + dot(q.yz, vec2(0.1))));
-  q.yz *= 1.0 + 0.2 * cos(cosT + q.x);
-  q.xyz += 0.0500 * cos( 7. * q.xzy + cosT);
-  q.xyz += 0.0250 * cos(13. * q.xzy + cosT);
+  q.yz *= rotMat2(2.0 * q.x);
+  // q.yz *= 1.0 + 0.2 * cos(cosT + q.x);
+  q.xyz += 0.0500 * cos( 7. * q.xzy + vec3(-cosT, 0, cosT));
+  q.xyz += 0.0250 * cos(13. * q.xzy + vec3(cosT));
 
   vec3 qWarp = q;
   vec2 c = pMod2(q.yz, vec2(size));
@@ -840,9 +841,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.80);
 
-  color = 0.5 + vec3(0.25, 0.6, 0.5) * cos(TWO_PI * (
-        vec3(norT, -norT, -2. * norT) + fract(1.1234834 * mPos)
-      + vec3(0, 0.33, 0.67)));
+  float i = norT + dot(mPos, vec3(1.1234834));
+
+  color = 0.9 * smoothstep(0.1, 0.11, cos(TWO_PI * vec3(i)));
+  // color = 0.5 + vec3(0.25, 0.6, 0.5) * cos(TWO_PI * (
+  //       vec3(norT, -norT, -2. * norT) + fract(1.1234834 * mPos)
+  //     + vec3(0, 0.33, 0.67)));
 
   return color;
 }
