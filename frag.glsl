@@ -1073,16 +1073,32 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
-  q *= 6.;
-  // q *= (8. + 1. * sin(-3.0 * length(q) + cosT));
 
-  vec4 hex = hexagon(q);
-  float threshold = 0.6 + 0.2 * sin(-length(q) + cosT);
-  float d = sin(-7. * PI * hex.z - cosT);
-  d += 0.18 * cnoise2(534. * uv);
+  float l = length(q);
+  float r = 0.85;
+  float circD = l; // - r;
 
+  vec2 axis = vec2(184);
+  vec2 preWarp = axis;
+
+  float angle = 0.;
+
+  const float numL = 20.;
+  float inc = 1. / numL;
+  for (float i = 0.; i < numL; i++) {
+    angle += smoothstep(i * inc, (i + 1.) * inc, norT)
+      * smoothstep(i * inc * r, i * inc * r + 0.001, circD);
+  }
+
+  angle *= inc * 8.;
+
+  axis *= rotMat2(angle);
+
+  // axis = mix(axis, preWarp, 0.5 + 0.5 * sin(cosT) );
+  float i = dot(q, axis);
+  float d = sin(i);
+  float threshold = 0.1;
   float v = smoothstep(threshold, threshold + 0.01, d);
-
   color = vec3(v);
 
   return color;
@@ -1093,6 +1109,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
