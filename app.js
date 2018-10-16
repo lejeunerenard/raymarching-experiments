@@ -17,7 +17,7 @@ import { vec3, mat4 } from 'gl-matrix'
 import Octavian from 'octavian'
 import createSwell from './audio/swell'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = 0.5 * Math.min(2, defined(window.devicePixelRatio, 1))
 
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
@@ -43,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const thingy = {
@@ -228,11 +228,10 @@ export default class App {
     }
 
     const preset = this.presets.fractalUnfurl
-    preset.cameraAngles = [-0.035, 0, 0]
+    preset.cameraAngles = [0.622, 0.925, -0.287]
 
     this.d = preset.d
-    const dist = 2.1
-    this.cameraRo = vec3.fromValues(0, 0, dist)
+    this.cameraRo = vec3.fromValues(0.96, 0, 0.66)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
