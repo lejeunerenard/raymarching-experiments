@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'rabbit-hole-render1',
+    name: 'barrier-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

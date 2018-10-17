@@ -17,7 +17,7 @@ import { vec3, mat4 } from 'gl-matrix'
 import Octavian from 'octavian'
 import createSwell from './audio/swell'
 
-const dpr = 0.5 * Math.min(2, defined(window.devicePixelRatio, 1))
+const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2

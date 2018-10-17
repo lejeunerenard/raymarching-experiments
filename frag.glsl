@@ -1071,30 +1071,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
+  const float size = 0.15;
 
-  float l = length(q);
-  float r = 0.85;
-  float circD = l; // - r;
+  vec2 axis = 67.3 * vec2(-1.2, 0.3);
 
-  vec2 axis = vec2(184);
-  vec2 preWarp = axis;
+  float r = floor(uv.y / size);
+  axis.x = mix(abs(axis.x), axis.x, mod(r, 2.));
 
-  float angle = 0.;
-
-  const float numL = 20.;
-  float inc = 1. / numL;
-  for (float i = 0.; i < numL; i++) {
-    angle += smoothstep(i * inc, (i + 1.) * inc, norT)
-      * smoothstep(i * inc * r, i * inc * r + 0.001, circD);
-  }
-
-  angle *= inc * 8.;
-
-  axis *= rotMat2(angle);
-
-  // axis = mix(axis, preWarp, 0.5 + 0.5 * sin(cosT) );
-  float i = dot(q, axis);
-  float d = sin(i);
+  float d = sin(dot(uv, axis) + 1.323 * r + cosT);
   float threshold = 0.1;
   float v = smoothstep(threshold, threshold + 0.01, d);
   color = vec3(v);
@@ -1107,6 +1091,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
