@@ -43,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     this.presets = {}
     const thingy = {
@@ -228,10 +228,10 @@ export default class App {
     }
 
     const preset = this.presets.fractalUnfurl
-    preset.cameraAngles = [0.622, 0.925, -0.287]
+    preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.96, 0, 0.66)
+    this.cameraRo = vec3.fromValues(0, 0, 1)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
