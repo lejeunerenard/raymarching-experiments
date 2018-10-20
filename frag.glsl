@@ -1066,21 +1066,27 @@ vec4 hexagon( vec2 p )
   return vec4( pi + ca - cb*ma, e, f );
 }
 
+vec2 foldSpace (in vec2 uv) {
+  uv.x -= 0.125 + 0.25 * sin(cosT);
+  uv *= rotMat2(PI * 0.0555234);
+  uv.x = abs(uv.x);
+  uv *= 1.3;
+  return uv;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   vec2 q = uv;
-  const float size = 0.15;
+  q = abs(q);
 
-  vec2 axis = 67.3 * vec2(-1.2, 0.3);
-
-  float r = floor(uv.y / size);
-  axis.x = mix(abs(axis.x), axis.x, mod(r, 2.));
-
-  float d = sin(dot(uv, axis) + 1.323 * r + cosT);
-  float threshold = 0.1;
-  float v = smoothstep(threshold, threshold + 0.01, d);
-  color = vec3(v);
+  for ( int i = 0; i < 10; i++ ) {
+    q = foldSpace(q);
+    q += 0.1 * cos(3. * q.yx);
+  }
+  float i = smoothstep(-1., 1.0, sin(TWO_PI * dot(q, vec2(0.5))));
+  // color = vec3(i);
+  color = 0.5 + 0.5 * cos(TWO_PI * (i + vec3(0, 0.2, 0.3)));
 
   return color;
 }
@@ -1090,6 +1096,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
