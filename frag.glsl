@@ -1067,10 +1067,13 @@ vec4 hexagon( vec2 p )
 }
 
 vec2 foldSpace (in vec2 uv) {
-  uv.x -= 0.125 + 0.25 * sin(cosT);
-  uv *= rotMat2(PI * 0.0555234);
-  uv.x = abs(uv.x);
+  uv.x -= 0.125;
+  uv += 0.1000 * cos( 3. * uv.yx + cosT);
+  uv += 0.0500 * cos( 5. * uv.yx + cosT);
+  uv -= 0.0250 * cos( 7. * uv.yx + cosT);
+  uv -= 0.0125 * cos(13. * uv.yx + cosT);
   uv *= 1.3;
+  uv *= rotMat2(PI * 0.0555234);
   return uv;
 }
 
@@ -1082,11 +1085,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   for ( int i = 0; i < 10; i++ ) {
     q = foldSpace(q);
-    q += 0.1 * cos(3. * q.yx);
   }
-  float i = smoothstep(-1., 1.0, sin(TWO_PI * dot(q, vec2(0.5))));
-  // color = vec3(i);
-  color = 0.5 + 0.5 * cos(TWO_PI * (i + vec3(0, 0.2, 0.3)));
+  q *= 1.1;
+  float i = length(q);
+  color = 0.5 + 0.5 * sin(TWO_PI * (i + vec3(0, 0.33, 0.67)));
 
   return color;
 }

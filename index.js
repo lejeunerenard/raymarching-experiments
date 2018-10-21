@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'fusion-render1',
+    name: 'keep-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -92,7 +92,7 @@ if (capturing) {
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
         currentRAF = vrDisplay.requestAnimationFrame(tick)
-      }, 250)
+      }, 350)
     }
   }
 
