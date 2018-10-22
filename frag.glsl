@@ -56,8 +56,8 @@ const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
-const float edge = 0.01;
-const float thickness = 0.75;
+const float edge = 0.001;
+const float thickness = 0.05;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1068,28 +1068,129 @@ vec4 hexagon( vec2 p )
 
 vec2 foldSpace (in vec2 uv) {
   uv.x -= 0.125;
-  uv += 0.1000 * cos( 3. * uv.yx + cosT);
-  uv += 0.0500 * cos( 5. * uv.yx + cosT);
-  uv -= 0.0250 * cos( 7. * uv.yx + cosT);
-  uv -= 0.0125 * cos(13. * uv.yx + cosT);
-  uv *= 1.3;
-  uv *= rotMat2(PI * 0.0555234);
+  uv *= 1.05;
+  uv *= rotMat2(PI * 0.555234);
+  uv.x = abs(uv.x);
   return uv;
 }
 
+float absDist (in float v) {
+  return smoothstep(edge + thickness, thickness, abs(v));
+}
+
+float line (in vec2 q, in float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+  mat2 rot = mat2(
+     c, s,
+    -s, c);
+  return absDist((q * rot).y);
+}
+
+float flatCappedLine (in vec2 q, in float angle, in float halfWidth) {
+  float c = cos(angle);
+  float s = sin(angle);
+  mat2 rot = mat2(
+     c, s,
+    -s, c);
+  q *= rot;
+  return absDist(q.y) * smoothstep(edge, 0., abs(q.x) - halfWidth);
+}
+
+float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
+  float l = flatCappedLine(q, angle, halfWidth);
+
+  float c = cos(angle);
+  float s = sin(angle);
+  mat2 rot = mat2(
+     c, s,
+    -s, c);
+  q *= rot;
+  q.x = abs(q.x);
+
+  float cap = smoothstep(edge, 0., length(q - vec2(halfWidth, 0)) - thickness);
+  return max(l, cap);
+}
+
+float pattern (in vec2 q) {
+  float v = 0.;
+
+  float r = 0.15;
+  v = absDist(length(q - vec2(0, -0.3)) - r);
+
+  float lLength = 0.1;
+  float line = roundedCappedLine(q - vec2(0.3, -0.1), PI * 0.63, lLength);
+  v = max(v, line);
+
+  line = roundedCappedLine(q - vec2(0.4, 0.02), PI * 0.63, lLength);
+  v = max(v, line);
+
+  vec2 gQ = q;
+  const float gSize = 0.05;
+  const float gR = 0.1 * gSize;
+  vec2 gC = pMod2(gQ, vec2(gSize));
+  float g = smoothstep(0.0001, 0., length(gQ) - gR);
+  vec2 absQ = abs(q - vec2(0, 0.2));
+  g *= smoothstep(edge, 0., max(absQ.x, absQ.y) - 3.5 * gSize);
+  v = max(v, g);
+
+  return v;
+}
+
+float pattern2 (in vec2 q) {
+  float v = 0.;
+
+  v = absDist(length(q - vec2(0, 0.3)) - 0.1);
+  q.x -= 0.015;
+
+  float lLength = 0.1;
+  float line = roundedCappedLine(q - vec2(0.1, -0.1), PI * 0.63, lLength);
+  v = max(v, line);
+
+  line = roundedCappedLine(q - vec2(0.2, 0.02), PI * 0.63, lLength);
+  v = max(v, line);
+
+  line = roundedCappedLine(q - vec2(0.33, -0.3), PI * 0.63, lLength);
+  v = max(v, line);
+
+  line = roundedCappedLine(q - vec2(0.23, -0.4), PI * 0.63, lLength);
+  v = max(v, line);
+
+  line = roundedCappedLine(q - vec2(0.39, -0.1), PI * 0.63, lLength);
+  v = max(v, line);
+
+  return v;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(background);
+  vec3 foreground = vec3(1);
+  float v = 0.;
 
-  vec2 q = uv;
-  q = abs(q);
+  float transT = 0.5 + 0.5 * cos(cosT + PI);
+  vec2 q = mix(0.7, 0.9, transT) * uv;
+  q.y -= 0.05;
 
-  for ( int i = 0; i < 10; i++ ) {
+  // float size = 0.002 + 0.25 * saturate(1. - 1.2 * norT);
+  // vec2 c = pMod2(q, vec2(size));
+  // vec2 modQ = q;
+  // q = c * size;
+
+  q.x = abs(q.x);
+  vec2 beforeQ = q;
+  for (int i = 0; i < 3; i++) {
     q = foldSpace(q);
   }
-  q *= 1.1;
-  float i = length(q);
-  color = 0.5 + 0.5 * sin(TWO_PI * (i + vec3(0, 0.33, 0.67)));
+  q = mix(beforeQ, q, transT);
 
+  // vec2 absQ = abs(modQ);
+  // float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - size * 0.43);
+
+  v = pattern2(q);
+
+  // v *= mask;
+
+  color = mix(color, foreground, saturate(v));
   return color;
 }
 
