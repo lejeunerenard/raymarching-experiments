@@ -1112,83 +1112,28 @@ float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
   return max(l, cap);
 }
 
-float pattern (in vec2 q) {
-  float v = 0.;
-
-  float r = 0.15;
-  v = absDist(length(q - vec2(0, -0.3)) - r);
-
-  float lLength = 0.1;
-  float line = roundedCappedLine(q - vec2(0.3, -0.1), PI * 0.63, lLength);
-  v = max(v, line);
-
-  line = roundedCappedLine(q - vec2(0.4, 0.02), PI * 0.63, lLength);
-  v = max(v, line);
-
-  vec2 gQ = q;
-  const float gSize = 0.05;
-  const float gR = 0.1 * gSize;
-  vec2 gC = pMod2(gQ, vec2(gSize));
-  float g = smoothstep(0.0001, 0., length(gQ) - gR);
-  vec2 absQ = abs(q - vec2(0, 0.2));
-  g *= smoothstep(edge, 0., max(absQ.x, absQ.y) - 3.5 * gSize);
-  v = max(v, g);
-
-  return v;
-}
-
-float pattern2 (in vec2 q) {
-  float v = 0.;
-
-  v = absDist(length(q - vec2(0, 0.3)) - 0.1);
-  q.x -= 0.015;
-
-  float lLength = 0.1;
-  float line = roundedCappedLine(q - vec2(0.1, -0.1), PI * 0.63, lLength);
-  v = max(v, line);
-
-  line = roundedCappedLine(q - vec2(0.2, 0.02), PI * 0.63, lLength);
-  v = max(v, line);
-
-  line = roundedCappedLine(q - vec2(0.33, -0.3), PI * 0.63, lLength);
-  v = max(v, line);
-
-  line = roundedCappedLine(q - vec2(0.23, -0.4), PI * 0.63, lLength);
-  v = max(v, line);
-
-  line = roundedCappedLine(q - vec2(0.39, -0.1), PI * 0.63, lLength);
-  v = max(v, line);
-
-  return v;
-}
-
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
   vec3 foreground = vec3(1);
   float v = 0.;
 
-  float transT = 0.5 + 0.5 * cos(cosT + PI);
-  vec2 q = mix(0.7, 0.9, transT) * uv;
-  q.y -= 0.05;
+  vec2 q = 0.9 * uv;
+  vec2 absQ = abs(q);
+  v = smoothstep(0., edge, sin(dot(q, vec2(16.7)) - 1.2));
 
-  // float size = 0.002 + 0.25 * saturate(1. - 1.2 * norT);
-  // vec2 c = pMod2(q, vec2(size));
-  // vec2 modQ = q;
-  // q = c * size;
+  const float sqrR = 0.5;
+  float crop = smoothstep(edge, 0., max(absQ.x, absQ.y) - sqrR);
 
-  q.x = abs(q.x);
-  vec2 beforeQ = q;
-  for (int i = 0; i < 3; i++) {
-    q = foldSpace(q);
-  }
-  q = mix(beforeQ, q, transT);
+  v *= crop;
 
-  // vec2 absQ = abs(modQ);
-  // float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - size * 0.43);
+  q += 0.20000 * cos( 3. * q.yx + vec2(-cosT, cosT));
+  q += 0.10000 * cos( 7. * q.yx + vec2(0, cosT));
+  q += 0.05000 * cos(13. * q.yx + vec2(cosT, 2.0 * cosT));
+  q += 0.02500 * cos(17. * q.yx + cosT);
+  q += 0.01250 * cos(23. * q.yx + cosT);
+  q += 0.00625 * cos(31. * q.yx + cosT);
 
-  v = pattern2(q);
-
-  // v *= mask;
+  foreground = 0.5 + 0.5 * cos(TWO_PI * (0.025 * vfbmWarp(q) + vec3(q, norT) + vec3(0, 0.33, 0.67)));
 
   color = mix(color, foreground, saturate(v));
   return color;
