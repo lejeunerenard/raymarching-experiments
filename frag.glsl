@@ -57,7 +57,7 @@ float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
 const float edge = 0.001;
-const float thickness = 0.05;
+const float thickness = 0.015;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1074,8 +1074,11 @@ vec2 foldSpace (in vec2 uv) {
   return uv;
 }
 
-float absDist (in float v) {
+float absDist (in float v, in float thickness) {
   return smoothstep(edge + thickness, thickness, abs(v));
+}
+float absDist (in float v) {
+  return absDist(v, thickness);
 }
 
 float line (in vec2 q, in float angle) {
@@ -1087,18 +1090,22 @@ float line (in vec2 q, in float angle) {
   return absDist((q * rot).y);
 }
 
-float flatCappedLine (in vec2 q, in float angle, in float halfWidth) {
+float flatCappedLine (in vec2 q, in float angle, in float halfWidth, in float thickness) {
   float c = cos(angle);
   float s = sin(angle);
   mat2 rot = mat2(
      c, s,
     -s, c);
   q *= rot;
-  return absDist(q.y) * smoothstep(edge, 0., abs(q.x) - halfWidth);
+  return absDist(q.y, thickness) * smoothstep(edge, 0., abs(q.x) - halfWidth);
 }
 
-float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
-  float l = flatCappedLine(q, angle, halfWidth);
+float flatCappedLine (in vec2 q, in float angle, in float halfWidth) {
+  return flatCappedLine(q, angle, halfWidth, thickness);
+}
+
+float roundedCappedLine (in vec2 q, in float angle, in float halfWidth, in float thickness) {
+  float l = flatCappedLine(q, angle, halfWidth, thickness);
 
   float c = cos(angle);
   float s = sin(angle);
@@ -1111,31 +1118,56 @@ float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
   float cap = smoothstep(edge, 0., length(q - vec2(halfWidth, 0)) - thickness);
   return max(l, cap);
 }
+float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
+  return roundedCappedLine(q, angle, halfWidth, thickness);
+}
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
-  vec3 foreground = vec3(1);
+  vec3 color = vec3(1);
+
+  vec2 q = uv;
+  q *= rotMat2(-0.4);
+
+  vec2 axis = vec2(0.3, 2.0);
+  // axis *= rotMat2(PI * 0.5 * cnoise2(3. * uv));
+
+  float n = 0.2 + 0.8 * iqFBM(axis * 9. * q + 0.9 * cnoise2(3. * q) + 0. * sin(q.x + cosT));
+  n += 0.1 * noise(934. * q);
+  n *= smoothstep(-0.2, 1., snoise2(194. * uv + snoise2(3. * uv)));
+  color = vec3(n);
+
+  color *= 0.5 + 0.5 * iqFBM(8. * uv + 0.3 * iqFBM(11. * uv.yx));
+
+  // Grid mask
+  const float size = 0.02;
+  vec2 gQ = uv;
+  vec2 c = pMod2(gQ, vec2(size));
+  float gM = 0.;
+  vec2 absGQ = abs(gQ);
+  gM = max(gM, smoothstep(0., edge, max(absGQ.x, absGQ.y) - size * 0.4));
+  gM *= saturate(0.4 + 0.6 * cnoise2(83.0 * uv));
+
+  gM = saturate(gM);
+  color = mix(color, vec3(0), gM);
+
   float v = 0.;
 
-  vec2 q = 0.9 * uv;
-  vec2 absQ = abs(q);
-  v = smoothstep(0., edge, sin(dot(q, vec2(16.7)) - 1.2));
+  // Box
+  vec2 absUV = abs(uv);
+  const float boxR = 0.5;
+  const float thickness = 0.004;
+  float boxD = max(absUV.x, absUV.y) - boxR;
+  v = max(v, absDist(boxD, thickness));
+  color *= 0.4 + 0.6 * smoothstep(0., edge, boxD);
 
-  const float sqrR = 0.5;
-  float crop = smoothstep(edge, 0., max(absQ.x, absQ.y) - sqrR);
+  // X
+  const float lineWidth = boxR * 1.05;
+  const float lineThickness = 1.3 * thickness;
+  v = max(v, roundedCappedLine(uv, PI * 0.25, lineWidth, lineThickness));
+  v = max(v, roundedCappedLine(uv, -PI * 0.25, lineWidth, lineThickness));
 
-  v *= crop;
+  color = mix(color, vec3(1), v);
 
-  q += 0.20000 * cos( 3. * q.yx + vec2(-cosT, cosT));
-  q += 0.10000 * cos( 7. * q.yx + vec2(0, cosT));
-  q += 0.05000 * cos(13. * q.yx + vec2(cosT, 2.0 * cosT));
-  q += 0.02500 * cos(17. * q.yx + cosT);
-  q += 0.01250 * cos(23. * q.yx + cosT);
-  q += 0.00625 * cos(31. * q.yx + cosT);
-
-  foreground = 0.5 + 0.5 * cos(TWO_PI * (0.025 * vfbmWarp(q) + vec3(q, norT) + vec3(0, 0.33, 0.67)));
-
-  color = mix(color, foreground, saturate(v));
   return color;
 }
 
