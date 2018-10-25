@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'close-render1',
+    name: 'chrono-chroma-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
