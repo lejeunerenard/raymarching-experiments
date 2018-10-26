@@ -57,7 +57,7 @@ float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
 const float edge = 0.001;
-const float thickness = 0.015;
+const float thickness = 0.0075;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1112,50 +1112,78 @@ float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(background);
 
+  float m = 0.;
   vec2 q = uv;
-  q *= rotMat2(-0.4);
 
-  vec2 axis = vec2(0.3, 2.0);
-  // axis *= rotMat2(PI * 0.5 * cnoise2(3. * uv));
+  float a = atan(q.y, q.x) - PI;
 
-  float n = 0.2 + 0.8 * iqFBM(axis * 9. * q + 0.9 * cnoise2(3. * q) + 0. * sin(q.x + cosT));
-  n += 0.1 * noise(934. * q);
-  n *= smoothstep(-0.2, 1., snoise2(194. * uv + snoise2(3. * uv)));
-  color = vec3(n);
+  float ring1D = 100.;
+  float ring2D = 100.;
+  float ring3D = 100.;
+  float ring4D = 100.;
+  float ring5D = 100.;
+  float ring6D = 100.;
 
-  color *= 0.5 + 0.5 * iqFBM(8. * uv + 0.3 * iqFBM(11. * uv.yx));
+  for (float i = -0.01; i < 0.01; i += 0.0005) {
+    float angle = a + i;
+    float ring2R = 0.300 + 0.05 * sin(cosT) * sin(4. * angle);
+    float ring2DI = abs(length(q) - ring2R);
+    ring2D = min(ring2D, ring2DI);
 
-  // Grid mask
-  const float size = 0.02;
-  vec2 gQ = uv;
-  vec2 c = pMod2(gQ, vec2(size));
-  float gM = 0.;
-  vec2 absGQ = abs(gQ);
-  gM = max(gM, smoothstep(0., edge, max(absGQ.x, absGQ.y) - size * 0.4));
-  gM *= saturate(0.4 + 0.6 * cnoise2(83.0 * uv));
+    float ring1R = 0.310 + 0.05 * sin(cosT) * sin(4. * angle + PI);
+    float ring1DI = abs(length(q) - ring1R);
+    ring1D = min(ring1D, ring1DI);
 
-  gM = saturate(gM);
-  color = mix(color, vec3(0), gM);
+    float ring3R = 0.450 + 0.05 * sin(cosT - 0.30) * sin(6. * angle);
+    float ring3DI = abs(length(q) - ring3R);
+    ring3D = min(ring3D, ring3DI);
 
-  float v = 0.;
+    float ring4R = 0.470 + 0.05 * sin(cosT - 0.30) * sin(6. * angle + PI);
+    float ring4DI = abs(length(q) - ring4R);
+    ring4D = min(ring4D, ring4DI);
 
-  // Box
-  vec2 absUV = abs(uv);
-  const float boxR = 0.5;
-  const float thickness = 0.004;
-  float boxD = max(absUV.x, absUV.y) - boxR;
-  v = max(v, absDist(boxD, thickness));
-  color *= 0.4 + 0.6 * smoothstep(0., edge, boxD);
+    float ring5R = 0.620 + 0.05 * sin(cosT - 0.60) * sin(9. * angle);
+    float ring5DI = abs(length(q) - ring5R);
+    ring5D = min(ring5D, ring5DI);
 
-  // X
-  const float lineWidth = boxR * 1.05;
-  const float lineThickness = 1.3 * thickness;
-  v = max(v, roundedCappedLine(uv, PI * 0.25, lineWidth, lineThickness));
-  v = max(v, roundedCappedLine(uv, -PI * 0.25, lineWidth, lineThickness));
+    float ring6R = 0.640 + 0.05 * sin(cosT - 0.60) * sin(9. * angle + PI);
+    float ring6DI = abs(length(q) - ring6R);
+    ring6D = min(ring6D, ring6DI);
+  }
 
-  color = mix(color, vec3(1), v);
+  // Ring 6 Material
+  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring6D));
+  m = mix(m, 6., smoothstep(thickness + edge, thickness, ring6D));
+
+  // Ring 5 Material
+  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring5D));
+  m = mix(m, 5., smoothstep(thickness + edge, thickness, ring5D));
+
+  // Ring 4 Material
+  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring4D));
+  m = mix(m, 4., smoothstep(thickness + edge, thickness, ring4D));
+
+  // Ring 3 Material
+  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring3D));
+  m = mix(m, 3., smoothstep(thickness + edge, thickness, ring3D));
+
+  // Ring 2 Material
+  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring2D));
+  m = mix(m, 1., smoothstep(thickness + edge, thickness, ring2D));
+
+  // Ring 1 Material
+  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring1D));
+  m = mix(m, 2., smoothstep(thickness + edge, thickness, ring1D));
+
+  // Set color
+  color = mix(color, vec3(1, 0, 0), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0, 1, 1), isMaterialSmooth(m, 2.));
+  color = mix(color, vec3(1, 0, 1), isMaterialSmooth(m, 3.));
+  color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 4.));
+  color = mix(color, vec3(1, 1, 0), isMaterialSmooth(m, 5.));
+  color = mix(color, vec3(0, 0, 1), isMaterialSmooth(m, 6.));
 
   return color;
 }
@@ -1165,6 +1193,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
