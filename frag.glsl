@@ -644,17 +644,36 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= rotationMatrix(normalize(vec3(0, 0.2, 1)), -0.4);
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
-  float c = pModPolar(q.xz, 15.);
+  q -= 0.05 * sin(vec3(1.3, 1.1, 1.5) * offset + vec3(2, 1, 3) * cosT + vec3(0, 5.2243, 9234.));
+  vec3 s1 = vec3(length(q) - 0.2, 0., 0.);
+  d = dMin(d, s1);
 
-  q.z = abs(q.z);
-  q.xz *= rotMat2(0.4);
-  vec3 b = vec3(sdBox(q, vec3(0.2, 0.5, 0.2)), 0., 0.);
-  // b.x -= 0.002 * cellular(3. * q);
-  d = dMin(d, b);
+  q = p;
+  vec3 offset = vec3(0.1, 0.3, -0.5);
+  q -= 0.3 * sin(vec3(1.0, 1.1, 1.5) * offset + cosT + vec3(0, 5.2243, 9234.));
+  vec3 s2 = vec3(length(q - offset) - 0.2, 1., 0.);
+  d = dSMin(d, s2, 0.05);
+
+  q = p;
+  offset = vec3(-0.2, 0.2, -0.1);
+  q -= 0.1 * sin(vec3(1.3, 1.1, 1.5) * offset + cosT + vec3(0, 5.2243, 9234.));
+  vec3 s3 = vec3(length(q - offset) - 0.05, 2., 0.);
+  d = dSMin(d, s3, 0.05);
+
+  q = p;
+  offset = vec3(-0.05, -0.1, 0.4);
+  q -= 0.1 * sin(vec3(1.3, 1.1, 1.5) * offset + cosT + vec3(0, 5.2243, 9234.));
+  vec3 s = vec3(length(q - offset) - 0.05, 2., 0.);
+  d = dSMin(d, s, 0.05);
+
+  q = p;
+  offset = vec3(0.1, -0.2, 0.1);
+  q -= 0.3 * sin(vec3(2.1, 2., 1.5) * offset + vec3(1., 2., 4) * cosT + vec3(0, 5.2243, 9234.));
+  s = vec3(length(q - offset) - 0.1, 2., 0.);
+  d = dSMin(d, s, 0.05);
 
   // d.x *= 0.1;
 
@@ -830,9 +849,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.8 * background);
+  vec3 color = vec3(0);
 
-  color += 0.2 * ( 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67))) );
+  color = mix(pow(#FFA06D, vec3(2.2)), pow(#FF6687, vec3(2.2)), saturate(2. * pos.y));
 
   return color;
 }
@@ -887,7 +906,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 nor = getNormal2(pos, 0.0001 * t.x);
       float bumpsScale = 0.01;
-      float bumpIntensity = 0.2;
+      float bumpIntensity = 0.4;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -907,8 +926,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.2;
+      float freCo = 0.2;
+      float specCo = 0.05;
 
       float specAll = 0.0;
 
@@ -916,11 +935,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         float diffMin = 1.0;
-        float dif = 1.; // max(diffMin, diffuse(nor, normalize(lightPos)));
+        float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.6;
+        float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -933,9 +952,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.4 * amb * diffuseColor;
+        lin += 0.4 * amb * diffuseColor;
 
-        float distIntensity = 1.0; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
+        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         color +=
           saturate((dif * distIntensity) * lights[i].color * diffuseColor)
           + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
@@ -952,19 +971,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 1.0 * dispersionColor;
+      // color += 1.0 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.2));
 
@@ -1193,7 +1212,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }

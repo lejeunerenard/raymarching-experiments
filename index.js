@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'm-cornucopia-render1',
+    name: 'wishes-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
