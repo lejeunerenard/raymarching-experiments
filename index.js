@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'wishes-render1',
+    name: 'bonds-that-bind-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
