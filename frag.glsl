@@ -644,27 +644,18 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
-  q += 0.100 * cos( 3. * q.yzx + cosT);
-  q.xzy = twist(q, 9. * q.y);
-  q += 0.050 * cos( 7. * q.yzx + cosT);
-  q += 0.025 * cos(13. * q.yzx + cosT);
+  q += 0.10000 * cos(13.312 * q.yzx + cosT );
+  q += 0.05500 * cos(17.183 * q.yzx + cosT );
+  q += 0.02500 * cos(23.122 * q.yzx + cosT );
+  q += 0.01250 * cos(31.723 * q.yzx + cosT );
 
-  const float bR = 0.2;
-  vec3 b = vec3(sdCapsule(q, vec3(bR, 1, 0), vec3(bR, -1, 0), 0.05), 0., 0.);
+  vec3 b = vec3(sdBox(q, vec3(1, 1, 0.05)), 0, 0);
   d = dMin(d, b);
 
-  b = vec3(sdCapsule(q, vec3(-bR, 1, 0), vec3(-bR, -1, 0), 0.05), 1., 0.);
-  d = dMin(d, b);
-
-  pMod1(q.y, 0.125);
-
-  b = vec3(sdCapsule(q, vec3(-bR, 0, 0), vec3(bR, 0, 0), 0.025), 2, 0);
-  d = dMin(d, b);
-
-  d.x *= 0.25;
+  d.x *= 0.35;
 
   return d;
 }
@@ -840,18 +831,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  vec3 col1 = mix(pow(#FFA06D, vec3(2.2)), pow(#FF6687, vec3(2.2)), saturate(2. * pos.y));
-  col1 += 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67)));
-  vec3 col2 = mix(pow(#FF6607, vec3(2.2)), pow(#FF8F37, vec3(2.2)), saturate(2. * pos.y));
-  col2 += 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color += cos(4. * pos);
 
-  vec3 col3 = mix(vec3(0, 0, 1), vec3(0.5, 0, 1), saturate(2. * pos.y));
-  col3 += 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67)));
-
-  color = mix(col1, col2, isMaterialSmooth(m, 1.));
-  color = mix(color, col3, isMaterialSmooth(m, 2.));
-
-  return color;
+  return 0.7 * color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -983,7 +966,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       color += 0.3 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      color = pow(color, vec3(1.05));
+      // color = pow(color, vec3(1.05));
 
       // Fog
       float d = max(0.0, t.x);
