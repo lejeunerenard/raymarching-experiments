@@ -1114,77 +1114,37 @@ float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  float m = 0.;
-  vec2 q = uv;
+#define ZOOMED 1
+#ifdef ZOOMED
+  const float overallScale = 0.25;
+  const int depth = 9;
+#else
+  const float overallScale = 0.5;
+  const int depth = 8;
+#endif
 
-  float a = atan(q.y, q.x) - PI;
+  vec2 q = overallScale * uv;
 
-  float ring1D = 100.;
-  float ring2D = 100.;
-  float ring3D = 100.;
-  float ring4D = 100.;
-  float ring5D = 100.;
-  float ring6D = 100.;
-
-  for (float i = -0.01; i < 0.01; i += 0.0005) {
-    float angle = a + i;
-    float ring2R = 0.300 + 0.05 * sin(cosT) * sin(4. * angle);
-    float ring2DI = abs(length(q) - ring2R);
-    ring2D = min(ring2D, ring2DI);
-
-    float ring1R = 0.310 + 0.05 * sin(cosT) * sin(4. * angle + PI);
-    float ring1DI = abs(length(q) - ring1R);
-    ring1D = min(ring1D, ring1DI);
-
-    float ring3R = 0.450 + 0.05 * sin(cosT - 0.30) * sin(6. * angle);
-    float ring3DI = abs(length(q) - ring3R);
-    ring3D = min(ring3D, ring3DI);
-
-    float ring4R = 0.470 + 0.05 * sin(cosT - 0.30) * sin(6. * angle + PI);
-    float ring4DI = abs(length(q) - ring4R);
-    ring4D = min(ring4D, ring4DI);
-
-    float ring5R = 0.620 + 0.05 * sin(cosT - 0.60) * sin(9. * angle);
-    float ring5DI = abs(length(q) - ring5R);
-    ring5D = min(ring5D, ring5DI);
-
-    float ring6R = 0.640 + 0.05 * sin(cosT - 0.60) * sin(9. * angle + PI);
-    float ring6DI = abs(length(q) - ring6R);
-    ring6D = min(ring6D, ring6DI);
+  mat2 rot = rotMat2(0.02);
+  for ( int i = 0; i < depth; i++ ) {
+    float c = pModPolar(q, 6.);
+    q *= rot;
+    // q.y = abs(q.y);
+    q = abs(q);
+    q *= scale;
+    q -= offset.xy;
   }
 
-  // Ring 6 Material
-  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring6D));
-  m = mix(m, 6., smoothstep(thickness + edge, thickness, ring6D));
+  float d = 100.;
+  const float localScale = 1.8;
+  float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
+  d = min(d, s);
 
-  // Ring 5 Material
-  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring5D));
-  m = mix(m, 5., smoothstep(thickness + edge, thickness, ring5D));
+  vec2 absQ = abs(q - vec2(0.2, 0));
+  float l = max(0.5 * absQ.x, 3. * absQ.y) - 0.02 * localScale;
+  d = min(d, l);
 
-  // Ring 4 Material
-  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring4D));
-  m = mix(m, 4., smoothstep(thickness + edge, thickness, ring4D));
-
-  // Ring 3 Material
-  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring3D));
-  m = mix(m, 3., smoothstep(thickness + edge, thickness, ring3D));
-
-  // Ring 2 Material
-  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring2D));
-  m = mix(m, 1., smoothstep(thickness + edge, thickness, ring2D));
-
-  // Ring 1 Material
-  m = mix(m, 0., smoothstep(3.0 * thickness + edge, 3.0 * thickness, ring1D));
-  m = mix(m, 2., smoothstep(thickness + edge, thickness, ring1D));
-
-  // Set color
-  color = mix(color, vec3(1, 0, 0), isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(0, 1, 1), isMaterialSmooth(m, 2.));
-  color = mix(color, vec3(1, 0, 1), isMaterialSmooth(m, 3.));
-  color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 4.));
-  color = mix(color, vec3(1, 1, 0), isMaterialSmooth(m, 5.));
-  color = mix(color, vec3(0, 0, 1), isMaterialSmooth(m, 6.));
-
+  color = vec3(smoothstep(0., edge, d));
   return color;
 }
 
@@ -1193,6 +1153,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }

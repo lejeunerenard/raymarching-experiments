@@ -91,7 +91,7 @@ if (capturing) {
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
-        // currentRAF = vrDisplay.requestAnimationFrame(tick)
+        currentRAF = vrDisplay.requestAnimationFrame(tick)
       }, 350)
     }
   }
@@ -184,10 +184,9 @@ if (capturing) {
   app.run()
 
   let tick = (t) => {
-    // currentRAF = vrDisplay.requestAnimationFrame(tick)
+    currentRAF = vrDisplay.requestAnimationFrame(tick)
 
     controls.update(app.shader)
-    t = 12.123123423
     app.tick(t)
   }
 

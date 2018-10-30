@@ -215,19 +215,17 @@ export default class App {
       cameraAngles: [-0.203, -0.009, 0]
     }
 
-    this.presets.fractalUnfurl = {
+    const preset = {
       offset: {
-        x: -0.411,
-        y: 0.027,
+        x: 0.356,
+        y: 0.328,
         z: 0
       },
       d: 5,
-      scale: 0.94,
+      scale: 1.91,
       rot2angle: [-0.827, 1.11, 0.161],
       cameraAngles: [-0.203, -0.009, 0]
     }
-
-    const preset = this.presets.fractalUnfurl
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
@@ -249,7 +247,7 @@ export default class App {
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
