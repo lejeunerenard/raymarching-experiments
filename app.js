@@ -223,7 +223,7 @@ export default class App {
       },
       d: 5,
       scale: 1.91,
-      rot2angle: [-0.827, 1.11, 0.161],
+      rot2angle: [5.295, 1.11, 0.161],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
@@ -247,7 +247,7 @@ export default class App {
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -385,25 +385,13 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([0.687, 0.264, 0.715], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([0.25, 1.362, 0.234], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween3 = new TWEEN.Tween(this.rot2angle)
-    rotTween3
-      .to([1.265, 0.844, 0], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTweenReturn = new TWEEN.Tween(this.rot2angle)
-    rotTweenReturn
-      .to([this.rot2angle[0], 0, 0], 5 * 1000)
+      .to([Math.PI * 2 * 1.183, 0.264, 0.715], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
-    rotTween3.chain(rotTweenReturn)
-    // rotTween1.start(0)
+    // rotTween1.chain(rotTween2)
+    // rotTween2.chain(rotTween3)
+    // rotTween3.chain(rotTweenReturn)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -424,7 +412,7 @@ export default class App {
       .to([ -0.349, this.offset[1], this.offset[2] ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
 
     // AngleC 1 Tween
     let angleCTween1 = new TWEEN.Tween(self)
@@ -432,7 +420,7 @@ export default class App {
       .to({ angle1C: -0.516 }, 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    angleCTween1.start(0)
+    // angleCTween1.start(0)
 
     // AngleC 2 Tween
     let angleCTween2 = new TWEEN.Tween(self)
@@ -440,7 +428,7 @@ export default class App {
       .to({ angle2C: 0.865 }, 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    angleCTween2.start(0)
+    // angleCTween2.start(0)
   }
 
   setupAudio () {
@@ -506,6 +494,7 @@ export default class App {
     }
 
     const angleX = this.rot2angle[0]
+    this.shader.uniforms.rot = angleX
     const axisX = vec3.fromValues(1, 0, 0)
     mat4.multiply(_kifsM, rot4(axisX, angleX), _kifsM)
 

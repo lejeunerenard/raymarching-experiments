@@ -35,6 +35,7 @@ uniform mat4 kifsM;
 uniform mat4 kifsM2;
 uniform float scale;
 uniform vec3 offset;
+uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
@@ -1114,18 +1115,18 @@ float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-#define ZOOMED 1
+// #define ZOOMED 1
 #ifdef ZOOMED
   const float overallScale = 0.25;
   const int depth = 9;
 #else
-  const float overallScale = 0.5;
+  const float overallScale = 0.55;
   const int depth = 8;
 #endif
 
   vec2 q = overallScale * uv;
 
-  mat2 rot = rotMat2(0.02);
+  mat2 rot = rotMat2(rot);
   for ( int i = 0; i < depth; i++ ) {
     float c = pModPolar(q, 6.);
     q *= rot;
@@ -1136,13 +1137,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   }
 
   float d = 100.;
-  const float localScale = 1.8;
+  const float localScale = 2.8;
   float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
   d = min(d, s);
-
-  vec2 absQ = abs(q - vec2(0.2, 0));
-  float l = max(0.5 * absQ.x, 3. * absQ.y) - 0.02 * localScale;
-  d = min(d, l);
 
   color = vec3(smoothstep(0., edge, d));
   return color;
