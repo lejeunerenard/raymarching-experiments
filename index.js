@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'star-light-render1',
+    name: 'stained-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

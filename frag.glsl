@@ -1120,8 +1120,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float overallScale = 0.25;
   const int depth = 9;
 #else
-  const float overallScale = 0.55;
-  const int depth = 8;
+  const float overallScale = 0.35;
+  const int depth = 7;
 #endif
 
   vec2 q = overallScale * uv;
@@ -1130,7 +1130,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   for ( int i = 0; i < depth; i++ ) {
     float c = pModPolar(q, 6.);
     q *= rot;
-    // q.y = abs(q.y);
+    q.y = abs(q.y);
     q = abs(q);
     q *= scale;
     q -= offset.xy;
@@ -1141,7 +1141,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
   d = min(d, s);
 
-  color = vec3(smoothstep(0., edge, d));
+  color = 0.5 + 0.5 * cos(TWO_PI * (1.4 * d + vec3(0, 0.1, 0.2)));
   return color;
 }
 
