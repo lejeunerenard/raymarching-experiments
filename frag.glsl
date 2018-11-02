@@ -1112,36 +1112,92 @@ float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
   return roundedCappedLine(q, angle, halfWidth, thickness);
 }
 
+vec4 pinwheel (in vec2 uv, in float r) {
+  const vec3 black = vec3(0);
+  const vec3 darkGrey = pow(#777777, vec3(2.2));
+  const vec3 lightGrey = pow(#DDDDDD, vec3(2.2));
+  const vec3 white = vec3(1);
+
+  float a = atan(uv.y, uv.x);
+  const float halfTimes = 8.;
+  const float range = PI / halfTimes;
+  float modA = mod(a, range) / range;
+
+  vec3 layerEven = black;
+  layerEven = mix(layerEven, darkGrey, smoothstep(0.25, 0.25 + edge, modA));
+  layerEven = mix(layerEven, white, smoothstep(0.5, 0.5 + edge, modA));
+  layerEven = mix(layerEven, lightGrey, smoothstep(0.75, 0.75 + edge, modA));
+
+// #define OPPOSITE 1
+#ifdef OPPOSITE
+  vec3 layerOdd = black;
+  layerOdd = mix(layerOdd, lightGrey, smoothstep(0.25, 0.25 + edge, modA));
+  layerOdd = mix(layerOdd, white, smoothstep(0.5, 0.5 + edge, modA));
+  layerOdd = mix(layerOdd, darkGrey, smoothstep(0.75, 0.75 + edge, modA));
+#else
+  modA = mod(a + 0.5 * range, range) / range;
+  vec3 layerOdd = black;
+  layerOdd = mix(layerOdd, darkGrey, smoothstep(0.25, 0.25 + edge, modA));
+  layerOdd = mix(layerOdd, white, smoothstep(0.5, 0.5 + edge, modA));
+  layerOdd = mix(layerOdd, lightGrey, smoothstep(0.75, 0.75 + edge, modA));
+#endif
+
+  float l = length(uv);
+
+  vec4 color = vec4(0);
+  color.rgb = mix(layerEven, layerOdd, smoothstep(0., edge, sin(TWO_PI * 3. * l / r)));
+
+  color.a = smoothstep(edge, 0., l - r);
+
+  return color;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-// #define ZOOMED 1
-#ifdef ZOOMED
-  const float overallScale = 0.25;
-  const int depth = 9;
-#else
-  const float overallScale = 0.35;
-  const int depth = 7;
-#endif
+  vec2 q = uv;
 
-  vec2 q = overallScale * uv;
+  const float r = 0.3;
+  vec4 pin = pinwheel(uv - vec2(r), r);
+  color = mix(color, pin.rgb, pin.a);
 
-  mat2 rot = rotMat2(rot);
-  for ( int i = 0; i < depth; i++ ) {
-    float c = pModPolar(q, 6.);
-    q *= rot;
-    q.y = abs(q.y);
-    q = abs(q);
-    q *= scale;
-    q -= offset.xy;
-  }
+  pin = pinwheel(uv - vec2(-r, r), r);
+  color = mix(color, pin.rgb, pin.a);
 
-  float d = 100.;
-  const float localScale = 2.8;
-  float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
-  d = min(d, s);
+  pin = pinwheel(uv - vec2(-r), r);
+  color = mix(color, pin.rgb, pin.a);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (1.4 * d + vec3(0, 0.1, 0.2)));
+  pin = pinwheel(uv - vec2(r, -r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(0, -2. * r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(0, 2. * r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(2. * r, 0), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(-2. * r, 0), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(-2. * r, 2. * r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(2. * r, 2. * r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(-2. * r, -2. * r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  pin = pinwheel(uv - vec2(2. * r, -2. * r), r);
+  color = mix(color, pin.rgb, pin.a);
+
+  // Center
+  pin = pinwheel(uv, r);
+  color = mix(color, pin.rgb, pin.a);
+
   return color;
 }
 
