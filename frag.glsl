@@ -1157,46 +1157,33 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float r = 0.3;
-  vec4 pin = pinwheel(uv - vec2(r), r);
-  color = mix(color, pin.rgb, pin.a);
+  const float innerR = 0.2;
+  const float outerR = 0.4;
 
-  pin = pinwheel(uv - vec2(-r, r), r);
-  color = mix(color, pin.rgb, pin.a);
+  vec2 nQ = q;
 
-  pin = pinwheel(uv - vec2(-r), r);
-  color = mix(color, pin.rgb, pin.a);
+  nQ += 0.10000 * cos( 3. * nQ.yx + cosT);
+  nQ += 0.05000 * cos( 7. * nQ.yx + cosT);
 
-  pin = pinwheel(uv - vec2(r, -r), r);
-  color = mix(color, pin.rgb, pin.a);
+  nQ *= 0.5 + 0.5 * vfbmWarp(nQ);
+  nQ += 0.02500 * cos(13. * nQ.yx + cosT);
+  nQ += 0.01250 * cos(17. * nQ.yx + cosT);
+  nQ += 0.00625 * cos(23. * nQ.yx + cosT);
 
-  pin = pinwheel(uv - vec2(0, -2. * r), r);
-  color = mix(color, pin.rgb, pin.a);
+  float l = length(uv);
+  float nL = 0.5 * length(nQ) + 0.5 * l * (0.5 + 0.5 * vfbmWarp(nQ));
+  nL /= smoothstep(1.0, 0., l - outerR);
 
-  pin = pinwheel(uv - vec2(0, 2. * r), r);
-  color = mix(color, pin.rgb, pin.a);
+  const float width = 0.025;
+  float mask = smoothstep(0., -width, l - outerR);
+  float noiseMask = smoothstep(0., -0.1, nL - outerR);
+  mask = max(mask, noiseMask);
+  mask *= max(
+      smoothstep(-width, 0., nL - innerR),
+      smoothstep(-width, 0., l - innerR));
 
-  pin = pinwheel(uv - vec2(2. * r, 0), r);
-  color = mix(color, pin.rgb, pin.a);
-
-  pin = pinwheel(uv - vec2(-2. * r, 0), r);
-  color = mix(color, pin.rgb, pin.a);
-
-  pin = pinwheel(uv - vec2(-2. * r, 2. * r), r);
-  color = mix(color, pin.rgb, pin.a);
-
-  pin = pinwheel(uv - vec2(2. * r, 2. * r), r);
-  color = mix(color, pin.rgb, pin.a);
-
-  pin = pinwheel(uv - vec2(-2. * r, -2. * r), r);
-  color = mix(color, pin.rgb, pin.a);
-
-  pin = pinwheel(uv - vec2(2. * r, -2. * r), r);
-  color = mix(color, pin.rgb, pin.a);
-
-  // Center
-  pin = pinwheel(uv, r);
-  color = mix(color, pin.rgb, pin.a);
+  color = 0.5 + 0.5 * cos( TWO_PI * (vec3(nQ, norT) + vec3(0, 0.2 * q) + vec3(0, 0.33, 0.67)) );
+  color *= mask;
 
   return color;
 }
