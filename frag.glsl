@@ -1157,15 +1157,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float innerR = 0.2;
-  const float outerR = 0.4;
-
   vec2 nQ = q;
 
   nQ += 0.10000 * cos( 3. * nQ.yx + cosT);
-  nQ += 0.20000 * cnoise2(vec2(0.2, 2.0) * nQ);
-  vec2 nQM = nQ;
   nQ += 0.05000 * cos( 7. * nQ.yx + vec2(0, cosT));
+  vec2 nQM = nQ;
 
   vec2 r = vec2(0);
   vec2 s = vec2(0);
@@ -1181,16 +1177,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float nL = 0.5 * max(absNQM.x, absNQM.y) + 0.5 * l * (0.5 + 0.5 * vfbmWarp(nQ + x)) - 0.02 * dot(nQM, vec2(1));
   // nL /= smoothstep(1.0, 0., l - outerR);
 
-  const float width = 0.05;
-  float mask = smoothstep(0., -width, l - outerR);
-  float noiseMask = smoothstep(0., -0.1, nL - outerR);
+  float period = 19.;
+  float c = pMod1(nQM.x, 1. / period);
+  float mask = min(
+      smoothstep(0.95, 0.95 + edge, sin(TWO_PI * period * nQM.x)),
+      smoothstep(0.0, -0.3 + edge, sin(6. * PI * nQM.y + (8. + 3. * floor(sin(c * 4.88234* TWO_PI))) * cosT + c * 1.38234 * TWO_PI)));
+  float noiseMask = 0.; // smoothstep(0., -0.1, nL - outerR);
   mask = max(mask, noiseMask);
   // Inner Mask
   // mask *= max(
   //     smoothstep(-width, 0., nL - innerR),
   //     smoothstep(-width, 0., l - innerR));
 
-  color = 0.5 + 0.5 * cos( TWO_PI * (vec3(nQ, norT) + vec3(0, 0.2 * q) + 0.4 * vec3(s.x, 0, s.y) + vec3(0, 0.33, 0.67)) );
+  color = vec3(1); // 0.5 + 0.5 * cos( TWO_PI * (vec3(nQ, norT) + vec3(0, 0.2 * q) + 0.4 * vec3(s.x, 0, s.y) + vec3(0, 0.33, 0.67)) );
   color *= mask;
 
   return color;

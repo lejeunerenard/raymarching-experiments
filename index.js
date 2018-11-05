@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'evaporate-render1',
+    name: 'rain-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

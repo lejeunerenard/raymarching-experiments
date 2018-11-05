@@ -24,9 +24,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.1
-const BLOOM_PASSES = 1
-const BLOOM_MIN_BRIGHTNESS = 0.90
+const BLOOM_WET = 8
+const BLOOM_PASSES = 40
+const BLOOM_MIN_BRIGHTNESS = 0.50
 
 // Initialize shell
 export default class App {
