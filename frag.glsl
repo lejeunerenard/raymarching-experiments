@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1157,41 +1157,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  vec2 nQ = q;
+  float n = 0.;
 
-  nQ += 0.10000 * cos( 3. * nQ.yx + cosT);
-  nQ += 0.05000 * cos( 7. * nQ.yx + vec2(0, cosT));
-  vec2 nQM = nQ;
+  const float size = 0.2;
+  vec2 c = pMod2(q, vec2(size));
+  float l = length(q);
 
-  vec2 r = vec2(0);
-  vec2 s = vec2(0);
-  vec2 x = vec2(0);
-  nQ *= 0.5 + 0.5 * vfbmWarp(nQ, r, s, x);
-  nQ += 0.02500 * cos(13. * nQ.yx + cosT);
-  nQ += 0.01250 * cos(17. * nQ.yx + vec2(-cosT, cosT));
-  nQ += 0.00625 * cos(23. * nQ.yx + cosT);
+  // Bouncing circle
+  const float tLength = 0.4;
+  float remainder = 1. - tLength;
+  float delay = remainder
+    * (1. - cos(PI * 0.125 * size * (dot(c, vec2(1)) + 8.)));
+  float t = smoothstep(delay, delay + tLength, norT);
 
-  vec2 absUV = abs(uv);
-  float l = max(absUV.x, absUV.y);
-  vec2 absNQM = abs(vec2(1) * nQM);
-  float nL = 0.5 * max(absNQM.x, absNQM.y) + 0.5 * l * (0.5 + 0.5 * vfbmWarp(nQ + x)) - 0.02 * dot(nQM, vec2(1));
-  // nL /= smoothstep(1.0, 0., l - outerR);
+  float bounceT = min(0.9, t) * 1.111111;
+  const float maxR = 0.2 * size;
+  float r = maxR * bounceOut(bounceT);
+  float circlMask = smoothstep(0.85, 0.5, t);
+  n = circlMask * smoothstep(edge, 0., l - r);
 
-  float period = 19.;
-  float c = pMod1(nQM.x, 1. / period);
-  float mask = min(
-      smoothstep(0.95, 0.95 + edge, sin(TWO_PI * period * nQM.x)),
-      smoothstep(0.0, -0.3 + edge, sin(6. * PI * nQM.y + (8. + 3. * floor(sin(c * 4.88234* TWO_PI))) * cosT + c * 1.38234 * TWO_PI)));
-  float noiseMask = 0.; // smoothstep(0., -0.1, nL - outerR);
-  mask = max(mask, noiseMask);
-  // Inner Mask
-  // mask *= max(
-  //     smoothstep(-width, 0., nL - innerR),
-  //     smoothstep(-width, 0., l - innerR));
+  const float rippleStart = 0.35;
+  const float rippleThickness = 0.005;
+  float rippleT = smoothstep(rippleStart, 1.0, t);
+  float rippleMask = smoothstep(rippleStart, rippleStart + edge, t)
+    * smoothstep(1.0, rippleStart + 0.1, t);
+  float rippleR = maxR * (1. + 1. * rippleT);
+  float ripple = rippleMask * smoothstep(rippleThickness + edge, rippleThickness, abs(l - rippleR));
+  n = max(n, ripple);
 
-  color = vec3(1); // 0.5 + 0.5 * cos( TWO_PI * (vec3(nQ, norT) + vec3(0, 0.2 * q) + 0.4 * vec3(s.x, 0, s.y) + vec3(0, 0.33, 0.67)) );
-  color *= mask;
-
+  color = vec3(n);
   return color;
 }
 
