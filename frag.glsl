@@ -39,7 +39,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 2048
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -648,15 +648,24 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.10000 * cos(13.312 * q.yzx + cosT );
-  q += 0.05500 * cos(17.183 * q.yzx + cosT );
-  q += 0.02500 * cos(23.122 * q.yzx + cosT );
-  q += 0.01250 * cos(31.723 * q.yzx + cosT );
+  const float size = 0.1;
 
-  vec3 b = vec3(sdBox(q, vec3(1, 1, 0.05)), 0, 0);
+  q += 0.20000 * cos(13.312 * q.yzx + cosT );
+  q += 0.10000 * cos(17.183 * q.yzx + cosT );
+  q += 0.05000 * cos(23.122 * q.yzx + cosT );
+  q += 0.02500 * cos(31.723 * q.yzx + cosT );
+
+  vec3 cropQ = q;
+
+  vec2 c = pMod2(q.xy, vec2(size));
+  vec3 b = vec3(sdBox(q, vec3(size * 0.25, size * 0.25, 0.3)), 0, 0);
   d = dMin(d, b);
+  mPos = vec3(3.2123 * c, q.z);
 
-  d.x *= 0.35;
+  float crop = sdBox(cropQ, vec3(size));
+  d.x = max(d.x, -crop);
+
+  d.x *= 0.05;
 
   return d;
 }
@@ -832,10 +841,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
-  color += cos(4. * pos);
+  color = 0.5 + 0.5 * cos(TWO_PI * (mPos + vec3(0, 0.33, 0.67)));
 
-  return 0.7 * color;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -921,7 +929,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.70;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -953,19 +961,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 0.3 * dispersionColor;
+      // color += 0.3 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
@@ -1159,31 +1167,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 0.;
 
-  const float size = 0.2;
-  vec2 c = pMod2(q, vec2(size));
-  float l = length(q);
-
-  // Bouncing circle
-  const float tLength = 0.4;
-  float remainder = 1. - tLength;
-  float delay = remainder
-    * (1. - cos(PI * 0.125 * size * (dot(c, vec2(1)) + 8.)));
-  float t = smoothstep(delay, delay + tLength, norT);
-
-  float bounceT = min(0.9, t) * 1.111111;
-  const float maxR = 0.2 * size;
-  float r = maxR * bounceOut(bounceT);
-  float circlMask = smoothstep(0.85, 0.5, t);
-  n = circlMask * smoothstep(edge, 0., l - r);
-
-  const float rippleStart = 0.35;
-  const float rippleThickness = 0.005;
-  float rippleT = smoothstep(rippleStart, 1.0, t);
-  float rippleMask = smoothstep(rippleStart, rippleStart + edge, t)
-    * smoothstep(1.0, rippleStart + 0.1, t);
-  float rippleR = maxR * (1. + 1. * rippleT);
-  float ripple = rippleMask * smoothstep(rippleThickness + edge, rippleThickness, abs(l - rippleR));
-  n = max(n, ripple);
+  q += 0.20 * cnoise2(3. * q.yx);
+  q += 0.10 * sin(3.7 * q.yx + cosT);
+  q += 0.10 * cnoise2(7. * q.yx);
+  q += 0.05 * sin(7. * q.yx + cosT);
 
   color = vec3(n);
   return color;
@@ -1194,7 +1181,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
