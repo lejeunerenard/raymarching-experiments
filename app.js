@@ -14,9 +14,6 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-import Octavian from 'octavian'
-import createSwell from './audio/swell'
-
 const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
 
 // const TWO_PI = 2 * Math.PI
@@ -261,36 +258,6 @@ export default class App {
     // Capturing state
     this.capturing = defined(options.capturing, false)
 
-    // Create font texture
-    const texCanvas = document.createElement('canvas')
-    const fontCtx = texCanvas.getContext('2d')
-    document.body.appendChild(texCanvas)
-
-    const fontWidth = 512
-    const fontHeight = 512
-    texCanvas.width = fontWidth
-    texCanvas.height = fontHeight
-
-    let textPos = { x: 65, y: 175 }
-    fontCtx.fillStyle = 'black'
-    fontCtx.fillRect(0, 0, fontWidth, fontHeight)
-
-    // Text
-    let text = `Summer,`
-
-    const fontSize = 100
-    fontCtx.font = `${fontSize}px sans-serif`
-    fontCtx.fillStyle = 'white'
-    fontCtx.fillText(text, textPos.x, textPos.y)
-
-    text = `hoco?`
-    fontCtx.fillText(text, textPos.x, textPos.y + fontSize * 1.25)
-
-    text = `– Jake`
-    fontCtx.fillText(text, textPos.x + 100, textPos.y + 2 * fontSize * 1.25)
-
-    this.textTex = createTexture(gl, texCanvas)
-
     this.loaded = Promise.resolve()
       .then(() => {
         this.setupAudio()
@@ -524,10 +491,6 @@ export default class App {
   }
 
   tick (t) {
-    let gl = this.gl
-
-    let dim = this.getDimensions()
-
     this.shader.bind()
 
     // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -568,10 +531,6 @@ export default class App {
   update (t) {
     t = (window.time !== undefined) ? window.time : t
     TWEEN.update(t)
-
-    if (this.textTex) {
-      this.shader.uniforms.textTex = this.textTex.bind(0)
-    }
 
     this.shader.uniforms.epsilon = this.epsilon
 
