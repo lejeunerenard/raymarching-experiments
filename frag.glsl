@@ -57,7 +57,7 @@ const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
-const float edge = 0.001;
+const float edge = 0.005;
 const float thickness = 0.0075;
 
 // Utils
@@ -1026,153 +1026,40 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-void thrshld (inout float v, in float level, in float edge) {
-  v = smoothstep(level, level + edge, v);
-}
-
-void bnd (inout float v, in float start, in float end, in float eps) {
-  float v1 = v;
-  thrshld(v1, start, eps);
-  float v2 = v;
-  thrshld(v2, end, -eps);
-
-  v = v1 * v2;
-}
-
-// Source: https://www.shadertoy.com/view/Xd2GR3
-// { 2d cell id, distance to border, distnace to center )
-vec4 hexagon( vec2 p ) 
-{
-  vec2 q = vec2( p.x*2.0*0.5773503, p.y + p.x*0.5773503 );
-
-  vec2 pi = floor(q);
-  vec2 pf = fract(q);
-
-  float v = mod(pi.x + pi.y, 3.0);
-
-  float ca = step(1.0,v);
-  float cb = step(2.0,v);
-  vec2  ma = step(pf.xy,pf.yx);
-
-  // distance to borders
-  float e = dot( ma, 1.0-pf.yx + ca*(pf.x+pf.y-1.0) + cb*(pf.yx-2.0*pf.xy) );
-
-  // distance to center	
-  p = vec2( q.x + floor(0.5+p.y/1.5), 4.0*p.y/3.0 )*0.5 + 0.5;
-  float f = length( (fract(p) - 0.5)*vec2(1.0,0.85) );		
-
-  return vec4( pi + ca - cb*ma, e, f );
-}
-
-vec2 foldSpace (in vec2 uv) {
-  uv.x -= 0.125;
-  uv *= 1.05;
-  uv *= rotMat2(PI * 0.555234);
-  uv.x = abs(uv.x);
-  return uv;
-}
-
-float absDist (in float v, in float thickness) {
-  return smoothstep(edge + thickness, thickness, abs(v));
-}
-float absDist (in float v) {
-  return absDist(v, thickness);
-}
-
-float line (in vec2 q, in float angle) {
-  float c = cos(angle);
-  float s = sin(angle);
-  mat2 rot = mat2(
-     c, s,
-    -s, c);
-  return absDist((q * rot).y);
-}
-
-float flatCappedLine (in vec2 q, in float angle, in float halfWidth, in float thickness) {
-  float c = cos(angle);
-  float s = sin(angle);
-  mat2 rot = mat2(
-     c, s,
-    -s, c);
-  q *= rot;
-  return absDist(q.y, thickness) * smoothstep(edge, 0., abs(q.x) - halfWidth);
-}
-
-float flatCappedLine (in vec2 q, in float angle, in float halfWidth) {
-  return flatCappedLine(q, angle, halfWidth, thickness);
-}
-
-float roundedCappedLine (in vec2 q, in float angle, in float halfWidth, in float thickness) {
-  float l = flatCappedLine(q, angle, halfWidth, thickness);
-
-  float c = cos(angle);
-  float s = sin(angle);
-  mat2 rot = mat2(
-     c, s,
-    -s, c);
-  q *= rot;
-  q.x = abs(q.x);
-
-  float cap = smoothstep(edge, 0., length(q - vec2(halfWidth, 0)) - thickness);
-  return max(l, cap);
-}
-float roundedCappedLine (in vec2 q, in float angle, in float halfWidth) {
-  return roundedCappedLine(q, angle, halfWidth, thickness);
-}
-
-vec4 pinwheel (in vec2 uv, in float r) {
-  const vec3 black = vec3(0);
-  const vec3 darkGrey = pow(#777777, vec3(2.2));
-  const vec3 lightGrey = pow(#DDDDDD, vec3(2.2));
-  const vec3 white = vec3(1);
-
-  float a = atan(uv.y, uv.x);
-  const float halfTimes = 8.;
-  const float range = PI / halfTimes;
-  float modA = mod(a, range) / range;
-
-  vec3 layerEven = black;
-  layerEven = mix(layerEven, darkGrey, smoothstep(0.25, 0.25 + edge, modA));
-  layerEven = mix(layerEven, white, smoothstep(0.5, 0.5 + edge, modA));
-  layerEven = mix(layerEven, lightGrey, smoothstep(0.75, 0.75 + edge, modA));
-
-// #define OPPOSITE 1
-#ifdef OPPOSITE
-  vec3 layerOdd = black;
-  layerOdd = mix(layerOdd, lightGrey, smoothstep(0.25, 0.25 + edge, modA));
-  layerOdd = mix(layerOdd, white, smoothstep(0.5, 0.5 + edge, modA));
-  layerOdd = mix(layerOdd, darkGrey, smoothstep(0.75, 0.75 + edge, modA));
-#else
-  modA = mod(a + 0.5 * range, range) / range;
-  vec3 layerOdd = black;
-  layerOdd = mix(layerOdd, darkGrey, smoothstep(0.25, 0.25 + edge, modA));
-  layerOdd = mix(layerOdd, white, smoothstep(0.5, 0.5 + edge, modA));
-  layerOdd = mix(layerOdd, lightGrey, smoothstep(0.75, 0.75 + edge, modA));
-#endif
-
-  float l = length(uv);
-
-  vec4 color = vec4(0);
-  color.rgb = mix(layerEven, layerOdd, smoothstep(0., edge, sin(TWO_PI * 3. * l / r)));
-
-  color.a = smoothstep(edge, 0., l - r);
-
-  return color;
-}
-
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv;
+  // q *= rotMat2(cosT);
 
-  float n = 0.;
+  float angle = atan(q.y, q.x) - PI * 0.5;
+  float r = length(q);
 
-  q += 0.20 * cnoise2(3. * q.yx);
-  q += 0.10 * sin(3.7 * q.yx + cosT);
-  q += 0.10 * cnoise2(7. * q.yx);
-  q += 0.05 * sin(7. * q.yx + cosT);
+  const float grandR = 0.03125 * 27. - edge;
+  float n = 1.;
+  float m = 1.;
+
+  n = smoothstep(0., edge, sin(32. * TWO_PI * r));
+
+  const float twoThirdPI = TWO_PI * 0.333;
+  float shading = mod(-angle, twoThirdPI) / twoThirdPI;
+  float angleC = floor(-angle / twoThirdPI);
+  vec2 localQ = vec2(
+    grandR * 0.5 * cos(twoThirdPI * angleC + PI * 0.5),
+    grandR * 0.5 * sin(twoThirdPI * angleC + PI * 0.5));
+  float localL = length(q - localQ);
+
+  // shading = max(shading, smoothstep(edge, 0., localL - grandR * 0.5));
+  // shading *= smoothstep(4. * edge, 5. * edge, abs(localL - grandR * 0.5));
+  // shading = smoothstep(edge, 0., localL - grandR * 0.5);
+  n = mix(0., n, shading);
+
+  n *= m;
+
+  float isBackground = smoothstep(0., edge, r - grandR);
 
   color = vec3(n);
+  color = mix(color, background, isBackground);
   return color;
 }
 
@@ -1181,6 +1068,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
