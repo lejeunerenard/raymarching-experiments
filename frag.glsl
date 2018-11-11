@@ -1029,44 +1029,45 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  const float size = 0.5;
+  const float size = 0.20;
   vec2 q = uv;
 
-  vec2 q1 = q - vec2(size * 0.5);
-  vec2 c1 = pMod2(q1, vec2(size));
+  vec2 q1 = q;
+  vec2 c1 = pMod2(q1, vec2(0.5 * size));
 
-  vec2 q1r = (q - vec2(size * 0.5)) * rotMat2(PI * 0.25);
+  vec2 q1r = q * rotMat2(PI * 0.25);
   vec2 c1r = pMod2(q1r, vec2(1.414214 * 0.5 * size));
 
-  vec2 q2 = q - vec2(size * 0.25);
-  vec2 c2 = pMod2(q2, vec2(0.5 * size));
+  vec2 q2 = q;
+  vec2 c2 = pMod2(q2, vec2(size));
 
   float n = 0.;
   vec2 absQ1 = abs(q1);
-  float gridEdge = smoothstep(0., 0.5 * edge, max(absQ1.x, absQ1.y) - size * (0.5 - edge));
+  float gridEdge = smoothstep(0.5 * edge, 0., min(absQ1.x, absQ1.y));
+  gridEdge *= smoothstep(edge, 0., length(c1) - 8.);
   n = max(n, gridEdge);
 
   vec2 absQ1r = abs(q1r);
   gridEdge = smoothstep(0., 0.5 * edge, max(absQ1r.x, absQ1r.y) - size * (1.414214 * 0.25 - edge));
+  gridEdge *= smoothstep(edge, 0., length(c1r) - 5.);
   n = max(n, gridEdge);
 
-  float l2 = length(q2 - size * 0.25);
-  float circ = smoothstep(0.5 * edge, 0., abs(l2 - size * 0.5));
+  float l = length(q2);
+
+  float circ = smoothstep(0.25 * edge, 0., abs(l - size * 0.5));
+  circ *= smoothstep(edge, 0., length(c2) - 3.);
   n = max(n, circ);
 
-  l2 = length(q2 + size * 0.25);
-  circ = smoothstep(0.5 * edge, 0., abs(l2 - size * 0.5));
+  circ = smoothstep(0.25 * edge, 0., abs(length(abs(q2) - 0.5 * size) - size * 0.5));
+  circ *= smoothstep(edge, 0., length(c2) - 4.);
   n = max(n, circ);
 
-  l2 = length(q2 + vec2(size * 0.25, -size * 0.25));
-  circ = smoothstep(0.5 * edge, 0., abs(l2 - size * 0.5));
+  circ = smoothstep(0.25 * edge, 0., abs(length(abs(q2) - vec2(0.5 * size, 0)) - size * 0.5));
+  circ *= smoothstep(edge, 0., length(c2) - 2.);
   n = max(n, circ);
 
-  l2 = length(q2 + vec2(-size * 0.25, size * 0.25));
-  circ = smoothstep(0.5 * edge, 0., abs(l2 - size * 0.5));
-  n = max(n, circ);
 
-  color = vec3(n);
+  color = vec3(1. - n);
   return color;
 }
 
