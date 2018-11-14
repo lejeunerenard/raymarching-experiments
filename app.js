@@ -214,12 +214,12 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 0.438,
-        y: 0.271,
+        x: -0.213,
+        y: 0.559,
         z: 0
       },
       d: 5,
-      scale: 1.53,
+      scale: 1.4,
       rot2angle: [2.04, 1.11, 0.161],
       cameraAngles: [-0.203, -0.009, 0]
     }

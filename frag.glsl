@@ -1034,23 +1034,32 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = uv;
+// #define ZOOMED 1
+#ifdef ZOOMED
+  const float overallScale = 0.25;
+  const int depth = 9;
+#else
+  const float overallScale = 0.35;
+  const int depth = 8;
+#endif
 
-  const float lineTweak = 0.5;
+  vec2 q = overallScale * uv;
 
-  vec2 qA = q;
-  float c = pModPolar(qA, 6.);
+  mat2 rot = rotMat2(rot);
+  for ( int i = 0; i < depth; i++ ) {
+    float c = pModPolar(q, 7.);
+    q *= rot;
+    q.y = abs(q.y);
+    q *= scale;
+    q -= offset.xy;
+  }
 
-  float d = dot(qA, vec2(1, -1.9));
-  float n = smoothstep(0., edge, sin(TWO_PI * lineTweak * 54. * d));
+  float d = 100.;
+  const float localScale = 2.8;
+  float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
+  d = min(d, s);
 
-  float backgroundD = dot(q, vec2(1));
-  float backgroundN = smoothstep(0., edge, sin(TWO_PI * lineTweak * 54. * backgroundD));
-
-  float isForeground = smoothstep(edge, 0., qA.x - 0.5);
-  n = mix(backgroundN, n, isForeground);
-
-  color = vec3(n);
+  color = 0.5 + 0.5 * cos(TWO_PI * (1.4 * d + vec3(0, 0.1, 0.3)));
   return color;
 }
 
@@ -1059,6 +1068,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
