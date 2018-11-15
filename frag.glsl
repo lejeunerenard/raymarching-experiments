@@ -1047,7 +1047,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   mat2 rot = rotMat2(rot);
   for ( int i = 0; i < depth; i++ ) {
-    float c = pModPolar(q, 7.);
+    float c = pModPolar(q, 9.);
     q *= rot;
     q.y = abs(q.y);
     q *= scale;
