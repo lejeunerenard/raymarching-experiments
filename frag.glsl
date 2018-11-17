@@ -1034,20 +1034,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-// #define ZOOMED 1
-#ifdef ZOOMED
-  const float overallScale = 0.25;
-  const int depth = 9;
-#else
   const float overallScale = 0.35;
-  const int depth = 10;
-#endif
+  const int depth = 12;
 
   vec2 q = overallScale * uv;
 
   mat2 rot = rotMat2(rot);
   for ( int i = 0; i < depth; i++ ) {
-    float c = pModPolar(q, 9.);
+    float c = pModPolar(q, 3.5);
     q *= rot;
     q.y = abs(q.y);
     q *= scale;
@@ -1059,7 +1053,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
   d = min(d, s);
 
-  color = vec3(0.5 + 0.5 * cos(TWO_PI * d));
+  const float start = 0.3;
+  float n = smoothstep(start, start + edge, sin(d));
+  n *= smoothstep(start + 8. * edge, start + 7. * edge, sin(d));
+  color = vec3(n);
   return color;
 }
 
