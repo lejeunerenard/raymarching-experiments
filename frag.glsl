@@ -1034,29 +1034,45 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  const float overallScale = 0.35;
-  const int depth = 12;
+  vec2 q = uv;
 
-  vec2 q = overallScale * uv;
+  vec3 color1 = vec3(1, 0, 0);
+  vec3 color2 = vec3(0, 1, 0);
+  vec3 color3 = vec3(0, 0, 1);
 
-  mat2 rot = rotMat2(rot);
-  for ( int i = 0; i < depth; i++ ) {
-    float c = pModPolar(q, 3.5);
-    q *= rot;
-    q.y = abs(q.y);
-    q *= scale;
-    q -= offset.xy;
+  mat3 rot = rotationMatrix(normalize(vec3(0.3, 0.8, 0.1)), 1.3);
+
+  const int numPhase = 4;
+  for (int i = 0; i < numPhase * 3; i++) {
+    float fI = float(i);
+    float colorI = mod(fI, 3.);
+
+    vec3 layerColor = mix(color1, color2, saturate(colorI - 1.));
+    layerColor = mix(layerColor, color3, saturate(colorI - 2.));
+
+    vec2 lQ = q;
+
+    vec2 dirW = vec2(pow(-1., mod(fI, 3.) * mod(fI, 5.)));
+    lQ += 0.10000 * cos((3. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT + mod(fI, 2.) * vec2(0, cos(cosT)));
+    lQ += 0.05000 * cos((5. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT + mod(fI, 2.) * vec2(0, cos(cosT)));
+    lQ += 0.02500 * cos((7. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT + mod(fI, 2.) * vec2(0, cos(cosT)));
+
+    vec2 absLQ = abs(lQ);
+    float d = max(absLQ.x, absLQ.y);
+    vec2 dir = vec2(pow(-1., mod(fI, 2.) * mod(fI, 3.)));
+    float nR1 = cnoise2(5. * lQ + 4.12324 * fI + dir * norT);
+    float nR2 = cnoise2(5. * lQ + 4.12324 * fI + dir * norT - 1.0);
+    float nR = mix(nR1, nR2, saturate((norT - 0.5) / (0.5)));
+
+    float r = 0.3 + 0.3 * nR;
+    float a = smoothstep(edge, 0., d - r);
+    color = mix(color, color * layerColor, a);
+
+    color1 *= rot;
+    color2 *= rot;
+    color3 *= rot;
   }
 
-  float d = 100.;
-  const float localScale = 2.8;
-  float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
-  d = min(d, s);
-
-  const float start = 0.3;
-  float n = smoothstep(start, start + edge, sin(d));
-  n *= smoothstep(start + 8. * edge, start + 7. * edge, sin(d));
-  color = vec3(n);
   return color;
 }
 
