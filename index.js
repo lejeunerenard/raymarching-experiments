@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'a-mess-render1',
+    name: 'future-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
