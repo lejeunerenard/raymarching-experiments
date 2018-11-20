@@ -1036,21 +1036,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  vec3 color1 = vec3(1, 0, 0);
-  vec3 color2 = vec3(0, 1, 0);
-  vec3 color3 = vec3(0, 0, 1);
+  vec3 color1 = vec3(1.732051, 0, 0);
+  vec3 color2 = vec3(0, 1.732051, 0);
+  vec3 color3 = vec3(0, 0, 1.732051);
 
   mat3 rot = rotationMatrix(normalize(vec3(0.3, 0.8, 0.1)), 1.3);
 
-  const int numPhase = 4;
+  const int numPhase = 3;
   for (int i = 0; i < numPhase * 3; i++) {
     // int i = 0;
     float fI = float(i);
     float colorI = mod(fI, 3.);
 
-    vec3 layerColor1 = 0.5 + 0.5 * cos(TWO_PI * (color1 + 0.5 * vec3(q.x, q.y, 0.) + vec3(0., 0.33, 0.67)));
-    vec3 layerColor2 = 0.5 + 0.5 * cos(TWO_PI * (color2 + 0.5 * vec3(0., q.x, q.y) + vec3(0., 0.33, 0.67)));
-    vec3 layerColor3 = 0.5 + 0.5 * cos(TWO_PI * (color3 + 0.5 * vec3(q.x, 0., q.y) + vec3(0., 0.33, 0.67)));
+    vec3 layerColor1 = 0.5 + 0.5 * cos(TWO_PI * (color1 + 0.5 * vec3(q.x, q.y, 0.) + norT + vec3(0., 0.33, 0.67)));
+    vec3 layerColor2 = 0.5 + 0.5 * cos(TWO_PI * (color2 + 0.5 * vec3(0., q.x, q.y) + norT + vec3(0., 0.33, 0.67)));
+    vec3 layerColor3 = 0.5 + 0.5 * cos(TWO_PI * (color3 + 0.5 * vec3(q.x, 0., q.y) + norT + vec3(0., 0.33, 0.67)));
 
     vec3 layerColor = mix(layerColor1, layerColor2, saturate(colorI - 0.));
     layerColor = mix(layerColor, layerColor3, saturate(colorI - 1.));
@@ -1058,9 +1058,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     vec2 lQ = q;
 
     vec2 dirW = vec2(pow(-1., mod(fI + 1., 2.)), pow(-1., mod(fI, 2.)));
-    lQ += 0.10000 * cos((3. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT);
-    lQ += 0.02500 * cos((7. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT);
-    // lQ += 0.02500 * cos((13. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT);
+    lQ += 0.10000 * cos(( 5. + cos(1.32423 * fI)) * lQ.yx + vec2(-1, 1) * dirW * cosT);
+    lQ += 0.02500 * cos((13. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT);
+    lQ += 0.01250 * cos((17. + cos(1.32423 * fI)) * lQ.yx + dirW * cosT);
 
 // #define SQUARE 1
 #ifdef SQUARE
@@ -1076,8 +1076,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     float nR2 = cnoise2(3.1342 * lQ + 4.12324 * fI + dir * norT - 1.0);
     float nR = mix(nR1, nR2, saturate((norT - 0.5) / (0.5)));
 
-    float r = 0.25 + 0.3 * nR + 0.3 * cos(cosT + PI * 0.23534 * fI);
-    float a = smoothstep(edge, 0., d - r);
+    float angle = atan(lQ.y, lQ.x);
+
+    float r = 0.35 + 0.1 * nR + 0.1 * cos(cosT + PI * 0.23534 * fI) + 0.00625 * cos(3. * angle + cosT + PI * 0.3234 * fI);
+    float a = smoothstep(edge + 0.1, 0.1, abs(d - r));
     color = mix(color, color * layerColor, a);
 
     color1 *= rot;
