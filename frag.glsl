@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1042,7 +1042,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   mat3 rot = rotationMatrix(normalize(vec3(0.3, 0.8, 0.1)), 1.3);
 
-  const int numPhase = 3;
+  const int numPhase = 4;
   for (int i = 0; i < numPhase * 3; i++) {
     // int i = 0;
     float fI = float(i);
@@ -1057,10 +1057,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     float angle = fI * PI * 0.225;
     vec2 lQ = q - vec2(
-      0.3 * cos(angle),
-      0.3 * sin(angle));
+      0.2 * cos(angle + cosT),
+      0.2 * sin(angle + cosT));
 
-// #define SQUARE 1
+    lQ *= rotMat2(PI * 0.25);
+
+#define SQUARE 1
 #ifdef SQUARE
     vec2 absLQ = abs(lQ);
     float d = max(absLQ.x, absLQ.y);
@@ -1068,7 +1070,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     float d = length(lQ);
 #endif
 
-    float r = 0.4;
+    float r = 0.4 + 0.1 * sin(cosT + 3. * angle);
     float a = smoothstep(edge + 0.1, 0.1, abs(d - r));
     color = mix(color, color * layerColor, a);
 
