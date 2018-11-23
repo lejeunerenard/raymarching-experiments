@@ -1040,9 +1040,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color2 = vec3(0, 1.732051, 1);
   vec3 color3 = vec3(1, 0, 1.732051);
 
-  mat3 rot = rotationMatrix(normalize(vec3(0.3, 0.8, 0.1)), 1.3);
+  mat3 rot = rotationMatrix(normalize(vec3(0.3, 0.8, 0.1)), PI * 0.7523);
 
-  const int numPhase = 4;
+  const int numPhase = 6;
   for (int i = 0; i < numPhase * 3; i++) {
     // int i = 0;
     float fI = float(i);
@@ -1057,10 +1057,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     float angle = fI * PI * 0.225;
     vec2 lQ = q - vec2(
-      0.2 * cos(angle + cosT),
-      0.2 * sin(angle + cosT));
+      0.6 * sin(PI * fI * 0.3157 + cosT + 0.2 * q.y),
+      0.);
 
-    lQ *= rotMat2(PI * 0.25);
+    lQ.x *= 5.0;
 
 #define SQUARE 1
 #ifdef SQUARE
@@ -1070,8 +1070,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     float d = length(lQ);
 #endif
 
-    float r = 0.4 + 0.1 * sin(cosT + 3. * angle);
-    float a = smoothstep(edge + 0.1, 0.1, abs(d - r));
+    float r = 0.4;
+    float a = smoothstep(edge + 0.1, 0.1, d - r);
     color = mix(color, color * layerColor, a);
 
     color1 *= rot;
