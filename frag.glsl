@@ -1035,49 +1035,134 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv;
+  float l = length(q);
+  const float size = 0.3;
+  // vec2 c = mod(q, vec2(size));
+  float n = 0.;
+  float culmulativeStartT = 0.;
 
-  vec3 color1 = vec3(1.732051, 1, 0);
-  vec3 color2 = vec3(0, 1.732051, 1);
-  vec3 color3 = vec3(1, 0, 1.732051);
+  // Scene 1
+  const float scene1TLength = 0.2;
+  float n11 = cnoise2(vec2(50., 0.1) * q + 25. * norT);
+  float n12 = cnoise2(vec2(50., 0.1) * q + 25. * (1. - norT));
+  float n1 = mix(n11, n12, saturate((norT - 0.6) * 2.0));
+  float scene1 = step(0.5, n1);
+  n = scene1; // Swipe then flash
+  culmulativeStartT += scene1TLength;
 
-  mat3 rot = rotationMatrix(normalize(vec3(0.3, 0.8, 0.1)), PI * 0.7523);
+  // Scene 1.5
+  const float scene1_5TLength = 0.025;
+  float scene1_5T = smoothstep(
+      culmulativeStartT,
+      culmulativeStartT + scene1_5TLength,
+      norT);
+  float scene1_5 = smoothstep(0., edge, sin(4. * TWO_PI * scene1_5T));
+  n = mix(n, scene1_5, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
+  culmulativeStartT += scene1_5TLength;
 
-  const int numPhase = 6;
-  for (int i = 0; i < numPhase * 3; i++) {
-    // int i = 0;
-    float fI = float(i);
-    float colorI = mod(fI, 3.);
+  // Scene 2
+  const float scene2TLength = 0.175;
+  float scene2T = smoothstep(
+      culmulativeStartT,
+      culmulativeStartT + scene2TLength,
+      norT);
+  scene2T = circ(scene2T);
+  float isRight = step(0., q.x);
+  float dir = 1. - 2. * isRight;
+  float sceneY = q.y + 0.6 * dir * (1. - 2. * scene2T);
+  sceneY = mix(sceneY, -sceneY, isRight);
+  float scene2 = smoothstep(edge, 0., sceneY);
+  // Middle Edge
+  // scene2 = mix(scene2, 1. - step(0.5, scene2T), smoothstep(edge, 0., abs(q.x) - edge));
+  scene2 = mix(scene2, 1. - scene2, step(0.5, scene2T)); // Color Jump
+  n = mix(n, scene2, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
+  culmulativeStartT += scene2TLength;
 
-    vec3 layerColor1 = 0.5 + 0.5 * cos(TWO_PI * (color1 + 0.5 * vec3(q.x, q.y, 0.) + norT + vec3(0., 0.33, 0.67)));
-    vec3 layerColor2 = 0.5 + 0.5 * cos(TWO_PI * (color2 + 0.5 * vec3(0., q.x, q.y) + norT + vec3(0., 0.33, 0.67)));
-    vec3 layerColor3 = 0.5 + 0.5 * cos(TWO_PI * (color3 + 0.5 * vec3(q.x, 0., q.y) + norT + vec3(0., 0.33, 0.67)));
+  // Scene 3
+  const float scene3TLength = 0.2;
+  float scene3T = smoothstep(
+      culmulativeStartT,
+      culmulativeStartT + scene3TLength,
+      norT);
 
-    vec3 layerColor = mix(layerColor1, layerColor2, saturate(colorI - 0.));
-    layerColor = mix(layerColor, layerColor3, saturate(colorI - 1.));
+  float scene3 = 0.;
+  vec2 s3Q = q;
 
-    float angle = fI * PI * 0.225;
-    vec2 lQ = q - vec2(
-      0.6 * sin(PI * fI * 0.3157 + cosT + 0.2 * q.y),
-      0.);
+  s3Q += 0.100 * cos( 3. * s3Q.yx + 3. * cosT);
+  s3Q += 0.050 * cos( 7. * s3Q.yx + 3. * cosT);
+  s3Q += 0.025 * cos(13. * s3Q.yx + 3. * cosT);
 
-    lQ.x *= 5.0;
+  scene3 = smoothstep(0., edge, sin(dot(s3Q, vec2(83.43))));
 
-#define SQUARE 1
-#ifdef SQUARE
-    vec2 absLQ = abs(lQ);
-    float d = max(absLQ.x, absLQ.y);
-#else
-    float d = length(lQ);
-#endif
+  float scene3Mask = smoothstep(edge, 0., l - 0.6);
+  scene3 *= scene3Mask;
 
-    float r = 0.4;
-    float a = smoothstep(edge + 0.1, 0.1, d - r);
-    color = mix(color, color * layerColor, a);
+  n = mix(n, scene3, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
+  culmulativeStartT += scene3TLength;
 
-    color1 *= rot;
-    color2 *= rot;
-    color3 *= rot;
-  }
+  // Scene 4.5
+  const float scene4_5TLength = 0.025;
+  float scene4_5T = smoothstep(
+      culmulativeStartT,
+      culmulativeStartT + scene4_5TLength,
+      norT);
+  float scene4_5 = smoothstep(0., edge, sin(4. * TWO_PI * scene4_5T));
+  n = mix(n, scene4_5, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
+  culmulativeStartT += scene4_5TLength;
+
+  // Scene 4
+  const float scene4TLength = 0.2;
+  float scene4T = smoothstep(
+      culmulativeStartT,
+      culmulativeStartT + scene4TLength,
+      norT);
+
+  float scene4 = 0.;
+  vec2 s4Q = q;
+  vec2 s4C = pMod2(s4Q, vec2(size));
+
+  float s4ModX = (s4Q.x + 0.5 * size) / (size);
+  scene4 = saturate(-s4ModX + (5.0 * scene4T) - 0.0625 * (s4C.x + 8. - (8.0 * s4C.y - 18.)));
+  scene4 = smoothstep(0., edge, scene4);
+
+  n = mix(n, scene4, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
+  culmulativeStartT += scene4TLength;
+
+  // Scene 5
+  const float scene5TLength = 0.2 - 0.025;
+  float scene5T = smoothstep(
+      culmulativeStartT,
+      culmulativeStartT + scene5TLength,
+      norT);
+  scene5T = quint(scene5T);
+
+  float scene5 = 0.;
+  vec2 s5Q = q;
+  vec2 absS5Q = abs(s5Q);
+
+  const float s5R = 0.3;
+  scene5 = smoothstep(0., edge, max(absS5Q.x, absS5Q.y) - s5R);
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.2 * scene5T)));
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.3 * scene5T)));
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.4 * saturate(1.2 * scene5T - 0.2))));
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.5 * saturate(1.2 * scene5T - 0.2))));
+  s5Q *= rotMat2(PI * 0.25 * scene5T);
+  absS5Q = abs(s5Q);
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.25 * saturate(1.2 * scene5T - 0.2))));
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.35 * saturate(1.2 * scene5T - 0.2))));
+  scene5 *= smoothstep(edge, 2. * edge,
+      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.45 * saturate(1.2 * scene5T - 0.2))));
+
+  n = mix(n, scene5, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT));
+  culmulativeStartT += scene5TLength;
+
+  color = vec3(n);
 
   return color;
 }

@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dancing-ballerina-render1',
+    name: 'seq-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
