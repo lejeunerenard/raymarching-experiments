@@ -1034,135 +1034,26 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = uv;
+  vec2 q = 1.3 * uv;
+
+  float v = 1.;
+
+  float n = 4. + sin(cosT + generalT);
+  const float d = 3.;
+  float k = n / d;
+  float angle = atan(q.y, q.x);
   float l = length(q);
-  const float size = 0.3;
-  // vec2 c = mod(q, vec2(size));
-  float n = 0.;
-  float culmulativeStartT = 0.;
+  for (float i = 0.; i < d; i++) {
+    angle += TWO_PI;
+    float r = cos(k * angle);
+    v = min(v, abs(l - r));
+    r = cos(k * (angle + PI));
+    v = min(v, abs(-l - r));
+  }
 
-  // Scene 1
-  const float scene1TLength = 0.2;
-  float n11 = cnoise2(vec2(50., 0.1) * q + 25. * norT);
-  float n12 = cnoise2(vec2(50., 0.1) * q + 25. * (1. - norT));
-  float n1 = mix(n11, n12, saturate((norT - 0.6) * 2.0));
-  float scene1 = step(0.5, n1);
-  n = scene1; // Swipe then flash
-  culmulativeStartT += scene1TLength;
+  v = smoothstep(2. * edge, edge, v);
 
-  // Scene 1.5
-  const float scene1_5TLength = 0.025;
-  float scene1_5T = smoothstep(
-      culmulativeStartT,
-      culmulativeStartT + scene1_5TLength,
-      norT);
-  float scene1_5 = smoothstep(0., edge, sin(4. * TWO_PI * scene1_5T));
-  n = mix(n, scene1_5, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
-  culmulativeStartT += scene1_5TLength;
-
-  // Scene 2
-  const float scene2TLength = 0.175;
-  float scene2T = smoothstep(
-      culmulativeStartT,
-      culmulativeStartT + scene2TLength,
-      norT);
-  scene2T = circ(scene2T);
-  float isRight = step(0., q.x);
-  float dir = 1. - 2. * isRight;
-  float sceneY = q.y + 0.6 * dir * (1. - 2. * scene2T);
-  sceneY = mix(sceneY, -sceneY, isRight);
-  float scene2 = smoothstep(edge, 0., sceneY);
-  // Middle Edge
-  // scene2 = mix(scene2, 1. - step(0.5, scene2T), smoothstep(edge, 0., abs(q.x) - edge));
-  scene2 = mix(scene2, 1. - scene2, step(0.5, scene2T)); // Color Jump
-  n = mix(n, scene2, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
-  culmulativeStartT += scene2TLength;
-
-  // Scene 3
-  const float scene3TLength = 0.2;
-  float scene3T = smoothstep(
-      culmulativeStartT,
-      culmulativeStartT + scene3TLength,
-      norT);
-
-  float scene3 = 0.;
-  vec2 s3Q = q;
-
-  s3Q += 0.100 * cos( 3. * s3Q.yx + 3. * cosT);
-  s3Q += 0.050 * cos( 7. * s3Q.yx + 3. * cosT);
-  s3Q += 0.025 * cos(13. * s3Q.yx + 3. * cosT);
-
-  scene3 = smoothstep(0., edge, sin(dot(s3Q, vec2(83.43))));
-
-  float scene3Mask = smoothstep(edge, 0., l - 0.6);
-  scene3 *= scene3Mask;
-
-  n = mix(n, scene3, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
-  culmulativeStartT += scene3TLength;
-
-  // Scene 4.5
-  const float scene4_5TLength = 0.025;
-  float scene4_5T = smoothstep(
-      culmulativeStartT,
-      culmulativeStartT + scene4_5TLength,
-      norT);
-  float scene4_5 = smoothstep(0., edge, sin(4. * TWO_PI * scene4_5T));
-  n = mix(n, scene4_5, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
-  culmulativeStartT += scene4_5TLength;
-
-  // Scene 4
-  const float scene4TLength = 0.2;
-  float scene4T = smoothstep(
-      culmulativeStartT,
-      culmulativeStartT + scene4TLength,
-      norT);
-
-  float scene4 = 0.;
-  vec2 s4Q = q;
-  vec2 s4C = pMod2(s4Q, vec2(size));
-
-  float s4ModX = (s4Q.x + 0.5 * size) / (size);
-  scene4 = saturate(-s4ModX + (5.0 * scene4T) - 0.0625 * (s4C.x + 8. - (8.0 * s4C.y - 18.)));
-  scene4 = smoothstep(0., edge, scene4);
-
-  n = mix(n, scene4, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT)); // Swipe then flash
-  culmulativeStartT += scene4TLength;
-
-  // Scene 5
-  const float scene5TLength = 0.2 - 0.025;
-  float scene5T = smoothstep(
-      culmulativeStartT,
-      culmulativeStartT + scene5TLength,
-      norT);
-  scene5T = quint(scene5T);
-
-  float scene5 = 0.;
-  vec2 s5Q = q;
-  vec2 absS5Q = abs(s5Q);
-
-  const float s5R = 0.3;
-  scene5 = smoothstep(0., edge, max(absS5Q.x, absS5Q.y) - s5R);
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.2 * scene5T)));
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.3 * scene5T)));
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.4 * saturate(1.2 * scene5T - 0.2))));
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.5 * saturate(1.2 * scene5T - 0.2))));
-  s5Q *= rotMat2(PI * 0.25 * scene5T);
-  absS5Q = abs(s5Q);
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.25 * saturate(1.2 * scene5T - 0.2))));
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.35 * saturate(1.2 * scene5T - 0.2))));
-  scene5 *= smoothstep(edge, 2. * edge,
-      abs(max(absS5Q.x, absS5Q.y) - (s5R * 1.025 + 0.45 * saturate(1.2 * scene5T - 0.2))));
-
-  n = mix(n, scene5, smoothstep(culmulativeStartT, culmulativeStartT + edge, norT));
-  culmulativeStartT += scene5TLength;
-
-  color = vec3(n);
+  color = vec3(v);
 
   return color;
 }
@@ -1172,7 +1063,15 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  vec3 layers = vec3(
+     two_dimensional(uv, 0.01).x,
+     two_dimensional(uv, 0.03).x,
+     two_dimensional(uv, 0.05).x);
+  layers += vec3(1, 0, 1) * two_dimensional(uv, 0.00).x;
+  layers += vec3(1, 1, 0) * two_dimensional(uv, 0.02).x;
+  layers += vec3(0, 1, 1) * two_dimensional(uv, 0.04).x;
+
+  return vec4(layers, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
