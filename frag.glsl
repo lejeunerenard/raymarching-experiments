@@ -1034,26 +1034,28 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = 1.3 * uv;
+  vec2 q = uv;
 
-  float v = 1.;
+  vec3 lookup = vec3(1) + vec3(uv, 0);
+  float hit = 0.;
 
-  float n = 4. + sin(cosT + generalT);
-  const float d = 3.;
-  float k = n / d;
-  float angle = atan(q.y, q.x);
-  float l = length(q);
-  for (float i = 0.; i < d; i++) {
-    angle += TWO_PI;
-    float r = cos(k * angle);
-    v = min(v, abs(l - r));
-    r = cos(k * (angle + PI));
-    v = min(v, abs(-l - r));
+  const float radius = 0.3;
+  const int total = 15;
+  vec3 axis = vec3(2, 4, 7);
+  for (int i = 0; i < total; i++) {
+    vec2 qL = q;
+    qL *= rotMat2(TWO_PI * slowTime * float(i) * PI / float(total));
+    qL.x -= radius;
+
+    vec2 absQ = abs(qL);
+    float m1 = smoothstep(edge, 0., max(absQ.x, absQ.y) - 1.5 * radius);
+    lookup *= rotationMatrix(normalize(axis), 0.3523 * PI * m1);
+    axis *= rotationMatrix(normalize(vec3(0.3, 0.2, 1.0)), 0.3 * PI);
+    hit = max(hit, m1);
   }
 
-  v = smoothstep(2. * edge, edge, v);
-
-  color = vec3(v);
+  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  color = mix(background, color, hit);
 
   return color;
 }
@@ -1063,15 +1065,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 layers = vec3(
-     two_dimensional(uv, 0.01).x,
-     two_dimensional(uv, 0.03).x,
-     two_dimensional(uv, 0.05).x);
-  layers += vec3(1, 0, 1) * two_dimensional(uv, 0.00).x;
-  layers += vec3(1, 1, 0) * two_dimensional(uv, 0.02).x;
-  layers += vec3(0, 1, 1) * two_dimensional(uv, 0.04).x;
-
-  return vec4(layers, 1);
+  return vec4(two_dimensional(uv), 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
