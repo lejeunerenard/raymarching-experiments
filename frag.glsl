@@ -1035,27 +1035,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv;
+  q += 0.1000 * cos( 3. * q.yx + cosT);
+  q += 0.0500 * cos( 5. * q.yx + cosT);
+  q += 0.0250 * cos( 7. * q.yx + cosT);
+  q += 0.0125 * cos(13. * q.yx + cosT);
 
   vec3 lookup = vec3(1) + vec3(uv, 0);
-  float hit = 0.;
 
-  const float radius = 0.3;
-  const int total = 15;
-  vec3 axis = vec3(2, 4, 7);
-  for (int i = 0; i < total; i++) {
-    vec2 qL = q;
-    qL *= rotMat2(TWO_PI * slowTime * float(i) * PI / float(total));
-    qL.x -= radius;
+  float r = length(q);
+  float a = cos(r * cnoise2(2. * q) + cosT);
 
-    vec2 absQ = abs(qL);
-    float m1 = smoothstep(edge, 0., max(absQ.x, absQ.y) - 1.5 * radius);
-    lookup *= rotationMatrix(normalize(axis), 0.3523 * PI * m1);
-    axis *= rotationMatrix(normalize(vec3(0.3, 0.2, 1.0)), 0.3 * PI);
-    hit = max(hit, m1);
-  }
+  lookup *= rotationMatrix(vec3(0.333, 0.5, 1.0), a);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
-  color = mix(background, color, hit);
+  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67))
+    + 0.5 * cnoise2(224. * q.yx + 3. * cnoise2(3. * q.yx))
+  );
+
+  lookup *= rotationMatrix(normalize(vec3(1., 3., 2.)), a);
+  color *= 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67))
+    + 0.5 * cnoise2(224. * q.yx + 3. * cnoise2(3. * q.yx) + 234.49335)
+  );
+
+  float m = 1.0;
+  vec2 absQ = abs(uv);
+  const float maskR = 0.7;
+  m = smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR);
+  absQ *= rotMat2(PI * 0.25);
+  m *= smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR);
+
+  color = mix(background, color, m);
 
   return color;
 }
