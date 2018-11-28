@@ -1034,37 +1034,48 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
+  const float size = 0.20;
   vec2 q = uv;
-  q += 0.1000 * cos( 3. * q.yx + cosT);
-  q += 0.0500 * cos( 5. * q.yx + cosT);
-  q += 0.0250 * cos( 7. * q.yx + cosT);
-  q += 0.0125 * cos(13. * q.yx + cosT);
 
-  vec3 lookup = vec3(1) + vec3(uv, 0);
+  vec2 q1 = q;
+  vec2 c1 = pMod2(q1, vec2(0.25 * size));
 
-  float r = length(q);
-  float a = cos(r * cnoise2(2. * q) + cosT);
+  vec2 q1r = q * rotMat2(PI * 0.25);
+  vec2 c1r = pMod2(q1r, vec2(1.414214 * 0.5 * size));
 
-  lookup *= rotationMatrix(vec3(0.333, 0.5, 1.0), a);
+  vec2 q2 = q;
+  vec2 c2 = pMod2(q2, vec2(size));
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67))
-    + 0.5 * cnoise2(224. * q.yx + 3. * cnoise2(3. * q.yx))
-  );
+  float n = 0.;
+  float hit = 0.;
+  vec2 absQ1 = abs(q1);
+  float gridEdge = smoothstep(0.5 * edge, 0., max(absQ1.x, absQ1.y) - 0.05 * size);
+  gridEdge *= smoothstep(edge, 0., length(c1) - 16.);
+  hit += gridEdge;
+  n = max(n, gridEdge);
 
-  lookup *= rotationMatrix(normalize(vec3(1., 3., 2.)), a);
-  color *= 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67))
-    + 0.5 * cnoise2(224. * q.yx + 3. * cnoise2(3. * q.yx) + 234.49335)
-  );
+  vec2 absQ1r = abs(q1r);
+  gridEdge = smoothstep(0.5 * edge, 0., max(absQ1r.x, absQ1r.y) - size * (1.414214 * 0.25 - edge));
+  gridEdge *= smoothstep(edge, 0., length(c1r) - 5.);
+  hit += gridEdge;
+  n = max(n, gridEdge);
 
-  float m = 1.0;
-  vec2 absQ = abs(uv);
-  const float maskR = 0.7;
-  m = smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR);
-  absQ *= rotMat2(PI * 0.25);
-  m *= smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR);
+  float l = length(q2);
 
-  color = mix(background, color, m);
+  float circ = smoothstep(0.25 * edge, 0., l - size * 0.5);
+  circ *= smoothstep(edge, 0., length(c2) - 2.5);
+  hit += circ;
+  n = max(n, circ);
 
+  float dia = smoothstep(0.95, 0.95 + edge, sin(dot(q, vec2(175))));
+  dia += smoothstep(0.95, 0.95 + edge, sin(dot(q, vec2(-175, 175))));
+  dia *= smoothstep(edge, 0., length(c1) - 11.);
+  dia = saturate(dia);
+  // hit += dia;
+  // n = max(n, dia);
+
+  n *= mod(hit, 2.);
+  color = vec3(1. - n);
   return color;
 }
 
