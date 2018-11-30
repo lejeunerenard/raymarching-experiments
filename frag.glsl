@@ -1031,43 +1031,54 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+float blade (in vec2 uv, in float r) {
+  float d = 100.;
+
+  // Box
+  vec2 absUV = abs(uv);
+  float boxR = r;
+  float box = max(absUV.x, 3. * absUV.y) - boxR;
+  d = min(d, box);
+
+  float sphere = length(uv + vec2(boxR, 0)) - boxR * 0.3305;
+  d = min(d, sphere);
+
+  return 1. - saturate(d / edge);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1.);
 
   vec2 q = uv;
 
-  const int numCirc = 12;
+  const int numCirc = 20;
   const float angleSection = TWO_PI / float(numCirc);
-  const float posR = 0.4;
+  const float posR = 0.975;
 
-  vec2 warpQ;
-  vec2 warpR;
-  vec2 warpS;
-  float warp = fbmWarp(0.4 * uv, warpQ, warpR, warpS);
-
-  vec3 lookup = vec3(-1, 1, 1);
-  mat3 rot = rotationMatrix(normalize(vec3(0.2, 1.3, 0.76)), PI * 0.834);
+  vec3 lookup = vec3(-1.4, 0.8, 1.2);
+  mat3 rot = rotationMatrix(normalize(vec3(0.2, 1.3, 0.76)), PI * 0.333);
   float hit = 0.;
   vec3 glow = vec3(0);
+
+  const float size = 0.25;
+  vec2 gQ = q;
+  vec2 gC = pMod2(gQ, vec2(size));
+
+  float gridB = dot(gC, vec2(0.1234));
+
   for (int i = 0; i < numCirc; i++) {
     vec2 pos = q - posR * vec2(
-        cos(angleSection * float(i)),
-        sin(angleSection * float(i)));
-    float l = length(pos);
-    float d = l - 0.8 * posR;
-    float n = smoothstep(edge, 0., d);
+        cos(angleSection * float(i) + -cosT),
+        sin(angleSection * float(i) + -cosT));
+    pos *= rotMat2(-angleSection * float(i) + cosT);
+    float n = blade(pos, 0.665 * posR);
     hit += n;
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (
-          lookup + cos(lookup) +
-          0.23523 * float(i) +
-          vec3(norT, 0, -norT) +
-          0.5 * l + vec3(q, 0) + vec3(0, 0.33, 0.67)));
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.7 * q, 0) + lookup + gridB + vec3(0, 0.33, 0.67)));
     color *= mix(vec3(1), layerColor, n);
-    glow += saturate(1.0 - d) * layerColor * (1. - n) * (0.8 + 0.1 * warp);
     lookup *= rot;
   }
 
-  color = mix(0.485 * glow, color, saturate(hit));
+  color = mix(background, color, saturate(hit));
 
   return color;
 }
