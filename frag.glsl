@@ -1047,38 +1047,88 @@ float blade (in vec2 uv, in float r) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1.);
+  vec3 color = vec3(background);
 
-  vec2 q = uv;
+  const vec3 yellow = pow(#FFFC19, vec3(2.2));
+  const vec3 blue = pow(#1485CC, vec3(2.2));
 
-  const int numCirc = 20;
-  const float angleSection = TWO_PI / float(numCirc);
-  const float posR = 0.975;
+  vec2 q = 0.9 * uv;
 
-  vec3 lookup = vec3(-1.4, 0.8, 1.2);
-  mat3 rot = rotationMatrix(normalize(vec3(0.2, 1.3, 0.76)), PI * 0.333);
-  float hit = 0.;
-  vec3 glow = vec3(0);
+  float l = length(q);
+  float a = atan(q.y, q.x);
 
-  const float size = 0.25;
-  vec2 gQ = q;
-  vec2 gC = pMod2(gQ, vec2(size));
+  float ring1 = smoothstep(edge, 0., abs(l - 0.04));
+  color = mix(color, vec3(1, 0, 0), ring1);
 
-  float gridB = dot(gC, vec2(0.1234));
+  // Tick 1
+  float tickEdge = mix(20. * edge, 2. * edge, saturate(l * 0.1));
+  float ticks1 = smoothstep(tickEdge, 0., mod(a, PI * 0.125));
+  ticks1 *= smoothstep(0.0125 + edge, 0.0125, abs(l - 0.075));
+  color = mix(color, yellow, ticks1);
 
-  for (int i = 0; i < numCirc; i++) {
-    vec2 pos = q - posR * vec2(
-        cos(angleSection * float(i) + -cosT),
-        sin(angleSection * float(i) + -cosT));
-    pos *= rotMat2(-angleSection * float(i) + cosT);
-    float n = blade(pos, 0.665 * posR);
-    hit += n;
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.7 * q, 0) + lookup + gridB + vec3(0, 0.33, 0.67)));
-    color *= mix(vec3(1), layerColor, n);
-    lookup *= rot;
-  }
+  vec2 polQ = q;
+  float polC = pModPolar(polQ, 10.);
 
-  color = mix(background, color, saturate(hit));
+  // Boxes
+  vec2 polAbsQ = abs(polQ - vec2(0.135, 0));
+  float boxes1 = smoothstep(edge, 0., abs(max(polAbsQ.x, polAbsQ.y) - 0.025));
+  color = mix(color, blue, boxes1);
+
+  // Tick 2
+  float ticks2 = smoothstep(5. * edge, 0., mod(a - PI * 0.1, PI * 0.2));
+  ticks2 *= smoothstep(0.025 + edge, 0.025, abs(l - 0.200));
+  color = mix(color, vec3(1), ticks2);
+
+  // Circles 1
+  float polQL = length(polQ - vec2(0.2, 0));
+  float circle1 = smoothstep(edge, 0., polQL - 0.0125);
+  color = mix(color, vec3(1, 0, 0), circle1);
+
+  // Ring 2
+  float ring2 = smoothstep(edge, 0., abs(l - 0.25));
+  color = mix(color, yellow, ring2);
+
+  // Diamonds
+  vec2 pol2Q = q;
+  float pol2C = pModPolar(pol2Q, 30.);
+  vec2 pol2RotQ = pol2Q - vec2(0.3125, 0);
+  pol2RotQ.y *= 2.;
+  pol2RotQ *= rotMat2(PI * 0.25);
+  vec2 pol2AbsQ = abs(pol2RotQ);
+  float diamonds1 = smoothstep(edge, 0., abs(max(pol2AbsQ.x, pol2AbsQ.y) - 0.025));
+  color = mix(color, blue, diamonds1);
+
+  // Dashed Ring 1
+  float dashRing1 = smoothstep(edge, 0., abs(l - 0.375));
+  dashRing1 *= smoothstep(PI * 0.02 + 2. * edge, PI * 0.02, mod(a, TWO_PI * 0.041667));
+  color = mix(color, vec3(1), dashRing1);
+
+  // Concentric Squares 1
+  vec2 quadQ = q;
+  pModPolar(quadQ, 8.);
+  vec2 quadAbsQ = abs(quadQ - vec2(0.540, 0));
+  float quadAbsD = max(quadAbsQ.x, quadAbsQ.y);
+  float concSqr11 = smoothstep(edge, 0., abs(quadAbsD - 0.1));
+  color = mix(color, vec3(1, 0, 0), concSqr11);
+  float concSqr12 = smoothstep(edge, 0., abs(quadAbsD - 0.075));
+  color = mix(color, yellow, concSqr12);
+  float concSqr13 = smoothstep(edge, 0., abs(quadAbsD - 0.05));
+  color = mix(color, blue, concSqr13);
+  float concSqr14 = smoothstep(edge, 0., abs(quadAbsD - 0.0265));
+  color = mix(color, vec3(1, 0, 0), concSqr14);
+
+  // White squiggle
+  float rOffset = 0.0125 * sin(20. * a);
+  float squiggle = smoothstep(edge, 0., abs(l - rOffset - 0.525));
+  squiggle *= smoothstep(PI * 0.125 + edge, PI * 0.125, abs(mod(a, PI * 0.5) - PI * 0.25));
+  // color = mix(color, vec3(1), squiggle);
+
+  // White Dots
+  quadQ = q * rotMat2(0.125 * PI);
+  pModPolar(quadQ, 8.);
+  float quadQL = length(quadQ - vec2(0.540, 0));
+  float dots = smoothstep(edge, 0., quadQL - 0.005);
+  color = mix(color, vec3(1), dots);
 
   return color;
 }

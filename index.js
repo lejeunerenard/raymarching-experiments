@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'star-burst-render1',
+    name: 'beckon-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
