@@ -1049,86 +1049,35 @@ float blade (in vec2 uv, in float r) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  const vec3 yellow = pow(#FFFC19, vec3(2.2));
-  const vec3 blue = pow(#1485CC, vec3(2.2));
+  vec2 q = uv;
 
-  vec2 q = 0.9 * uv;
+  const float magR = 0.5;
 
-  float l = length(q);
-  float a = atan(q.y, q.x);
+  float prog = sin(TWO_PI * norT * 2. + generalT);
+  vec2 offsetX = vec2(magR * sign(prog) * expo(abs(prog)), 0);
+  q += offsetX;
 
-  float ring1 = smoothstep(edge, 0., abs(l - 0.04));
-  color = mix(color, vec3(1, 0, 0), ring1);
+  vec2 absQ = abs(q);
+  float sqrD = max(absQ.x, absQ.y);
+  float circD = length(q);
+  float d = mix(circD, sqrD, saturate(smoothstep(-0.1, 0.1, cos(TWO_PI * norT + PI * 0.5))));
 
-  // Tick 1
-  float tickEdge = mix(20. * edge, 2. * edge, saturate(l * 0.1));
-  float ticks1 = smoothstep(tickEdge, 0., mod(a, PI * 0.125));
-  ticks1 *= smoothstep(0.0125 + edge, 0.0125, abs(l - 0.075));
-  color = mix(color, yellow, ticks1);
+  float n1 = smoothstep(edge, 0., d - 0.2);
 
-  vec2 polQ = q;
-  float polC = pModPolar(polQ, 10.);
+  q = uv;
+  prog = sin(TWO_PI * norT * 2. + generalT + PI * 0.5);
+  offsetX = vec2(0, magR * sign(prog) * expo(abs(prog)));
+  q += offsetX;
+  absQ = abs(q);
+  sqrD = max(absQ.x, absQ.y);
+  circD = length(q);
+  d = mix(circD, sqrD, saturate(smoothstep(-0.1, 0.1, cos(TWO_PI * norT + PI))));
 
-  // Boxes
-  vec2 polAbsQ = abs(polQ - vec2(0.135, 0));
-  float boxes1 = smoothstep(edge, 0., abs(max(polAbsQ.x, polAbsQ.y) - 0.025));
-  color = mix(color, blue, boxes1);
+  float n2 = smoothstep(edge, 0., d - 0.2);
 
-  // Tick 2
-  float ticks2 = smoothstep(5. * edge, 0., mod(a - PI * 0.1, PI * 0.2));
-  ticks2 *= smoothstep(0.025 + edge, 0.025, abs(l - 0.200));
-  color = mix(color, vec3(1), ticks2);
+  float n = max(n1, n2);
 
-  // Circles 1
-  float polQL = length(polQ - vec2(0.2, 0));
-  float circle1 = smoothstep(edge, 0., polQL - 0.0125);
-  color = mix(color, vec3(1, 0, 0), circle1);
-
-  // Ring 2
-  float ring2 = smoothstep(edge, 0., abs(l - 0.25));
-  color = mix(color, yellow, ring2);
-
-  // Diamonds
-  vec2 pol2Q = q;
-  float pol2C = pModPolar(pol2Q, 30.);
-  vec2 pol2RotQ = pol2Q - vec2(0.3125, 0);
-  pol2RotQ.y *= 2.;
-  pol2RotQ *= rotMat2(PI * 0.25);
-  vec2 pol2AbsQ = abs(pol2RotQ);
-  float diamonds1 = smoothstep(edge, 0., abs(max(pol2AbsQ.x, pol2AbsQ.y) - 0.025));
-  color = mix(color, blue, diamonds1);
-
-  // Dashed Ring 1
-  float dashRing1 = smoothstep(edge, 0., abs(l - 0.375));
-  dashRing1 *= smoothstep(PI * 0.02 + 2. * edge, PI * 0.02, mod(a, TWO_PI * 0.041667));
-  color = mix(color, vec3(1), dashRing1);
-
-  // Concentric Squares 1
-  vec2 quadQ = q;
-  pModPolar(quadQ, 8.);
-  vec2 quadAbsQ = abs(quadQ - vec2(0.540, 0));
-  float quadAbsD = max(quadAbsQ.x, quadAbsQ.y);
-  float concSqr11 = smoothstep(edge, 0., abs(quadAbsD - 0.1));
-  color = mix(color, vec3(1, 0, 0), concSqr11);
-  float concSqr12 = smoothstep(edge, 0., abs(quadAbsD - 0.075));
-  color = mix(color, yellow, concSqr12);
-  float concSqr13 = smoothstep(edge, 0., abs(quadAbsD - 0.05));
-  color = mix(color, blue, concSqr13);
-  float concSqr14 = smoothstep(edge, 0., abs(quadAbsD - 0.0265));
-  color = mix(color, vec3(1, 0, 0), concSqr14);
-
-  // White squiggle
-  float rOffset = 0.0125 * sin(20. * a);
-  float squiggle = smoothstep(edge, 0., abs(l - rOffset - 0.525));
-  squiggle *= smoothstep(PI * 0.125 + edge, PI * 0.125, abs(mod(a, PI * 0.5) - PI * 0.25));
-  // color = mix(color, vec3(1), squiggle);
-
-  // White Dots
-  quadQ = q * rotMat2(0.125 * PI);
-  pModPolar(quadQ, 8.);
-  float quadQL = length(quadQ - vec2(0.540, 0));
-  float dots = smoothstep(edge, 0., quadQL - 0.005);
-  color = mix(color, vec3(1), dots);
+  color = vec3(n);
 
   return color;
 }
@@ -1138,7 +1087,17 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  vec3 color = vec3(0);
+
+  const float totalT = 1.0;
+  const int hues = 20;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, totalT * fraction);
+  }
+  color *= 0.075;
+
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
