@@ -1053,29 +1053,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float magR = 0.5;
 
-  float prog = sin(TWO_PI * norT * 2. + generalT);
-  vec2 offsetX = vec2(magR * sign(prog) * expo(abs(prog)), 0);
-  q += offsetX;
+  float n = 0.;
 
-  vec2 absQ = abs(q);
-  float sqrD = max(absQ.x, absQ.y);
-  float circD = length(q);
-  float d = mix(circD, sqrD, saturate(smoothstep(-0.1, 0.1, cos(TWO_PI * norT + PI * 0.5))));
-
-  float n1 = smoothstep(edge, 0., d - 0.2);
-
-  q = uv;
-  prog = sin(TWO_PI * norT * 2. + generalT + PI * 0.5);
-  offsetX = vec2(0, magR * sign(prog) * expo(abs(prog)));
-  q += offsetX;
-  absQ = abs(q);
-  sqrD = max(absQ.x, absQ.y);
-  circD = length(q);
-  d = mix(circD, sqrD, saturate(smoothstep(-0.1, 0.1, cos(TWO_PI * norT + PI))));
-
-  float n2 = smoothstep(edge, 0., d - 0.2);
-
-  float n = max(n1, n2);
+  float displaceN = 3. * cnoise2(2. * q);
+  const float period = 25.;
+  n = max(n, smoothstep(0.85, 0.85 + edge, sin(displaceN + TWO_PI * cos(dot(q, vec2(1)) + cosT + 1. * generalT) + dot(q, vec2(period)))));
+  n = max(n, smoothstep(0.85, 0.85 + edge, sin(displaceN + TWO_PI * cos(dot(q, vec2(1)) + cosT + 2. * generalT) + dot(q, vec2(-period, period)))));
 
   color = vec3(n);
 
@@ -1089,7 +1072,7 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 1.0;
+  const float totalT = 0.1 * PI;
   const int hues = 20;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);

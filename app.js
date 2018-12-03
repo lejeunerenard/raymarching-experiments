@@ -21,7 +21,7 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1
+const BLOOM_WET = 0.5
 const BLOOM_PASSES = 3
 const BLOOM_MIN_BRIGHTNESS = 0.25
 
