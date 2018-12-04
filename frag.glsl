@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1055,10 +1055,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 0.;
 
-  float displaceN = 3. * cnoise2(2. * q);
-  const float period = 25.;
-  n = max(n, smoothstep(0.85, 0.85 + edge, sin(displaceN + TWO_PI * cos(dot(q, vec2(1)) + cosT + 1. * generalT) + dot(q, vec2(period)))));
-  n = max(n, smoothstep(0.85, 0.85 + edge, sin(displaceN + TWO_PI * cos(dot(q, vec2(1)) + cosT + 2. * generalT) + dot(q, vec2(-period, period)))));
+  const int totalLayers = 10;
+  const float angleInc = TWO_PI / float(totalLayers);
+  mat2 rot = rotMat2(angleInc + cosT + generalT);
+
+  vec2 layerQ = q;
+  for (int i = 0; i < totalLayers; i++) {
+    layerQ *= rot;
+    float layerN = smoothstep(0.975, 0.975 + edge, sin(TWO_PI * dot(layerQ, vec2(1))));
+    n = max(n, layerN);
+  }
 
   color = vec3(n);
 
@@ -1072,8 +1078,8 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 0.1 * PI;
-  const int hues = 20;
+  const float totalT = 0.025 * PI;
+  const int hues = 40;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
     color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, totalT * fraction);
