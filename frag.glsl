@@ -1050,19 +1050,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv;
+  q.x = abs(q.x);
 
   const float magR = 0.5;
 
   float n = 0.;
 
-  const int totalLayers = 10;
+  const int totalLayers = 3;
   const float angleInc = TWO_PI / float(totalLayers);
-  mat2 rot = rotMat2(angleInc + cosT + generalT);
 
-  vec2 layerQ = q;
   for (int i = 0; i < totalLayers; i++) {
-    layerQ *= rot;
-    float layerN = smoothstep(0.975, 0.975 + edge, sin(TWO_PI * dot(layerQ, vec2(1))));
+    vec2 layerQ = q;
+    layerQ *= rotMat2(float(i) * angleInc + generalT + 0.075);
+    layerQ -= vec2(0.15);
+    float dotL = dot(layerQ, vec2(1));
+    float layerN = smoothstep(1.5 * edge, 0., abs(dotL));
     n = max(n, layerN);
   }
 
@@ -1078,13 +1080,13 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 0.025 * PI;
-  const int hues = 40;
+  const float totalT = 0.125 * PI;
+  const int hues = 20;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
     color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, totalT * fraction);
   }
-  color *= 0.075;
+  color *= 0.500;
 
   return vec4(color, 1);
 
