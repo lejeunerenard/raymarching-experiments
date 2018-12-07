@@ -1031,42 +1031,33 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-float blade (in vec2 uv, in float r) {
-  float d = 100.;
-
-  // Box
-  vec2 absUV = abs(uv);
-  float boxR = r;
-  float box = max(absUV.x, 3. * absUV.y) - boxR;
-  d = min(d, box);
-
-  float sphere = length(uv + vec2(boxR, 0)) - boxR * 0.3305;
-  d = min(d, sphere);
-
-  return 1. - saturate(d / edge);
+// Source: https://www.shadertoy.com/view/4dcfW8
+// by FabriceNeyret2
+// --- line segment with disc ends: seamless distance to segment
+float line(vec2 p, vec2 a,vec2 b) { 
+    p -= a, b -= a;
+    float h = clamp(dot(p, b) / dot(b, b), 0., 1.);   // proj coord on line
+    return length(p - b * h);                         // dist to segment
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv;
-  q.x = abs(q.x);
 
-  const float magR = 0.5;
+  float n = 100.;
 
-  float n = 0.;
+  float angle = atan(q.y, q.x);
 
-  const int totalLayers = 3;
-  const float angleInc = TWO_PI / float(totalLayers);
+#define lissajous(x, t) vec2(0.5) * sin(vec2(3. + sin(2. * t), 4. + 2. * sin(t)) * x + vec2(PI * 0.5, 0))
 
-  for (int i = 0; i < totalLayers; i++) {
-    vec2 layerQ = q;
-    layerQ *= rotMat2(float(i) * angleInc + generalT + 0.075);
-    layerQ -= vec2(0.15);
-    float dotL = dot(layerQ, vec2(1));
-    float layerN = smoothstep(1.5 * edge, 0., abs(dotL));
-    n = max(n, layerN);
+  vec2 _P, P = lissajous(0., generalT);
+  for (float i = 0.; i < TWO_PI + 0.1; i += 0.05) {
+    n = min(n, line(uv, _P = P, P = lissajous(i, generalT)));
   }
+
+  float r = 1.25 * edge;
+  n = smoothstep(r, 0., n);
 
   color = vec3(n);
 
@@ -1080,13 +1071,13 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 0.125 * PI;
-  const int hues = 20;
+  const float totalT = 0.025 * PI;
+  const int hues = 40;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, totalT * fraction);
+    color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, cosT + totalT * fraction);
   }
-  color *= 0.500;
+  color *= 0.12500;
 
   return vec4(color, 1);
 

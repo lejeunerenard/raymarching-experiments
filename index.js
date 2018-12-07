@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'he-will-work-render1',
+    name: 'resonate-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
