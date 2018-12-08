@@ -1049,17 +1049,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float angle = atan(q.y, q.x);
 
-#define lissajous(x, t) vec2(0.5) * sin(vec2(3. + sin(2. * t), 4. + 2. * sin(t)) * x + vec2(PI * 0.5, 0))
+#define lissajous(x, t) vec2(0.5) * sin(vec2(3. + sin(2. * t + generalT), 4. + 2. * sin(t)) * x + vec2(PI * 0.5, 0)) + 0.25 * sin(vec2(5., 3.) * x)
 
   vec2 _P, P = lissajous(0., generalT);
-  for (float i = 0.; i < TWO_PI + 0.1; i += 0.05) {
+  for (float i = 0.; i < TWO_PI + 0.1; i += 0.025) {
     n = min(n, line(uv, _P = P, P = lissajous(i, generalT)));
   }
 
-  float r = 1.25 * edge;
-  n = smoothstep(r, 0., n);
+  float r = 3. * edge;
+  float mask = smoothstep(r, 0., n);
 
-  color = vec3(n);
+  color = 0.5 + 0.5 * cos(TWO_PI * (24.0 * n + 8. * generalT + vec3(0, 0.33, 0.67)));
+  color *= mask;
 
   return color;
 }
@@ -1071,13 +1072,13 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 0.025 * PI;
-  const int hues = 40;
+  const float totalT = 0.0125 * PI;
+  const int hues = 30;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, cosT + totalT * fraction);
+    color += two_dimensional(uv, cosT + totalT * fraction);
   }
-  color *= 0.12500;
+  color *= 0.062500;
 
   return vec4(color, 1);
 

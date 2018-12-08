@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'resonate-render1',
+    name: 'neon-signature-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
