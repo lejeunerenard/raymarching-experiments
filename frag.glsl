@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 16.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1044,23 +1044,39 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
   vec2 q = uv;
+  // q += 0.05000 * cos( 4. * q.yx + cosT + generalT);
+  // q += 0.02500 * cos( 7. * q.yx + cosT + generalT);
+  // q += 0.01250 * cos(11. * q.yx + cosT + generalT);
+  // q += 0.00625 * cos(13. * q.yx + cosT + generalT);
 
   float n = 100.;
 
   float angle = atan(q.y, q.x);
 
-#define lissajous(x, t) vec2(0.5) * sin(vec2(3. + sin(2. * t + generalT), 4. + 2. * sin(t)) * x + vec2(PI * 0.5, 0)) + 0.25 * sin(vec2(5., 3.) * x)
+#define lissajous(x, t) vec2(0.5) * sin(vec2(2. + sin(2. * t + generalT), 2. + 0.5 * sin(t)) * x + vec2(PI * 0.5, 0))
 
   vec2 _P, P = lissajous(0., generalT);
-  for (float i = 0.; i < TWO_PI + 0.1; i += 0.025) {
-    n = min(n, line(uv, _P = P, P = lissajous(i, generalT)));
+  float closestI = 0.;
+  const float circR = 0.65;
+  for (float i = 0.; i < TWO_PI - 0.05; i += 0.075) {
+    vec2 a = circR * vec2(
+        cos(i + generalT),
+        sin(i + generalT));
+    vec2 b = circR * vec2(
+        cos(i + generalT + PI * 0.5),
+        sin(i + generalT + PI * 0.5));
+    float lineD = line(q, a, b);
+    if (n >= lineD) {
+      n = lineD;
+      closestI = i;
+    }
   }
 
-  float r = 3. * edge;
+  float r = 0.5 * edge;
   float mask = smoothstep(r, 0., n);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (24.0 * n + 8. * generalT + vec3(0, 0.33, 0.67)));
-  color *= mask;
+  color = 0.5 + 0.5 * cos(TWO_PI * (7.0 * n + 0.5 * closestI + 2. * generalT + vec3(0, 0.33, 0.67)));
+  color = mix(vec3(0), color, mask);
 
   return color;
 }
@@ -1072,13 +1088,13 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 0.0125 * PI;
-  const int hues = 30;
+  const float totalT = 0.025 * PI;
+  const int hues = 3;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    color += two_dimensional(uv, cosT + totalT * fraction);
+    color += two_dimensional(uv, -0.25 * PI + totalT * fraction);
   }
-  color *= 0.062500;
+  color *= 0.5;
 
   return vec4(color, 1);
 
