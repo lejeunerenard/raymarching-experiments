@@ -13,6 +13,9 @@ const FOV = 70
 
 let app = new App()
 window.app = app
+// window.time = 1.5
+window.time = 3.8
+// window.time = 4.3
 
 let capturer = {}
 if (capturing) {
@@ -91,7 +94,7 @@ if (capturing) {
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
-        currentRAF = vrDisplay.requestAnimationFrame(tick)
+        // currentRAF = vrDisplay.requestAnimationFrame(tick)
       }, 350)
     }
   }
@@ -184,7 +187,7 @@ if (capturing) {
   app.run()
 
   let tick = (t) => {
-    currentRAF = vrDisplay.requestAnimationFrame(tick)
+    // currentRAF = vrDisplay.requestAnimationFrame(tick)
 
     controls.update(app.shader)
     app.tick(t)

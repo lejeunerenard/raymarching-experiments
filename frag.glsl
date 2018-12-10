@@ -648,28 +648,15 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  const float size = 0.2;
+  q += 0.050000 * cos(23. * q.yzx + cosT );
+  q += 0.025000 * cos(37. * q.yzx + cosT );
+  q += 0.012500 * cos(41. * q.yzx + cosT );
 
-  q += 0.10000 * cos(13.312 * q.yzx + cosT);
-  q.xzy = twist(q, 1.9 * q.y);
-  q += 0.05000 * cos(17.183 * q.yzx + cosT);
-  q += 0.02500 * cos(23.122 * q.yzx + cosT);
+  vec3 s = vec3(sdBox(q, vec3(0.3)), 0, 0);
+  s.x -= 0.75 * iqFBM(18. * q);
+  d = dMin(d, s);
 
-  vec3 cropQ = q;
-
-  vec3 b = vec3(sdBox(q, vec3(size * 0.25, size * 0.25, 0.4)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - vec3(size, size * sin(cosT), size * 0.5 * sin(cosT)), vec3(size * 0.25, size * 0.25, 0.4)), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q + vec3((1.5 + 0.5 * sin(cosT)) * size, 0.2, size * 1.0 * sin(cosT)), vec3(size * 0.25, size * 0.25, 0.4)), 2, 0);
-  d = dMin(d, b);
-
-  float crop = sdBox(cropQ, vec3(size));
-  d.x = max(d.x, -crop);
-
-  d.x *= 0.1;
+  d.x *= 0.4;
 
   return d;
 }
@@ -843,10 +830,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(pow(#C5FFE9, vec3(2.2)));
-
-  color = mix(color, pow(#FFEAB8, vec3(2.2)), isMaterialSmooth(m, 1.));
-  color = mix(color, pow(#E7AAF7, vec3(2.2)), isMaterialSmooth(m, 2.));
+  vec3 color = vec3(background * 0.8);
 
   return color;
 }
@@ -929,12 +913,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.8;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.65;
+        float shadowMin = 0.25;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -966,19 +950,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 0.065 * dispersionColor;
+      color += 0.2 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
@@ -1086,18 +1070,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  const float totalT = 0.025 * PI;
-  const int hues = 3;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    color += two_dimensional(uv, -0.25 * PI + totalT * fraction);
-  }
-  color *= 0.5;
-
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
