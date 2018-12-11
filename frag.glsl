@@ -1015,52 +1015,49 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-// Source: https://www.shadertoy.com/view/4dcfW8
-// by FabriceNeyret2
-// --- line segment with disc ends: seamless distance to segment
-float line(vec2 p, vec2 a,vec2 b) { 
-    p -= a, b -= a;
-    float h = clamp(dot(p, b) / dot(b, b), 0., 1.);   // proj coord on line
-    return length(p - b * h);                         // dist to segment
+float corner (in vec2 q, in float diamondSize) {
+  vec2 corner = q;
+  corner = abs(corner);
+  vec2 diamondQ = corner - vec2(diamondSize * 1.5, 0);
+  vec2 diamondAbsQ = abs(diamondQ);
+  diamondAbsQ.y *= 2.5;
+  diamondAbsQ *= rotMat2(PI * 0.25);
+  return smoothstep(edge, 0., max(diamondAbsQ.x, diamondAbsQ.y) - diamondSize);
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
-  // q += 0.05000 * cos( 4. * q.yx + cosT + generalT);
-  // q += 0.02500 * cos( 7. * q.yx + cosT + generalT);
-  // q += 0.01250 * cos(11. * q.yx + cosT + generalT);
-  // q += 0.00625 * cos(13. * q.yx + cosT + generalT);
 
-  float n = 100.;
+  const float size = 0.1;
 
-  float angle = atan(q.y, q.x);
+  // Checkers
+  vec2 checker = q;
+  vec2 gridC = pMod2(checker, vec2(size));
+  const vec3 gridColor1 = pow(#F2B5FF, vec3(2.2));
+  const vec3 gridColor2 = pow(#E569FF, vec3(2.2));
+  color = mix(gridColor1, gridColor2, mod(dot(gridC, vec2(1)), 2.));
 
-#define lissajous(x, t) vec2(0.5) * sin(vec2(2. + sin(2. * t + generalT), 2. + 0.5 * sin(t)) * x + vec2(PI * 0.5, 0))
+  // Axis
+  // color = mix(color, vec3(0, 0, 1), smoothstep(0.5 * edge, 0., min(abs(q.x), abs(q.y))));
 
-  vec2 _P, P = lissajous(0., generalT);
-  float closestI = 0.;
-  const float circR = 0.65;
-  for (float i = 0.; i < TWO_PI - 0.05; i += 0.075) {
-    vec2 a = circR * vec2(
-        cos(i + generalT),
-        sin(i + generalT));
-    vec2 b = circR * vec2(
-        cos(i + generalT + PI * 0.5),
-        sin(i + generalT + PI * 0.5));
-    float lineD = line(q, a, b);
-    if (n >= lineD) {
-      n = lineD;
-      closestI = i;
-    }
-  }
+  // corner
+  const float diamondSize = 0.075 * size;
+  vec2 cornerQ = q - 0.5 * size;
+  vec2 cornerC = pMod2(cornerQ, vec2(size));
+  float isDiamond = corner(cornerQ, diamondSize);
+  isDiamond = max(isDiamond, corner(cornerQ.yx, diamondSize));
 
-  float r = 0.5 * edge;
-  float mask = smoothstep(r, 0., n);
+  float diagonalI = dot(cornerC, vec2(1));
+  float cornerColorI = mod(diagonalI, 2.);
+  cornerColorI = smoothstep(0.5, 0.5 + edge, cornerColorI);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (7.0 * n + 0.5 * closestI + 2. * generalT + vec3(0, 0.33, 0.67)));
-  color = mix(vec3(0), color, mask);
+  // Invert a set of four
+  cornerColorI = mix(cornerColorI, 1. - cornerColorI, mod(floor(diagonalI * 0.25), 2.));
+
+  vec3 cornerColor = mix(vec3(0), vec3(1), cornerColorI);
+  color = mix(color, cornerColor, isDiamond);
 
   return color;
 }
@@ -1070,6 +1067,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
