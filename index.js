@@ -22,7 +22,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'life-fiber-render1',
+    name: 'clench-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

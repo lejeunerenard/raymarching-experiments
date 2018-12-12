@@ -1025,19 +1025,34 @@ float corner (in vec2 q, in float diamondSize) {
   return smoothstep(edge, 0., max(diamondAbsQ.x, diamondAbsQ.y) - diamondSize);
 }
 
+float square (in vec2 q, in float squareSize) {
+  vec2 absQ = abs(q);
+  return smoothstep(0.5 * edge, 0., max(absQ.x, absQ.y) - squareSize);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
   vec2 q = uv;
 
-  const float size = 0.1;
+  const float size = 0.075;
 
   // Checkers
   vec2 checker = q;
   vec2 gridC = pMod2(checker, vec2(size));
-  const vec3 gridColor1 = pow(#F2B5FF, vec3(2.2));
-  const vec3 gridColor2 = pow(#E569FF, vec3(2.2));
-  color = mix(gridColor1, gridColor2, mod(dot(gridC, vec2(1)), 2.));
+  const vec3 gridColor1 = pow(#AAAAAA, vec3(2.2));
+  const vec3 gridColor2 = pow(#777777, vec3(2.2));
+
+  const float insideR = 6.;
+  vec2 insideAbsC = abs(gridC);
+  float inside = 0.;
+
+  // inside = smoothstep(edge, 0., max(insideAbsC.x, insideAbsC.y) - insideR);
+
+  vec2 gridDir = mix(vec2(1), vec2(-1, 1), inside);
+  float gridDiag = dot(gridC, gridDir) - mix(1., 0., inside);
+  color = mix(gridColor2, gridColor1, mod(gridDiag, 2.));
+  // color = mix(color, vec3(0.5), mod(gridDiag, 2.));
 
   // Axis
   // color = mix(color, vec3(0, 0, 1), smoothstep(0.5 * edge, 0., min(abs(q.x), abs(q.y))));
@@ -1046,12 +1061,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float diamondSize = 0.075 * size;
   vec2 cornerQ = q - 0.5 * size;
   vec2 cornerC = pMod2(cornerQ, vec2(size));
+// #define USE_SQUARE 1
+#ifdef USE_SQUARE
+  float isDiamond = square(cornerQ, diamondSize);
+#else
   float isDiamond = corner(cornerQ, diamondSize);
   isDiamond = max(isDiamond, corner(cornerQ.yx, diamondSize));
+#endif
 
-  float diagonalI = dot(cornerC, vec2(1));
+  insideAbsC = abs(cornerC);
+  inside = smoothstep(edge, 0., max(insideAbsC.x, insideAbsC.y) - insideR);
+
+  // Vertical vs Horizontal
+  // vec2 diagDir = mix(vec2(0, 1), vec2(1, 0), inside);
+  // float diagonalI = dot(cornerC, diagDir);
+
+  // Diagonal
+  vec2 diagDir = mix(vec2(1), vec2(-1, 1), inside);
+  // vec2 diagDir = vec2(1);
+  float diagonalI = dot(cornerC, diagDir);
+
+  // Diamond from center
+  // vec2 rotatedAbsC = abs(cornerC * rotMat2(PI * 0.25));
+  // float diagonalI = max(rotatedAbsC.x, rotatedAbsC.y);
+
   float cornerColorI = mod(diagonalI, 2.);
   cornerColorI = smoothstep(0.5, 0.5 + edge, cornerColorI);
+
+  // Hide every other corner
+  // isDiamond = mix(isDiamond, 0., mod(diagonalI, 2.));
 
   // Invert a set of four
   cornerColorI = mix(cornerColorI, 1. - cornerColorI, mod(floor(diagonalI * 0.25), 2.));
