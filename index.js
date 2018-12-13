@@ -13,16 +13,13 @@ const FOV = 70
 
 let app = new App()
 window.app = app
-// window.time = 1.5
-window.time = 3.8
-// window.time = 4.3
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'clench-render1',
+    name: 'green-game-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
