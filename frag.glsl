@@ -1035,37 +1035,39 @@ float square (in vec2 q, in float squareSize, in float orientation) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(background);
 
-// #define ZOOMED 1
-#ifdef ZOOMED
-  const float overallScale = 0.25;
-  const int depth = 9;
-#else
-  const float overallScale = 0.35;
-  const int depth = 10;
-#endif
+  vec2 q = uv;
 
-  vec2 q = overallScale * uv;
+  const float magR = 0.5;
+  float d = 1000.;
+  float n = 0.;
 
-  mat2 rot = rotMat2(rot);
-  for ( int i = 0; i < depth; i++ ) {
-    float c = pModPolar(q, 8.);
-    q *= rot;
-    q.y = abs(q.y);
-    q *= scale;
-    q -= offset.xy;
-  }
+  float prog = sin(TWO_PI * norT * 2. + generalT);
 
-  float d = 100.;
-  const float localScale = 2.8;
-  float s = length(q - vec2(0.5, 0.05)) - 0.2 * localScale;
-  d = min(d, s);
+  q *= rotMat2(PI * prog + generalT);
+  float baseR = 0.5 + 0.25 * cos(cosT);
+  float triRing = sdTriPrism(vec3(q, 0), vec2(baseR, 1));
+  triRing = max(triRing, -sdTriPrism(vec3(q, 0), vec2(0.5 * baseR, 1)));
+  d = min(d, triRing);
 
-  color = vec3(0.5 + 0.5 * cos(TWO_PI * d));
-  color *= pow(#CCE3FF, vec3(2.2));
-  color = pow(color, vec3(0.75));
-  return color;
+  float n1 = smoothstep(edge, 0., d);
+  n = max(n, n1);
+
+  prog = sin(TWO_PI * norT * 2. + generalT + 0.4);
+
+  const float offsetT = PI * 0.95;
+  q = uv;
+  q *= rotMat2(PI * prog + generalT + offsetT);
+  baseR = 0.5 + 0.25 * cos(cosT + offsetT);
+  triRing = sdTriPrism(vec3(q, 0), vec2(baseR, 1));
+  triRing = max(triRing, -sdTriPrism(vec3(q, 0), vec2(0.5 * baseR, 1)));
+  d = min(d, triRing);
+
+  float n2 = smoothstep(edge, 0., d);
+  n = max(n, n2);
+
+  color = vec3(n);
 
   return color;
 }
@@ -1075,7 +1077,17 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  vec3 color = vec3(0);
+
+  const float totalT = 0.1 * PI;
+  const int hues = 20;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, totalT * fraction);
+  }
+  color *= 0.075;
+
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
