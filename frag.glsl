@@ -1043,29 +1043,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float d = 1000.;
   float n = 0.;
 
-  float prog = sin(TWO_PI * norT * 2. + generalT);
+  float prog = 0.;
 
   q *= rotMat2(PI * prog + generalT);
-  float baseR = 0.5 + 0.25 * cos(cosT);
+  float baseR = 0.35;
+  q.y *= 0.5;
+  q.y -= 0.025 + 0.025 * smoothstep(0.5, 1.0, sin(cosT + generalT));
   float triRing = sdTriPrism(vec3(q, 0), vec2(baseR, 1));
-  triRing = max(triRing, -sdTriPrism(vec3(q, 0), vec2(0.5 * baseR, 1)));
   d = min(d, triRing);
 
   float n1 = smoothstep(edge, 0., d);
   n = max(n, n1);
-
-  prog = sin(TWO_PI * norT * 2. + generalT + 0.4);
-
-  const float offsetT = PI * 0.95;
-  q = uv;
-  q *= rotMat2(PI * prog + generalT + offsetT);
-  baseR = 0.5 + 0.25 * cos(cosT + offsetT);
-  triRing = sdTriPrism(vec3(q, 0), vec2(baseR, 1));
-  triRing = max(triRing, -sdTriPrism(vec3(q, 0), vec2(0.5 * baseR, 1)));
-  d = min(d, triRing);
-
-  float n2 = smoothstep(edge, 0., d);
-  n = max(n, n2);
 
   color = vec3(n);
 
@@ -1079,13 +1067,16 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = 0.1 * PI;
-  const int hues = 20;
+  const float totalT = TWO_PI;
+  const int hues = 80;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    color += (0.5 + 0.5 * cos(TWO_PI * (fraction + 0.3 + vec3(0, 0.33, 0.67)))) * two_dimensional(uv, totalT * fraction);
+    vec3 colorI = fraction + vec3(0.3);
+    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+    color += layerColor * two_dimensional(uv, totalT * fraction);
   }
   color *= 0.075;
+  color = pow(color, vec3(0.8));
 
   return vec4(color, 1);
 
