@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'synergy-render1',
+    name: 'tell-me-what-you-hear-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

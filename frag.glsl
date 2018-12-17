@@ -1015,47 +1015,27 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-float corner (in vec2 q, in float diamondSize) {
-  vec2 corner = q;
-  corner = abs(corner);
-  vec2 diamondQ = corner - vec2(diamondSize * 1.5, 0);
-  vec2 diamondAbsQ = abs(diamondQ);
-  diamondAbsQ.y *= 2.5;
-  diamondAbsQ *= rotMat2(PI * 0.25);
-  return smoothstep(edge, 0., max(diamondAbsQ.x, diamondAbsQ.y) - diamondSize);
-}
-
-float square (in vec2 q, in float squareSize, in float orientation) {
-  q *= rotMat2(PI * (0.25 + 0.5 * orientation));
-  vec2 absQ = abs(q);
-  float maxAbsQ = max(absQ.x, absQ.y);
-
-  float mask = 1. - step(0., maxAbsQ - squareSize);
-  return mask * (0.5 + 0.5 * smoothstep(0.5 * edge, 0., sign(q.x) * sign(q.y)));
-}
-
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
-  const float magR = 0.5;
-  float d = 1000.;
-  float n = 0.;
+  for (int i = 0; i < 40; i++) {
+    float fI = float(i);
+    float fIT = fI + norT;
+    vec2 sqrQ = q * rotMat2(PI * 0.523523 * (1. + fIT));
+    sqrQ -= 0.4 * sin(vec2(0.234534, 0.98123) * (fIT + 2.) * PI);
+    sqrQ.y *= 1.0 + 0.5 * sin(fI * TWO_PI + 0.234);
+    float sqrR = 0.2 + 0.1 * sin(PI * 0.234534 * fIT);
+    float colorI = fIT * PI * 0.7235232523;
+    vec4 layerColor = vec4(0);
+    layerColor.rgb = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
 
-  float prog = 0.;
-
-  q *= rotMat2(PI * prog + generalT);
-  float baseR = 0.35;
-  q.y *= 0.5;
-  q.y -= 0.025 + 0.025 * smoothstep(0.5, 1.0, sin(cosT + generalT));
-  float triRing = sdTriPrism(vec3(q, 0), vec2(baseR, 1));
-  d = min(d, triRing);
-
-  float n1 = smoothstep(edge, 0., d);
-  n = max(n, n1);
-
-  color = vec3(n);
+    vec2 sqrAbsQ = abs(sqrQ);
+    float mask = smoothstep(edge, 0., max(sqrAbsQ.x, sqrAbsQ.y) - sqrR);
+    layerColor.a = mask * pow(saturate(0.5 * (sqrQ.x + sqrR) / sqrR), 3.0);
+    color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  }
 
   return color;
 }
@@ -1067,16 +1047,17 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  const float totalT = TWO_PI;
-  const int hues = 80;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = fraction + vec3(0.3);
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    color += layerColor * two_dimensional(uv, totalT * fraction);
-  }
-  color *= 0.075;
-  color = pow(color, vec3(0.8));
+  // const float totalT = TWO_PI;
+  // const int hues = 80;
+  // for (int i = 0; i < hues; i++) {
+  //   float fraction = float(i) / float(hues);
+  //   vec3 colorI = fraction + vec3(0.3);
+  //   vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+  //   color += layerColor * two_dimensional(uv, totalT * fraction);
+  // }
+  // color *= 0.075;
+  // color = pow(color, vec3(0.8));
+  color = two_dimensional(uv, 0.);
 
   return vec4(color, 1);
 
