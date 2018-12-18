@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'tell-me-what-you-hear-render1',
+    name: 'gel-render3',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
