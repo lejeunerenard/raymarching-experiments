@@ -3,7 +3,7 @@ vec3 getBackground (in vec2 uv) {
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
   vec3 color = mix(pow(#FF9D5C, vec3(2.2)), pow(#FF64D8, vec3(2.2)), coord.y);
-  color = vec3(1);
+  color = vec3(0.5);
   return color;
 }
 vec3 background = vec3(0.);

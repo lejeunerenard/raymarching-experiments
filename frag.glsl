@@ -648,15 +648,20 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  q += 0.25000 * cos( 3. * q.yzx + vec3(cosT, 0.3 * sin(cosT), -cosT));
-  q += 0.12500 * cos( 7. * q.yzx + cosT);
-  q += 0.06250 * cos(13. * q.yzx + cosT);
-  q += 0.03125 * cos(17. * q.yzx + cosT);
+  const float localT = 0.0 * PI;
+  q += 0.2500000 * cos( 4. * q.yzx + localT);
+  q += 0.1250000 * cos( 7. * q.yzx + localT);
+  q += 0.0625000 * cos(13. * q.yzx + localT);
+  q += 0.0312500 * cos(17. * q.yzx + localT);
+  q += 0.0156250 * cos(23. * q.yzx + localT);
+  q += 0.0078120 * cos(31. * q.yzx + localT);
 
-  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  q *= rotationMatrix(vec3(0, 1, 0), -0.2);
+  mPos = q;
+  vec3 s = vec3(sdBox(q, vec3(0.775)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.24;
+  d.x *= 0.14;
 
   return d;
 }
@@ -831,9 +836,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(background * 0.9);
-
-  color = vec3(0.1);
-  color = 0.5 + 0.5 * cos(TWO_PI * (pos + dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.40 + pos + dot(nor, -rd) + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -882,13 +885,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       // Material Types
-      float isBlack = isMaterialSmooth(t.y, 1.);
-      float isFloor = isMaterialSmooth(t.y, 0.);
-      float isNeon = 1. - isBlack;
 
-      vec3 nor = getNormal2(pos, 0.0001 * t.x);
-      float bumpsScale = 0.1;
-      float bumpIntensity = 0.9;
+      vec3 nor = getNormal2(pos, 0.0005 * t.x);
+      float bumpsScale = 0.01;
+      float bumpIntensity = 0.5;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -908,20 +908,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 256.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.2;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -934,9 +934,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.4 * amb * diffuseColor;
+        lin += 0.05 * amb * diffuseColor;
 
-        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 2.0);
+        distIntensity = saturate(distIntensity);
         color +=
           saturate((dif * distIntensity) * lights[i].color * diffuseColor)
           + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
@@ -965,7 +966,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 0.5 * dispersionColor;
+      color += 0.4 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
