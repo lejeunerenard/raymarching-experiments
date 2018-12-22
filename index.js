@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 8
+const secondsLong = 16
 const capturing = false
 
 const FOV = 70
@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'polymorphic-platitude-render1',
+    name: 'guarded-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -92,7 +92,7 @@ if (capturing) {
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
-        // currentRAF = vrDisplay.requestAnimationFrame(tick)
+        currentRAF = vrDisplay.requestAnimationFrame(tick)
       }, 350)
     }
   }
@@ -185,7 +185,7 @@ if (capturing) {
   app.run()
 
   let tick = (t) => {
-    // currentRAF = vrDisplay.requestAnimationFrame(tick)
+    currentRAF = vrDisplay.requestAnimationFrame(tick)
 
     controls.update(app.shader)
     app.tick(t)
