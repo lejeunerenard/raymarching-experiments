@@ -1032,19 +1032,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float size = 0.2;
-	vec2 c = floor((q + vec2(size)*0.5)/vec2(size));
-  vec2 shift = vec2(
-      sin(    PI * 0.3333 * sin(cosT)),
-      sin(TWO_PI * 0.3333 * sin(cosT)));
-  q.x *= 1.25 + 0.25 * sin(TWO_PI * q.x + shift.x);
-  q.y *= 1.25 + 0.25 * sin(TWO_PI * q.y + shift.y);
+  q += 0.200 * cos( 3. * q.yx  + vec2(-cosT, cosT) + generalT);
+  q += 0.100 * cnoise2(3. * q.yx);
+  q += 0.100 * cos( (7. + generalT) * q.yx  + cosT + generalT);
+  q += 0.050 * cos(13. * q.yx  - cosT + generalT);
+  q += 0.2 * vfbmWarp(vec2(42., 1.0) * q + 5. * generalT);
 
-  c = pMod2(q, vec2(size));
+  q *= rotMat2(PI * 0.25);
 
-  const float bandEdge = 0.4;
-  float n = smoothstep(edge + bandEdge, bandEdge, sin(TWO_PI * q.x / size));
-  n = max(n, smoothstep(edge + bandEdge, bandEdge, sin(TWO_PI * q.y / size)));
+  float d = length(q);
+
+  float r = 0.4;
+  float n = smoothstep(0.25, 0., d - r);
 
   color = vec3(n);
 
@@ -1056,6 +1055,21 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(1);
+
+  const int numCol = 13;
+  const float incHue = 1. / float(numCol);
+  const float offsetT = PI;
+
+  for (int i = 0; i < numCol; i++) {
+    uv *= 1.0125;
+    vec3 layerCol = 0.5 + 0.5 * cos(TWO_PI * (norT + vec3(0.75 * uv, 0) + float(i) * incHue + vec3(0, 0.33, 0.67)));
+    float a = two_dimensional(uv, offsetT * float(i) / float(numCol)).x;
+    color = mix(color, layerCol * color, a);
+  }
+
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
