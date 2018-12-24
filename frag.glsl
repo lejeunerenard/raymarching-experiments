@@ -1027,25 +1027,81 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
+float gridMask ( in vec2 c, in float innerBoundR, in float outerBoundR ) {
+  vec2 absC = abs(c);
+  float noManSqrD = max(absC.x, absC.y);
+
+  float innerBound = smoothstep(0., edge, noManSqrD - innerBoundR);
+  float outerBound = smoothstep(edge, 0., noManSqrD - outerBoundR);
+  return saturate(innerBound * outerBound);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(background);
 
   vec2 q = uv;
 
-  q += 0.200 * cos( 3. * q.yx  + vec2(-cosT, cosT) + generalT);
-  q += 0.100 * cnoise2(3. * q.yx);
-  q += 0.100 * cos( (7. + generalT) * q.yx  + cosT + generalT);
-  q += 0.050 * cos(13. * q.yx  - cosT + generalT);
-  q += 0.2 * vfbmWarp(vec2(42., 1.0) * q + 5. * generalT);
+  const vec3 white = pow(#DDDDDD, vec3(2.2));
+  const vec3 black = pow(#222222, vec3(2.2));
 
-  q *= rotMat2(PI * 0.25);
+  const float size = 0.1;
+  const float innerBoundR = 5.;
+  const float outerBoundR = 6.;
 
-  float d = length(q);
+  vec2 gridQ = q;
+	vec2 tempC = floor((q + vec2(size)*0.5)/vec2(size));
+  vec2 absTempC = abs(tempC);
+  float tempNoManSqrD = max(absTempC.x, absTempC.y);
+  // gridQ.y += gridQ.x * 0.05
+  //   * mix(-1., 1., smoothstep(0., edge, tempNoManSqrD - (outerBoundR + 0.5 * (outerBoundR - innerBoundR))));
 
-  float r = 0.4;
-  float n = smoothstep(0.25, 0., d - r);
+  vec2 c = pMod2(gridQ, vec2(size));
 
-  color = vec3(n);
+  // gridQ.x += 0.001 * c.y;
+
+  vec2 absC = abs(tempC);
+  float noManSqrD = max(absC.x, absC.y);
+
+  float evenOdd = mod(dot(c, vec2(1)), 2.);
+  gridQ *= rotMat2(PI * evenOdd
+      + PI * 0.5 * smoothstep(0., edge, noManSqrD - outerBoundR));
+
+  // 'Centers'
+  vec2 gridCenters = gridQ;
+  gridCenters *= rotMat2(PI * 0.25);
+  vec2 absCenterQ = abs(gridCenters);
+  float sqrD = max(absCenterQ.x, absCenterQ.y) - size * 0.03125;
+  float centerMask = smoothstep(5. * edge, 0., sqrD);
+  vec3 centerWhiteColor = mix(white, vec3(0.24), smoothstep(1. * edge, 3. * edge, sqrD));
+  vec3 centerColor = mix(black, centerWhiteColor, smoothstep(edge, 0., gridCenters.x));
+  color = mix(color, centerColor, centerMask);
+
+  // --- Edges ---
+  // White Edge
+  const vec2 tilt = normalize(vec2(1, -0.03));
+  float whiteEdge = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt)));
+  whiteEdge *= smoothstep(0., edge, gridQ.y); // Show only 'upper' edge
+
+  float whiteEdgeLeft = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt.yx)));
+  whiteEdgeLeft *= smoothstep(edge, 0., gridQ.x); // Show only 'left' edge
+
+  whiteEdge = max(whiteEdge, whiteEdgeLeft); // Combine
+  whiteEdge *= smoothstep(0., size * 0.0625, length(gridQ));
+  color = mix(color, white, whiteEdge);
+
+  // Black edge
+  float blackEdge = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt)));
+  blackEdge *= smoothstep(edge, 0., gridQ.y); // Show only 'bottom' edge
+
+  float blackEdgeLeft = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt.yx)));
+  blackEdgeLeft *= smoothstep(0., edge, gridQ.x); // Show only 'right' edge
+
+  blackEdge = max(blackEdge, blackEdgeLeft); // Combine
+  blackEdge *= smoothstep(0., size * 0.0625, length(gridQ));
+  color = mix(color, black, blackEdge);
+
+  // No Man's land
+  color = mix(color, background, gridMask(tempC, innerBoundR, outerBoundR));
 
   return color;
 }
@@ -1055,20 +1111,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(1);
-
-  const int numCol = 13;
-  const float incHue = 1. / float(numCol);
-  const float offsetT = PI;
-
-  for (int i = 0; i < numCol; i++) {
-    uv *= 1.0125;
-    vec3 layerCol = 0.5 + 0.5 * cos(TWO_PI * (norT + vec3(0.75 * uv, 0) + float(i) * incHue + vec3(0, 0.33, 0.67)));
-    float a = two_dimensional(uv, offsetT * float(i) / float(numCol)).x;
-    color = mix(color, layerCol * color, a);
-  }
-
-  return vec4(color, 1);
+  return vec4(two_dimensional(uv), 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
