@@ -1039,69 +1039,40 @@ float gridMask ( in vec2 c, in float innerBoundR, in float outerBoundR ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = uv;
+  vec2 q = uv - vec2(0, 0.15);
 
-  const vec3 white = pow(#DDDDDD, vec3(2.2));
-  const vec3 black = pow(#222222, vec3(2.2));
+  float d = 1000.;
+  float triOut = sdTriPrism(vec3(q, 0), vec2(0.5, 1));
+  d = min(d, triOut);
+  float triIn = sdTriPrism(vec3(q, 0), vec2(0.45, 1));
+  d = max(d, -triIn);
 
-  const float size = 0.1;
-  const float innerBoundR = 5.;
-  const float outerBoundR = 6.;
+  vec3 christmas = mix(vec3(1, 0, 0), vec3(0, 1, 0), sigmoid(saturate(0.70 * q.y + 0.6)));
 
-  vec2 gridQ = q;
-	vec2 tempC = floor((q + vec2(size)*0.5)/vec2(size));
-  vec2 absTempC = abs(tempC);
-  float tempNoManSqrD = max(absTempC.x, absTempC.y);
-  // gridQ.y += gridQ.x * 0.05
-  //   * mix(-1., 1., smoothstep(0., edge, tempNoManSqrD - (outerBoundR + 0.5 * (outerBoundR - innerBoundR))));
+  float offsetY = 0.2;
 
-  vec2 c = pMod2(gridQ, vec2(size));
+  float d2 = 1000.;
+  float triOut2 = sdTriPrism(vec3(q + vec2(0, offsetY), 0), vec2(0.5, 1));
+  d2 = min(d2, triOut2);
+  float triIn2 = sdTriPrism(vec3(q + vec2(0, offsetY), 0), vec2(0.45, 1));
+  d2 = max(d2, -triIn2);
+  d = min(d, d2);
 
-  // gridQ.x += 0.001 * c.y;
+  float d3 = 1000.;
+  float triOut3 = sdTriPrism(vec3(q + vec2(0, 2. * offsetY), 0), vec2(0.5, 1));
+  d3 = min(d3, triOut3);
+  float triIn3 = sdTriPrism(vec3(q + vec2(0, 2. * offsetY), 0), vec2(0.45, 1));
+  d3 = max(d3, -triIn3);
+  d = min(d, d3);
 
-  vec2 absC = abs(tempC);
-  float noManSqrD = max(absC.x, absC.y);
+  float glowFlicker = mix(0.025, 0.05, saturate(0.00125 * d)) * vfbmWarp(q);
+  vec3 glow = christmas / (max(0., d - glowFlicker) * 50.0 + 0.0001);
+  color = glow;
+  // color = christmas;
 
-  float evenOdd = mod(dot(c, vec2(1)), 2.);
-  gridQ *= rotMat2(PI * evenOdd
-      + PI * 0.5 * smoothstep(0., edge, noManSqrD - outerBoundR));
-
-  // 'Centers'
-  vec2 gridCenters = gridQ;
-  gridCenters *= rotMat2(PI * 0.25);
-  vec2 absCenterQ = abs(gridCenters);
-  float sqrD = max(absCenterQ.x, absCenterQ.y) - size * 0.03125;
-  float centerMask = smoothstep(5. * edge, 0., sqrD);
-  vec3 centerWhiteColor = mix(white, vec3(0.24), smoothstep(1. * edge, 3. * edge, sqrD));
-  vec3 centerColor = mix(black, centerWhiteColor, smoothstep(edge, 0., gridCenters.x));
-  color = mix(color, centerColor, centerMask);
-
-  // --- Edges ---
-  // White Edge
-  const vec2 tilt = normalize(vec2(1, -0.03));
-  float whiteEdge = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt)));
-  whiteEdge *= smoothstep(0., edge, gridQ.y); // Show only 'upper' edge
-
-  float whiteEdgeLeft = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt.yx)));
-  whiteEdgeLeft *= smoothstep(edge, 0., gridQ.x); // Show only 'left' edge
-
-  whiteEdge = max(whiteEdge, whiteEdgeLeft); // Combine
-  whiteEdge *= smoothstep(0., size * 0.0625, length(gridQ));
-  color = mix(color, white, whiteEdge);
-
-  // Black edge
-  float blackEdge = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt)));
-  blackEdge *= smoothstep(edge, 0., gridQ.y); // Show only 'bottom' edge
-
-  float blackEdgeLeft = smoothstep(0.5 * edge, 0., abs(dot(gridQ, tilt.yx)));
-  blackEdgeLeft *= smoothstep(0., edge, gridQ.x); // Show only 'right' edge
-
-  blackEdge = max(blackEdge, blackEdgeLeft); // Combine
-  blackEdge *= smoothstep(0., size * 0.0625, length(gridQ));
-  color = mix(color, black, blackEdge);
-
-  // No Man's land
-  color = mix(color, background, gridMask(tempC, innerBoundR, outerBoundR));
+  float n = smoothstep(edge, 0., d);
+  color = mix(color, vec3(1), n);
+  // color = vec3(n);
 
   return color;
 }
