@@ -20,7 +20,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'neo-eve-render1',
+    name: 'corporeal-communion-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

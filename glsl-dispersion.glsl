@@ -11,8 +11,8 @@
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 
-#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
@@ -102,8 +102,8 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     float dI = 0.5 * cnoise3(2.0 * nor);
 
     vec3 sceneResult = scene(iorRefract, ior);
-    vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0) + 0.4;
-    // float mixI = dI + cnoise3(1.0 * nor);
+    // vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0) + 0.4;
+    float mixI = dI + cnoise3(1.0 * nor);
 
     vec3 thisColor = vec3(0);
 

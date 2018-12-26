@@ -648,9 +648,10 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  mPos = q;
+  pModPolar(q.xy, 6.);
+  q.y = abs(q.y);
 
-  const int totalInt = 5;
+  const int totalInt = 10;
 
   mat3 rot = rotationMatrix(normalize(vec3(.4, 2., -0.7)), 1.534 + 0.7 * sin(cosT));
   mat3 rot2 = rotationMatrix(normalize(vec3(0.2, 0.1, 0.3)), 0.534 + 0.2 * cos(cosT));
@@ -658,19 +659,21 @@ vec3 map (in vec3 p, in float dT) {
   float e = 0.5;
   for (int i = 0; i < totalInt; i++) {
     q = abs(q * rot) - e;
-    q.y -= q.x * 0.1;
-    q = abs(q * rot2);
+    q -= vec3(0.01, 0.05, -0.1);
+    q *= rot2;
     q.x -= q.z * 0.1;
+    q *= 1.035;
     e = e * 0.7 + e * e * 0.2;
   }
 
   // q = abs(q * rot) - e;
   // q = abs(q * rot) - e;
 
+  mPos = q;
   vec3 s = vec3(sdBox(q, vec3(0.125)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.7;
+  d.x *= 0.3;
 
   return d;
 }
@@ -746,8 +749,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.5;
-const float amount = 0.08;
+const float n2 = 1.25;
+const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -844,7 +847,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.75);
+  vec3 color = vec3(0.);
+
+  color += 0.0125 * (0.5 + 0.5 * cos(TWO_PI * (0.2 * pos + vec3(0, 0.33, 0.67))));
 
   return color;
 }
@@ -924,12 +929,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.0;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.3;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -973,8 +978,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += 0.4 * dispersionColor;
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      color += 0.4 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
@@ -1039,40 +1044,8 @@ float gridMask ( in vec2 c, in float innerBoundR, in float outerBoundR ) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = uv - vec2(0, 0.15);
+  vec2 q = uv;
 
-  float d = 1000.;
-  float triOut = sdTriPrism(vec3(q, 0), vec2(0.5, 1));
-  d = min(d, triOut);
-  float triIn = sdTriPrism(vec3(q, 0), vec2(0.45, 1));
-  d = max(d, -triIn);
-
-  vec3 christmas = mix(vec3(1, 0, 0), vec3(0, 1, 0), sigmoid(saturate(0.70 * q.y + 0.6)));
-
-  float offsetY = 0.2;
-
-  float d2 = 1000.;
-  float triOut2 = sdTriPrism(vec3(q + vec2(0, offsetY), 0), vec2(0.5, 1));
-  d2 = min(d2, triOut2);
-  float triIn2 = sdTriPrism(vec3(q + vec2(0, offsetY), 0), vec2(0.45, 1));
-  d2 = max(d2, -triIn2);
-  d = min(d, d2);
-
-  float d3 = 1000.;
-  float triOut3 = sdTriPrism(vec3(q + vec2(0, 2. * offsetY), 0), vec2(0.5, 1));
-  d3 = min(d3, triOut3);
-  float triIn3 = sdTriPrism(vec3(q + vec2(0, 2. * offsetY), 0), vec2(0.45, 1));
-  d3 = max(d3, -triIn3);
-  d = min(d, d3);
-
-  float glowFlicker = mix(0.025, 0.05, saturate(0.00125 * d)) * vfbmWarp(q);
-  vec3 glow = christmas / (max(0., d - glowFlicker) * 50.0 + 0.0001);
-  color = glow;
-  // color = christmas;
-
-  float n = smoothstep(edge, 0., d);
-  color = mix(color, vec3(1), n);
-  // color = vec3(n);
 
   return color;
 }
@@ -1082,8 +1055,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
