@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 32.0;
+const float totalT = 16.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1042,10 +1042,83 @@ float gridMask ( in vec2 c, in float innerBoundR, in float outerBoundR ) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
+// #define ADDITION 1
+#ifdef ADDITION
+  const vec3 identity = vec3(0);
+#else
+  const vec3 identity = vec3(1);
+#endif
+  vec3 color = identity;
+  vec3 layerColor = identity;
 
   vec2 q = uv;
+  const float size = 0.5;
 
+  vec3 lookup = vec3(1, 0.2, 0.2);
+  mat3 rot = rotationMatrix(normalize(vec3(0.34, 2., 0.675)), 0.5634 * PI + PI * 0.125 * cos(cosT));
+
+  vec2 q1 = q;
+  vec2 c1 = pMod2(q1, vec2(size));
+
+  vec2 q2 = q;
+  vec2 c2 = pMod2(q2, vec2(size));
+  lookup *= rot;
+  layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.4 * lookup + 0.7 * vec3(c2.x * q2.y, c2.y, q2.x) + vec3(0, 0.33, 0.67)));
+  layerColor = mix(identity, layerColor, smoothstep(edge, 0., length(q2) - size * 0.4));
+#ifdef ADDITION
+  color += layerColor;
+#else
+  color *= layerColor;
+#endif
+
+  q2 = q - 0.25 * size;
+  c2 = pMod2(q2, vec2(size));
+  lookup *= rot;
+  layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.4 * lookup + 0.7 * vec3(c2.y, c2.x * q2.y, q2.x) + vec3(0, 0.33, 0.67)));
+  layerColor = mix(identity, layerColor, smoothstep(edge, 0., length(q2) - size * 0.4));
+#ifdef ADDITION
+  color += layerColor;
+#else
+  color *= layerColor;
+#endif
+
+  q2 = q + 0.25 * size;
+  c2 = pMod2(q2, vec2(size));
+  lookup *= rot;
+  layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.8 * lookup + 0.3 * vec3(c2.y, q2.x, c2.x * q2.y) + vec3(0, 0.33, 0.67)));
+  layerColor = mix(identity, layerColor, smoothstep(edge, 0., length(q2) - size * 0.4));
+#ifdef ADDITION
+  color += layerColor;
+#else
+  color *= layerColor;
+#endif
+
+  q2 = q + 0.25 * vec2(-size, size);
+  c2 = pMod2(q2, vec2(size));
+  lookup *= rot;
+  layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.8 * lookup + 0.5 * vec3(q2.x, c2.y, c2.x * q2.y) + vec3(0, 0.33, 0.67)));
+  layerColor = mix(identity, layerColor, smoothstep(edge, 0., length(q2) - size * 0.4));
+#ifdef ADDITION
+  color += layerColor;
+#else
+  color *= layerColor;
+#endif
+
+  q2 = q + 0.25 * vec2(size, -size);
+  c2 = pMod2(q2, vec2(size));
+  lookup *= rot;
+  layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.8 * lookup + 0.7 * vec3(c2.y * q2.x, c2.x * q2.y, 0) + vec3(0, 0.33, 0.67)));
+  layerColor = mix(identity, layerColor, smoothstep(edge, 0., length(q2) - size * 0.4));
+#ifdef ADDITION
+  color += layerColor;
+#else
+  color *= layerColor;
+#endif
+
+
+#ifdef ADDITION
+  color *= 0.5;
+#endif
 
   return color;
 }
@@ -1055,6 +1128,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
