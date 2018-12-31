@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 16.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1025,8 +1025,71 @@ float gridMask ( in vec2 c, in float innerBoundR, in float outerBoundR ) {
   return saturate(innerBound * outerBound);
 }
 
+float helperGrid (in vec2 q, in float size) {
+  vec2 c = pMod2(q, vec2(size));
+  vec2 absQ = abs(q);
+  return smoothstep(0., edge, max(absQ.x, absQ.y) - 0.4 * size);
+}
+
+vec2 randomStep (in vec2 start, in float t, in float size) {
+  float nX = noise(start + 3.92348 * t +  0.00000);
+  float nY = noise(start + 2.26238 * t + 10.92734);
+
+  float middleEdge = 0.3 + 0.2 * sin(cosT);
+  vec2 n = vec2(
+    // X
+    -1.
+      + smoothstep(-middleEdge + 0.5, middleEdge + 0.5, nX)
+      + smoothstep(middleEdge + 0.5, middleEdge + edge + 0.5, nX),
+    // Y
+    -1.
+      + smoothstep(-middleEdge + 0.5, middleEdge + 0.5, nY)
+      + smoothstep(middleEdge + 0.5, middleEdge + edge + 0.5, nY)
+  );
+  // vec2 n = vec2(mod(t + size, 3. * size) / size - 1., mod(t, 3. * size) / size - 1.);
+
+  return start + size * n;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
+
+  vec2 q = uv;
+
+  const float size = 0.01;
+  vec2 c = pMod2(q, vec2(size));
+
+  // Origin Debug
+  if (c == vec2(0)) {
+    color = vec3(1, 0, 0);
+  }
+
+  const float timeStep = 0.01;
+  float hit = 0.;
+  vec2 prevQ = vec2(0); // Start origin
+
+  for (float t = 0.; t < totalT; t += timeStep) {
+    vec2 stepQ = randomStep(prevQ, t, size);
+    // Grid Coordinates
+    vec2 stepC = floor((stepQ + size * 0.5) / size);
+
+    // XY Mirror
+    if (abs(stepC) == abs(c)) {
+    // X Mirror
+    // if (abs(stepC.x) == abs(c.x) && stepC.y == c.y) {
+    // No Mirror
+    // if (stepC == c) {
+      hit = 1.;
+      break;
+    }
+
+    prevQ = stepQ;
+  }
+
+  color = mix(color, vec3(1), hit);
+
+  // Helper grid
+  color = mix(color, vec3(1), helperGrid(uv, size));
   return color;
 }
 
@@ -1035,6 +1098,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
