@@ -1,3 +1,7 @@
+#pragma glslify: rotMat2 = require(./rotation-matrix2)
+#ifndef PI
+#define PI 3.1415926536
+#endif
 #ifndef TWO_PI
 #define TWO_PI 6.2831853072
 #endif
@@ -15,6 +19,36 @@ vec3 hash( vec3 x  )
 
   return fract(sin(x)*43758.5453123);
 }
+float two_numeral (in vec2 q) {
+  float d = 1000.;
+
+  // Top curve
+  const float topR = 8. * thickness;
+  vec2 topQ = q - vec2(0, 0.346);
+  float topL = length(topQ);
+  float topCurve = abs(topL - topR) - 1.0 * thickness;
+  float angle = atan(topQ.y, topQ.x);
+  float other = 0.4;
+  topCurve = mix(1000., topCurve, (smoothstep(PI * (0.5 + other), PI * (0.5 + other) - edge, angle)
+        * smoothstep(PI * (0.5 - other) - edge, PI * (0.5 - other), angle)));
+  d = min(d, topCurve);
+
+  // Cross bar
+  vec2 crossBarQ = (q - vec2(0.010125, 0.14)) * rotMat2(-0.25 * PI);
+  vec2 absCrossBarQ = abs(crossBarQ);
+  absCrossBarQ.x *= 0.094;
+  float crossBar = max(absCrossBarQ.x, absCrossBarQ.y) - thickness;
+  d = min(d, crossBar);
+
+  vec2 barQ = q + vec2(0, 0.25);
+  barQ.x *= 0.125;
+  vec2 absBar = abs(barQ);
+
+  float bar = max(absBar.x, absBar.y) - thickness;
+  d = min(d, bar);
+
+  return d;
+}
 
 vec2 voronoi(in vec2 x, in float time) {
   vec2 p = floor(x);
@@ -27,13 +61,14 @@ vec2 voronoi(in vec2 x, in float time) {
       vec2 offset = hash(p + b + time);
       offset = 0.5 + 0.5 * cos( time + TWO_PI * offset );
       vec2 r = vec2(b) - f + offset;
-      // float d = dot( r, r );
+      float d = dot( r, r );
       // float d = dot( abs(r), vec2(1) );
       // float d = min( abs(r.x), abs(r.y) );
-      vec2 absR = abs(r);
-      float d = max( absR.x, absR.y );
+      // vec2 absR = abs(r);
+      // float d = max( absR.x, absR.y );
 
-      if (d < res.x) {
+      float v = two_numeral(r);
+      if (d < res.x && v > 0.1) {
         res = vec3( d, offset );
       }
     }

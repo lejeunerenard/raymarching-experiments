@@ -58,7 +58,7 @@ float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
 const float edge = 0.005;
-const float thickness = 0.0075;
+const float thickness = 0.05;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -506,7 +506,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
-#pragma glslify: voronoi = require(./voronoi)
+#pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness)
 // #pragma glslify: band = require(./band-filter)
 
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
@@ -1051,45 +1051,57 @@ vec2 randomStep (in vec2 start, in float t, in float size) {
   return start + size * n;
 }
 
+float two_numeral (in vec2 q) {
+  float d = 1000.;
+
+  // Top curve
+  const float topR = 8. * thickness;
+  vec2 topQ = q - vec2(0, 0.346);
+  float topL = length(topQ);
+  float topCurve = abs(topL - topR) - 1.0 * thickness;
+  float angle = atan(topQ.y, topQ.x);
+  float other = 0.4;
+  topCurve = mix(1000., topCurve, (smoothstep(PI * (0.5 + other), PI * (0.5 + other) - edge, angle)
+        * smoothstep(PI * (0.5 - other) - edge, PI * (0.5 - other), angle)));
+  d = min(d, topCurve);
+
+  // Cross bar
+  vec2 crossBarQ = (q - vec2(0.010125, 0.14)) * rotMat2(-0.25 * PI);
+  vec2 absCrossBarQ = abs(crossBarQ);
+  absCrossBarQ.x *= 0.094;
+  float crossBar = max(absCrossBarQ.x, absCrossBarQ.y) - thickness;
+  d = min(d, crossBar);
+
+  vec2 barQ = q + vec2(0, 0.25);
+  barQ.x *= 0.125;
+  vec2 absBar = abs(barQ);
+
+  float bar = max(absBar.x, absBar.y) - thickness;
+  d = min(d, bar);
+
+  return d;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  vec2 q = uv;
+  // vec2 q = uv;
+  vec2 q = 0.8 * uv;
+  q.y += 0.2;
 
-  const float size = 0.01;
-  vec2 c = pMod2(q, vec2(size));
+  float d = 1000.;
 
-  // Origin Debug
-  if (c == vec2(0)) {
-    color = vec3(1, 0, 0);
-  }
+  vec2 vQ = 9. * q;
+  vec2 v = 1. - voronoi(vQ, 0.0001 * slowTime);
+  // v -= 0.1;
+  d = min(d, v.x);
+  color = vec3(d);
 
-  const float timeStep = 0.01;
-  float hit = 0.;
-  vec2 prevQ = vec2(0); // Start origin
+  float num = two_numeral(q);
+  float n = smoothstep(0.2 * edge, 0., num);
+  color *= n;
+  // color = vec3(num);
 
-  for (float t = 0.; t < totalT; t += timeStep) {
-    vec2 stepQ = randomStep(prevQ, t, size);
-    // Grid Coordinates
-    vec2 stepC = floor((stepQ + size * 0.5) / size);
-
-    // XY Mirror
-    if (abs(stepC) == abs(c)) {
-    // X Mirror
-    // if (abs(stepC.x) == abs(c.x) && stepC.y == c.y) {
-    // No Mirror
-    // if (stepC == c) {
-      hit = 1.;
-      break;
-    }
-
-    prevQ = stepQ;
-  }
-
-  color = mix(color, vec3(1), hit);
-
-  // Helper grid
-  color = mix(color, vec3(1), helperGrid(uv, size));
   return color;
 }
 
