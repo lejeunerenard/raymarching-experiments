@@ -1091,7 +1091,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float d = 1000.;
 
-  vec2 vQ = 9. * q;
+  vec2 vQ = 11. * q;
   vec2 v = 1. - voronoi(vQ, 0.0001 * slowTime);
   // v -= 0.1;
   d = min(d, v.x);
@@ -1099,7 +1099,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float num = two_numeral(q);
   float n = smoothstep(0.2 * edge, 0., num);
-  color *= n;
+  // color *= n;
   // color = vec3(num);
 
   return color;

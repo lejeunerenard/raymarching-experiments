@@ -67,8 +67,8 @@ vec2 voronoi(in vec2 x, in float time) {
       // vec2 absR = abs(r);
       // float d = max( absR.x, absR.y );
 
-      float v = two_numeral(r);
-      if (d < res.x && v > 0.1) {
+      float v = two_numeral((p + b) * 0.090909);
+      if (d < res.x && v < 0.0125) {
         res = vec3( d, offset );
       }
     }
