@@ -506,7 +506,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
-#pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness)
+// #pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness)
 // #pragma glslify: band = require(./band-filter)
 
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
@@ -1082,25 +1082,29 @@ float two_numeral (in vec2 q) {
   return d;
 }
 
+float sqrMask (in vec2 p) {
+  vec2 absP = abs(p);
+
+  const float baseR = 0.6;
+
+  float outer = max(absP.x, absP.y) - baseR;
+  float inner = max(absP.x, absP.y) - 0.5 * baseR;
+  return max(outer, -inner);
+}
+
+#pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  // vec2 q = uv;
-  vec2 q = 0.8 * uv;
-  q.y += 0.2;
+  vec2 q = uv;
 
   float d = 1000.;
 
   vec2 vQ = 11. * q;
   vec2 v = 1. - voronoi(vQ, 0.0001 * slowTime);
-  // v -= 0.1;
   d = min(d, v.x);
   color = vec3(d);
-
-  float num = two_numeral(q);
-  float n = smoothstep(0.2 * edge, 0., num);
-  // color *= n;
-  // color = vec3(num);
 
   return color;
 }

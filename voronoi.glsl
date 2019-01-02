@@ -19,36 +19,6 @@ vec3 hash( vec3 x  )
 
   return fract(sin(x)*43758.5453123);
 }
-float two_numeral (in vec2 q) {
-  float d = 1000.;
-
-  // Top curve
-  const float topR = 8. * thickness;
-  vec2 topQ = q - vec2(0, 0.346);
-  float topL = length(topQ);
-  float topCurve = abs(topL - topR) - 1.0 * thickness;
-  float angle = atan(topQ.y, topQ.x);
-  float other = 0.4;
-  topCurve = mix(1000., topCurve, (smoothstep(PI * (0.5 + other), PI * (0.5 + other) - edge, angle)
-        * smoothstep(PI * (0.5 - other) - edge, PI * (0.5 - other), angle)));
-  d = min(d, topCurve);
-
-  // Cross bar
-  vec2 crossBarQ = (q - vec2(0.010125, 0.14)) * rotMat2(-0.25 * PI);
-  vec2 absCrossBarQ = abs(crossBarQ);
-  absCrossBarQ.x *= 0.094;
-  float crossBar = max(absCrossBarQ.x, absCrossBarQ.y) - thickness;
-  d = min(d, crossBar);
-
-  vec2 barQ = q + vec2(0, 0.25);
-  barQ.x *= 0.125;
-  vec2 absBar = abs(barQ);
-
-  float bar = max(absBar.x, absBar.y) - thickness;
-  d = min(d, bar);
-
-  return d;
-}
 
 vec2 voronoi(in vec2 x, in float time) {
   vec2 p = floor(x);
@@ -67,14 +37,17 @@ vec2 voronoi(in vec2 x, in float time) {
       // vec2 absR = abs(r);
       // float d = max( absR.x, absR.y );
 
-      float v = two_numeral((p + b) * 0.090909);
-      if (d < res.x && v < 0.0125) {
+      float v = mask((p + b) * 0.090909);
+      if (d < res.x && v < 0.00125) {
         res = vec3( d, offset );
       }
     }
   }
+  // Add mask to distance calculation
+  // float v = mask(x * 0.090909);
+  // res.x = min(res.x, -24. * v);
+  // res.x = mix(1., res.x, smoothstep(0.00125, 0., v));
 
-  // return vec2(res.x, dot(res.yz, vec2(1.0)));
   return vec2(sqrt( res.x ), dot(res.yz, vec2(1.0)));
 }
 vec2 voronoi(in vec2 x) {
