@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 2.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -648,18 +648,27 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  const int totalInt = 12;
-
-  for (int i = 0; i < totalInt; i++) {
-    q = abs(q);
-    q = (vec4(q, 1) * kifsM).xyz;
-  }
+  const float rockAmount = 0.015625 * PI;
+  q *= rotationMatrix(vec3(0, 1, 0), rockAmount * sin(cosT));
+  q *= rotationMatrix(normalize(vec3(1, 0, 1)), rockAmount * cos(cosT));
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(0.125)), 0, 0);
+
+  const float size = 0.375;
+  vec3 s = vec3(sdBox(q, vec3(size)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.3;
+  // Pointing in -x
+  vec3 wall = vec3(sdPlane(q + vec3(size, 0, 0), vec4(1, 0, 0, 0)), 0, 0);
+  d = dMin(d, wall);
+
+  // Pointing in -y
+  wall = vec3(sdPlane(q + vec3(0, size, 0), vec4(0, 1, 0, 0)), 0, 0);
+  d = dMin(d, wall);
+
+  // Pointing in -z
+  wall = vec3(sdPlane(q + vec3(0, 0, size), vec4(0, 0, 1, 0)), 0, 0);
+  d = dMin(d, wall);
 
   return d;
 }
@@ -835,6 +844,36 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1.);
 
+  // X Lines
+  const float thickness = 0.2125;
+  const float freq = PI * 8.0;
+  float i = smoothstep(3. * edge + thickness, thickness, abs(sin(freq * mPos.x)));
+  float otherI = smoothstep(3. * edge + thickness, thickness, abs(sin(freq * mPos.z)));
+  // i = otherI;
+  i = mix(i, otherI, smoothstep(0.8, 0.8 + edge, dot(nor, vec3(1, 0, 0))));
+  // i = smoothstep(0.8, 0.8 + edge, dot(nor, vec3(1, 0, 0)));
+
+  // // Spheres
+  // vec3 q = mPos;
+  // const float size = 0.125;
+  // vec3 c = pMod3(q, vec3(size));
+
+  // // Naive sphere solution
+  // float l = length(q);
+  // float i = smoothstep(0.5 * edge, 0., l - size * 0.21);
+
+  // Screen space projected sphere solution
+  // vec3 localOrigin = mPos - q;
+  // vec3 localEye = rd;
+  // const float rockAmount = 0.015625 * PI;
+  // localEye *= rotationMatrix(vec3(0, 1, 0), rockAmount * sin(cosT));
+  // localEye *= rotationMatrix(normalize(vec3(1, 0, 1)), rockAmount * cos(cosT));
+  // vec3 localOriginToCamera = normalize(localOrigin - cameraRo);
+  // float cameraAngle = dot(localOriginToCamera, localEye);
+  // float i = smoothstep(0.5 + edge, 0.5, cameraAngle);
+
+  color = vec3(i);
+
   return color;
 }
 
@@ -905,20 +944,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.2;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.8;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.8;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -931,7 +970,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.30 * amb * diffuseColor;
+        // lin += 0.30 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
@@ -968,9 +1007,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color = pow(color, vec3(1.05));
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.01);
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.01);
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -1151,20 +1190,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  const float totalT = 0.05 * PI;
-  const int hues = 10;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + cosT;
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    color += layerColor * two_dimensional(uv, cosT + totalT * fraction);
-  }
-  color *= 0.25;
-  // color = pow(color, vec3(0.8));
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
