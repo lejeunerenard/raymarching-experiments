@@ -1138,49 +1138,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  // Mod angle based rings
-  // float a = atan(q.y, q.x);
-  // float r = length(q);
+  vec2 lQ = q;
+  lQ.y += 0.1 * sin(2. * lQ.x + generalT);
 
-  // float layerThickness = 0.1;
-  // float layerC = pMod1(r, layerThickness);
-
-  // float angleNum = clamp(1., 8., layerC);
-  // float c = pMod1(a, angleNum);
-
-  // float sphereD = length(vec2(a, r));
-  // float n = smoothstep(edge, 0., sphereD - 0.3 * layerThickness);
-  // color = vec3(n);
-
-  // Hex Grid of circles offset by coordinate radius from center
-  // const float size = 0.1;
-  // vec2 c = floor((q + size*0.5)/size);
-  // vec2 absC = abs(c);
-  // q *= rotMat2(sin(generalT + max(absC.x, absC.y)));
-  // pMod2(q, vec2(size));
-
-  // float sphereD = length(q);
-  // float n = smoothstep(edge, 0., sphereD - 0.10 * size);
-  // color = vec3(n);
-
-  // Mod Rings of integer circles
-  float r = length(q);
-
-  const float layerThickness = 0.125;
-  float layerIndex = floor((r + 0.5 * layerThickness) / layerThickness);
-  float reps = floor(6. * layerIndex * 2.399827721492203 / PI);
-  q *= rotMat2(sin(generalT + 0.11 * layerIndex));
-  float c = pModPolar(q, reps);
-
-  q.x -= layerIndex * layerThickness;
-  float sphereD = length(q);
-  float n = smoothstep(edge, 0., sphereD - 0.2 * layerThickness);
-
-  // Center Added in
-  sphereD = length(uv);
-  n = max(n, smoothstep(edge, 0., sphereD - 0.2 * layerThickness));
-
+  vec2 axis = vec2(1, 0);
+  float n = smoothstep(0.2, 0., abs(sin(PI * 8. * dot(lQ, axis))));
+  n = max(n, smoothstep(0.2, 0., abs(sin(PI * 8. * dot(lQ, axis.yx)))));
   color = vec3(n);
+
+  vec2 absQ = abs(lQ);
+  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.5);
+  color *= mask;
 
   return color;
 }
@@ -1190,6 +1158,20 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float totalT = 0.1 * PI;
+  const int hues = 8;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + cosT;
+    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+    color += layerColor * two_dimensional(uv, cosT + totalT * fraction);
+  }
+  color *= 0.65;
+  // color = pow(color, vec3(0.8));
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
