@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 2.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -645,30 +645,33 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
   vec3 q = p;
+  const float size = 0.25;
 
-  const float rockAmount = 0.015625 * PI;
-  q *= rotationMatrix(vec3(0, 1, 0), rockAmount * sin(cosT));
-  q *= rotationMatrix(normalize(vec3(1, 0, 1)), rockAmount * cos(cosT));
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  float dir = (1. - 2.0 * mod(c.y, 2.));
+  vec2 offsetC = c - vec2(10);
+  float t = saturate(6. * norT + 0.2 * offsetC.y + 0.05 * offsetC.x);
+  t = quad(t);
+  q.xz *= rotMat2(PI * t);
+  q.y -= dir * size * t;
 
   mPos = q;
-
-  const float size = 0.375;
-  vec3 s = vec3(sdBox(q, vec3(size)), 0, 0);
+  vec3 absQ = abs(q);
+  float limit = 0.900 * 0.25 * size;
+  float isLimitX = smoothstep(0., -edge, absQ.x - limit);
+  float isLimitY = smoothstep(0., -edge, absQ.y - limit);
+  float isLimitZ = smoothstep(0., -edge, absQ.z - limit);
+  float mat = saturate(
+        isLimitX * isLimitY
+      + isLimitX * isLimitZ
+      + isLimitY * isLimitZ
+  );
+  vec3 s = vec3(sdBox(q, vec3(0.25 * size)), mat, 0);
   d = dMin(d, s);
 
-  // Pointing in -x
-  vec3 wall = vec3(sdPlane(q + vec3(size, 0, 0), vec4(1, 0, 0, 0)), 0, 0);
-  d = dMin(d, wall);
-
-  // Pointing in -y
-  wall = vec3(sdPlane(q + vec3(0, size, 0), vec4(0, 1, 0, 0)), 0, 0);
-  d = dMin(d, wall);
-
-  // Pointing in -z
-  wall = vec3(sdPlane(q + vec3(0, 0, size), vec4(0, 0, 1, 0)), 0, 0);
-  d = dMin(d, wall);
+  d.x *= 0.1;
 
   return d;
 }
@@ -842,37 +845,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.);
-
-  // X Lines
-  const float thickness = 0.2125;
-  const float freq = PI * 8.0;
-  float i = smoothstep(3. * edge + thickness, thickness, abs(sin(freq * mPos.x)));
-  float otherI = smoothstep(3. * edge + thickness, thickness, abs(sin(freq * mPos.z)));
-  // i = otherI;
-  i = mix(i, otherI, smoothstep(0.8, 0.8 + edge, dot(nor, vec3(1, 0, 0))));
-  // i = smoothstep(0.8, 0.8 + edge, dot(nor, vec3(1, 0, 0)));
-
-  // // Spheres
-  // vec3 q = mPos;
-  // const float size = 0.125;
-  // vec3 c = pMod3(q, vec3(size));
-
-  // // Naive sphere solution
-  // float l = length(q);
-  // float i = smoothstep(0.5 * edge, 0., l - size * 0.21);
-
-  // Screen space projected sphere solution
-  // vec3 localOrigin = mPos - q;
-  // vec3 localEye = rd;
-  // const float rockAmount = 0.015625 * PI;
-  // localEye *= rotationMatrix(vec3(0, 1, 0), rockAmount * sin(cosT));
-  // localEye *= rotationMatrix(normalize(vec3(1, 0, 1)), rockAmount * cos(cosT));
-  // vec3 localOriginToCamera = normalize(localOrigin - cameraRo);
-  // float cameraAngle = dot(localOriginToCamera, localEye);
-  // float i = smoothstep(0.5 + edge, 0.5, cameraAngle);
-
-  color = vec3(i);
+  vec3 color = vec3(m);
 
   return color;
 }
@@ -1016,6 +989,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
+      color = diffuseColor;
+
       // Debugging
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
@@ -1158,20 +1133,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  const float totalT = 0.1 * PI;
-  const int hues = 8;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + cosT;
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    color += layerColor * two_dimensional(uv, cosT + totalT * fraction);
-  }
-  color *= 0.65;
-  // color = pow(color, vec3(0.8));
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
