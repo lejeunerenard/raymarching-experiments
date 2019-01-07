@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -652,22 +652,31 @@ vec3 map (in vec3 p, in float dT) {
 
   float dir = (1. - 2.0 * mod(c.y, 2.));
   vec2 offsetC = c - vec2(10);
-  float t = saturate(6. * norT + 0.2 * offsetC.y + 0.05 * offsetC.x);
-  t = quad(t);
-  q.xz *= rotMat2(PI * t);
-  q.y -= dir * size * t;
+  float t1 = saturate(15. * norT + 0.2 * offsetC.y + 0.05 * offsetC.x);
+  t1 = quad(t1);
+  q *= rotationMatrix(normalize(vec3(-1, 1, 1)), PI * t1);
+
+  float t2 = saturate(15. * norT + 0.2 * offsetC.x + 0.05 * offsetC.y - 5.0);
+  t2 = circ(t2);
+  q.xz *= rotMat2(PI * t2);
+
+  float t3 = saturate(15. * norT + 0.2 * offsetC.y + 0.05 * offsetC.x - 10.0);
+  t3 = quint(t3);
+  q.xz *= rotMat2(PI * t3);
+  q *= rotationMatrix(normalize(vec3(-1, 1, 1)), -PI * t3);
 
   mPos = q;
   vec3 absQ = abs(q);
-  float limit = 0.900 * 0.25 * size;
-  float isLimitX = smoothstep(0., -edge, absQ.x - limit);
-  float isLimitY = smoothstep(0., -edge, absQ.y - limit);
-  float isLimitZ = smoothstep(0., -edge, absQ.z - limit);
-  float mat = saturate(
-        isLimitX * isLimitY
-      + isLimitX * isLimitZ
-      + isLimitY * isLimitZ
-  );
+  // float limit = 0.900 * 0.25 * size;
+  // float isLimitX = smoothstep(0., -edge, absQ.x - limit);
+  // float isLimitY = smoothstep(0., -edge, absQ.y - limit);
+  // float isLimitZ = smoothstep(0., -edge, absQ.z - limit);
+  // float mat = saturate(
+  //       isLimitX * isLimitY
+  //     + isLimitX * isLimitZ
+  //     + isLimitY * isLimitZ
+  // );
+  float mat = smoothstep(edge, 0., q.x);
   vec3 s = vec3(sdBox(q, vec3(0.25 * size)), mat, 0);
   d = dMin(d, s);
 
@@ -846,6 +855,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(m);
+
+  color = mix(pow(#66C4FF, vec3(2.2)), pow(#FFB44C, vec3(2.2)), m);
 
   return color;
 }
