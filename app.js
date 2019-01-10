@@ -5,7 +5,6 @@ import createTexture from 'gl-texture2d'
 import createFBO from 'gl-fbo'
 
 import ndarray from 'ndarray'
-import fit from 'canvas-fit'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
 import { rot4 } from './utils'
@@ -23,7 +22,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_WET = 0
 const BLOOM_PASSES = 0
-const BLOOM_MIN_BRIGHTNESS = 0.35
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -226,7 +225,7 @@ export default class App {
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(2, 2, 2)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -273,7 +272,9 @@ export default class App {
   }
 
   getDimensions () {
-    return [dpr * window.innerWidth, dpr * window.innerHeight]
+    let width = this.width || window.innerWidth
+    let height = this.height || window.innerHeight
+    return [dpr * width, dpr * height]
   }
 
   setupFBOs (gl) {
@@ -465,8 +466,11 @@ export default class App {
 
   resize (e) {
     let canvas = this.canvas
-    fit(canvas, window, dpr)
     let dim = this.getDimensions()
+    canvas.width = dim[0]
+    canvas.height = dim[1]
+    canvas.style.width = dim[0] + 'px'
+    canvas.style.height = dim[1] + 'px'
 
     this.state[0].shape = dim
     this.state[1].shape = dim

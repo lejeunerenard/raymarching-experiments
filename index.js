@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 4
+const secondsLong = 8
 const capturing = false
 
 const FOV = 70
@@ -19,13 +19,16 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'focus-render1',
+    name: 'trinity-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
   })
+
+  app.width = 1080
+  app.height = 1080
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
@@ -64,7 +67,7 @@ if (capturing) {
     let dim = app.getDimensions()
     effect.setSize(dim[0], dim[1])
   }
-  window.addEventListener('resize', resize)
+  // window.addEventListener('resize', resize)
   resize()
 
   navigator.getVRDisplays().then((displays) => {
