@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -646,18 +646,48 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
-  const float size = 0.25;
+  const float size = 0.3;
 
   float a = atan(q.y, q.x);
-  float r = length(q.xy) - size * 2.;
+  mat2 rot = rotMat2(3. * 0.25 * a + cosT);
+
+  float r = length(p.xy);
 
   q.xy = vec2(a, r);
-  q.yz *= rotMat2(3. * 0.25 * a + cosT);
+  vec3 c = vec3(sdBox(q, vec3(PI, vec2(0.2, 0.3))), 2, 0);
+  d = dMin(d, c);
 
-  vec3 s = vec3(sdBox(q, vec3(TWO_PI, vec2(size))), 0, 0);
+  r = length(p.xy) - size * 3.;
+
+  q.xy = vec2(a, r);
+  q.yz *= rot;
+
+  float firstIsBigger = smoothstep(0.25, 0.75, 0.5 + 0.5 * sin(cosT));
+  const float bigBoxR = size;
+  const float smallBoxR = 0.6 * size;
+
+  // Hollow box
+  float angleLength = PI * 0.125;
+  vec3 hbQ = q;
+  hbQ.x -= PI * (0. + 0.75 * sin(2. * cosT));
+  float boxR = mix(smallBoxR, bigBoxR, firstIsBigger);
+  vec3 s = vec3(sdBox(hbQ, vec3(angleLength, vec2(boxR))), 1, 0);
+  float h = sdBox(hbQ, vec3(1.1 * angleLength, vec2(boxR * 0.8)));
+  s.x = max(s.x, -h);
   d = dMin(d, s);
 
-  // d.x *= 0.1;
+  // Other Hollow box
+  angleLength = PI * 0.1;
+  hbQ = q;
+  hbQ.x = abs(a);
+  hbQ.x -= PI * (0.5 + 0.25 * cos(2. * cosT));
+  boxR = mix(bigBoxR, smallBoxR, firstIsBigger);
+  s = vec3(sdBox(hbQ, vec3(angleLength, vec2(boxR))), 0, 0);
+  h = sdBox(hbQ, vec3(1.1 * angleLength, vec2(boxR * 0.8)));
+  s.x = max(s.x, -h);
+  d = dMin(d, s);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -834,8 +864,11 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(1);
 
   color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + norT + vec3(0, 0.33, 0.67)));
+  color *= 0.9;
+  color = mix(color, vec3(0.025), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(2.), isMaterialSmooth(m, 2.));
 
-  return 0.9 * color;
+  return color;
 }
 
 #pragma glslify: reflection = require(./reflection, getNormal=getNormal2, diffuseColor=baseColor, map=map, maxDistance=maxDistance, epsilon=epsilon, maxSteps=512, getBackground=getBackground)
@@ -963,7 +996,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += 0.3 * dispersionColor;
+      color += isMaterialSmooth(t.y, 0.) * 0.3 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
