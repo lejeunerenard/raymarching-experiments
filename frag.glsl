@@ -1130,13 +1130,22 @@ float sqrMask (in vec2 p) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  vec2 q = uv;
+  vec2 q = abs(uv);
 
-  float a = atan(q.y, q.x);
-  float r = length(q);
+  const float scale = 1.234;
 
-  float n = smoothstep(edge, 0., sin(9. * a + 6. * sin(generalT + 2. * r)));
+  q += scale * 0.100000 * cos( 7. * q.yx + generalT);
+  q += scale * 0.050000 * cos(11. * q.yx + generalT);
+  q += scale * 0.025000 * cos(17. * q.yx + generalT);
+  q += scale * 0.012500 * cos(21. * q.yx + generalT);
+  q += scale * 0.006250 * cos(23. * q.yx + generalT);
+  q += scale * 0.003125 * cos(29. * q.yx + generalT);
+
+  float n = smoothstep(edge, 0., sin(dot(q, vec2(73))));
   color = vec3(n);
+
+  vec2 absQ = abs(uv);
+  color *= smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.6);
 
   return color;
 }
@@ -1146,6 +1155,21 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float totalT = 0.1 * PI;
+  const int hues = 20;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + cosT;
+    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+    float a = two_dimensional(uv, cosT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+  color *= 0.20;
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
