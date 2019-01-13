@@ -1130,22 +1130,20 @@ float sqrMask (in vec2 p) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  vec2 q = abs(uv);
+  vec2 q = uv;
 
-  const float scale = 1.234;
+  float circD = length(q) - 0.5;
+  float bubbleFactor = 1. - 0.75 * (-circD * 2.);
+  bubbleFactor = pow(bubbleFactor, 3.);
+  q *= mix(1., bubbleFactor, smoothstep(edge, 0., circD));
 
-  q += scale * 0.100000 * cos( 7. * q.yx + generalT);
-  q += scale * 0.050000 * cos(11. * q.yx + generalT);
-  q += scale * 0.025000 * cos(17. * q.yx + generalT);
-  q += scale * 0.012500 * cos(21. * q.yx + generalT);
-  q += scale * 0.006250 * cos(23. * q.yx + generalT);
-  q += scale * 0.003125 * cos(29. * q.yx + generalT);
+  q += 0.10000 * cos( 7. * q.yx + generalT );
+  q += 0.05000 * cos(13. * q.yx + generalT );
+  q += 0.02500 * cos(21. * q.yx + generalT );
 
-  float n = smoothstep(edge, 0., sin(dot(q, vec2(73))));
+  vec2 axis = vec2(1, 0);
+  float n = smoothstep(edge, 0., sin(dot(q, 92. * axis)));
   color = vec3(n);
-
-  vec2 absQ = abs(uv);
-  color *= smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.6);
 
   return color;
 }
