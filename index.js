@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distorted-render1',
+    name: 'butterfly-effect-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

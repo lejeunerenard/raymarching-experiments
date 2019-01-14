@@ -646,48 +646,21 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
-  const float size = 0.3;
 
-  float a = atan(q.y, q.x);
-  mat2 rot = rotMat2(3. * 0.25 * a + cosT);
+  // q -= 0.5 + 0.25 * sin(cosT);
 
-  float r = length(p.xy);
+  mat3 rot = rotationMatrix(vec3(1.23, 1.23, -0.1), 1.124 + 0.5 * cos(cosT));
 
-  q.xy = vec2(a, r);
-  vec3 c = vec3(sdBox(q, vec3(PI, vec2(0.2, 0.3))), 2, 0);
-  d = dMin(d, c);
+  for (int i = 0; i < 5; i++) {
+    q = abs(q);
+    q.xy -= 0.5;
+    q *= 1.7;
+    vec3 doc = vec3(dodecahedral(q, 72., 0.5), 0., 0.);
+    d = dMin(d, doc);
+    q *= rot;
+  }
 
-  r = length(p.xy) - size * 3.;
-
-  q.xy = vec2(a, r);
-  q.yz *= rot;
-
-  float firstIsBigger = smoothstep(0.25, 0.75, 0.5 + 0.5 * sin(cosT));
-  const float bigBoxR = size;
-  const float smallBoxR = 0.6 * size;
-
-  // Hollow box
-  float angleLength = PI * 0.125;
-  vec3 hbQ = q;
-  hbQ.x -= PI * (0. + 0.75 * sin(2. * cosT));
-  float boxR = mix(smallBoxR, bigBoxR, firstIsBigger);
-  vec3 s = vec3(sdBox(hbQ, vec3(angleLength, vec2(boxR))), 1, 0);
-  float h = sdBox(hbQ, vec3(1.1 * angleLength, vec2(boxR * 0.8)));
-  s.x = max(s.x, -h);
-  d = dMin(d, s);
-
-  // Other Hollow box
-  angleLength = PI * 0.1;
-  hbQ = q;
-  hbQ.x = abs(a);
-  hbQ.x -= PI * (0.5 + 0.25 * cos(2. * cosT));
-  boxR = mix(bigBoxR, smallBoxR, firstIsBigger);
-  s = vec3(sdBox(hbQ, vec3(angleLength, vec2(boxR))), 0, 0);
-  h = sdBox(hbQ, vec3(1.1 * angleLength, vec2(boxR * 0.8)));
-  s.x = max(s.x, -h);
-  d = dMin(d, s);
-
-  d.x *= 0.5;
+  d.x *= 0.1;
 
   return d;
 }
@@ -863,10 +836,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + norT + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + pos + vec3(0, 0.33, 0.67)));
   color *= 0.9;
-  color = mix(color, vec3(0.025), isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(2.), isMaterialSmooth(m, 2.));
 
   return color;
 }
@@ -939,7 +910,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.8;
-      float specCo = 0.0;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
@@ -951,7 +922,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.25;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1153,21 +1124,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  const float totalT = 0.1 * PI;
-  const int hues = 20;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + cosT;
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-  color *= 0.20;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
