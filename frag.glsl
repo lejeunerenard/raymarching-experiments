@@ -1103,16 +1103,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float circD = length(q) - 0.5;
-  float bubbleFactor = 1. - 0.75 * (-circD * 2.);
+  float circD = sdHexPrism(vec3(q, 0), vec2(0.6, 4));
+  float bubbleFactor = 1. - 0.55 * (-circD * 2.);
   bubbleFactor = pow(bubbleFactor, 3.);
   q *= mix(1., bubbleFactor, smoothstep(edge, 0., circD));
 
-  q += 0.10000 * cos( 7. * q.yx + generalT );
-  q += 0.05000 * cos(13. * q.yx + generalT );
-  q += 0.02500 * cos(21. * q.yx + generalT );
+  // q += vfbmWarp(0.25 * q);
 
-  vec2 axis = vec2(1, 0);
+  // q += 0.10000 * cos( 7. * q.yx + generalT );
+  // q += 0.05000 * cos(13. * q.yx + generalT );
+  // q += 0.02500 * cos(21. * q.yx + generalT );
+
+  vec2 axis = vec2(1, 0) * rotMat2(generalT);
   float n = smoothstep(edge, 0., sin(dot(q, 92. * axis)));
   color = vec3(n);
 
@@ -1124,6 +1126,21 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float totalT = 0.025 * PI;
+  const int hues = 10;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + cosT;
+    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+    float a = two_dimensional(uv, cosT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+  color *= 0.5;
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
