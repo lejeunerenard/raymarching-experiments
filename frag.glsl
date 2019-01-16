@@ -39,7 +39,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 4096
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -645,22 +645,23 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p.y -= 0.05 * cos(2. * cosT);
+  p *= globalRot;
   vec3 q = p;
 
-  // q -= 0.5 + 0.25 * sin(cosT);
+  q *= rotationMatrix(normalize(vec3(1, 1, 1)), 0.20 * PI);
+  mat3 rot = rotationMatrix(normalize(vec3(0.23, 1., 0.8)), 0.75 * PI * (0.30 + 0.20 * sin(cosT)));
 
-  mat3 rot = rotationMatrix(vec3(1.23, 1.23, -0.1), 1.124 + 0.5 * cos(cosT));
-
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 3; i++) {
     q = abs(q);
-    q.xy -= 0.5;
-    q *= 1.7;
-    vec3 doc = vec3(dodecahedral(q, 72., 0.5), 0., 0.);
-    d = dMin(d, doc);
     q *= rot;
+    q.xy -= 0.45;
+    q *= 1.7 + 0.2 * sin(cosT);
+    vec3 doc = vec3(dodecahedral(q, 72., 0.6), 0., 0.);
+    d = dMin(d, doc);
   }
 
-  d.x *= 0.1;
+  d.x *= 0.2;
 
   return d;
 }
@@ -966,8 +967,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      color += isMaterialSmooth(t.y, 0.) * 0.3 * dispersionColor;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // color += isMaterialSmooth(t.y, 0.) * 0.3 * dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
@@ -1126,21 +1127,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  const float totalT = 0.025 * PI;
-  const int hues = 10;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + cosT;
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-  color *= 0.5;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }

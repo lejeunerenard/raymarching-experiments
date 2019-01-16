@@ -12,6 +12,12 @@ uniform sampler2D buffer;
 uniform sampler2D prevBuffer;
 uniform float wet;
 
+const float totalT = 8.0;
+float modT = mod(time, totalT);
+float norT = modT / totalT;
+float cosT = TWO_PI / totalT * modT;
+const float edge = 0.0024;
+
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: import(./background)
 
@@ -22,11 +28,6 @@ void colorMap (inout vec3 color) {
   // Dark
   color = mix(#9F6747, color, clamp(exp(l) * .255, 0., 1.));
 }
-
-const float totalT = 8.0;
-float modT = mod(time, totalT);
-float norT = modT / totalT;
-float cosT = TWO_PI / totalT * modT;
 
 void main() {
   const vec3 gamma = vec3(2.2);
