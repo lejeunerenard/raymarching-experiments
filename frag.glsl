@@ -39,7 +39,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 4096
+#define maxSteps 6000
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -645,23 +645,17 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p.y -= 0.05 * cos(2. * cosT);
-  p *= globalRot;
   vec3 q = p;
 
-  q *= rotationMatrix(normalize(vec3(1, 1, 1)), 0.20 * PI);
-  mat3 rot = rotationMatrix(normalize(vec3(0.23, 1., 0.8)), 0.75 * PI * (0.30 + 0.20 * sin(cosT)));
+  q += vec3( 1,  1,  1) * 0.2000 * cos(11. * q.yzx + cosT);
+  q += vec3(-1,  1,  1) * 0.1000 * cos(23. * q.yzx + cosT);
+  q += vec3( 1,  1, -1) * 0.0500 * cos(31. * q.yzx + cosT);
+  q += vec3( 1, -1,  1) * 0.0250 * cos(37. * q.yzx + cosT);
 
-  for (int i = 0; i < 3; i++) {
-    q = abs(q);
-    q *= rot;
-    q.xy -= 0.45;
-    q *= 1.7 + 0.2 * sin(cosT);
-    vec3 doc = vec3(dodecahedral(q, 72., 0.6), 0., 0.);
-    d = dMin(d, doc);
-  }
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  d = dMin(d, s);
 
-  d.x *= 0.2;
+  d.x *= 0.05;
 
   return d;
 }
@@ -837,8 +831,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + pos + vec3(0, 0.33, 0.67)));
-  color *= 0.9;
+  // color += 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + pos + vec3(0, 0.33, 0.67)));
+  // color *= 0.9;
 
   return color;
 }
@@ -889,13 +883,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Material Types
 
       vec3 nor = getNormal2(pos, 0.0005 * t.x);
-      // float bumpsScale = 0.50;
-      // float bumpIntensity = 0.2;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 0.50;
+      float bumpIntensity = 0.2;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -911,14 +905,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.8;
-      float specCo = 0.2;
+      float specCo = 0.7;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.4;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -936,7 +930,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.30 * amb * diffuseColor;
+        lin += 0.70 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
