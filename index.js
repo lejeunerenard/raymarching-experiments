@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'encroach-render1',
+    name: 'm33333lt-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
