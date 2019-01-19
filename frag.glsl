@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -645,18 +645,21 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  const float size = 0.1;
+
   vec3 q = p;
 
-  q += vec3( 1,  1,  1) * 0.1000 * cos(11. * q.yzx + cosT);
-  q += vec3(-1,  1,  1) * 0.0500 * sin(23. * q.yzx + cosT);
-  q += vec3( 1,  1, -1) * 0.0250 * cos(31. * q.yzx + cosT);
-  q += vec3( 1, -1,  1) * 0.0125 * cos(37. * q.yzx + cosT);
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  float h = 0.1 * sin(-length(c) + cosT);
+  q.y -= h;
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(0.56)), 0, 0);
+  const float xzWidth = size * 0.4;
+  vec3 s = vec3(sdBox(q, vec3(xzWidth, 0.2, xzWidth)), 0, h);
   d = dMin(d, s);
 
-  d.x *= 0.5;
+  d.x *= 0.3;
 
   return d;
 }
@@ -738,7 +741,7 @@ const float amount = 0.1;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.1;
@@ -830,9 +833,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  color += smoothstep(edge, 0., sin(dot(mPos, vec3(91))));
+  vec3 iridescent = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + saturate(trap * 10.2) + norT + vec3(0, 0.33, 0.67)));
+  color = mix(color, iridescent, smoothstep(0., 0.1, trap));
+  // color += smoothstep(edge, 0., sin(dot(mPos, vec3(91))));
 
   return color;
 }
@@ -912,7 +917,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.2;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -930,7 +935,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.80 * amb * diffuseColor;
+        lin += 0.60 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
@@ -950,20 +955,23 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      float isIridescent = smoothstep(0., 0.1, t.w);
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += isIridescent * 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // color += isMaterialSmooth(t.y, 0.) * 0.3 * dispersionColor;
-      // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      dispersionColor *= 0.25;
+      // color = mix(color, dispersionColor, isIridescent);
+      color += dispersionColor * isIridescent;
+      //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
       // Fog
