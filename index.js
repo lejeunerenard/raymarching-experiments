@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'hate-render1',
+    name: 'pile-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
