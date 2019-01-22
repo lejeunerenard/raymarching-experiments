@@ -645,32 +645,42 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float size = 0.35;
-
+  // p *= globalRot;
   vec3 q = p;
 
-  mat3 rot = rotationMatrix(normalize(vec3(0.3, 1., 0.8)), PI * 0.33);
-  vec3 axis = vec3(1, 0, 0) * rot;
+  float radius = 0.3;
+  float thickness = 0.15;
 
-  for (int i = 0; i < 29; i ++) {
-    vec3 localQ = q + size * axis;
-    float fI = float(i);
-    localQ *= rotationMatrix(normalize(vec3(0.3, 1., 0.8)), fI * PI * 0.17234 + PI * 0.5 * cos(cosT + PI * 0.023925 * fI));
-    mPos = localQ;
-    vec3 s = vec3(sdBox(localQ, vec3(size)), 0, 0);
-    const float scaleFact = 0.9;
-    float hollow = sdBox(localQ, vec3(size * scaleFact, size * scaleFact, 2.));
-    s.x = max(s.x, - hollow);
-    hollow = sdBox(localQ.xzy, vec3(size * scaleFact, size * scaleFact, 2.));
-    s.x = max(s.x, - hollow);
-    hollow = sdBox(localQ.yzx, vec3(size * scaleFact, size * scaleFact, 2.));
-    s.x = max(s.x, - hollow);
+  float a = atan(q.y, q.x);
+  float r = length(q.xy) - radius;
+  float r2 = length(q.xy) - radius - 3.25 * thickness;
 
-    d = dMin(d, s);
-    axis *= rot;
-  }
+  q.xy = vec2(a, r);
 
-  d.x *= 0.6;
+  const float aStep = PI * 0.125;
+  float rotA = floor(a / aStep) * aStep;
+  q.yz *= rotMat2(rotA * 0.75
+      + cosT
+      // + PI * 0.5 * smoothstep(0.1, 0.2, norT - ((rotA + PI) / (aStep * 18.25)))
+  );
+
+  vec3 s = vec3(sdBox(q, vec3(PI, thickness, thickness)), 0, 0);
+  d = dMin(d, s);
+
+  q = p;
+  q.xy = vec2(a, r2);
+  const float aStep2 = PI * 0.0625;
+  rotA = floor(a / aStep2) * aStep2;
+  q.yz *= rotMat2(rotA * 0.75
+      + cosT
+      // + PI * 0.5 * smoothstep(0.1, 0.2, norT - ((rotA + PI) / (aStep * 18.25)))
+  );
+
+  s = vec3(sdBox(q, vec3(PI, thickness, thickness)), 0, 0);
+  d = dMin(d, s);
+
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -844,7 +854,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.0);
+  vec3 color = vec3(0);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (pos + dot(nor, rd) + vec3(0, 0.33, 0.67)));
+  color *= 0.5;
 
   return color;
 }
@@ -942,7 +955,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.350 * amb * diffuseColor;
+        // lin += 0.350 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
@@ -973,10 +986,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.9;
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.9;
       // color = mix(color, dispersionColor, isIridescent);
-      // color += dispersionColor;
+      color += dispersionColor;
       //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
