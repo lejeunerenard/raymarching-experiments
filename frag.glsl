@@ -648,37 +648,24 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  float radius = 0.3;
-  float thickness = 0.15;
+  const float size = 0.15;
 
-  float a = atan(q.y, q.x);
-  float r = length(q.xy) - radius;
-  float r2 = length(q.xy) - radius - 3.25 * thickness;
+  const int dim = 7;
 
-  q.xy = vec2(a, r);
+  // for (int x = -dim; x < dim; x++)
+  // for (int z = -dim; z < dim; z++) {
+  //   vec3 b = vec3(sdBox(q + size * vec3(x, 0, z), vec3(0.45 * size)), 0, 0);
+  //   d = dMin(d, b);
+  // }
 
-  const float aStep = PI * 0.125;
-  float rotA = floor(a / aStep) * aStep;
-  q.yz *= rotMat2(rotA * 0.75
-      + cosT
-      // + PI * 0.5 * smoothstep(0.1, 0.2, norT - ((rotA + PI) / (aStep * 18.25)))
-  );
-
-  vec3 s = vec3(sdBox(q, vec3(PI, thickness, thickness)), 0, 0);
-  d = dMin(d, s);
+  vec2 c = pMod2(q.xz, vec2(size));
+  q.y -= 0.05 * sin(length(c) - cosT + 0.1 * sin(cosT + dot(c, vec2(1))) + 0.0 * noise(23.234534 * c));
+  vec3 b = vec3(sdBox(q, vec3(0.425 * size)), 0, 0);
+  d = dMin(d, b);
 
   q = p;
-  q.xy = vec2(a, r2);
-  const float aStep2 = PI * 0.0625;
-  rotA = floor(a / aStep2) * aStep2;
-  q.yz *= rotMat2(rotA * 0.75
-      + cosT
-      // + PI * 0.5 * smoothstep(0.1, 0.2, norT - ((rotA + PI) / (aStep * 18.25)))
-  );
-
-  s = vec3(sdBox(q, vec3(PI, thickness, thickness)), 0, 0);
-  d = dMin(d, s);
-
+  float crop = sdBox(q, vec3(size * (float(dim) - 0.5), 1, size * (float(dim) - 0.5)));
+  d.x = max(d.x, crop);
 
   d.x *= 0.5;
 
@@ -854,10 +841,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
+  vec3 color = pow(#05134A, vec3(2.2));
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (pos + dot(nor, rd) + vec3(0, 0.33, 0.67)));
-  color *= 0.5;
+  color = mix(color, vec3(1), smoothstep(0.8, 0.81, dot(nor, vec3(0, 1, 0))));
 
   return color;
 }
@@ -986,10 +972,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.9;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // dispersionColor *= 0.9;
       // color = mix(color, dispersionColor, isIridescent);
-      color += dispersionColor;
+      // color += dispersionColor;
       //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
@@ -1003,7 +989,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -1142,21 +1128,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec3 color = vec3(0);
-
-  const float totalT = 0.25 * PI;
-  const int hues = 20;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(1.5 * uv, 0);
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-  color *= 0.25;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
@@ -1167,7 +1138,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = 0.5 * PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(

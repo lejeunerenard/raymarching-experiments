@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'diminish-the-self-render1',
+    name: 'making-waves-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
