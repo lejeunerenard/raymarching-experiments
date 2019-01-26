@@ -1111,44 +1111,21 @@ float sqrMask (in vec2 p) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  const float size = 0.25;
-  vec2 q = uv;
+  const float size = 0.0625;
+  vec2 q = 1.5 * uv;
 
-  float d = 0.;
-  float halfT = mod(generalT, totalT * 0.5);
-  float halfNorT = halfT / (totalT * 0.5);
+  q *= rotMat2(PI * 0.25);
 
-  const int dim = 5;
-  for (int x = -dim; x < dim + 1; x++)
-  for (int y = -dim; y < dim + 1; y++) {
-    vec2 dir = vec2(x, y);
+  vec2 c = pMod2(q, vec2(size));
 
-    float a = (atan(dir.y, dir.x) + PI) / PI;
-    float localT = saturate(halfNorT - 0.10 * length(dir) + 0.05 * a);
+  vec2 dir = vec2(0, 1);
+  // float dI = dot(c, vec2(1));
+  float dI = 8. * cnoise2(0.223125423 * c);
+  dir *= rotMat2(PI * 0.25 * mod(floor(dI * 0.25), 4.));
+  float d = sin(91. * PI * dot(q, dir));
+  float n = smoothstep(edge, 0., d);
 
-    if (dir == vec2(0)) {
-      dir = mix(dir, vec2(0, 5), localT);
-    }
-
-    dir *= mix(1., 1.5, quart(smoothstep(0., 0.5, localT)));
-
-    float stage2T = quint(smoothstep(0.5, 0.9, localT));
-
-    vec2 relQ = q + size * dir;
-    relQ *= rotMat2(quint(smoothstep(0.3, 0.7, localT)) * 0.5 * PI);
-
-    vec2 absQ = abs(relQ);
-    absQ.y *= 1. + 10000. * stage2T;
-
-    float sqrD = max(absQ.x, absQ.y) - 0.5 * size;
-    float n = smoothstep(edge, 0., sqrD);
-    n = mix(n, 0., smoothstep(0.9, 0.91, stage2T));
-    d = max(d, n);
-  }
-
-  float even = floor(generalT / (totalT * 0.5));
-  float colorI = mix(d, 1. - d, even);
-  color = mix(pow(#346F91, vec3(2.2)), pow(#BCF7ED, vec3(2.2)), colorI);
+  color = vec3(n);
 
   return color;
 }

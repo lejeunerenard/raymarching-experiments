@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'expansion-render2',
+    name: 'forest-from-the-trees-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
