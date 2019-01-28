@@ -645,30 +645,46 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= 0.8;
+
+  p.y -= 0.05;
+
   // p *= globalRot;
   vec3 q = p;
 
-  const vec2 size = vec2(PI * 0.05, 0.25);
-  float r = length(q.xz);
-  float a = atan(q.z, q.x);
+  q += 0.0500 * cos( 7. * q.yzx);
+  q += 0.0250 * cos(17. * q.yzx);
+  // q += 0.0125 * cos(21. * q.yzx);
 
-  vec2 polar = vec2(a, r);
-  vec2 polarPre = polar;
+  vec3 preMod = q;
 
-  vec2 c = pMod2(polar, size);
+  const float size = 0.25;
 
-  vec3 polarQ = vec3(polar, q.y);
-  polarQ.z += 0.05 + 0.05 * (0.5 + 0.5 * sin(cosT + 0.25 * PI * c.x));
-  vec3 s = vec3(sdBox(polarQ, vec3(0.4 * size, 0.1)), 0, 0);
-  d = dMin(d, s);
+  const float layerDif = 3.5 * size;
+  float layer = pMod1(q.z, layerDif);
 
-  float crop = sdBox(vec3(polarPre, q.y) - vec3(0, 5. * size.y, 0), vec3(20.5 * size.x, 2.5 * size.y, 0.5));
+  mat2 rot = rotMat2(0.5 * PI * quart(0.5 + 0.5 * sin(cosT + 0.7 * layer)));
+  q.xy *= rot;
+  preMod.xy *= rot;
+
+  vec2 c = pMod2(q.xy, vec2(size));
+
+  float baseR = 0.39 + 0.1 * sin(cosT - PI * 0.9 * cnoise2(283.2423 * c) - 0.25 * PI * length(c) + layer * PI * 0.5);
+  vec3 outer = vec3(sdCappedCylinder(q.xzy, vec2(size * baseR, 0.03125)), 0, 0);
+  d = dMin(d, outer);
+
+  vec3 inner = vec3(sdCappedCylinder(q.xzy, vec2(size * baseR * 0.5, 1)), 0, 0);
+  d = dMax(d, -inner);
+
+  q = p;
+
+  float crop = sdBox(preMod, vec3(size * 1.5, size * 1.5, 1.5 * layerDif));
   d.x = max(d.x, crop);
 
-  vec3 floor = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  d = dMin(d, floor);
+  // vec3 floor = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  // d = dMin(d, floor);
 
-  d.x *= 0.25;
+  d.x *= 0.6;
 
   return d;
 }
@@ -844,6 +860,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
+  const vec3 orange = pow(#FC7D71, vec3(2.2));
+  const vec3 magenta = pow(#F77CD5, vec3(2.2));
+
+  color = mix(orange, magenta, 0.6 * dot(nor, -rd) + 0.5 * dot(pos, nor));
+
   return color;
 }
 
@@ -883,9 +904,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // lights[0] = light(vec3(0, 0.2, 1.0), 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67))), 1.0);
     // lights[1] = light(vec3(0.4, 0.4, 1.0), 0.5 + 0.5 * cos(TWO_PI * (lightPosScale * pos + vec3(0, 0.1, 0.2))), 1.0);
     // lights[2] = light(vec3(0.4, 0, 1.0), 0.5 + 0.5 * cos(TWO_PI * (lightPosScale * pos + vec3(0.2, 0.3, 0.4))), 1.0);
-    lights[0] = light(normalize(vec3(  0., 0.8, 0.5)), #FFFFFF, 1.0);
-    lights[1] = light(normalize(vec3( 0.4, 0.7, 0.7)), #FF7777, 1.0);
-    lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #77FFFF, 1.0);
+    lights[0] = light(normalize(vec3(  0., 0.8, 0.5)), #FFFFFF, 2.0);
+    lights[1] = light(normalize(vec3( 0.4, 0.7, 0.7)), #FFFFFF, 2.0);
+    lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 2.0);
 
     if (t.x>0.) {
       vec3 color = vec3(0.0);
@@ -914,20 +935,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.25;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.1;
+        float shadowMin = 0.3;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -940,13 +961,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.400 * amb * diffuseColor;
+        lin += 0.300 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
         color +=
           saturate((dif * distIntensity) * lights[i].color * diffuseColor)
-          ; // + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
+          + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
 
         vec3 fromLight = rayOrigin - lightPos;
         float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
