@@ -645,31 +645,25 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= 0.8;
-
-  p.y -= 0.05;
-
-  // p *= globalRot;
   vec3 q = p;
 
-  q += 0.0500 * cos( 7. * q.yzx);
-  q += 0.0250 * cos(17. * q.yzx);
-  // q += 0.0125 * cos(21. * q.yzx);
+  const float size = 0.1;
+  float l = length(q.xy);
 
-  vec3 preMod = q;
+  const float ringSize = 3. * size;
+  float ringI = pMod1(l, ringSize);
 
-  const float size = 0.25;
-
-  const float layerDif = 3.5 * size;
-  float layer = pMod1(q.z, layerDif);
-
-  mat2 rot = rotMat2(0.5 * PI * quart(0.5 + 0.5 * sin(cosT + 0.7 * layer)));
+  mat2 rot = rotMat2(0.25 * PI * quart(0.5 + 0.5 * sin(cosT + 0.3 * ringI)));
   q.xy *= rot;
-  preMod.xy *= rot;
 
-  vec2 c = pMod2(q.xy, vec2(size));
+  float c = pModPolar(q.xy, ringI * 5. + 1.);
+  q.x -= ringI * ringSize;
 
-  float baseR = 0.39 + 0.1 * sin(cosT - PI * 0.9 * cnoise2(283.2423 * c) - 0.25 * PI * length(c) + layer * PI * 0.5);
+  float baseR = 0.50 + 0.3 * cos(cosT
+      // - PI * 0.9 * cnoise2(vec2(283.2423 * c))
+      // - 0.25 * PI * q.x
+      - ringI * PI * 0.2132
+      );
   vec3 outer = vec3(sdCappedCylinder(q.xzy, vec2(size * baseR, 0.03125)), 0, 0);
   d = dMin(d, outer);
 
@@ -677,12 +671,6 @@ vec3 map (in vec3 p, in float dT) {
   d = dMax(d, -inner);
 
   q = p;
-
-  float crop = sdBox(preMod, vec3(size * 1.5, size * 1.5, 1.5 * layerDif));
-  d.x = max(d.x, crop);
-
-  // vec3 floor = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  // d = dMin(d, floor);
 
   d.x *= 0.6;
 
@@ -859,11 +847,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
-
-  const vec3 orange = pow(#FC7D71, vec3(2.2));
-  const vec3 magenta = pow(#F77CD5, vec3(2.2));
-
-  color = mix(orange, magenta, 0.6 * dot(nor, -rd) + 0.5 * dot(pos, nor));
 
   return color;
 }
