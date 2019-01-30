@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'sway-render1',
+    name: 'wrinkle-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

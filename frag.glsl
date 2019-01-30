@@ -647,30 +647,17 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.1;
-  float l = length(q.xy);
+  // q += 0.100 * cos(vec3( 3,   1,   2) * q.yzx + cosT);
+  // q += 0.050 * cos(vec3( 7,  13, -12) * q.yzx + cosT);
+  // q += 0.025 * cos(vec3(21, -31,  17) * q.yzx + cosT);
+  q += 0.1000 * cos( 5. * q.yzx + cosT);
+  q += 0.0500 * cos(11. * q.yzx + cosT);
+  q += 0.0250 * cos(17. * q.yzx + cosT);
+  q += 0.0125 * cos(21. * q.yzx + cosT);
 
-  const float ringSize = 3. * size;
-  float ringI = pMod1(l, ringSize);
-
-  mat2 rot = rotMat2(0.25 * PI * quart(0.5 + 0.5 * sin(cosT + 0.3 * ringI)));
-  q.xy *= rot;
-
-  float c = pModPolar(q.xy, ringI * 5. + 1.);
-  q.x -= ringI * ringSize;
-
-  float baseR = 0.50 + 0.3 * cos(cosT
-      // - PI * 0.9 * cnoise2(vec2(283.2423 * c))
-      // - 0.25 * PI * q.x
-      - ringI * PI * 0.2132
-      );
-  vec3 outer = vec3(sdCappedCylinder(q.xzy, vec2(size * baseR, 0.03125)), 0, 0);
-  d = dMin(d, outer);
-
-  vec3 inner = vec3(sdCappedCylinder(q.xzy, vec2(size * baseR * 0.5, 1)), 0, 0);
-  d = dMax(d, -inner);
-
-  q = p;
+  mPos = q;
+  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
+  d = dMin(d, s);
 
   d.x *= 0.6;
 
@@ -848,6 +835,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
+  float layer = mod(floor(mPos.y * 5.0), 2.);
+  vec2 axis = mix(vec2(-1, 1), vec2(1, 1), layer);
+  float n = smoothstep(edge, 0., sin(PI * 30. * dot(mPos.xy, axis) + cosT));
+  color = vec3(n);
+
+  // color = vec3(smoothstep(edge, 0., sin(PI * 123. * po.x)));
+
   return color;
 }
 
@@ -926,12 +920,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.2;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.3;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
