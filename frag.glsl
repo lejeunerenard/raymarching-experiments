@@ -1108,19 +1108,14 @@ float sqrMask (in vec2 p) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  const float size = 0.0625;
-  vec2 q = 1.5 * uv;
+  vec2 q = uv;
 
-  q *= rotMat2(PI * 0.25);
+  float xInput = saturate(q.x);
+  float xScale = 1.0 + 0.5 * clamp(0., 40., abs(1. / (0.5 * (pow(xInput, 1.5) - 0.5))));
 
-  vec2 c = pMod2(q, vec2(size));
-
-  vec2 dir = vec2(0, 1);
-  // float dI = dot(c, vec2(1));
-  float dI = 8. * cnoise2(0.223125423 * c);
-  dir *= rotMat2(PI * 0.25 * mod(floor(dI * 0.25), 4.));
-  float d = sin(91. * PI * dot(q, dir));
-  float n = smoothstep(edge, 0., d);
+  float column = smoothstep(edge, 0., cos(3. * PI * xScale * q.x));
+  float row = smoothstep(edge, 0., sin(10. * PI * q.y));
+  float n = mix(column, 1. - column, row);
 
   color = vec3(n);
 
@@ -1132,6 +1127,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
@@ -1209,16 +1206,16 @@ void main() {
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
 
     // Gradient effect
-    float brightness = length(gl_FragColor.rgb);
-    vec2 angle = normalize(vec2(1.0, 1.0));
-    gl_FragColor.rgb *= mix(
-      vec3(1),
-      mix(
-        #FF1111,
-        #00aaaa,
-        saturate(0.25 + dot(angle, uv.xy)))
-      , 0.15);
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
+    // float brightness = length(gl_FragColor.rgb);
+    // vec2 angle = normalize(vec2(1.0, 1.0));
+    // gl_FragColor.rgb *= mix(
+    //   vec3(1),
+    //   mix(
+    //     #FF1111,
+    //     #00aaaa,
+    //     saturate(0.25 + dot(angle, uv.xy)))
+    //   , 0.15);
+    // gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 - 0.3 * brightness));
     // gl_FragColor.rgb *= 1.1;
 
     // Go to white as it gets brighter
