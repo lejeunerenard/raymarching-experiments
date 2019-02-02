@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -647,20 +647,15 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.2;
-  float dist = size + 0.1 + 0.05 * cos(cosT);
-  const int dim = 2;
-  for (int x = -dim; x < dim + 1; x++)
-  for (int y = -dim; y < dim + 1; y++)
-  for (int z = -dim; z < dim + 1; z++) {
-    q = p;
-    q -= dist * vec3(x, y, z);
-    mPos = q;
-    vec3 s = vec3(sdBox(q, vec3(size * 0.4)), 0, 0);
-    d = dMin(d, s);
-  }
+  vec2 dir = vec2(0, 1);
+  dir *= rotMat2(cosT);
+  q.y += sin(q.x + cosT) * sin(cnoise2(q.xz + dir) * q.z + cosT);
 
-  // d.x *= 0.6;
+  mPos = q;
+  vec3 s = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  d = dMin(d, s);
+
+  d.x *= 0.6;
 
   return d;
 }
@@ -836,9 +831,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (pos + 0.4 * vfbmWarp(1. * mPos) + vec3(0, 0.33, 0.67)));
   color *= rotationMatrix(normalize(vec3(1., 2, .5)), PI * 0.5 * dot(nor, -rd));
-  color *= rotationMatrix(normalize(vec3(8., 1, 3.5)), PI * 0.5 * cnoise2(1.5 * pos.xy));
+  color *= rotationMatrix(normalize(vec3(8., 1, 3.5) * rotationMatrix(vec3(0., 0.3, 1.), cosT)), PI * 0.5 * cnoise2(1.5 * pos.xy));
 
   return color;
 }
@@ -967,10 +962,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.3;
-      // // color = mix(color, dispersionColor, isIridescent);
-      // color += dispersionColor;
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.3;
+      // color = mix(color, dispersionColor, isIridescent);
+      color += dispersionColor;
       //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.05));
 
