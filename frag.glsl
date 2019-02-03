@@ -649,7 +649,10 @@ vec3 map (in vec3 p, in float dT) {
 
   vec2 dir = vec2(0, 1);
   dir *= rotMat2(cosT);
-  q.y += sin(q.x + cosT) * sin(cnoise2(q.xz + dir) * q.z + cosT);
+  q.y += 0.25 * sin(q.x + cosT) * sin(cnoise2(q.xz + dir) * q.z + cosT);
+  float cell1 = 0.2 * cellular(q + norT);
+  float cell2 = 0.2 * cellular(q + norT - 1.);
+  q.y += mix(cell1, cell2, saturate((norT - 0.6) / (1. - 0.6)));
 
   mPos = q;
   vec3 s = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
@@ -831,9 +834,17 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (pos + 0.4 * vfbmWarp(1. * mPos) + vec3(0, 0.33, 0.67)));
+  vec3 q = pos;
+  q += 0.200 * cos( 3. * q.yzx + cosT);
+  q += 0.100 * cos( 7. * q.yzx + cosT);
+  q += 0.050 * cos(11. * q.yzx + cosT);
+  q += 0.025 * cos(13. * q.yzx + cosT);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4) * q + 0.55 * vfbmWarp(1. * mPos) + vec3(0, 0.33, 0.67)));
   color *= rotationMatrix(normalize(vec3(1., 2, .5)), PI * 0.5 * dot(nor, -rd));
   color *= rotationMatrix(normalize(vec3(8., 1, 3.5) * rotationMatrix(vec3(0., 0.3, 1.), cosT)), PI * 0.5 * cnoise2(1.5 * pos.xy));
+
+  color = pow(color, vec3(1.1));
 
   return color;
 }
