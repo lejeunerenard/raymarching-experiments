@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -647,18 +647,24 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  vec2 dir = vec2(0, 1);
-  dir *= rotMat2(cosT);
-  q.y += 0.25 * sin(q.x + cosT) * sin(cnoise2(q.xz + dir) * q.z + cosT);
-  float cell1 = 0.2 * cellular(q + norT);
-  float cell2 = 0.2 * cellular(q + norT - 1.);
-  q.y += mix(cell1, cell2, saturate((norT - 0.6) / (1. - 0.6)));
+  float t = 0.5 + 0.5 * cos(cosT + PI );
 
+  q *= rotationMatrix(vec3(0, 1, 0), TWO_PI * quint(t) + PI);
+
+  float r = 0.275;
+  vec3 offset1 = vec3(0);
+  offset1.x += 1.5 * r * (0.5 - 0.5 * cos(PI * t));
   mPos = q;
-  vec3 s = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  float rMod = 0.05 * cos(cnoise3(5. * q) + cosT) + 0.00625 * cos(iqFBM(21. * q) + cosT);
+  vec3 s = vec3(length(q + offset1) - (r + rMod), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.6;
+  vec3 offset2 = vec3(0);
+  offset2.x -= 1.5 * r * (0.5 - 0.5 * cos(PI * t));
+  vec3 s2 = vec3(length(q + offset2) - (r + rMod), 0, 0);
+  d = dSMin(d, s2, r * 0.5);
+
+  d.x *= 0.9;
 
   return d;
 }
@@ -840,7 +846,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   q += 0.050 * cos(11. * q.yzx + cosT);
   q += 0.025 * cos(13. * q.yzx + cosT);
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4) * q + 0.55 * vfbmWarp(1. * mPos) + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1.0) * q + 0.55 * vfbmWarp(1. * mPos) + vec3(0, 0.33, 0.67)));
   color *= rotationMatrix(normalize(vec3(1., 2, .5)), PI * 0.5 * dot(nor, -rd));
   color *= rotationMatrix(normalize(vec3(8., 1, 3.5) * rotationMatrix(vec3(0., 0.3, 1.), cosT)), PI * 0.5 * cnoise2(1.5 * pos.xy));
 
@@ -942,7 +948,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.300 * amb * diffuseColor;
+        lin += 0.100 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
@@ -974,11 +980,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.3;
+      dispersionColor *= 0.2;
       // color = mix(color, dispersionColor, isIridescent);
       color += dispersionColor;
       //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
-      // color = pow(color, vec3(1.05));
+      // color = pow(color, vec3(1.1));
 
       // Fog
       // float d = max(0.0, t.x);
@@ -1141,7 +1147,7 @@ void main() {
     vec2 uv = fragCoord.xy;
     background = getBackground(uv);
 
-    float gRAngle = 0.5 * PI * mod(time, totalT) / totalT;
+    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
