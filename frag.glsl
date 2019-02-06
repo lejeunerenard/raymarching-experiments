@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -645,21 +645,16 @@ vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float size = 0.3;
+  const float size = 0.05;
   vec3 q = p;
 
-  q.x += (0.4 + 0.2 * cnoise3(q)) * sin(3. * q.y);
+  q.xy *= rotMat2(q.z - cosT); // 0.25 * PI * sin(q.z + cosT));
 
-  mPos = q;
-  float modI = mod(q.x, size) / size;
-  float depth = 0.4 * min(modI, 1. - modI);
-  mPos.x += depth;
+  float r = 0.5 + 0.2 * cos(q.z + cosT + 0.4 * cnoise2(3. * q.xy)) + 0.2 * sinoise3(q); 
+  vec3 t = vec3(r - length(q.xy), 0., 0);
+  d = dMin(d, t);
 
-  vec3 s = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0, 0);
-  s.x += depth;
-  d = dMin(d, s);
-
-  d.x *= 0.4;
+  // d.x *= 1.0;
 
   return d;
 }
@@ -835,13 +830,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  // float n = dot(mPos.xy, 34. * vec2(1.0, 0.1));
-  // n = smoothstep(edge, 0., sin(n));
-
-  float n = dot(mPos.xy, 179. * vec2(0., 1.));
-  n = smoothstep(edge, 0., sin(n));
-
-  color = vec3(n);
+  color = 0.5 * 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -914,14 +903,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 1.0;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 1.0;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -959,10 +948,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -970,10 +959,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.2;
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.4;
       // color = mix(color, dispersionColor, isIridescent);
-      // color += dispersionColor;
+      color += dispersionColor;
       //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.1));
 
@@ -987,7 +976,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
