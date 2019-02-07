@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -496,9 +496,11 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: circIn = require(glsl-easings/circular-in)
 #pragma glslify: circOut = require(glsl-easings/circular-out)
 #pragma glslify: expo = require(glsl-easings/exponential-in-out)
+#pragma glslify: expoIn = require(glsl-easings/exponential-in)
 #pragma glslify: expoOut = require(glsl-easings/exponential-out)
 #pragma glslify: elastic = require(glsl-easings/elastic-in-out)
 #pragma glslify: sine = require(glsl-easings/sine-in-out)
+#pragma glslify: sineOut = require(glsl-easings/sine-out)
 #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
 #pragma glslify: quint = require(glsl-easings/quintic-in-out)
 #pragma glslify: quintIn = require(glsl-easings/quintic-in)
@@ -1100,12 +1102,70 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float xInput = saturate(q.x);
-  float xScale = 1.0 + 0.5 * clamp(0., 40., abs(1. / (0.5 * (pow(xInput, 1.5) - 0.5))));
+  // Timing
+  const float colEndT = 0.5;
+  const float partTLength = 0.18;
+  const float scaleT = 1. - (colEndT + partTLength);
 
-  float column = smoothstep(edge, 0., cos(3. * PI * xScale * q.x));
-  float row = smoothstep(edge, 0., sin(10. * PI * q.y));
-  float n = mix(column, 1. - column, row);
+  // Colliding square
+  const float sqrR = 0.05;
+
+  const float startX = -0.7;
+  const float endX = 0.75;
+  float colT = expoIn(saturate(generalT / colEndT));
+  float xTrans = mix(startX, endX - sqrR, colT);
+
+  vec2 colSqrQ = q;
+  colSqrQ.x += xTrans;
+
+  float colSqrMask = 1. - step(1.0, colT);
+  vec2 absColSqrQ = abs(colSqrQ);
+  float n = colSqrMask * smoothstep(edge, 0., max(absColSqrQ.x, absColSqrQ.y) - sqrR);
+
+  // Particles
+  const float dimParts = 7.;
+  const float partR = 2. * sqrR / dimParts;
+
+  float partT = saturate((generalT - colEndT) / partTLength);
+  float partRotT = circOut(smoothstep(0.125, 1., partT));
+  vec2 partQ = q;
+  partQ.x += endX - sqrR - endX * circOut(partT);
+  float partSpread = partR + 0.25 * partT;
+  vec2 partC = pMod2(partQ, vec2(partSpread));
+  partQ -= partRotT * 4. * partR * vec2(
+      noise(partC + vec2(0.23)),
+      noise(partC + vec2(33.4)));
+
+  partQ *= rotMat2(TWO_PI * (noise(partC) + 0.2) * partRotT);
+  vec2 absPartQ = abs(partQ);
+
+  float particlesMask = 1. - sineOut(partT);
+  particlesMask *= 1. - colSqrMask;
+  float particles = particlesMask * smoothstep(edge, 0., max(absPartQ.x, absPartQ.y) - partR);
+  vec2 absPartC = abs(partC);
+  float partsCrop = smoothstep(edge, 0., max(absPartC.x, absPartC.y) - 0.5 * dimParts);
+  particles *= partsCrop;
+  n = max(n, particles);
+
+  // Wall
+  const float baseWallR = 1.;
+  float wallT = saturate((generalT - (colEndT + partTLength)) / scaleT);
+  float wallSqrR = mix(baseWallR, sqrR, circ(wallT));
+  vec2 wallSqrQ = q;
+  float startWallX = endX + wallSqrR;
+  wallSqrQ.x += mix(startWallX, startX, circ(wallT));
+  vec2 absWallSqrQ = abs(wallSqrQ);
+  float wall = smoothstep(edge, 0., max(absWallSqrQ.x, absWallSqrQ.y) - wallSqrR);
+  n = max(n, wall);
+
+
+  float secondWallRatio = baseWallR / sqrR;
+  float secondWallSqrR = 1.;
+  vec2 secondWallSqrQ = q;
+  secondWallSqrQ.x += mix(endX + baseWallR + 0.75, endX + baseWallR, circ(wallT));
+  vec2 absSecondWallSqrQ = abs(secondWallSqrQ);
+  float secondWall = smoothstep(edge, 0., max(absSecondWallSqrQ.x, absSecondWallSqrQ.y) - secondWallSqrR);
+  n = max(n, secondWall);
 
   color = vec3(n);
 
@@ -1117,6 +1177,21 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  const float totalT = 0.020;
+  const int hues = 20;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
+    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+    float a = two_dimensional(uv, norT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+  color *= 0.25;
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
