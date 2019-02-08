@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'banging-head-against-a-wall-render1',
+    name: 'curdle-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
