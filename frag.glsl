@@ -1095,29 +1095,69 @@ float sqrMask (in vec2 p) {
   return max(outer, -inner);
 }
 
+vec3 stripeGrad (in float x) {
+  const vec3 gammaEnc = vec3(2.2);
+  const vec3 yellow = pow(#FAD089, gammaEnc);
+  const vec3 orange = pow(#FF9C5B, gammaEnc);
+  const vec3 redOrange = pow(#F5634A, gammaEnc);
+  const vec3 red = pow(#ED303C, gammaEnc);
+  const vec3 teal = pow(#3B8183, gammaEnc);
+
+  x = 1. - x;
+
+  vec3 color;
+
+  float split = 0.33;
+  float layer = 1.;
+
+  color = mix(yellow, orange, smoothstep(layer * split, layer * split + edge, x));
+  layer += 1.;
+
+  color = mix(color, redOrange, smoothstep(layer * split, layer * split + edge, x));
+  layer += 1.;
+
+  color = mix(color, red, smoothstep(layer * split, layer * split + edge, x));
+  layer += 1.;
+
+  // color = mix(color, teal, smoothstep(layer * split, layer * split + edge, x));
+  // layer += 1.;
+
+  return color;
+}
+
 #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = background;
 
   vec2 q = uv;
 
 
   const float maskR = 0.65;
-  const float yScale = 1.25;
+  const float yScale = 4.25;
   float yHeight = maskR * yScale;
-  q.y +=
-    0.0500 * yHeight * sin(generalT + TWO_PI * (3.0 + 2. * noise(vec2(0.05, 13) * q)) * q.x) +
-    0.0250 * yHeight * sin(generalT + TWO_PI *  7.0 * q.x) +
-    0.0125 * yHeight * sin(generalT + TWO_PI * 13.0 * q.x);
 
-  float i = 5.0 * (q.y + yHeight);
-  i = smoothstep(edge, 0., sin(TWO_PI * 4. * i));
-  vec2 absUv = abs(vec2(1, yScale) * q);
-  float mask = smoothstep(edge, 0., max(absUv.x, absUv.y) - maskR);
+  const int totalLayers = 5;
+  for (int j = 0; j < totalLayers; j++) {
+    q = uv;
+    // q.x += 0.05 * sin(generalT + PI * 1.6234 * float(j));
+    q.x *= 0.5;
+    q.y += (float(j) - float(totalLayers / 2)) * 0.25;
+    q.y +=
+      0.5 * 0.0500 * yHeight * sin(float(j) * PI * 1.3423534 + generalT + TWO_PI * ((float(j) * 0.52132 + 3.0)+ 0.25 * noise(vec2(0.05, 13) * q + float(j) * 1.123423)) * q.x) +
+      0.5 * 0.0250 * yHeight * sin(float(j) * PI * 1.8734392 + generalT + TWO_PI *  (float(j) * 0.25823 + 7.0) * q.x) +
+      0.5 * 0.0125 * yHeight * sin(float(j) * PI * 1.1238423 + generalT + TWO_PI * 13.0 * q.x);
 
-  color = vec3(i);
-  color = mix(background, color, mask);
+    float i = yScale * q.y + 0.5;
+    // i = smoothstep(edge, 0., sin(TWO_PI * 4. * i));
+    vec2 absUv = abs(vec2(2.0, yScale) * q);
+    float mask = smoothstep(edge, 0., max(absUv.x, absUv.y) - maskR);
+
+    // vec3 layerColor = vec3(i);
+    vec3 layerColor = stripeGrad(i);
+    color = mix(color, layerColor, mask);
+    // color = vec3(1);
+  }
 
   return color;
 }
@@ -1127,6 +1167,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv, cosT), 1);
+
   vec3 color = vec3(0);
 
   const float totalT = 0.125 * PI;

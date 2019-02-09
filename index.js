@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'curdle-render1',
+    name: 'got-you-on-my-mind-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
