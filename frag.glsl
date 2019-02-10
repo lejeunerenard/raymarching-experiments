@@ -1096,28 +1096,27 @@ float sqrMask (in vec2 p) {
 }
 
 vec3 stripeGrad (in float x) {
-  const vec3 gammaEnc = vec3(2.2);
-  const vec3 yellow = pow(#FAD089, gammaEnc);
-  const vec3 orange = pow(#FF9C5B, gammaEnc);
-  const vec3 redOrange = pow(#F5634A, gammaEnc);
-  const vec3 red = pow(#ED303C, gammaEnc);
-  const vec3 teal = pow(#3B8183, gammaEnc);
+  vec3 lookup = normalize(vec3(1));
 
-  x = 1. - x;
+  // x = 1. - x;
 
   vec3 color;
 
-  float split = 0.33;
+  const int numColors = 4;
+  const float split = 1. / float(numColors);
   float layer = 1.;
 
-  color = mix(yellow, orange, smoothstep(layer * split, layer * split + edge, x));
-  layer += 1.;
+  mat3 rot = rotationMatrix(normalize(vec3(4, -2., 1.1)), float(numColors + 1) * TWO_PI / float(numColors));
 
-  color = mix(color, redOrange, smoothstep(layer * split, layer * split + edge, x));
-  layer += 1.;
+  vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  color = layerColor;
 
-  color = mix(color, red, smoothstep(layer * split, layer * split + edge, x));
-  layer += 1.;
+  for (int i = 0; i < numColors - 1; i++) {
+    lookup *= rot;
+    layerColor = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+    color = mix(color, layerColor, smoothstep(layer * split, layer * split + edge, x));
+    layer += 1.;
+  }
 
   // color = mix(color, teal, smoothstep(layer * split, layer * split + edge, x));
   // layer += 1.;
@@ -1134,23 +1133,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
 
   const float maskR = 0.65;
-  const float yScale = 4.25;
+  const float yScale = 7.25;
   float yHeight = maskR * yScale;
 
-  const int totalLayers = 5;
+  const int totalLayers = 7;
   for (int j = 0; j < totalLayers; j++) {
     q = uv;
     // q.x += 0.05 * sin(generalT + PI * 1.6234 * float(j));
     q.x *= 0.5;
     q.y += (float(j) - float(totalLayers / 2)) * 0.25;
     q.y +=
-      0.5 * 0.0500 * yHeight * sin(float(j) * PI * 1.3423534 + generalT + TWO_PI * ((float(j) * 0.52132 + 3.0)+ 0.25 * noise(vec2(0.05, 13) * q + float(j) * 1.123423)) * q.x) +
-      0.5 * 0.0250 * yHeight * sin(float(j) * PI * 1.8734392 + generalT + TWO_PI *  (float(j) * 0.25823 + 7.0) * q.x) +
-      0.5 * 0.0125 * yHeight * sin(float(j) * PI * 1.1238423 + generalT + TWO_PI * 13.0 * q.x);
+      0.5 * 0.05000 * yHeight * sin(float(j) * PI * 1.3423534 + generalT + TWO_PI * ((float(j) * 0.52132 + 1.0) + 0.125 * noise(vec2(0.05, 13) * q + float(j) * 1.123423)) * q.x) +
+      0.5 * 0.02500 * yHeight * sin(float(j) * PI * 1.8734392 + generalT + TWO_PI *  (float(j) * 0.25823 + 7.0) * q.x) +
+      0.5 * 0.01250 * yHeight * sin(float(j) * PI * 1.1238423 + generalT + TWO_PI * 13.0 * q.x);
+      0.5 * 0.00625 * yHeight * sin(float(j) * PI * 1.2238423 + generalT + TWO_PI * 17.0 * q.x);
 
     float i = yScale * q.y + 0.5;
     // i = smoothstep(edge, 0., sin(TWO_PI * 4. * i));
-    vec2 absUv = abs(vec2(2.0, yScale) * q);
+    vec2 absUv = abs(vec2(1.0, yScale) * q);
     float mask = smoothstep(edge, 0., max(absUv.x, absUv.y) - maskR);
 
     // vec3 layerColor = vec3(i);
@@ -1172,7 +1172,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
   const float totalT = 0.125 * PI;
-  const int hues = 20;
+  const int hues = 4;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
     vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
@@ -1181,7 +1181,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color *= mix(vec3(1), layerColor, a);
     color += layerColor * a;
   }
-  color *= 0.25;
+  // color *= 0.25;
   return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
