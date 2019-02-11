@@ -225,7 +225,7 @@ export default class App {
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-0.07, 0, 2.77)
+    this.cameraRo = vec3.fromValues(1, 1, 1)
     // vec3.scale(this.cameraRo, this.cameraRo, 5.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
@@ -244,7 +244,7 @@ export default class App {
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 

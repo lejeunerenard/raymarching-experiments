@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -587,73 +587,43 @@ vec3 DF_repeatHex(vec3 p)
 vec3 mPos = vec3(0);
 mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
-vec3 crystal (vec3 q, vec3 offset) {
-  vec3 d = vec3(maxDistance, 0, 0);
-
-  vec3 base = vec3(sdHexPrism(q, vec2(0.1, 0.5)), 0, 0);
-  d = dMin(d, base);
-
-  // Cap
-  vec3 dQ = q.xzy * vec3(1.5, 0.5, 1.6);
-  vec3 cap = vec3(dodecahedral(dQ, 62., 0.3));
-  cap -= 0.05 * cellular(1.2 * q + offset);
-  d = dMin(d, cap);
-
-  // Inclusions
-  d.x = max(d.x, -0.2 * cellular(q));
-
-  return d;
-}
-
-vec3 crystal(vec3 q) {
-  return crystal(q, vec3(0));
-}
-
-vec3 rowOfBoxes (in vec3 q, in float size, in float r) {
-  vec3 d = vec3(maxDistance, 0, 0);
-
-  vec3 b;
-  b = vec3(sdBox(q + 2. * (size + r) * vec3( 0, 0,  0), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3( 0, 0,  1), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3( 1, 0,  1), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3( 1, 0,  0), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3( 1, 0, -1), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3( 0, 0, -1), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3(-1, 0, -1), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3(-1, 0,  0), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - 2. * (size + r) * vec3(-1, 0,  1), vec3(size)), 0, 0);
-  d = dMin(d, b);
-
-  return d;
+mat3 rotOrtho (in float t) {
+  const vec3 rotAxis = vec3(0, 1, 0);
+  return rotationMatrix(rotAxis, 1.5 * PI * (0.5 + 0.5 * cos(t)));
 }
 
 // Return value is (distance, material, orbit trap)
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float size = 0.05;
+  const float size = 0.15;
+  p *= globalRot;
+  // p *= rotationMatrix(rotAxis, 1.5 * PI);
   vec3 q = p;
 
-  q.xy *= rotMat2(q.z - cosT); // 0.25 * PI * sin(q.z + cosT));
+  mPos = q;
+  vec3 t = vec3(sdBox(q, vec3(size)), 0., 0);
+  d = dMin(d, t);
 
-  float r = 0.5 + 0.2 * cos(q.z + cosT + 0.4 * cnoise2(3. * q.xy)) + 0.2 * sinoise3(q); 
-  vec3 t = vec3(r - length(q.xy), 0., 0);
+  t = vec3(sdBox(q - size * vec3( 3.,  1,  -1.), vec3(size)), 0., 0);
+  d = dMin(d, t);
+
+  t = vec3(sdBox(q - size * vec3( 0.,  2., -2.), vec3(size)), 0., 0);
+  d = dMin(d, t);
+
+  t = vec3(sdBox(q - size * vec3(-3.,  1., -1.), vec3(size)), 0., 0);
+  d = dMin(d, t);
+
+  t = vec3(sdBox(q - size * vec3( 0.,  2.,  4.), vec3(size)), 0., 0);
+  d = dMin(d, t);
+
+  // t = vec3(sdBox(q - size * vec3(-3., -1.,  1.) - size * vec3(-2, -2, -2), vec3(size)), 0., 0);
+  // d = dMin(d, t);
+
+  t = vec3(sdBox(q - size * vec3( 0., -2.,  2.), vec3(size)), 0., 0);
+  d = dMin(d, t);
+
+  t = vec3(sdBox(q - size * vec3( 0., -4., -2.), vec3(size)), 0., 0);
   d = dMin(d, t);
 
   // d.x *= 1.0;
@@ -832,7 +802,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  color = 0.5 * 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  vec3 mNor = nor * globalRot;
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, -0.5, 0.25) * abs(mNor) + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -904,14 +875,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.4;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-        vec3 lightPos = lights[i].position;
+        vec3 lightPos = lights[i].position * globalLRot;
         float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
@@ -950,10 +921,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -961,10 +932,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.4;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // dispersionColor *= 0.4;
       // color = mix(color, dispersionColor, isIridescent);
-      color += dispersionColor;
+      // color += dispersionColor;
       //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.1));
 
@@ -978,7 +949,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -1131,34 +1102,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
+  q = abs(q);
 
-  const float maskR = 0.65;
-  const float yScale = 7.25;
-  float yHeight = maskR * yScale;
+  q += q.x * q.y + cos(q.y);
 
-  const int totalLayers = 7;
-  for (int j = 0; j < totalLayers; j++) {
-    q = uv;
-    // q.x += 0.05 * sin(generalT + PI * 1.6234 * float(j));
-    q.x *= 0.5;
-    q.y += (float(j) - float(totalLayers / 2)) * 0.25;
-    q.y +=
-      0.5 * 0.05000 * yHeight * sin(float(j) * PI * 1.3423534 + generalT + TWO_PI * ((float(j) * 0.52132 + 1.0) + 0.125 * noise(vec2(0.05, 13) * q + float(j) * 1.123423)) * q.x) +
-      0.5 * 0.02500 * yHeight * sin(float(j) * PI * 1.8734392 + generalT + TWO_PI *  (float(j) * 0.25823 + 7.0) * q.x) +
-      0.5 * 0.01250 * yHeight * sin(float(j) * PI * 1.1238423 + generalT + TWO_PI * 13.0 * q.x);
-      0.5 * 0.00625 * yHeight * sin(float(j) * PI * 1.2238423 + generalT + TWO_PI * 17.0 * q.x);
+  float n = sin(TWO_PI * 12. * q.x + generalT);
+  n = smoothstep(edge, 0., n);
 
-    float i = yScale * q.y + 0.5;
-    // i = smoothstep(edge, 0., sin(TWO_PI * 4. * i));
-    vec2 absUv = abs(vec2(1.0, yScale) * q);
-    float mask = smoothstep(edge, 0., max(absUv.x, absUv.y) - maskR);
-
-    // vec3 layerColor = vec3(i);
-    vec3 layerColor = stripeGrad(i);
-    color = mix(color, layerColor, mask);
-    // color = vec3(1);
-  }
-
+  color = vec3(n);
   return color;
 }
 
@@ -1167,23 +1118,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
-
-  vec3 color = vec3(0);
-
-  const float totalT = 0.125 * PI;
-  const int hues = 4;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-  // color *= 0.25;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
@@ -1197,16 +1131,20 @@ void main() {
     float gRAngle = TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
-    globalRot = mat3(
-      gRc, 0.0, -gRs,
-      0.0, 1.0,  0.0,
-      gRs, 0.0,  gRc);
+    globalRot = rotOrtho(
+          PI * quart(smoothstep(0.1, 0.4, norT))
+        + PI * quart(smoothstep(0.6, 0.9, norT)));
+    // globalRot = mat3(
+    //   gRc, 0.0, -gRs,
+    //   0.0, 1.0,  0.0,
+    //   gRs, 0.0,  gRc);
     float glRc = cos(-gRAngle);
     float glRs = sin(-gRAngle);
-    globalLRot = mat3(
-      glRc, 0.0, -glRs,
-      0.0, 1.0,  0.0,
-      glRs, 0.0,  glRc);
+    globalLRot = rotOrtho(-cosT);
+    // globalLRot = mat3(
+    //   glRc, 0.0, -glRs,
+    //   0.0, 1.0,  0.0,
+    //   glRs, 0.0,  glRc);
 
     #ifdef SS
     // Antialias by averaging all adjacent values
