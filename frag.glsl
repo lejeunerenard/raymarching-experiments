@@ -1100,16 +1100,37 @@ vec3 stripeGrad (in float x) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
+#define mirrored 1
+#ifdef mirrored
+  vec2 q = abs(uv);
+  const int numLayers = 5;
+#else
   vec2 q = uv;
+  const int numLayers = 31;
+#endif
 
-  q = abs(q);
+  const float yThick = 0.15;
+  vec2 axis = vec2(1, 0);
 
-  q += q.x * q.y + cos(q.y);
+  float angle = 0.;
 
-  float n = sin(TWO_PI * 12. * q.x + generalT);
-  n = smoothstep(edge, 0., n);
+  for (int i = 0; i < numLayers; i++) {
+    vec2 angleQ = q;
+    angleQ.y -= float(i) * yThick * 0.75 + 0.1 * cnoise2(vec2(angleQ.x, float(i))) - 1.;
+    angleQ.y += 0.1000 * cos( 7. * angleQ.x + angleQ.y + cosT);
+    angleQ.y += 0.0500 * cos(11. * angleQ.x + angleQ.y + cosT);
+    angleQ.y += 0.0250 * cos(17. * angleQ.x + angleQ.y + cosT);
+    angleQ.y += 0.0125 * cos(23. * angleQ.x + angleQ.y + cosT);
 
+    angle += 0.714286 * PI * floor(angleQ.y / yThick);
+  }
+
+  axis *= rotMat2(angle);
+
+  float n = sin(TWO_PI * 27. * dot(axis, q) + cosT);
+  n = smoothstep(edge - 0.5, -0.5, n);
   color = vec3(n);
+
   return color;
 }
 
@@ -1118,6 +1139,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
