@@ -1100,34 +1100,16 @@ vec3 stripeGrad (in float x) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-#define mirrored 1
-#ifdef mirrored
-  vec2 q = abs(uv);
-  const int numLayers = 5;
-#else
   vec2 q = uv;
-  const int numLayers = 31;
-#endif
+  q.x = abs(q.x);
+  // q = abs(q);
 
-  const float yThick = 0.15;
   vec2 axis = vec2(1, 0);
 
-  float angle = 0.;
-
-  for (int i = 0; i < numLayers; i++) {
-    vec2 angleQ = q;
-    angleQ.y -= float(i) * yThick * 0.75 + 0.1 * cnoise2(vec2(angleQ.x, float(i))) - 1.;
-    angleQ.y += 0.1000 * cos( 7. * angleQ.x + angleQ.y + cosT);
-    angleQ.y += 0.0500 * cos(11. * angleQ.x + angleQ.y + cosT);
-    angleQ.y += 0.0250 * cos(17. * angleQ.x + angleQ.y + cosT);
-    angleQ.y += 0.0125 * cos(23. * angleQ.x + angleQ.y + cosT);
-
-    angle += 0.714286 * PI * floor(angleQ.y / yThick);
-  }
-
+  float angle = mix(0. * PI, 0.5 * PI, smoothstep(edge, 0., sin(dot(q, vec2(23)))));
   axis *= rotMat2(angle);
 
-  float n = sin(TWO_PI * 27. * dot(axis, q) + cosT);
+  float n = sin(TWO_PI * 27. * dot(axis, q) + 0.5 * PI);
   n = smoothstep(edge - 0.5, -0.5, n);
   color = vec3(n);
 
