@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'only-up-render1',
+    name: 'play-nexus-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
