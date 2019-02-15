@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'play-nexus-render1',
+    name: 'shifty-heart-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
