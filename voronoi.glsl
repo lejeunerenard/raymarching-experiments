@@ -37,8 +37,11 @@ vec2 voronoi(in vec2 x, in float time) {
       // vec2 absR = abs(r);
       // float d = max( absR.x, absR.y );
 
-      float v = mask((p + b) * 0.090909);
-      if (d < res.x && v < 0.00125) {
+      // Mask output
+      // float v = mask((p + b) * 0.090909);
+      // if (d < res.x && v < 0.00125) {
+
+      if (d < res.x) {
         res = vec3( d, offset );
       }
     }
@@ -54,12 +57,9 @@ vec2 voronoi(in vec2 x) {
   return voronoi(x, 0.0);
 }
 
-#ifndef metric
 float metric (in vec3 r) {
-  return max(max(r.x, r.y), r.z);
+  return dot(r, r);
 }
-#endif
-
 
 vec3 voronoi(in vec3 x, in float time) {
   vec3 p = floor(x);

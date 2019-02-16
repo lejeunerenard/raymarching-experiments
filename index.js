@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'shifty-heart-render1',
+    name: 'prisoner-0-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

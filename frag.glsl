@@ -508,7 +508,8 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticInOut = require(glsl-easings/elastic-in-out)
 #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
-// #pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness)
+
+#pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness, mask=sqrMask)
 // #pragma glslify: band = require(./band-filter)
 
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
@@ -596,29 +597,15 @@ mat3 rotOrtho (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float size = 0.9;
   vec3 q = p;
+  q += 0.1000 * cos( 4. * q.yzx + cosT);
+  q += 0.0500 * cos( 7. * q.yzx + cosT);
+  q += 0.0250 * cos(13. * q.yzx + cosT);
+  q += 0.0125 * cos(17. * q.yzx + cosT);
 
-  vec3 qGrid = q;
-  qGrid += 0.100000 * cos( 3. * qGrid.yzx + cosT);
-  qGrid += 0.050000 * cos( 7. * qGrid.yzx + cosT);
-  qGrid += 0.025000 * cos(13. * qGrid.yzx + cosT);
-  qGrid += 0.012500 * cos(17. * qGrid.yzx + cosT);
-  qGrid += 0.006250 * cos(23. * qGrid.yzx + cosT);
-  qGrid += 0.003125 * cos(29. * qGrid.yzx + cosT);
-
-  const vec3 gridSize = vec3(size, 0.166667 * size, 0.333333 * size);
-  vec3 c = pMod3(qGrid, gridSize);
-  mPos = qGrid;
-  float noiseOut = 0.; // smoothstep(0.2, 0.2 + edge, cnoise3(0.0533 * c));
-  vec3 t = vec3(sdBox(qGrid, vec3(0.4 * size, 0.1 / 6. * size, 0.1 / 3.0 * size)), dot(c, vec3(1)), 0);
-  t.x += maxDistance * noiseOut;
-  d = dMin(d, t);
-
-  float crop = length(q) - size * 1.0;
-  d.x = max(d.x, crop);
-
-  d.x *= 0.6;
+  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  d = dMin(d, s);
+  d.x *= 0.75;
 
   return d;
 }
@@ -794,13 +781,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  vec3 lookup = vec3(1);
+  vec3 vC = voronoi(7. * pos, 0.);
 
-  // lookup *= rotationMatrix(normalize(vec3(0.1, 0.4, -1.3)), 0.5 * PI * dot(nor, -rd));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
+  vec3 posG = pos;
+  const float size = 0.05;
+  vec3 c = pMod3(posG, vec3(size));
+  float dots = smoothstep(0., edge, length(posG) - size * 0.1);
 
-  lookup *= rotationMatrix(normalize(vec3(3., -0.3, 0.9)), PI * dot(mPos, vec3(1)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (m + lookup + vec3(0, 0.33, 0.67)));
+  float stripes = smoothstep(0.8, 0.8 + edge, sin(dot(pos, vec3(173))));
+
+  color = vec3(mix(dots, stripes, mod(vC.z, 2.)));
 
   return color;
 }
@@ -879,8 +869,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
-        vec3 lightPos = lights[i].position * globalLRot;
-        float diffMin = 0.9;
+        vec3 lightPos = lights[i].position; // * globalLRot;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -918,10 +908,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -929,11 +919,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.3;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // dispersionColor *= 0.3;
       // color = mix(color, dispersionColor, isIridescent);
-      color += dispersionColor;
-      //+color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
+      // color += dispersionColor;
+      // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
       // color = pow(color, vec3(1.1));
 
       // Fog
@@ -1053,16 +1043,6 @@ float two_numeral (in vec2 q) {
   return d;
 }
 
-float sqrMask (in vec2 p) {
-  vec2 absP = abs(p);
-
-  const float baseR = 0.6;
-
-  float outer = max(absP.x, absP.y) - baseR;
-  float inner = max(absP.x, absP.y) - 0.5 * baseR;
-  return max(outer, -inner);
-}
-
 vec3 stripeGrad (in float x) {
   vec3 lookup = normalize(vec3(1));
 
@@ -1092,7 +1072,16 @@ vec3 stripeGrad (in float x) {
   return color;
 }
 
-#pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
+float sqrMask (in vec2 p) {
+  vec2 absP = abs(p);
+
+  const float baseR = 0.6;
+
+  float outer = max(absP.x, absP.y) - baseR;
+  float inner = max(absP.x, absP.y) - 0.5 * baseR;
+  return max(outer, -inner);
+}
+// #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
@@ -1133,8 +1122,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
@@ -1199,6 +1186,11 @@ void main() {
 #else
     vec3 rd = getRayDirection(uv, projectionMatrix);
 #endif
+    rd += 0.200 * cos( 3. * rd.yzx + uv.y + cosT);
+    rd += 0.100 * cos( 7. * rd.yzx + uv.x + cosT);
+    rd += 0.050 * cos(13. * rd.yzx + uv.y + cosT);
+    rd += 0.025 * cos(17. * rd.yzx + uv.x + cosT);
+
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     rd = normalize(rd);
 #ifdef ORTHO
