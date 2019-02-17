@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -586,6 +586,7 @@ vec3 DF_repeatHex(vec3 p)
 }
 
 vec3 mPos = vec3(0);
+vec3 mPos2 = vec3(0);
 mat3 mRot = mat3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
 mat3 rotOrtho (in float t) {
@@ -598,14 +599,54 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
-  q += 0.1000 * cos( 4. * q.yzx + cosT);
-  q += 0.0500 * cos( 7. * q.yzx + cosT);
-  q += 0.0250 * cos(13. * q.yzx + cosT);
-  q += 0.0125 * cos(17. * q.yzx + cosT);
+  q.xzy = q.xyz;
 
-  vec3 s = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  vec3 po = vec3(
+      atan(q.y, q.x),
+      length(q.xy),
+      q.z);
+
+  const float invNumPerRing = 0.2;
+  const vec2 size = vec2(TWO_PI * invNumPerRing, 0.1);
+  vec2 poC = pMod2(po.xy, size);
+  const float layerThickness = 0.0125;
+
+  // Rotation
+  // - Slow inside out
+  // const float numOfRings = 16.; // approximately
+  // float t = mod(norT - 0.5 / numOfRings * invNumPerRing * poC.x - 0.5 / numOfRings * poC.y, 1.);
+  // float angle = PI * (smoothstep(0., 0.4, t) + smoothstep(0.6, 1.0, t));
+
+  // Twist offset by polar 'row' : Simple
+  // float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
+
+  // Twist offset by polar 'row'
+  // float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
+  float t = mod(0.180 + norT - 0.25 / TWO_PI * poC.x + 0.1 / TWO_PI * poC.y, 1.);
+  float angle = PI * (smoothstep(0., 0.1, t) + smoothstep(0.5, 0.6, t));
+
+  mat3 rot = rotationMatrix(vec3(0, 1, 0), angle);
+  po *= rot;
+
+  mPos = po;
+  vec3 s = vec3(sdBox(po, vec3(size.x * 0.5, size.y * 0.5, layerThickness)), 0, 0);
   d = dMin(d, s);
-  d.x *= 0.75;
+
+  // Center Disk Crop
+  float centerR = size.y * 2.0;
+  float cropCenter = sdCylinder(q.xzy, vec3(0, 0, centerR));
+  d.x = max(d.x, -cropCenter);
+
+  d.x *= 0.046875;
+
+  // Center Disk
+  float centerT = mod(norT + 0.5, 1.);
+  q *= rotationMatrix(vec3(0, 1, 0), PI * (smoothstep(0.4, 0.5, centerT) + smoothstep(0.9, 1.0, centerT)));
+  mPos2 = q;
+  vec3 center = vec3(sdCappedCylinder(q.xzy, vec2(centerR, layerThickness)), 1, 0);
+  center.x = max(center.x, cropCenter);
+  d = dMin(d, center);
+  // d.x *= 0.25;
 
   return d;
 }
@@ -781,16 +822,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  vec3 vC = voronoi(7. * pos, 0.);
-
-  vec3 posG = pos;
-  const float size = 0.05;
-  vec3 c = pMod3(posG, vec3(size));
-  float dots = smoothstep(0., edge, length(posG) - size * 0.1);
-
-  float stripes = smoothstep(0.8, 0.8 + edge, sin(dot(pos, vec3(173))));
-
-  color = vec3(mix(dots, stripes, mod(vC.z, 2.)));
+  float n = smoothstep(0., edge, mPos.z);
+  n = mix(n, smoothstep(0., edge, mPos2.z), isMaterialSmooth(m, 1.));
+  color = vec3(n);
 
   return color;
 }
@@ -870,7 +904,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.8;
+        float diffMin = 0.4;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -888,7 +922,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.050 * amb * diffuseColor;
+        lin += 0.200 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
@@ -1186,10 +1220,6 @@ void main() {
 #else
     vec3 rd = getRayDirection(uv, projectionMatrix);
 #endif
-    rd += 0.200 * cos( 3. * rd.yzx + uv.y + cosT);
-    rd += 0.100 * cos( 7. * rd.yzx + uv.x + cosT);
-    rd += 0.050 * cos(13. * rd.yzx + uv.y + cosT);
-    rd += 0.025 * cos(17. * rd.yzx + uv.x + cosT);
 
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     rd = normalize(rd);
