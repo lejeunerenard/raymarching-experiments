@@ -618,12 +618,12 @@ vec3 map (in vec3 p, in float dT) {
   // float angle = PI * (smoothstep(0., 0.4, t) + smoothstep(0.6, 1.0, t));
 
   // Twist offset by polar 'row' : Simple
-  // float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
+  float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
 
   // Twist offset by polar 'row'
   // float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
-  float t = mod(0.180 + norT - 0.25 / TWO_PI * poC.x + 0.1 / TWO_PI * poC.y, 1.);
-  float angle = PI * (smoothstep(0., 0.1, t) + smoothstep(0.5, 0.6, t));
+  // float t = mod(0.180 + norT - 0.25 / TWO_PI * poC.x + 0.1 / TWO_PI * poC.y, 1.);
+  // float angle = PI * (smoothstep(0., 0.1, t) + smoothstep(0.5, 0.6, t));
 
   mat3 rot = rotationMatrix(vec3(0, 1, 0), angle);
   po *= rot;
@@ -633,19 +633,19 @@ vec3 map (in vec3 p, in float dT) {
   d = dMin(d, s);
 
   // Center Disk Crop
-  float centerR = size.y * 2.0;
-  float cropCenter = sdCylinder(q.xzy, vec3(0, 0, centerR));
-  d.x = max(d.x, -cropCenter);
+  // float centerR = size.y * 2.0;
+  // float cropCenter = sdCylinder(q.xzy, vec3(0, 0, centerR));
+  // d.x = max(d.x, -cropCenter);
 
-  d.x *= 0.046875;
+  d.x *= 0.7;
 
   // Center Disk
-  float centerT = mod(norT + 0.5, 1.);
-  q *= rotationMatrix(vec3(0, 1, 0), PI * (smoothstep(0.4, 0.5, centerT) + smoothstep(0.9, 1.0, centerT)));
-  mPos2 = q;
-  vec3 center = vec3(sdCappedCylinder(q.xzy, vec2(centerR, layerThickness)), 1, 0);
-  center.x = max(center.x, cropCenter);
-  d = dMin(d, center);
+  // float centerT = mod(norT + 0.5, 1.);
+  // q *= rotationMatrix(vec3(0, 1, 0), PI * (smoothstep(0.4, 0.5, centerT) + smoothstep(0.9, 1.0, centerT)));
+  // mPos2 = q;
+  // vec3 center = vec3(sdCappedCylinder(q.xzy, vec2(centerR, layerThickness)), 1, 0);
+  // center.x = max(center.x, cropCenter);
+  // d = dMin(d, center);
   // d.x *= 0.25;
 
   return d;
@@ -823,8 +823,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0);
 
   float n = smoothstep(0., edge, mPos.z);
-  n = mix(n, smoothstep(0., edge, mPos2.z), isMaterialSmooth(m, 1.));
-  color = vec3(n);
+  // n = mix(n, smoothstep(0., edge, mPos2.z), isMaterialSmooth(m, 1.));
+
+  color = n * (0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67))));
 
   return color;
 }

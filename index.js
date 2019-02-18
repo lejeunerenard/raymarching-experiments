@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'falling-in-render2',
+    name: 'zal-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
