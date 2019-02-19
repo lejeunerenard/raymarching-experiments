@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'zal-render2',
+    name: 'look-into-my-eyes-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

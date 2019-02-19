@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -599,54 +599,21 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
-  q.xzy = q.xyz;
 
-  vec3 po = vec3(
-      atan(q.y, q.x),
-      length(q.xy),
-      q.z);
+  const float layerThickness = 0.2;
 
-  const float invNumPerRing = 0.2;
-  const vec2 size = vec2(TWO_PI * invNumPerRing, 0.1);
-  vec2 poC = pMod2(po.xy, size);
-  const float layerThickness = 0.0125;
+  float preModZ = q.z;
+  float c = pMod1(q.z, layerThickness);
+  q.xy *= rotMat2(PI * sin(cosT + 0.235 * c));
+  pModPolar(q.xy, 7.);
 
-  // Rotation
-  // - Slow inside out
-  // const float numOfRings = 16.; // approximately
-  // float t = mod(norT - 0.5 / numOfRings * invNumPerRing * poC.x - 0.5 / numOfRings * poC.y, 1.);
-  // float angle = PI * (smoothstep(0., 0.4, t) + smoothstep(0.6, 1.0, t));
-
-  // Twist offset by polar 'row' : Simple
-  float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
-
-  // Twist offset by polar 'row'
-  // float angle = cosT + 0.5 * poC.x + 0.1 * poC.y;
-  // float t = mod(0.180 + norT - 0.25 / TWO_PI * poC.x + 0.1 / TWO_PI * poC.y, 1.);
-  // float angle = PI * (smoothstep(0., 0.1, t) + smoothstep(0.5, 0.6, t));
-
-  mat3 rot = rotationMatrix(vec3(0, 1, 0), angle);
-  po *= rot;
-
-  mPos = po;
-  vec3 s = vec3(sdBox(po, vec3(size.x * 0.5, size.y * 0.5, layerThickness)), 0, 0);
+  q.x -= 0.2;
+  mPos = q;
+  vec3 s = vec3(sdBox(q, vec3(0.05, 0.05, layerThickness * 0.4)), 0, 0);
+  s.x -= 0.04 * iqFBM(vec3(11.) * vec3(q.xy, preModZ));
   d = dMin(d, s);
 
-  // Center Disk Crop
-  // float centerR = size.y * 2.0;
-  // float cropCenter = sdCylinder(q.xzy, vec3(0, 0, centerR));
-  // d.x = max(d.x, -cropCenter);
-
-  d.x *= 0.7;
-
-  // Center Disk
-  // float centerT = mod(norT + 0.5, 1.);
-  // q *= rotationMatrix(vec3(0, 1, 0), PI * (smoothstep(0.4, 0.5, centerT) + smoothstep(0.9, 1.0, centerT)));
-  // mPos2 = q;
-  // vec3 center = vec3(sdCappedCylinder(q.xzy, vec2(centerR, layerThickness)), 1, 0);
-  // center.x = max(center.x, cropCenter);
-  // d = dMin(d, center);
-  // d.x *= 0.25;
+  d.x *= 0.6;
 
   return d;
 }
@@ -820,12 +787,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
-
-  float n = smoothstep(0., edge, mPos.z);
-  // n = mix(n, smoothstep(0., edge, mPos2.z), isMaterialSmooth(m, 1.));
-
-  color = n * (0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67))));
+  vec3 color = vec3(0.025);
 
   return color;
 }
@@ -876,7 +838,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Material Types
 
       vec3 nor = getNormal2(pos, 0.0005 * t.x);
-      // float bumpsScale = 0.50;
+      // float bumpsScale = 0.05;
       // float bumpIntensity = 0.2;
       // nor += bumpIntensity * vec3(
       //     cnoise3(bumpsScale * 490.0 * mPos),
@@ -897,8 +859,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.1;
+      float freCo = 1.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
