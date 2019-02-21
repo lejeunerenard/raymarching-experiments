@@ -598,17 +598,18 @@ mat3 rotOrtho (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
   float l = length(q);
   q *= 1. + 0.025 * sin(-PI * 23. * l + 4. * cosT);
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(0.45)), 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(0.5, 0.5, 0.1)), 0, 0);
+  s.x -= 0.2 * snoise2(3. * q.xy);
   d = dMin(d, s);
 
-  d.x *= 0.3;
+  d.x *= 0.7;
 
   return d;
 }
@@ -703,6 +704,10 @@ vec3 textures (in vec3 rd) {
   float n = vfbmWarp(spaceScaling * rd + startPoint);
   n = smoothstep(0.65, 0.85, n);
 
+  // vec3 spaceScaling = vec3(0.8);
+  // float n = vfbm4(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.65, 0.85, n);
+
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
   // float n = cnoise3(0.5 * rd);
@@ -782,7 +787,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(background * 0.3);
+  vec3 color = vec3(0);
 
   return color;
 }
@@ -854,7 +859,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
+      float freCo = 0.3;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -912,7 +917,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.9;
+      dispersionColor *= 1.0;
       // color = mix(color, dispersionColor, isIridescent);
       color += dispersionColor;
       // color = mix(color, color + dispersionColor, ncnoise3(1.5 * pos));
