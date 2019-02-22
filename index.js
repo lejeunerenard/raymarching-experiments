@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'are-you-happy-render1',
+    name: 'pull-hard-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
