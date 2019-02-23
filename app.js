@@ -213,23 +213,23 @@ export default class App {
 
     const preset = {
       offset: {
-        x: 0.669,
-        y: -1.647,
-        z: 2.765
+        x: 0.0001,
+        y: 0,
+        z: 0
       },
       d: 5,
-      scale: 1.07,
-      rot2angle: [2.353, 0.753, 0],
+      scale: -1.42,
+      rot2angle: [5.874, 6.283, 3.839],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1, 1, 1)
+    this.cameraRo = vec3.fromValues(0, 2.43, 8.63)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.000001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -243,7 +243,7 @@ export default class App {
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -321,17 +321,12 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ x: -0.5 }, 10 * 1000)
+      .to({ y: 0, z: 10.83 }, 20 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
       .onUpdate(updatePos)
 
-    let cameraPosTween2 = new TWEEN.Tween(ob)
-    cameraPosTween2
-      .to({ x: 0.5 }, 10 * 1000)
-      .onUpdate(updatePos)
-
-    cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween)
-    // cameraPosTween.start(0)
+    // cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -353,8 +348,7 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .delay(20 * 1000)
-      .to([0.721, this.rot2angle[1], this.rot2angle[2]], 20 * 1000)
+      .to([this.rot2angle[0], this.rot2angle[1], 2 * Math.PI], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     // rotTween1.chain(rotTween2)
@@ -381,7 +375,7 @@ export default class App {
       .to([ this.offset[0], 0.968, this.offset[2] ], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
   }
 
   setupAudio () {
