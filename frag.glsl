@@ -394,7 +394,7 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 9
+#define Iterations 3
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 // #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
@@ -1083,32 +1083,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
-  pMod2(q, vec2(0.655));
 
-  const float outerSize = 0.0105;
-  vec2 c = floor((q + outerSize*0.5)/outerSize);
-  const float outerR = 2300. * outerSize;
-  float n = 1. - smoothstep(edge, 0., length(c) - outerR);
-  n *= smoothstep(0.1, 0.1 + edge, snoise2(8.02354823523 * c));
-  color = mix(vec3(0, 0.05, 1), vec3(1), n);
+  vec2 axis = vec2(1, 4);
+  q += 0.2 * vfbm4(axis * q);
 
-  // Inner
-  const float innerSize = outerSize * 0.125;
-  c = floor((q + innerSize*0.5)/innerSize);
-  const float innerR = 2. * outerR;
-  // float angle = atan(c.y, c.x);
-  q.y -= 0.115;
-  float angle = atan(q.y, q.x);
-  float heartR = sin(angle) * sqrt(abs(cos(angle))) / (sin(angle) + 1.4) - 2. * sin(angle) + 2.;
-  float innerN = smoothstep(edge, 0., length(q) - heartR * 0.090);
-  // Square
-  // vec2 absC = abs(c);
-  // float innerN = smoothstep(edge, 0., max(absC.x, absC.y) - innerR);
-  innerN *= smoothstep(0.0, 0.0 + 0.05, snoise2(0.32354823523 * c));
-  // n += 0.2 * innerN;
-  color = mix(color, vec3(1, 0.0025, 0.001), innerN);
+  q += 0.1000 * cos( 3. * q.yx + generalT);
+  q += 0.0500 * cos( 7. * q.yx + generalT);
+  q += 0.0250 * cos(13. * q.yx + generalT);
 
-  // color = vec3(n);
+  float n = sin(TWO_PI * dot(q, vec2(31, 0)));
+  n = smoothstep(0., edge, n);
+  color = vec3(n);
 
   return color;
 }
@@ -1118,6 +1103,23 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv, cosT), 1);
+
+  vec3 color = vec3(0);
+
+  const float totalT = 0.05 * PI;
+  const int hues = 20;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
+    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
+    float a = two_dimensional(uv, cosT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+  color *= 0.125;
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
