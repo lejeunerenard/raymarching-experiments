@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1079,20 +1079,40 @@ float sqrMask (in vec2 p) {
 }
 // #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
+vec2 getPhylloOffset (in float i) {
+  const float PHY = 137.5 * PI / 180.;
+  const float c = 0.0625;
+
+  float r = c * sqrt(float(i));
+  float a = float(i) * PHY;
+  return r * vec2(cos(a), sin(a));
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
 
-  vec2 axis = vec2(1, 4);
-  q += 0.2 * vfbm4(axis * q);
+  float d = 100000.;
+  float n = 0.;
+  for (int i = 0; i < 150; i++) {
+    // float localT = mod(norT - 0.5 * float(i) * 0.006667, 1.);
+    // localT = smoothstep(0., 0.25, localT);
+    float localT = smoothstep(float(i) * 0.003334, float(i + 20) * 0.003334, generalT);
+    // float transition = step(0.1, 1. - norT) * localT;
+    float transition = localT;
 
-  q += 0.1000 * cos( 3. * q.yx + generalT);
-  q += 0.0500 * cos( 7. * q.yx + generalT);
-  q += 0.0250 * cos(13. * q.yx + generalT);
+    vec2 offset = mix(
+        getPhylloOffset(float(i)),
+        getPhylloOffset(float(i + 1)), transition);
+    float size = mix(0.03125 / pow(float(i) + 1., 0.25), 0.03125 / pow(float(i) + 2., 0.25), transition);
+    n = length(q - offset) - size;
+    d = min(d, n);
+  }
+  d = min(d, length(q) - 0.03125);
 
-  float n = sin(TWO_PI * dot(q, vec2(31, 0)));
-  n = smoothstep(0., edge, n);
+  n = d;
+  n = smoothstep(edge, 0., n);
   color = vec3(n);
 
   return color;
@@ -1103,21 +1123,21 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec3 color = vec3(0);
 
-  const float totalT = 0.05 * PI;
-  const int hues = 20;
+  const float totalT = 0.0025;
+  const int hues = 10;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
+    vec3 colorI = vec3(fraction); // + vec3(1.0 * uv, 0);
     vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
+    float a = two_dimensional(uv, norT + totalT * fraction).x;
     // color *= mix(vec3(1), layerColor, a);
     color += layerColor * a;
   }
-  color *= 0.125;
+  color *= 0.25;
   return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
