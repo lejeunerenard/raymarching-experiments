@@ -1088,31 +1088,29 @@ vec2 getPhylloOffset (in float i) {
   return r * vec2(cos(a), sin(a));
 }
 
+vec2 transform (in vec2 q, in float t) {
+  q.y += 0.1000 * cos( 3. * q.x + t);
+  q.x += 0.0500 * cos( 7. * q.y + t);
+  q.y += 0.0250 * cos(13. * q.x + t);
+  return q;
+}
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
+  const float size = 0.1;
 
-  float d = 100000.;
   float n = 0.;
-  for (int i = 0; i < 150; i++) {
-    // float localT = mod(norT - 0.5 * float(i) * 0.006667, 1.);
-    // localT = smoothstep(0., 0.25, localT);
-    float localT = smoothstep(float(i) * 0.003334, float(i + 20) * 0.003334, generalT);
-    // float transition = step(0.1, 1. - norT) * localT;
-    float transition = localT;
 
-    vec2 offset = mix(
-        getPhylloOffset(float(i)),
-        getPhylloOffset(float(i + 1)), transition);
-    float size = mix(0.03125 / pow(float(i) + 1., 0.25), 0.03125 / pow(float(i) + 2., 0.25), transition);
-    n = length(q - offset) - size;
-    d = min(d, n);
-  }
-  d = min(d, length(q) - 0.03125);
+  q = transform(q, generalT);
 
-  n = d;
+  vec2 c = pMod2(q, vec2(size));
+
+  n = length(q) - 0.25 * size;
+
   n = smoothstep(edge, 0., n);
+  vec2 absC = abs(c);
+  n *= smoothstep(edge, 0., max(absC.x, absC.y) - 5.);
   color = vec3(n);
 
   return color;
@@ -1127,13 +1125,13 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const float totalT = 0.0025;
-  const int hues = 10;
+  const float totalT = 0.050 * PI;
+  const int hues = 20;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
     vec3 colorI = vec3(fraction); // + vec3(1.0 * uv, 0);
     vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, norT + totalT * fraction).x;
+    float a = two_dimensional(uv, cosT + totalT * fraction).x;
     // color *= mix(vec3(1), layerColor, a);
     color += layerColor * a;
   }
