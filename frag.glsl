@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -598,15 +598,16 @@ mat3 rotOrtho (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  const float size = 0.1;
   vec3 q = p;
 
-  vec2 m = mandelbox(q);
-  mPos = q;
-  vec3 mD = vec3(m.x, 0, m.y);
-  d = dMin(d, mD);
+  vec2 c = pMod2(q.xz, vec2(size));
 
-  d.x *= 0.1;
+  float r = size * (0.3 + 0.2 * noise(1.123423 * c));
+  vec3 s = vec3(sdCappedCylinder(q, vec2(r, 0.3)), cnoise2(1.32423 * c), 0);
+  d = dMin(d, s);
+
+  // d.x *= 0.1;
 
   return d;
 }
@@ -783,10 +784,26 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
-vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.5);
+vec3 gradient (in float i) {
+  vec3 color = vec3(0);
 
-  // color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  const float inc = 0.2;
+  color = mix(pow(#AAFF00, vec3(2.2)), pow(#FFAA00, vec3(2.2)), smoothstep(inc, inc + edge, i));
+  color = mix(color, pow(#FF00AA, vec3(2.2)), smoothstep(2. * inc, 2. * inc + edge, i));
+  color = mix(color, pow(#AA00FF, vec3(2.2)), smoothstep(3. * inc, 3. * inc + edge, i));
+  color = mix(color, pow(#00AAFF, vec3(2.2)), smoothstep(4. * inc, 4. * inc + edge, i));
+
+  return color;
+}
+
+vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
+  vec3 color = vec3(0);
+
+  color = gradient(mod(m, 1.));
+  float shadeI = smoothstep(0.75, 0.75 + edge, dot(nor, vec3(0, -1, 0)));
+  color *= 0.80 + 0.20 * shadeI;
+
+  color *= 1.1;
 
   return color;
 }
@@ -858,8 +875,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.4;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -932,7 +949,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -1121,23 +1138,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
-
-  vec3 color = vec3(0);
-
-  const float totalT = 0.050 * PI;
-  const int hues = 20;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction); // + vec3(1.0 * uv, 0);
-    vec3 layerColor = pow(0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))), vec3(3.2));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-  color *= 0.25;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
