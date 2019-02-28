@@ -601,9 +601,14 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1;
   vec3 q = p;
 
+  q += 0.05000 * cos(vec3(17, 1, 1) * q.yzx + cosT);
+  q += 0.02500 * cos(vec3(31, 3, 3) * q.yzx + cosT);
+  q += 0.01250 * cos(vec3(13, 7, 7) * q.yzx + cosT);
+
   vec2 c = pMod2(q.xz, vec2(size));
 
-  float r = size * (0.3 + 0.2 * noise(1.123423 * c));
+  float r = size * (0.3 + 0.2 * noise(0.923423 * c) + 0.05 * cos(q.y + cosT + 2.723 * length(c)));
+  mPos = q;
   vec3 s = vec3(sdCappedCylinder(q, vec2(r, 0.3)), cnoise2(1.32423 * c), 0);
   d = dMin(d, s);
 
@@ -788,9 +793,9 @@ vec3 gradient (in float i) {
   vec3 color = vec3(0);
 
   const float inc = 0.2;
-  color = mix(pow(#AAFF00, vec3(2.2)), pow(#FFAA00, vec3(2.2)), smoothstep(inc, inc + edge, i));
-  color = mix(color, pow(#FF00AA, vec3(2.2)), smoothstep(2. * inc, 2. * inc + edge, i));
-  color = mix(color, pow(#AA00FF, vec3(2.2)), smoothstep(3. * inc, 3. * inc + edge, i));
+  color = mix(pow(#DD0000, vec3(2.2)), vec3(0), smoothstep(inc, inc + edge, i));
+  color = mix(color, vec3(1), smoothstep(2. * inc, 2. * inc + edge, i));
+  color = mix(color, vec3(0.3), smoothstep(3. * inc, 3. * inc + edge, i));
   color = mix(color, pow(#00AAFF, vec3(2.2)), smoothstep(4. * inc, 4. * inc + edge, i));
 
   return color;
@@ -801,7 +806,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   color = gradient(mod(m, 1.));
   float shadeI = smoothstep(0.75, 0.75 + edge, dot(nor, vec3(0, -1, 0)));
-  color *= 0.80 + 0.20 * shadeI;
+  color *= 0.80 + 0.20 * shadeI - (0.7 + 2.3333 * mPos.y);
 
   color *= 1.1;
 

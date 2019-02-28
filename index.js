@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'fun-fun-fun-render1',
+    name: 'proud-pollock-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
