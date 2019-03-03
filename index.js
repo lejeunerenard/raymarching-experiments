@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'space-sponge-render1',
+    name: 'where-am-i-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

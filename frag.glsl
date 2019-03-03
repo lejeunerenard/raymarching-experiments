@@ -612,7 +612,7 @@ vec3 map (in vec3 p, in float dT) {
 
   float r = size * (0.3 + 0.2 * cnoise2(1.523423 * c) + 0.05 * cos(q.y + cosT + 2.723 * length(c)));
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(r, 0.3, r)), cnoise2(1.82423 * c + 0.2323), 0);
+  vec3 s = vec3(sdCone(q, vec2(r, 0.3)), cnoise2(1.82423 * c + 0.2323), 0);
   d = dMin(d, s);
 
   d.x *= 0.5;
@@ -792,26 +792,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
-vec3 gradient (in float i) {
-  vec3 color = vec3(0);
-
-  const float inc = 0.2;
-  color = mix(pow(#DD0000, vec3(2.2)), vec3(0), smoothstep(inc, inc + edge, i));
-  color = mix(color, vec3(1), smoothstep(2. * inc, 2. * inc + edge, i));
-  color = mix(color, vec3(0.3), smoothstep(3. * inc, 3. * inc + edge, i));
-  color = mix(color, pow(#00AAFF, vec3(2.2)), smoothstep(4. * inc, 4. * inc + edge, i));
-
-  return color;
-}
-
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.);
 
   // color = gradient(mod(m, 1.));
   // color += 1.0 * ( 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + m + vec3(0, 0.33, 0.67))) );
-  color = vec3(1);
   float shadeI = smoothstep(0.75, 0.75 + edge, dot(nor, vec3(0, -1, 0)));
-  color *= 0.80 + 0.20 * shadeI - sqrt(0.75 + 2.4 * mPos.y);
+  // color *= 0.80 + 0.20 * shadeI - sqrt(0.75 + 2.4 * mPos.y);
 
   return color;
 }
@@ -929,10 +916,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1123,19 +1110,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
+
+  // q.x *= 1. + 0.2 * sin(2. * q.y + cosT);
+
+  float modn = 0.; // mod(q.y, 0.1) * 10.;
+  // q += 0.10000 * cos(13. * q.yx + modn);
+  // q += 0.05000 * cos(17. * q.yx + modn);
+  // q += 0.02500 * cos(23. * q.yx + modn);
+  // q += 0.01250 * cos(31. * q.yx + modn);
+
   const float size = 0.1;
-
-  float n = 0.;
-
-  q = transform(q, generalT);
-
-  vec2 c = pMod2(q, vec2(size));
-
-  n = length(q) - 0.25 * size;
-
-  n = smoothstep(edge, 0., n);
-  vec2 absC = abs(c);
-  n *= smoothstep(edge, 0., max(absC.x, absC.y) - 5.);
+  vec2 grid = pMod2(q, vec2(size));
+  vec2 axis = vec2(174., 0);
+  axis *= rotMat2(PI * 0.5 * smoothstep(0.2, 0.2 + edge, cnoise2(0.7127 * grid)));
+  float n = smoothstep(edge, 0., sin(dot(q, axis)));
   color = vec3(n);
 
   return color;
@@ -1146,6 +1134,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
