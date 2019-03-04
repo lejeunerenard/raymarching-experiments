@@ -601,18 +601,16 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1;
   vec3 q = p;
 
-  // q.xz = abs(q.xz);
-  q.x = abs(q.x);
+  q.xy = abs(q.xy);
 
-  q += 0.05000 * cos(vec3(17, 1, 1) * q.yzx + vec3(-cosT, 2. * cosT, cosT));
-  q += 0.02500 * cos(vec3(31, 3, 3) * q.yzx + cosT);
-  q += 0.01250 * cos(vec3(13, 7, 7) * q.yzx + cosT);
+  q += 0.100000 * cos( 7. * q.yzx + cosT);
+  q += 0.050000 * cos(11. * q.yzx + cosT);
+  q += 0.025000 * cos(17. * q.yzx + cosT);
+  q += 0.012500 * cos(29. * q.yzx + cosT);
+  q += 0.006250 * cos(31. * q.yzx + cosT);
 
-  vec2 c = pMod2(q.xz, vec2(size));
-
-  float r = size * (0.3 + 0.2 * cnoise2(1.523423 * c) + 0.05 * cos(q.y + cosT + 2.723 * length(c)));
   mPos = q;
-  vec3 s = vec3(sdCone(q, vec2(r, 0.3)), cnoise2(1.82423 * c + 0.2323), 0);
+  vec3 s = vec3(sdBox(q, vec3(0.7, 0.7, 0.2)), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.5;
@@ -795,10 +793,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.);
 
-  // color = gradient(mod(m, 1.));
-  // color += 1.0 * ( 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + m + vec3(0, 0.33, 0.67))) );
-  float shadeI = smoothstep(0.75, 0.75 + edge, dot(nor, vec3(0, -1, 0)));
-  // color *= 0.80 + 0.20 * shadeI - sqrt(0.75 + 2.4 * mPos.y);
+  const vec3 darkPurple = pow(#421FA7, vec3(2.2));
+  const vec3 magenta = pow(#F12D91, vec3(2.2));
+  const vec3 white = pow(#FDF7FB, vec3(2.2));
+
+  const float trans = 0.125;
+  float shadeI = dot(nor, -rd);
+  // shadeI += 0.1 * noise(174.35 * pos);
+  shadeI += 0.1 * snoise3(174.35 * pos);
+  const float oneToTwo = 0.4;
+  color = mix(darkPurple, magenta, smoothstep(oneToTwo - trans, oneToTwo + trans, shadeI));
+  const float twoToThree = 0.65;
+  color = mix(color, white, smoothstep(twoToThree - trans, twoToThree + trans, shadeI));
+  // color = vec3(shadeI);
 
   return color;
 }
@@ -1134,8 +1141,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
