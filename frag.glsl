@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -601,16 +601,15 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.1;
   vec3 q = p;
 
-  q.xy = abs(q.xy);
-
-  q += 0.100000 * cos( 7. * q.yzx + cosT);
-  q += 0.050000 * cos(11. * q.yzx + cosT);
+  q += 0.200000 * cos( 1. * q.yzx + vec3(cosT, -cosT, cosT));
+  q += 0.100000 * cos( 3. * q.yzx + vec3(sin(cosT), 0, cosT));
+  q += 0.050000 * cos( 7. * q.yzx + cosT);
   q += 0.025000 * cos(17. * q.yzx + cosT);
-  q += 0.012500 * cos(29. * q.yzx + cosT);
-  q += 0.006250 * cos(31. * q.yzx + cosT);
+  q += 0.012500 * cos(19. * q.yzx + cosT);
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(0.7, 0.7, 0.2)), 0, 0);
+  float side = 9.0;
+  vec3 s = vec3(sdBox(q, vec3(side, 0.2, side)), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.5;
@@ -793,19 +792,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.);
 
-  const vec3 darkPurple = pow(#421FA7, vec3(2.2));
-  const vec3 magenta = pow(#F12D91, vec3(2.2));
-  const vec3 white = pow(#FDF7FB, vec3(2.2));
-
-  const float trans = 0.125;
-  float shadeI = dot(nor, -rd);
-  // shadeI += 0.1 * noise(174.35 * pos);
-  shadeI += 0.1 * snoise3(174.35 * pos);
-  const float oneToTwo = 0.4;
-  color = mix(darkPurple, magenta, smoothstep(oneToTwo - trans, oneToTwo + trans, shadeI));
-  const float twoToThree = 0.65;
-  color = mix(color, white, smoothstep(twoToThree - trans, twoToThree + trans, shadeI));
-  // color = vec3(shadeI);
+  float n = smoothstep(0., edge, sin(31. * mPos.x));
+  color = vec3(n);
 
   return color;
 }
@@ -877,8 +865,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.1;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -951,7 +939,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
