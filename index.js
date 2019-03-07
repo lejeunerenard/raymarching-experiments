@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'phoenix-feathers-render1',
+    name: 'metaloid-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
