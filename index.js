@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'metaloid-render1',
+    name: 'mermaid-sundae-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

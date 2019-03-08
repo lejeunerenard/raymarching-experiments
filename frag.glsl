@@ -600,16 +600,21 @@ vec3 map (in vec3 p, in float dT) {
 
   const float size = 0.1;
   vec3 q = p;
+  vec3 wQ = q;
 
-  q += 0.200000 * cos( 7. * q.yzx + vec3(cosT, -cosT, cosT));
-  q += 0.100000 * cos(13. * q.yzx + vec3(sin(cosT), 0, cosT));
-  q.xzy = twist(q.xyz, 6.1 * q.y);
-  q += 0.050000 * cos(19. * q.yzx + cosT);
-  q += 0.025000 * cos(23. * q.yzx + cosT);
-  q += 0.012500 * cos(31. * q.yzx + cosT);
+  float warpAmount = smoothstep(-0.4, 1., cos(7. * length(q) - cosT));
+  wQ += warpAmount * 0.200000 * cos( 7. * wQ.yzx + vec3(cosT, -cosT, cosT));
+  wQ += warpAmount * 0.100000 * cos(13. * wQ.yzx + vec3(sin(cosT), 0, cosT));
+  wQ.xzy = twist(wQ.xyz, warpAmount * 6.1 * wQ.y);
+  wQ += warpAmount * 0.050000 * cos(19. * wQ.yzx + cosT);
+  wQ += warpAmount * 0.025000 * cos(23. * wQ.yzx + cosT);
+  wQ += warpAmount * 0.012500 * cos(31. * wQ.yzx + cosT);
+
+  // q = mix(q, wQ, saturate(warpAmount));
+  q = wQ;
 
   mPos = q;
-  float side = 0.4;
+  float side = 0.5;
   vec3 s = vec3(sdBox(q, vec3(side)), 0, 0);
   d = dMin(d, s);
 
@@ -791,10 +796,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = #371B69;
+  vec3 color = #5FFFBD;
 
   float dI = dot(nor, -rd);
-  color = mix(color, #28FF51, smoothstep(0.5, 0.7, dot(nor, -rd)));
+  color = mix(color, #FF795F, smoothstep(0.5, 0.7, dot(nor, -rd)));
   color += 0.3 * (0.5 + 0.5 * cos(TWO_PI * (3. * dI + vec3(0, 0.33, 0.67))));
 
   return color;
