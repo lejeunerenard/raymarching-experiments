@@ -219,13 +219,13 @@ export default class App {
       },
       d: 5,
       scale: -1.42,
-      rot2angle: [5.874, 6.283, 3.839],
+      rot2angle: [-2.232, 6.283, 3.839],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.86, 1.82)
+    this.cameraRo = vec3.fromValues(0.25, 0.44, 1.65)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
