@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'mermaid-sundae-render1',
+    name: 'confluence-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
