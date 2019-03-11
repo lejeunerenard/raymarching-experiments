@@ -1118,14 +1118,22 @@ vec2 transform (in vec2 q, in float t) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = uv;
+  vec2 q = 0.7 * uv;
 
-  float a = (atan(q.y, q.x) + PI) / TWO_PI;
-  float r = length(q);
-  float n = smoothstep(0.9, 0.9 + edge, sin(TWO_PI * a + 4. * r + generalT));
-  n *= smoothstep(edge, 0., r - 0.7);
+  q += 0.20 * cos( 3. * q.yx + vec2(-generalT, generalT));
+  q += 0.05 * vfbmWarp(q);
+  vec2 halfWarpQ = q;
+  float nMask = 0.05 * vfbmWarp(0.8 * q);
+  q += (nMask + 0.10) * cos( 7. * q.yx + generalT);
+  q += 0.05 * cos(13. * q.yx + generalT);
 
+  float n = sin(dot(q, vec2(73.)));
+  n = smoothstep(edge, 0., n);
   color = vec3(n);
+
+  q = mix(uv, 1.028571 * halfWarpQ, smoothstep(0., 1., sin(generalT)));
+  float mask = smoothstep(edge, 0., length(q) - 0.65);
+  color = mix(background, color, mask);
 
   return color;
 }
@@ -1135,6 +1143,24 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  // uv *= 0.80;
+  const float totalT = 0.0625 * PI;
+  const int hues = 10;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
+    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    vec3 layerColor = hsv(vec3(0, 0.5, 1.0) + colorI);
+    // layerColor = pow(layerColor, vec3(3.2));
+    float a = two_dimensional(uv, cosT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+  color *= 0.20;
+  return vec4(color, 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
