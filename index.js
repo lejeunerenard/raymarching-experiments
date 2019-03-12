@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'sequestered-render1',
+    name: 'des-sa-grand-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
