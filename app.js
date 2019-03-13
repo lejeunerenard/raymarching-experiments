@@ -42,180 +42,11 @@ export default class App {
     this.LOOKAT = true
 
     this.presets = {}
-    const thingy = {
-      offset: {
-        x: 1,
-        y: 0.876,
-        z: 2.544
-      },
-      d: 5,
-      scale: 1.28,
-      rot2angle: [0.264, 0.86, 0.671],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-    this.presets.thingy = thingy
-
-    const nova = {
-      offset: {
-        x: 1.993,
-        y: 0.552,
-        z: -1.205
-      },
-      d: 5,
-      scale: 1.01,
-      rot2angle: [0.264, 0.313, 5.225],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-    this.presets.nova = nova
-
-    const jackOLatern = {
-      offset: {
-        x: 1.038,
-        y: -1.195,
-        z: 0.524
-      },
-      d: 5,
-      scale: 1.52,
-      rot2angle: [0.264, 0.313, 5.225],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-    this.presets.jackOLatern = jackOLatern
-
-    const fractalGem1 = {
-      offset: {
-        x: 1.441,
-        y: 0.89,
-        z: 0.228
-      },
-      d: 5,
-      scale: 1.13,
-      rot2angle: [0, 0, 0],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-    this.presets.fractalGem1 = fractalGem1
-
-    this.presets.tiledSphere = {
-      offset: {
-        x: 1.111,
-        y: 0.339,
-        z: 0.362
-      },
-      d: 5,
-      scale: 0.94,
-      rot2angle: [0.583, 0.945, 0],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-    this.presets.something = {
-      offset: {
-        x: 0.815,
-        y: 0.449,
-        z: 0.641
-      },
-      d: 5,
-      scale: 1.79,
-      rot2angle: [0.136, 0, 0],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-
-    this.presets.tatted = {
-      offset: {
-        x: 0.326,
-        y: 2.61,
-        z: 0.716
-      },
-      d: 5,
-      scale: 1.28,
-      rot2angle: [0.111, 0.385, 0.481],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-
-    this.presets.dodecSierpinski = {
-      offset: {
-        x: 1,
-        y: 1,
-        z: 1
-      },
-      d: 5,
-      scale: PHI * PHI,
-      rot2angle: [0, 0, 0],
-      cameraAngles: [-0.621, -0.469, -0.298]
-    }
-
-    this.presets.mandelbox2 = {
-      offset: {
-        x: 0,
-        y: 0,
-        z: 0
-      },
-      d: 5,
-      scale: 2.11,
-      rot2angle: [1.703, 0, 0],
-      cameraAngles: [-0.203, -0.009, 0]
-    }
-    this.presets.fractalGem2 = {
-      offset: {
-        x: 0.228,
-        y: 0,
-        z: 0
-      },
-      d: 5,
-      scale: 1.13,
-      rot2angle: [0.138, 0, 0],
-      cameraAngles: [-0.203, -0.009, 0]
-    }
-    this.presets.kaleidoGem = {
-      offset: {
-        x: 0.339,
-        y: 0.635,
-        z: 0.017
-      },
-      d: 5,
-      scale: 2.02,
-      rot2angle: [0.301, 0, 0],
-      cameraAngles: [-0.203, -0.009, 0]
-    }
-
-    this.presets.blend1 = {
-      offset: {
-        x: 1.441,
-        y: 0.457,
-        z: 0.4
-      },
-      d: 5,
-      scale: 1.61,
-      rot2angle: [0.301, 0, 0],
-      cameraAngles: [-0.203, -0.009, 0]
-    }
-
-    this.presets.blend2 = {
-      offset: {
-        x: 0.499,
-        y: 0.029,
-        z: 0.21
-      },
-      d: 5,
-      scale: 2.52,
-      rot2angle: [0.301, 0, 0],
-      cameraAngles: [-0.203, -0.009, 0]
-    }
-
-    this.presets.barFitSparkle = {
-      offset: {
-        x: -0.113,
-        y: 0.152,
-        z: 0
-      },
-      d: 5,
-      scale: 1.97,
-      rot2angle: [-0.342, -0.411, 0.767],
-      cameraAngles: [-0.203, -0.009, 0]
-    }
-
     const preset = {
       offset: {
-        x: 0.0001,
-        y: 0,
-        z: 0
+        x: -0.102,
+        y: 0.436,
+        z: 0.323
       },
       d: 5,
       scale: -1.42,
@@ -225,7 +56,7 @@ export default class App {
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.5, 1.75, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 7.39)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters

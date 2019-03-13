@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 90.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -598,37 +598,24 @@ mat3 rotOrtho (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float size = 0.2;
-  p.y -= 0.25;
-  p.z += 0.1;
+  p *= globalRot;
   vec3 q = p;
 
-  const float warpScale = 0.5;
-  q += warpScale * 0.15000 * cos( 5. * q.yzx + cosT );
-  q.xzy = twist(q, warpScale * q.y + PI * 0.25);
-  q += warpScale * 0.07500 * cos( 7. * q.yzx + cosT );
-  q.xzy = twist(q, warpScale * (3. + 0.1 * sin(cosT + q.y)) * q.y);
-  q += warpScale * 0.03750 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.01875 * cos(17. * q.yzx + cosT );
+  q *= rotationMatrix(normalize(vec3(1, 1, 1)), 0.20 * PI);
+  mat3 rot = rotationMatrix(normalize(vec3(0.23, 1., 0.8)), 0.75 * PI * (0.50 + 0.20 * sin(cosT)));
 
-  vec3 preGridQ = q;
-  vec2 c = pMod2(q.xy, vec2(size));
+  for (int i = 0; i < 7; i++) {
+    q = abs(q);
+    q *= rot;
+    // q.xy -= 0.5;
+    q -= offset;
+    // q *= 1.7 + 0.2 * sin(cosT);
+    vec3 doc = vec3(sdBox(q, vec3(0.2)), 0., 0.);
+    mPos = (d.x < doc.x) ? mPos : q;
+    d = dMin(d, doc);
+  }
 
-  mPos = q;
-  const float boxSize = 0.20 * size;
-  vec3 s = vec3(sdBox(q, vec3(boxSize, boxSize, 0.85)), 0, 0);
-  d = dMin(d, s);
-
-  q = preGridQ;
-  const float numGrid = 3.;
-  float crop = sdBox(q, vec3((numGrid + 0.5) * size, (numGrid + 0.5) * size, 10.));
-  d.x = max(d.x, crop);
-
-  q = p;
-  vec3 f = vec3(sdPlane(q + vec3(0, (numGrid + 3.) * size, 0), vec4(0, 1, 0, 0)), 1, 0);
-  d = dMin(d, f);
-
-  d.x *= 0.40;
+  d.x *= 0.20;
 
   return d;
 }
@@ -807,7 +794,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.9);
-  color = mix(color, vec3(1), isMaterialSmooth(m, 1.));
+
+  float n = smoothstep(edge + 0.2, 0.2, sin(dot(mPos, vec3(33))));
+  color = vec3(n);
 
   return color;
 }
@@ -1157,26 +1146,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv), 1);
-
-  vec3 color = vec3(0);
-
-  // uv *= 0.80;
-  const float totalT = 0.0625 * PI;
-  const int hues = 20;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0);
-    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-    vec3 layerColor = hsv(vec3(0, 0.5, 1.0) + colorI);
-    // layerColor = pow(layerColor, vec3(3.2));
-    float a = two_dimensional(uv, 0.2 + cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-  color *= 0.080;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
