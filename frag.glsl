@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 90.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1107,36 +1107,38 @@ vec2 transform (in vec2 q, in float t) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = 0.7 * uv;
+  vec2 q = uv;
 
-  q += 0.200 * cos( 3. * q.yx + vec2(-generalT, generalT));
-  q += 0.050 * vfbmWarp(q);
-  vec2 halfWarpQ = q;
-  float nMask = 0.05 * vfbmWarp(0.8 * q);
-  q += (nMask + 0.10) * cos( 7. * q.yx + generalT);
-  q += 0.050 * cos(13. * q.yx + generalT);
-  q += 0.025 * cos(17. * q.yx + generalT);
+  float l = length(q);
 
-  float n = sin(dot(q, vec2(73.)));
-  n = smoothstep(edge, 0., n);
-  color = vec3(n);
+  float d = l - 0.65;
+  d = smoothstep(0.05, 0., d);
 
-  q = mix(uv, 1.328571 * halfWarpQ, smoothstep(0., 1., sin(generalT)));
+  vec2 qColor = q;
+  qColor += 0.10000 * cos( 3. * qColor.yx + cosT);
+  qColor += 0.05000 * cos( 7. * qColor.yx + cosT);
+  qColor += 0.02500 * cos(13. * qColor.yx + cosT);
+  qColor += 0.01250 * cos(17. * qColor.yx + cosT);
 
-  q.x += 0.09;
+  float h = 0.9 * snoise2(0.2 * qColor + 0.1 * cnoise2(qColor)) + 0.15 * vfbmWarp(qColor);
+  vec3 sphereColor = hsv(vec3(h, 1, 1));
+  sphereColor = 0.5 + 0.5 * cos(TWO_PI * (h + vec3(0, 0.33, 0.67)));
 
-  // 1
-  vec2 absQ = abs(vec2(6, 1) * (q + vec2(0.45, 0)));
-  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.445);
+  sphereColor *= 2.5 * (0.5 * (0.5 + 0.5 * cos(TWO_PI * (sphereColor + vec3(0, 0.33, 0.67)))));
 
-  // 0
-  q.x -= 0.3;
-  float zeroR = 0.45;
-  float zeroMask = smoothstep(edge, 0., length(q) - zeroR);
-  zeroMask = min(zeroMask, smoothstep(0., edge, length(q) - 0.7 * zeroR));
-  mask = max(mask, zeroMask);
+  // sphereColor *= smoothstep(0., edge, h);
 
-  color = mix(background, color, mask);
+  sphereColor = pow(sphereColor, vec3(0.9));
+
+  // Shadow
+  float dI = dot(normalize(vec3(q, 1)), normalize(vec3(-1, 1, 0.75)));
+  dI = saturate(dI);
+  // dI = pow(dI, 0.9);
+  sphereColor = mix(sphereColor, dI * sphereColor, 0.85);
+
+  // sphereColor += smoothstep(0.5, 0.7, dI) * smoothstep(0.7, 0.5, dI);
+
+  color = mix(background, sphereColor, d);
 
   return color;
 }
@@ -1146,6 +1148,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
+  return vec4(two_dimensional(uv), 1);
+
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
