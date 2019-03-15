@@ -1107,38 +1107,29 @@ vec2 transform (in vec2 q, in float t) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = uv;
+  vec2 q = 0.75 * uv;
 
   float l = length(q);
 
-  float d = l - 0.65;
-  d = smoothstep(0.05, 0., d);
+  const float radius = 0.25;
+  float isCircle = 1. - step(0., l - radius);
 
-  vec2 qColor = q;
-  qColor += 0.10000 * cos( 3. * qColor.yx + cosT);
-  qColor += 0.05000 * cos( 7. * qColor.yx + cosT);
-  qColor += 0.02500 * cos(13. * qColor.yx + cosT);
-  qColor += 0.01250 * cos(17. * qColor.yx + cosT);
+  float totalRotAngle = (1. + 1. * cos(generalT)) * TWO_PI;
+  mat2 rot = rotMat2(isCircle * (totalRotAngle * (l - radius) / (radius + 0.000001)));
 
-  float h = 0.9 * snoise2(0.2 * qColor + 0.1 * cnoise2(qColor)) + 0.15 * vfbmWarp(qColor);
-  vec3 sphereColor = hsv(vec3(h, 1, 1));
-  sphereColor = 0.5 + 0.5 * cos(TWO_PI * (h + vec3(0, 0.33, 0.67)));
+  // q *= rot;
 
-  sphereColor *= 2.5 * (0.5 * (0.5 + 0.5 * cos(TWO_PI * (sphereColor + vec3(0, 0.33, 0.67)))));
-
-  // sphereColor *= smoothstep(0., edge, h);
-
-  sphereColor = pow(sphereColor, vec3(0.9));
-
-  // Shadow
-  float dI = dot(normalize(vec3(q, 1)), normalize(vec3(-1, 1, 0.75)));
-  dI = saturate(dI);
-  // dI = pow(dI, 0.9);
-  sphereColor = mix(sphereColor, dI * sphereColor, 0.85);
-
-  // sphereColor += smoothstep(0.5, 0.7, dI) * smoothstep(0.7, 0.5, dI);
-
-  color = mix(background, sphereColor, d);
+  const float thickness = 0.0125;
+  float n = smoothstep(
+    3. * edge + thickness,
+    thickness,
+    abs(q.y +
+      0.5
+      * smoothstep(0.7, 0.0, abs(q.x))
+      * sin(3. * TWO_PI * q.x + generalT)
+    )
+  );
+  color = vec3(n);
 
   return color;
 }
@@ -1148,7 +1139,22 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  // return vec4(two_dimensional(uv), 1);
+
+  vec3 color = background;
+
+  const float totalT = 0.55 * PI;
+  const int hues = 13;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = 0.35 * vec3(fraction) + vec3(0.125 * uv, 0) + 0.5 * cnoise2(uv);
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    float a = two_dimensional(uv, PI + cosT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+  color *= 0.65;
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);

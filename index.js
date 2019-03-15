@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'jupiter-x-render1',
+    name: 'heartbeat-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
