@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1107,28 +1107,16 @@ vec2 transform (in vec2 q, in float t) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = 0.75 * uv;
+  vec2 q = uv;
 
+  float c = pModPolar(q, 4.);
+  float x = 5. * TWO_PI * q.x;
+
+  float a = atan(q.y, q.x);
   float l = length(q);
 
-  const float radius = 0.25;
-  float isCircle = 1. - step(0., l - radius);
+  float n = smoothstep(edge, 0., sin(a + sin(2. * TWO_PI * l + cosT)));
 
-  float totalRotAngle = (1. + 1. * cos(generalT)) * TWO_PI;
-  mat2 rot = rotMat2(isCircle * (totalRotAngle * (l - radius) / (radius + 0.000001)));
-
-  // q *= rot;
-
-  const float thickness = 0.0125;
-  float n = smoothstep(
-    3. * edge + thickness,
-    thickness,
-    abs(q.y +
-      0.5
-      * smoothstep(0.7, 0.0, abs(q.x))
-      * sin(3. * TWO_PI * q.x + generalT)
-    )
-  );
   color = vec3(n);
 
   return color;
@@ -1139,7 +1127,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv), 1);
+  return vec4(two_dimensional(uv), 1);
 
   vec3 color = background;
 
