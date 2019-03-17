@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1107,17 +1107,47 @@ vec2 transform (in vec2 q, in float t) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = uv;
+  float t = mod(2. * generalT, 1.);
+  float flip = mod(floor(2. * generalT), 2.);
 
-  float c = pModPolar(q, 4.);
-  float x = 5. * TWO_PI * q.x;
+  uv *= vec2(1, 1. - 2. * flip);
+  const float radius = 0.4;
+  const float halfRadius = radius * 0.5;
 
-  float a = atan(q.y, q.x);
-  float l = length(q);
+  float rotT = smoothstep(0., 0.5, t);
+  float shiftT = smoothstep(0.2, 0.5, t);
+  float expandT = smoothstep(0.5, 0.7, t);
 
-  float n = smoothstep(edge, 0., sin(a + sin(2. * TWO_PI * l + cosT)));
+  vec2 p = uv * (1. + t) + t * vec2(0, halfRadius);
+  vec2 q = p;
 
-  color = vec3(n);
+  vec2 scale = vec2(2. - 1.5 * expandT, 1.);
+
+  float d = 0.;
+  vec2 rotOffset = vec2(-radius, -radius);
+  q += rotOffset;
+  q *= rotMat2(-0.5 * PI * rotT);
+  q -= rotOffset;
+
+  q.y -= radius * shiftT;
+
+  vec2 absQ = abs(scale * (q - vec2(halfRadius, 0)));
+  float n = smoothstep(edge, 0., max(absQ.x, absQ.y) - radius);
+  d = max(d, n);
+
+  q = p;
+  rotOffset = vec2(radius, -radius);
+  q += rotOffset;
+  q *= rotMat2(0.5 * PI * rotT);
+  q -= rotOffset;
+
+  q.y -= radius * shiftT;
+
+  absQ = abs(scale * (q + vec2(radius * 0.5, 0)));
+  n = smoothstep(edge, 0., max(absQ.x, absQ.y) - radius);
+  d = max(d, n);
+
+  color = vec3(d);
 
   return color;
 }
@@ -1127,21 +1157,22 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec3 color = background;
 
-  const float totalT = 0.55 * PI;
-  const int hues = 13;
+  const float totalT = 0.075;
+  const int hues = 10;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    vec3 colorI = 0.35 * vec3(fraction) + vec3(0.125 * uv, 0) + 0.5 * cnoise2(uv);
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-    float a = two_dimensional(uv, PI + cosT + totalT * fraction).x;
+    vec3 colorI = vec3(fraction) + vec3(0.125 * uv, 0);
+    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
+    float a = two_dimensional(uv, norT + totalT * fraction).x;
     // color *= mix(vec3(1), layerColor, a);
     color += layerColor * a;
   }
-  color *= 0.65;
+  color *= 0.25;
   return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
