@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -602,24 +602,19 @@ mat3 rotOrtho (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
   vec3 q = p;
 
-  q *= rotationMatrix(normalize(vec3(1, 1, 1)), 0.20 * PI);
-  mat3 rot = rotationMatrix(normalize(vec3(0.23, 1., 0.8)), 0.75 * PI * (0.50 + 0.20 * sin(cosT)));
+  mPos = q;
+  vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0., 0.);
 
-  for (int i = 0; i < 7; i++) {
-    q = abs(q);
-    q *= rot;
-    // q.xy -= 0.5;
-    q -= offset;
-    // q *= 1.7 + 0.2 * sin(cosT);
-    vec3 doc = vec3(sdBox(q, vec3(0.2)), 0., 0.);
-    mPos = (d.x < doc.x) ? mPos : q;
-    d = dMin(d, doc);
-  }
+  const float scale = 0.9;
+  float c1 = cellular(scale * q + norT + 0. + 0.5834);
+  float c2 = cellular(scale * q + norT - 1. + 0.5834);
 
-  d.x *= 0.20;
+  b.x -= 0.225 * mix(c1, c2, saturate((norT - 0.2) / (0.8)));
+  d = dMin(d, b);
+
+  // d.x *= 0.20;
 
   return d;
 }
@@ -799,7 +794,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.9);
 
-  float n = smoothstep(edge + 0.2, 0.2, sin(dot(mPos, vec3(33))));
+  float n = smoothstep(edge + 0.2, 0.2, sin(dot(mPos, vec3(103))));
   color = vec3(n);
 
   return color;
@@ -872,20 +867,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.2;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.4;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.6;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -898,7 +893,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.250 * amb * diffuseColor;
+        lin += 0.500 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
@@ -1133,22 +1128,22 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = background;
+  // vec3 color = background;
 
-  const float totalT = 0.065 * PI;
-  const int hues = 5;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(2.1 * uv, 0) + norT;
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-    // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    color *= mix(vec3(1), layerColor, a);
-    // color += layerColor * a;
-  }
+  // const float totalT = 0.065 * PI;
+  // const int hues = 5;
+  // for (int i = 0; i < hues; i++) {
+  //   float fraction = float(i) / float(hues);
+  //   vec3 colorI = vec3(fraction) + vec3(2.1 * uv, 0) + norT;
+  //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+  //   // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
+  //   float a = two_dimensional(uv, cosT + totalT * fraction).x;
+  //   color *= mix(vec3(1), layerColor, a);
+  //   // color += layerColor * a;
+  // }
 
-  // color *= 0.25;
-  return vec4(color, 1);
+  // // color *= 0.25;
+  // return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
