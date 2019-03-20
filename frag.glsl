@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1108,12 +1108,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
+  q *= rotMat2(0.5 * PI * smoothstep(0.4, 0.6, generalT));
+
   float d = 0.;
+  const float radius = 0.6;
 
+  float circ = length(q) - radius;
   vec2 absQ = abs(q);
+  float sqr = max(absQ.x, absQ.y) - radius;
 
-  float n = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.6);
-  n *= smoothstep(0.05, 0.05 + edge, cellular(vec3(1.4 * q, sin(generalT))));
+  float shadeI = dot(q, 9.125 * vec2(-1, 1));
+  float isSqr = smoothstep(0.25, 0.30, generalT + 0.005 * shadeI)
+    * smoothstep(0.80, 0.75, generalT + 0.005 * shadeI);
+  isSqr = quint(isSqr);
+  float n = mix(circ, sqr, isSqr);
+  n = smoothstep(edge, 0., n);
+
+  // Shades
+  float mask = smoothstep(0., edge, sin(TWO_PI * shadeI));
+  n *= mix(1., mask,
+      smoothstep(0.15, 0.15 + edge, mod(generalT + 0.005 * shadeI, 0.5))
+      * smoothstep(0.35 + edge, 0.35, mod(generalT + 0.005 * shadeI, 0.5))
+  );
+
   d = max(d, n);
 
   color = vec3(d);
@@ -1128,22 +1145,22 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = background;
+  vec3 color = vec3(0);
 
-  // const float totalT = 0.065 * PI;
-  // const int hues = 5;
-  // for (int i = 0; i < hues; i++) {
-  //   float fraction = float(i) / float(hues);
-  //   vec3 colorI = vec3(fraction) + vec3(2.1 * uv, 0) + norT;
-  //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-  //   // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-  //   float a = two_dimensional(uv, cosT + totalT * fraction).x;
-  //   color *= mix(vec3(1), layerColor, a);
-  //   // color += layerColor * a;
-  // }
+  const float totalT = 0.03;
+  const int hues = 5;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(2.1 * uv, 0) + norT;
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
+    float a = two_dimensional(uv, norT + totalT * fraction).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
 
-  // // color *= 0.25;
-  // return vec4(color, 1);
+  color *= 0.25;
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
