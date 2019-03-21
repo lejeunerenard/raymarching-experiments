@@ -19,7 +19,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'sugar-coat-render2',
+    name: 'flight-of-mathematics-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -1108,30 +1108,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  q *= rotMat2(0.5 * PI * smoothstep(0.4, 0.6, generalT));
+  const int num = 20;
+  const float radius = 0.05;
 
   float d = 0.;
-  const float radius = 0.6;
+  const float A = 0.5;
+  const float B = A;
+  float delta = 0.;
 
-  float circ = length(q) - radius;
-  vec2 absQ = abs(q);
-  float sqr = max(absQ.x, absQ.y) - radius;
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
+    float a = mod(fI, 5.0) + 1.;
+    float b = floor(fI / 4.0) + 1.;
 
-  float shadeI = dot(q, 9.125 * vec2(-1, 1));
-  float isSqr = smoothstep(0.25, 0.30, generalT + 0.005 * shadeI)
-    * smoothstep(0.80, 0.75, generalT + 0.005 * shadeI);
-  isSqr = quint(isSqr);
-  float n = mix(circ, sqr, isSqr);
-  n = smoothstep(edge, 0., n);
+    vec2 vertPos = vec2(
+      A * sin(a * generalT + delta),
+      B * sin(b * generalT));
 
-  // Shades
-  float mask = smoothstep(0., edge, sin(TWO_PI * shadeI));
-  n *= mix(1., mask,
-      smoothstep(0.15, 0.15 + edge, mod(generalT + 0.005 * shadeI, 0.5))
-      * smoothstep(0.35 + edge, 0.35, mod(generalT + 0.005 * shadeI, 0.5))
-  );
-
-  d = max(d, n);
+    float l = length(q - vertPos);
+    float n = smoothstep(edge, 0., l - radius);
+    d = max(d, n);
+  }
 
   color = vec3(d);
 
@@ -1147,19 +1144,19 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const float totalT = 0.03;
-  const int hues = 5;
+  const float totalT = 0.05 * PI;
+  const int hues = 30;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
     vec3 colorI = vec3(fraction) + vec3(2.1 * uv, 0) + norT;
     vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
     // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-    float a = two_dimensional(uv, norT + totalT * fraction).x;
+    float a = two_dimensional(uv, cosT + totalT * fraction).x;
     // color *= mix(vec3(1), layerColor, a);
     color += layerColor * a;
   }
 
-  color *= 0.25;
+  color *= 0.125;
   return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
