@@ -14,17 +14,14 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-window.time = 5
-
-app.width = 1080
-app.height = 1080
+const still = false
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'locality-render1',
+    name: 'royalty-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -99,7 +96,9 @@ if (capturing) {
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
-        // currentRAF = vrDisplay.requestAnimationFrame(tick)
+        if (!still) {
+          currentRAF = vrDisplay.requestAnimationFrame(tick)
+        }
       }, 250)
     }
   }
@@ -192,7 +191,9 @@ if (capturing) {
   app.run()
 
   let tick = (t) => {
-    // currentRAF = vrDisplay.requestAnimationFrame(tick)
+    if (!still) {
+      currentRAF = vrDisplay.requestAnimationFrame(tick)
+    }
 
     controls.update(app.shader)
     app.tick(t)

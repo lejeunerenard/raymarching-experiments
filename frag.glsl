@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -39,7 +39,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 1024
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -604,17 +604,31 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
+  q.xzy = q.xyz;
+
+  q += 0.10000 * cos( 7. * q.yzx + cosT );
+  q.xzy = twist(q, 5. * q.z + cosT);
+  q += 0.05000 * cos(13. * q.yzx + cosT );
+  // q.xzy = twist(q, 3. * q.y);
+  q += 0.02500 * cos(23. * q.yzx + cosT );
+  q += 0.01250 * cos(29. * q.yzx + cosT );
+
+  q.xy = abs(q.xy);
+
   mPos = q;
-  vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), 0., 0.);
-
-  const float scale = 0.9;
-  float c1 = cellular(scale * q + norT + 0. + 0.5834);
-  float c2 = cellular(scale * q + norT - 1. + 0.5834);
-
-  b.x -= 0.225 * mix(c1, c2, saturate((norT - 0.2) / (0.8)));
+  const vec3 size = vec3(0.3, 0.3, 1.1);
+  vec3 b = vec3(sdBox(q, size), 0., 0.);
   d = dMin(d, b);
 
-  // d.x *= 0.20;
+  q.xy *= rotMat2(PI * 0.25);
+  b = vec3(sdBox(q, size), 0., 0.);
+  d = dMin(d, b);
+
+  q.xy *= rotMat2(PI * 0.125);
+  b = vec3(sdBox(q, size), 0., 0.);
+  d = dMin(d, b);
+
+  d.x *= 0.1;
 
   return d;
 }
@@ -792,10 +806,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.9);
+  vec3 color = vec3(0.8);
 
-  float n = smoothstep(edge + 0.2, 0.2, sin(dot(mPos, vec3(103))));
-  color = vec3(n);
+  float dI = dot(nor, -rd);
+
+  const vec3 blue = pow(#3B4BFF, vec3(2.2));
+  const vec3 yellow = pow(#FFD53B, vec3(2.2));
+
+  color = yellow;
+  // color = mix(blue, yellow, step(0.6, dI));
 
   return color;
 }
@@ -845,7 +864,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // Material Types
 
-      vec3 nor = getNormal2(pos, 0.0005 * t.x);
+      vec3 nor = getNormal2(pos, 0.005 * t.x);
       // float bumpsScale = 0.75;
       // float bumpIntensity = 0.1;
       // nor += bumpIntensity * vec3(
@@ -875,9 +894,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.8;
+        float diffMin = 0.80;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         float shadowMin = 1.0;
@@ -1140,25 +1159,6 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
-
-  vec3 color = vec3(0);
-
-  const float totalT = 0.065 * PI;
-  const int hues = 45;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0) + 0.75;
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-    // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-    float a = two_dimensional(uv, cosT + totalT * fraction).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-
-  color *= 0.075;
-  return vec4(color, 1);
-
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
 }
