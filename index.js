@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 6
 const capturing = false
 
 const FOV = 70
@@ -21,7 +21,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'royalty-render1',
+    name: 'mary-go-\'round-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
