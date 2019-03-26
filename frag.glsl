@@ -600,34 +600,30 @@ mat3 rotOrtho (in float t) {
 
 // Return value is (distance, material, orbit trap)
 const float itemHeight = 0.4;
-const float itemR = 0.15;
+const float itemR = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p -= vec3(0.1, 0, 0.25);
+  p -= vec3(0.25, 0, 0.25);
+  p *= rotationMatrix(vec3(0, 1, 0), 0.15);
   vec3 q = p;
 
   mPos = q;
 
-  q.y -= 0.1 * sin(cosT);
-  vec3 o = vec3(sdCappedCylinder(q, vec2(itemR, itemHeight)), 0., q.y);
+  const float size = itemR * 2.75;
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  q.y -= 0.1 * sin(cosT + abs(dot(c, vec2(-1, 1))));
+
+  vec3 o = vec3(sdBox(q, vec3(itemR, itemHeight, itemR)), 0., q.y);
   d = dMin(d, o);
 
   q = p;
-  float c = pModPolar(q.xz, 6.);
-  q.x -= 2.5 * itemR;
-  q.y -= 0.2 * sin(cosT + PI * 0.3 * c);
-  o = vec3(sdCappedCylinder(q, vec2(itemR, itemHeight)), 0., q.y);
-  d = dMin(d, o);
+  float numItems = 3.;
+  float crop = sdBox(q, vec3(size * (numItems - 0.5), 1, size * (numItems - 0.5)));
+  d.x = max(d.x, crop);
 
-  q = p;
-  c = pModPolar(q.xz, 11.);
-  q.x -= 5. * itemR;
-  q.y -= 0.2 * sin(cosT + TWO_PI * 0.09 * c + 0.3);
-  o = vec3(sdCappedCylinder(q, vec2(itemR, itemHeight)), 0., q.y);
-  d = dMin(d, o);
-
-  d.x *= 0.6;
+  d.x *= 0.5;
 
   return d;
 }
@@ -805,7 +801,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  float fade = ((0.3 * trap + 0.7 * mPos.y) + itemHeight) / (2.2 * itemHeight);
+  float fade = ((0.3 * trap + 0.7 * mPos.y) + itemHeight) / (2.05 * itemHeight);
+  fade = saturate(fade);
   fade *= fade;
 
   vec3 color = mix(background, vec3(1), fade);
@@ -894,7 +891,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.8;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
