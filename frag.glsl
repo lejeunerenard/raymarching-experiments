@@ -599,29 +599,44 @@ mat3 rotOrtho (in float t) {
 }
 
 // Return value is (distance, material, orbit trap)
-const float itemHeight = 0.4;
-const float itemR = 0.1;
+const float itemR = 0.5;
+const float itemHeight = itemR;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p -= vec3(0.25, 0, 0.25);
-  p *= rotationMatrix(vec3(0, 1, 0), 0.15);
   vec3 q = p;
+  q.y -= itemR * 0.1 * sin(4. * cosT - PI * 0.6 * length(q.xz));
 
   mPos = q;
 
   const float size = itemR * 2.75;
-  vec2 c = pMod2(q.xz, vec2(size));
 
-  q.y -= 0.1 * sin(cosT + abs(dot(c, vec2(-1, 1))));
+  float yOff = 0.025 * q.y;
+  float t = norT + yOff;
+  const float t1Mid = 0.25;
+  const float t2Mid = 0.75;
+  float thickness = 0.075;
+  float trans = smoothstep(t1Mid - thickness, t1Mid + thickness, t) * smoothstep(t2Mid + thickness, t2Mid - thickness, t);
+  float inTrans = smoothstep(t1Mid - thickness, t1Mid, mod(t, 0.5)) * smoothstep(t1Mid + thickness, t1Mid, mod(t, 0.5));
 
-  vec3 o = vec3(sdBox(q, vec3(itemR, itemHeight, itemR)), 0., q.y);
+  vec3 qW = q;
+  qW += 0.05000 * cos( 5. * q.yzx + cosT );
+  qW += 0.02500 * cos(13. * q.yzx + cosT );
+  qW += 0.01250 * cos(19. * q.yzx + cosT );
+  qW += 0.00625 * cos(23. * q.yzx + cosT );
+
+  q = mix(q, qW, inTrans);
+
+  q.xz *= rotMat2(PI * inTrans);
+  q *= 1. + 0.15 * inTrans;
+
+  float box = sdBox(q, vec3(itemR, itemR, itemR));
+  float sphere = length(q) - itemR;
+
+  float objD = mix(box, sphere, trans);
+
+  vec3 o = vec3(objD, 0., q.y);
   d = dMin(d, o);
-
-  q = p;
-  float numItems = 3.;
-  float crop = sdBox(q, vec3(size * (numItems - 0.5), 1, size * (numItems - 0.5)));
-  d.x = max(d.x, crop);
 
   d.x *= 0.5;
 
@@ -801,10 +816,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  float fade = ((0.3 * trap + 0.7 * mPos.y) + itemHeight) / (2.05 * itemHeight);
+  float fade = ((0.3 * trap + 0.7 * mPos.y) + itemHeight) / (2.20 * itemHeight);
   fade = saturate(fade);
-  fade *= fade;
+  fade = pow(fade, 0.45);
 
+  // fade += 0.1 * dot(nor, -rd);
+  const vec3 blue = pow(#1A11FF, vec3(2.2));
   vec3 color = mix(background, vec3(1), fade);
 
   return color;
@@ -886,12 +903,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.30;
+        float diffMin = 0.60;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -904,7 +921,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.000 * amb * diffuseColor;
+        lin += 0.300 * amb * diffuseColor;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
         distIntensity = saturate(distIntensity);
