@@ -16,15 +16,15 @@ window.app = app
 
 const still = false
 
-app.width = 1080
-app.height = 1080
+// app.width = 1080
+// app.height = 1080
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'impatient-render1',
+    name: 'ET-pancakes-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
