@@ -24,7 +24,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'ET-pancakes-render1',
+    name: 'holographic-cloak-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
