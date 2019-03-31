@@ -1081,52 +1081,55 @@ vec3 stripeGrad (in float x) {
   return color;
 }
 
-float sqrMask (in vec2 p) {
-  vec2 absP = abs(p);
-
-  const float baseR = 0.6;
-
-  float outer = max(absP.x, absP.y) - baseR;
-  float inner = max(absP.x, absP.y) - 0.5 * baseR;
-  return max(outer, -inner);
-}
 // #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
-vec2 getPhylloOffset (in float i) {
-  const float PHY = 137.5 * PI / 180.;
-  const float c = 0.0625;
+vec3 gradient (in float x) {
 
-  float r = c * sqrt(float(i));
-  float a = float(i) * PHY;
-  return r * vec2(cos(a), sin(a));
+  const float num = 5.;
+  const float stepInc = 1. / (num);
+
+  vec3 color = pow(#EFEECC, vec3(2.2));
+  color = mix(color, pow(#FE8B05, vec3(2.2)), step(1. * stepInc, x));
+  color = mix(color, pow(#FE0557, vec3(2.2)), step(2. * stepInc, x));
+  color = mix(color, pow(#400403, vec3(2.2)), step(3. * stepInc, x));
+  color = mix(color, pow(#0AABBA, vec3(2.2)), step(4. * stepInc, x));
+  return color;
 }
 
-vec2 transform (in vec2 q, in float t) {
-  q.y += 0.1000 * cos( 3. * q.x + t);
-  q.x += 0.0500 * cos( 7. * q.y + t);
-  q.y += 0.0250 * cos(13. * q.x + t);
-  return q;
-}
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
+  q.y -= 1.2;
+  q *= rotMat2(-PI * 0.125);
 
-  float d = 0.;
+  for (int i = 0; i < 20; i++) {
+    float fI = float(i);
 
-  const float scale = 0.20;
+    vec2 qW = q + vec2(0, 0.125 * fI);
+    qW.y += 0.1000 * sin(cosT + 
+        ( 6.
+          + mod(2. * fI, 3.)
+          + 4. * cnoise2(vec2(0, qW.x)
+          + 0.74 * noise(vec2(fI)))
+        ) * qW.x);
+    qW.y += 0.0500 * sin(cosT + 
+        (13.
+          + mod(3. * fI, 4.)
+          + 7. * cnoise2(vec2(0, qW.x)
+          + 0.74 * noise(vec2(fI)))
+        ) * qW.x);
+    qW.y += 0.0250 * sin(cosT + 
+        (17.
+          + mod(4. * fI, 5.)
+          + 9. * cnoise2(vec2(0, qW.x)
+          + 0.74 * noise(vec2(fI)))
+        ) * qW.x);
 
-  q += scale * 0.250000 * cos( 9. * q.yx + generalT );
-  q += scale * 0.125000 * cos(13. * q.yx + vec2(-generalT, generalT) );
-  q += scale * 0.062500 * cos(17. * q.yx - generalT );
-  q += scale * 0.031250 * cos(23. * q.yx + generalT );
-  q += scale * 0.015625 * cos(31. * q.yx + generalT );
-
-  float n = sin(dot(q, vec2(71)));
-  n = smoothstep(0.8, edge + 0.8, n);
-  d = max(d, n);
-
-  color = vec3(d);
+    float n = sin(dot(qW, vec2(0, 1)));
+    n = smoothstep(edge, 0., n);
+    color = mix(color, gradient(noise(vec2(1224. * fI))), n);
+  }
 
   return color;
 }
@@ -1136,7 +1139,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv), 1);
+  return vec4(two_dimensional(uv), 1);
 
   vec3 color = vec3(0);
 
