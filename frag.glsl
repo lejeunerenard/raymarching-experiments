@@ -1100,36 +1100,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
-  q.y -= 1.2;
-  q *= rotMat2(-PI * 0.125);
 
-  for (int i = 0; i < 20; i++) {
-    float fI = float(i);
+  q.y -= 0.10 * cos(4. * generalT);
+  q.x -= 0.55 * sin(generalT);
 
-    vec2 qW = q + vec2(0, 0.125 * fI);
-    qW.y += 0.1000 * sin(cosT + 
-        ( 6.
-          + mod(2. * fI, 3.)
-          + 4. * cnoise2(vec2(0, qW.x)
-          + 0.74 * noise(vec2(fI)))
-        ) * qW.x);
-    qW.y += 0.0500 * sin(cosT + 
-        (13.
-          + mod(3. * fI, 4.)
-          + 7. * cnoise2(vec2(0, qW.x)
-          + 0.74 * noise(vec2(fI)))
-        ) * qW.x);
-    qW.y += 0.0250 * sin(cosT + 
-        (17.
-          + mod(4. * fI, 5.)
-          + 9. * cnoise2(vec2(0, qW.x)
-          + 0.74 * noise(vec2(fI)))
-        ) * qW.x);
+  const float radius = 0.2;
+  float circ = length(q) - radius;
+  vec2 absQ = abs(q);
+  float sqr = max(absQ.x, absQ.y) - 0.9 * radius;
 
-    float n = sin(dot(qW, vec2(0, 1)));
-    n = smoothstep(edge, 0., n);
-    color = mix(color, gradient(noise(vec2(1224. * fI))), n);
-  }
+  float trans = smoothstep(-0.1, 0.1, cos(generalT + PI * 0.5));
+  float d = mix(circ, sqr, trans);
+  float thicknessOffset = 0.0075;
+  float n = smoothstep(edge + thicknessOffset, thicknessOffset, abs(d));
+  color = vec3(n);
 
   return color;
 }
@@ -1139,15 +1123,15 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv), 1);
+  // return vec4(two_dimensional(uv), 1);
 
-  vec3 color = vec3(0);
+  vec3 color = background;
 
-  const float totalT = 0.200 * PI;
-  const int hues = 25;
+  const float totalT = 0.275 * PI;
+  const int hues = 12;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(1.0 * uv, 0) + 0.75;
+    vec3 colorI = vec3(fraction) + vec3(1.2 * uv, 0) + 0.75;
     vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
     // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
     float a = two_dimensional(uv, cosT + totalT * fraction).x;
@@ -1155,7 +1139,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     color += layerColor * a;
   }
 
-  color *= 0.12;
+  color *= 0.5;
   return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
