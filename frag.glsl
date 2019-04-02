@@ -1083,36 +1083,24 @@ vec3 stripeGrad (in float x) {
 
 // #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
-vec3 gradient (in float x) {
-
-  const float num = 5.;
-  const float stepInc = 1. / (num);
-
-  vec3 color = pow(#EFEECC, vec3(2.2));
-  color = mix(color, pow(#FE8B05, vec3(2.2)), step(1. * stepInc, x));
-  color = mix(color, pow(#FE0557, vec3(2.2)), step(2. * stepInc, x));
-  color = mix(color, pow(#400403, vec3(2.2)), step(3. * stepInc, x));
-  color = mix(color, pow(#0AABBA, vec3(2.2)), step(4. * stepInc, x));
-  return color;
-}
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
 
-  q.y -= 0.10 * cos(4. * generalT);
-  q.x -= 0.55 * sin(generalT);
+  q.x += 0.3 * sin(PI * q.y + generalT);
 
-  const float radius = 0.2;
-  float circ = length(q) - radius;
-  vec2 absQ = abs(q);
-  float sqr = max(absQ.x, absQ.y) - 0.9 * radius;
+  vec2 axis = vec2(0, 1);
+  float i = (q.x + 0.2) * 2.5;
+  float shift = 0.5 + 0.5 * cos(saturate(i) * TWO_PI + PI);
+  q.y -= 0.1 * shift;
+  // axis *= rotMat2(0.5 * PI * shift);
 
-  float trans = smoothstep(-0.1, 0.1, cos(generalT + PI * 0.5));
-  float d = mix(circ, sqr, trans);
-  float thicknessOffset = 0.0075;
-  float n = smoothstep(edge + thicknessOffset, thicknessOffset, abs(d));
+  float n = sin(dot(q, 121. * axis));
+  n = smoothstep(edge, 0., n);
+  n += smoothstep(0., edge, abs(q.y) - 0.85);
+  // n += smoothstep(0., edge, length(q) - 0.85);
   color = vec3(n);
 
   return color;
@@ -1123,11 +1111,11 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   vec3 color = background;
 
-  const float totalT = 0.275 * PI;
+  const float totalT = 0.125 * PI;
   const int hues = 12;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);

@@ -16,15 +16,12 @@ window.app = app
 
 const still = false
 
-app.width = 1080
-app.height = 540
-
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'frolic-render2',
+    name: 'slither-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -33,7 +30,7 @@ if (capturing) {
   })
 
   app.width = 1080
-  app.height = 540
+  app.height = 1080
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
