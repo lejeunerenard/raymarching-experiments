@@ -14,14 +14,17 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-const still = false
+const still = true
+
+window.app.width = 1080
+window.app.height = 1080
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'slither-render1',
+    name: 'Invitation-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

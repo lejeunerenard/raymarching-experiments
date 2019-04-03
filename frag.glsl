@@ -1089,18 +1089,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  q.x += 0.3 * sin(PI * q.y + generalT);
+  // q.x += 0.3 * sin(PI * q.y + generalT);
 
-  vec2 axis = vec2(0, 1);
-  float i = (q.x + 0.2) * 2.5;
-  float shift = 0.5 + 0.5 * cos(saturate(i) * TWO_PI + PI);
-  q.y -= 0.1 * shift;
+  vec2 axis = vec2(1, 0);
+  float i = (q.y + 1.0) * 0.5;
+  float shift = 0.5 + 0.5 * cos((3.5 - 2.5 * saturate(i)) * saturate(i) * TWO_PI + 1.25 * PI);
+  q.x -= 0.3 * shift + 0.00125 * snoise2(7.7 * q);
   // axis *= rotMat2(0.5 * PI * shift);
 
-  float n = sin(dot(q, 121. * axis));
-  n = smoothstep(edge, 0., n);
-  n += smoothstep(0., edge, abs(q.y) - 0.85);
-  // n += smoothstep(0., edge, length(q) - 0.85);
+  float n = sin(dot(q, 171. * axis));
+  n = smoothstep(8. * edge, 0., n);
+
   color = vec3(n);
 
   return color;
