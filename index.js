@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 6
+const secondsLong = 20
 const capturing = false
 
 const FOV = 70
@@ -14,17 +14,14 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-const still = true
-
-window.app.width = 1080
-window.app.height = 1080
+const still = false
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'Invitation-render1',
+    name: 'oil-spill-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

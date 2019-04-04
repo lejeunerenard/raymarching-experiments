@@ -1084,33 +1084,37 @@ vec3 stripeGrad (in float x) {
 // #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
 
-vec3 two_dimensional (in vec2 uv, in float generalT) {
+vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
 
-  // q.x += 0.3 * sin(PI * q.y + generalT);
+  q += 0.050000 * cos( 3. * q.yx + generalT);
+  q += 0.025000 * cos( 7. * q.yx + generalT);
+  q += 0.012500 * cos(13. * q.yx + generalT);
+  q += 0.006250 * cos(23. * q.yx + generalT);
 
-  vec2 axis = vec2(1, 0);
-  float i = (q.y + 1.0) * 0.5;
-  float shift = 0.5 + 0.5 * cos((3.5 - 2.5 * saturate(i)) * saturate(i) * TWO_PI + 1.25 * PI);
-  q.x -= 0.3 * shift + 0.00125 * snoise2(7.7 * q);
-  // axis *= rotMat2(0.5 * PI * shift);
+  // float n = cnoise2(139. * q);
+  float n = sin(dot(q, 93. * vec2(-1, 1)));
+  n = smoothstep(edge, 0., n);
 
-  float n = sin(dot(q, 171. * axis));
-  n = smoothstep(8. * edge, 0., n);
+  q = uv;
+  q.y -= 0.15;
+  vec2 absQ = abs(q);
+  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.1);
 
-  color = vec3(n);
+  color = vec3(n * mask);
+  color *= 0.5 + 0.5 * cos(TWO_PI * (vec3(q, 0) + cosT + vec3(angle1C, angle2C, angle3C)));
 
-  return color;
+  return vec4(color, mask);
 }
 
-vec3 two_dimensional (in vec2 uv) {
+vec4 two_dimensional (in vec2 uv) {
   return two_dimensional(uv, modT);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  return two_dimensional(uv, cosT);
 
   vec3 color = background;
 

@@ -20,8 +20,8 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.2
-const BLOOM_PASSES = 2
+const BLOOM_WET = 1.0
+const BLOOM_PASSES = 0
 const BLOOM_MIN_BRIGHTNESS = 0.6
 
 // Initialize shell
@@ -50,7 +50,7 @@ export default class App {
       },
       d: 5,
       scale: -1.42,
-      rot2angle: [-2.232, 6.283, 3.839],
+      rot2angle: [2.566, 2.946, 3.142],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
@@ -406,7 +406,7 @@ export default class App {
     this.finalPass.uniforms.resolution = dim
     this.finalPass.uniforms.time = this.getTime(t)
     this.finalPass.uniforms.wet = BLOOM_WET
-    // drawTriangle(gl)
+    drawTriangle(gl)
 
     // Render again as framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)

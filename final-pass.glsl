@@ -49,6 +49,10 @@ void main() {
   // coord *= 0.995;
   // coord = coord * 0.5 + 0.5;
 
+  vec2 norm = coord - 0.5;
+  norm *= 0.985;
+  norm += 0.005 * cos(3. * norm.yx + cosT);
+  coord = norm + 0.5;
   vec4 prevBufferColor = texture2D(prevBuffer, coord);
   prevBufferColor.rgb = pow(prevBufferColor.rgb, gamma);
 
@@ -56,10 +60,11 @@ void main() {
   // prevBufferColor.a *= 0.9975;
   // prevBufferColor.a *= smoothstep(0., 0.001, prevBufferColor.a);
 
-  vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
-  // vec4 result = mix(vec4(prevBufferColor.rgb, 1), baseColor, baseColor.a);
+  // vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
+  vec4 result = mix(vec4(prevBufferColor.rgb, 1), baseColor, baseColor.a);
 
   gl_FragColor = wet * bufferColor + result;
+  // gl_FragColor = vec4( (0.995 * (coord - 0.5)) + 0.5, 0, 1 );
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
   // gl_FragColor = vec4(background + result.rgb, 1.);
@@ -75,5 +80,5 @@ void main() {
   gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 
   // 'Film' Noise
-  gl_FragColor.rgb += 0.030 * (cnoise2(560. * uv + sin(uv + time) + 000.0 * vec2(time, 0.0)) + cnoise2(800. * uv + 253.5 * vec2(0., time)));
+  // gl_FragColor.rgb += 0.030 * (cnoise2(560. * uv + sin(uv + time) + 000.0 * vec2(time, 0.0)) + cnoise2(800. * uv + 253.5 * vec2(0., time)));
 }
