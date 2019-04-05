@@ -1094,17 +1094,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   q += 0.012500 * cos(13. * q.yx + generalT);
   q += 0.006250 * cos(23. * q.yx + generalT);
 
-  // float n = cnoise2(139. * q);
-  float n = sin(dot(q, 93. * vec2(-1, 1)));
-  n = smoothstep(edge, 0., n);
+  float n = vfbmWarp(119. * q);
+  // float n = sin(dot(q, 93. * vec2(-1, 1)));
+  n = smoothstep(0., 1.0, n);
 
   q = uv;
   q.y -= 0.15;
-  vec2 absQ = abs(q);
-  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.1);
+  // vec2 absQ = abs(q);
+  // float mask = max(absQ.x, absQ.y) - 0.1;
+  float mask = length(q) - 0.1;
+  mask = smoothstep(edge, 0., mask);
 
   color = vec3(n * mask);
-  color *= 0.5 + 0.5 * cos(TWO_PI * (vec3(q, 0) + cosT + vec3(angle1C, angle2C, angle3C)));
+  // color *= 0.5 + 0.5 * cos(TWO_PI * (vec3(q, 0) + cosT + vec3(angle1C, angle2C, angle3C)));
 
   return vec4(color, mask);
 }

@@ -50,8 +50,9 @@ void main() {
   // coord = coord * 0.5 + 0.5;
 
   vec2 norm = coord - 0.5;
-  norm *= 0.985;
-  norm += 0.005 * cos(3. * norm.yx + cosT);
+  norm *= 0.994;
+  // norm.y -= 0.0003;
+  norm += 0.001 * cos(3. * norm.yx + cosT);
   coord = norm + 0.5;
   vec4 prevBufferColor = texture2D(prevBuffer, coord);
   prevBufferColor.rgb = pow(prevBufferColor.rgb, gamma);
