@@ -14,7 +14,11 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-const still = false
+window.time = 0.3
+const still = true
+
+app.width = 1080
+app.height = 1080
 
 let capturer = {}
 if (capturing) {

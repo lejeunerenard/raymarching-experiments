@@ -43,17 +43,13 @@ void main() {
   vec4 bufferColor  = texture2D(buffer, uv);
   bufferColor.rgb = pow(bufferColor.rgb, gamma);
 
-  vec2 coord = uv; // 2.0 * (uv - 0.5);
-  coord.y += 0.001;
-
-  // coord *= 0.995;
-  // coord = coord * 0.5 + 0.5;
-
-  vec2 norm = coord - 0.5;
-  norm *= 0.994;
-  // norm.y -= 0.0003;
-  norm += 0.001 * cos(3. * norm.yx + cosT);
+  // uv = uvBackground;
+  vec2 coord = uv - 0.5; // 2.0 * (uv - 0.5);
+  vec2 norm = coord;
+  norm *= 0.950;
   coord = norm + 0.5;
+  // coord -= 0.001 * sin(vec2(cosT) + vec2(0, PI * 0.5));
+
   vec4 prevBufferColor = texture2D(prevBuffer, coord);
   prevBufferColor.rgb = pow(prevBufferColor.rgb, gamma);
 
@@ -61,10 +57,23 @@ void main() {
   // prevBufferColor.a *= 0.9975;
   // prevBufferColor.a *= smoothstep(0., 0.001, prevBufferColor.a);
 
-  // vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
-  vec4 result = mix(vec4(prevBufferColor.rgb, 1), baseColor, baseColor.a);
+  vec4 result = mix(vec4(background, 1.), baseColor, baseColor.a);
+  // vec4 result = mix(prevBufferColor, baseColor, baseColor.a);
 
   gl_FragColor = wet * bufferColor + result;
+  // gl_FragColor = vec4(vec3(baseColor.a), 1);
+  // if (norT > 0.2) {
+  //   gl_FragColor = vec4(prevBufferColor.rgb, 1);
+  // }
+
+  // gl_FragColor = vec4(coord, 0, 1);
+  // if (abs(coord.x - 0.5) < 0.01) {
+  //   gl_FragColor = vec4(1, 0, 1, 1);
+  // }
+  // if (abs(coord.y - 0.5) < 0.01) {
+  //   gl_FragColor = vec4(0, 1, 1, 1);
+  // }
+
   // gl_FragColor = vec4( (0.995 * (coord - 0.5)) + 0.5, 0, 1 );
 
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
@@ -78,7 +87,7 @@ void main() {
   // gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.4));
 
   // Gamma encode
-  gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
+  // gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 
   // 'Film' Noise
   // gl_FragColor.rgb += 0.030 * (cnoise2(560. * uv + sin(uv + time) + 000.0 * vec2(time, 0.0)) + cnoise2(800. * uv + 253.5 * vec2(0., time)));

@@ -10,6 +10,7 @@
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
+#pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
 #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
@@ -107,10 +108,17 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     vec3 thisColor = vec3(0);
 
+    vec3 axis = vec3(1, 1, 1);
+    // axis *= rotationMatrix(normalize(vec3(0.2, -0.7, 0.4)), 1.34 * PI + mixI.x);
+    // axis *= rotationMatrix(normalize(vec3(0.9, 0.13, -0.4)), 1.34 * PI + mixI.y);
+    // axis *= rotationMatrix(normalize(vec3(2.0, 4.00, 0.13)), 3.34 * PI + mixI.z);
+    // thisColor = 0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.33, 0.67)));
+    // thisColor *= sceneResult;
+
     thisColor += nsin(0.9 * vec3(1.0, 1.1, 0.8) * mixI + vec3(0.0, 0.5, 124.234) + sceneResult) * sceneResult;
     thisColor += nsin(1.0 * vec3(1.0, 1.1, 0.8) * mixI + vec3(0.1, 0.6, 125.234) + sceneResult) * sceneResult;
 
-    color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.33, 0.67) + 0. * norT + dot(nor, -eye))));
+    color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.33, 0.67) + dot(nor, -eye))));
     #endif
   }
 

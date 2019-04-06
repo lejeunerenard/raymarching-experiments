@@ -20,7 +20,7 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 1.0
+const BLOOM_WET = 1
 const BLOOM_PASSES = 0
 const BLOOM_MIN_BRIGHTNESS = 0.6
 
@@ -400,7 +400,7 @@ export default class App {
     this.currentState = (this.currentState) ? 0 : 1
     this.state[3 + this.currentState].bind()
     this.finalPass.bind()
-    this.finalPass.uniforms.base = this.state[0].color[0].bind(3)
+    this.finalPass.uniforms.base = base.bind(3)
     this.finalPass.uniforms.buffer = this.state[1].color[0].bind(4)
     this.finalPass.uniforms.prevBuffer = this.state[3 + ((this.currentState + 1) % 2)].color[0].bind(5)
     this.finalPass.uniforms.resolution = dim
