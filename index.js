@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 30
+const secondsLong = 6
 const capturing = false
 
 const FOV = 70
@@ -14,18 +14,18 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-window.time = 0.3
-const still = true
+// window.time = 0.3
+const still = false
 
-app.width = 1080
-app.height = 1080
+// app.width = 1080
+// app.height = 1080
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'fecund-fungus-render1',
+    name: 'elation-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
