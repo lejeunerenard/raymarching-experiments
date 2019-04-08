@@ -1097,6 +1097,40 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
+  float c = pModPolar(q, 6.);
+
+  float i = dot(q, 77. * vec2(0.5773502691896257, 1));
+
+  float n = smoothstep(edge, 0., sin(i));
+
+  float colorI = floor(i / TWO_PI);
+
+  color = hsv(vec3(mod(7. * 16. * (colorI + 3. * c) / 17., 1.), 1, 1));
+
+  color *= n;
+
+  float maskR = 0.75;
+  float mask = smoothstep(maskR, maskR + edge, q.x);
+  color = mix(color, background, mask);
+
+  q = uv;
+
+  c = pModPolar(q, 6.);
+
+  i = dot(q, 77. * vec2(-0.5773502691896257, 1));
+
+  n = smoothstep(edge, 0., sin(i));
+
+  colorI = floor(i / TWO_PI);
+
+  vec3 layerColor = hsv(vec3(mod(7. * 16. * (colorI + 3. * c) / 17., 1.), 1, 1));
+
+  layerColor *= n;
+
+  maskR = 0.35;
+  mask = smoothstep(maskR, maskR + edge, q.x);
+  color = mix(layerColor, color, mask);
+
   return color;
 }
 
@@ -1105,7 +1139,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return two_dimensional(uv, cosT);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   // vec3 color = background;
 
@@ -1125,6 +1159,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
+
   return shade(ro, rd, t, uv);
 }
 

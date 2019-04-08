@@ -15,17 +15,17 @@ let app = new App()
 window.app = app
 
 // window.time = 0.3
-const still = false
+const still = true
 
-// app.width = 1080
-// app.height = 1080
+app.width = 1080
+app.height = 1080
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'elation-render1',
+    name: 'Interrupt-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
