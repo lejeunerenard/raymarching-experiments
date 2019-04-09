@@ -1091,45 +1091,47 @@ vec3 stripeGrad (in float x) {
 
 // #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
-
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
+  float gC = pModPolar(uv, 10.);
   vec2 q = uv;
 
-  float c = pModPolar(q, 6.);
+  uv.x -= 0.3234;
+  gC = pModPolar(uv, 12.);
 
-  float i = dot(q, 77. * vec2(0.5773502691896257, 1));
+  const float size = 0.2;
+  vec2 c = pMod2(q, vec2(size));
+  c += 32. * gC;
+  float i = dot(c, vec2(61, 77));
 
-  float n = smoothstep(edge, 0., sin(i));
+  vec2 absQ = abs(q);
+  float sqrD = max(absQ.x, absQ.y) - 0.4 * size;
 
-  float colorI = floor(i / TWO_PI);
+  float n = smoothstep(edge, 0., sqrD);
 
-  color = hsv(vec3(mod(7. * 16. * (colorI + 3. * c) / 17., 1.), 1, 1));
+  float colorI = i * 0.1; // floor(i / TWO_PI);
 
+  color = hsv(vec3(dot(q, vec2(0.4)) + mod(7. * 16. * (colorI) / 17., 1.), 1, 1));
   color *= n;
 
-  float maskR = 0.75;
-  float mask = smoothstep(maskR, maskR + edge, q.x);
-  color = mix(color, background, mask);
+  q = uv - vec2(0.5 * size);
+  c = pMod2(q, vec2(size));
+  i = dot(c, vec2(61, 77)) + 19.123;
 
-  q = uv;
+  absQ = abs(q);
+  sqrD = max(absQ.x, absQ.y) - 0.4 * size;
 
-  c = pModPolar(q, 6.);
+  n = smoothstep(edge, 0., sqrD);
 
-  i = dot(q, 77. * vec2(-0.5773502691896257, 1));
+  colorI = i * 0.2; // floor(i / TWO_PI);
 
-  n = smoothstep(edge, 0., sin(i));
+  vec3 color2 = hsv(vec3(dot(q, vec2(0.5)) + mod(7. * 16. * (colorI) / 17., 1.), 1, 1));
+  color2 *= n;
 
-  colorI = floor(i / TWO_PI);
+  color += color2;
 
-  vec3 layerColor = hsv(vec3(mod(7. * 16. * (colorI + 3. * c) / 17., 1.), 1, 1));
-
-  layerColor *= n;
-
-  maskR = 0.35;
-  mask = smoothstep(maskR, maskR + edge, q.x);
-  color = mix(layerColor, color, mask);
+  color *= 0.85;
 
   return color;
 }
