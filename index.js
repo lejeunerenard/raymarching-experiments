@@ -15,7 +15,7 @@ let app = new App()
 window.app = app
 
 // window.time = 0.3
-const still = true
+const still = false
 
 app.width = 1080
 app.height = 1080
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'centered-render1',
+    name: 'cusp-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

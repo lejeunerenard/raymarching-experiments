@@ -39,7 +39,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 2048
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -606,19 +606,14 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float cosIntense = 1.5;
-  q += cosIntense * 0.05000 * cos( 7. * q.yzx + vec3(cosT, -cosT, sin(cosT)) );
-  q += cosIntense * 0.02500 * cos(11. * q.yzx + cosT );
-  q += cosIntense * 0.01250 * cos(17. * q.yzx + vec3(-cosT, sin(cosT), -cosT) );
-  q += cosIntense * 0.05000 * cos(23. * q.yzx + vec3(cosT, -cosT, sin(cosT)) );
-  q += cosIntense * 0.02500 * cos(29. * q.yzx + cosT );
-  q += cosIntense * 0.01250 * cos(31. * q.yzx + vec3(-cosT, sin(cosT), -cosT) );
+  float l = length(q);
 
+  q.y += 1. / (l * l + 0.00001);
   mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(0.75)), 0, 0);
+  vec3 b = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.3;
+  d.x *= 0.25;
 
   return d;
 }
@@ -796,20 +791,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.0);
-
-  vec3 axis = vec3(1, 0, 0);
-
-  axis *= rotationMatrix(vec3(0.5, 0.1, -0.7), dot(nor, -rd));
-  color += vec3(1, 0, 0) * (0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.33, 0.67))));
-
-  axis *= rotationMatrix(vec3(0.7, 0.3, 0.1), PI * sin(dot(pos, -rd)));
-  color += vec3(0, 1, 0) * (0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.33, 0.67))));
-
-  axis *= rotationMatrix(vec3(0.5, 0.1, -0.7), dot(nor, -rd));
-  color += vec3(0, 0, 1) * (0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.33, 0.67))));
-
-  // color = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (pos + dot(nor, -rd) + vec3(0, 0.1, 0.3))));
+  vec3 color = vec3(0.6);
 
   return color;
 }
@@ -890,12 +872,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1094,44 +1076,23 @@ vec3 stripeGrad (in float x) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  float gC = pModPolar(uv, 10.);
   vec2 q = uv;
 
-  uv.x -= 0.3234;
-  gC = pModPolar(uv, 12.);
+  vec2 axis1 = 70. * vec2(-0.1, 1.0);
+  vec2 axis2 = 0.4 * vec2(1.0, 0.1);
+  float offN = dot(q, 70. * axis2) + 2.0 * sin(4. * q.y + cosT);
+  offN = sin(offN);
+  float offNEdge = -0.2;
+  offN = smoothstep(1., offNEdge, offN);
+  offN = pow(offN, 0.2);
 
-  const float size = 0.2;
-  vec2 c = pMod2(q, vec2(size));
-  c += 32. * gC;
-  float i = dot(c, vec2(61, 77));
+  float n = dot(q, axis1) + 2. * offN;
+  n = sin(n);
 
-  vec2 absQ = abs(q);
-  float sqrD = max(absQ.x, absQ.y) - 0.4 * size;
+  float edgeStart = -0.995;
+  float v = smoothstep(4. * edge + edgeStart, edgeStart, n);
 
-  float n = smoothstep(edge, 0., sqrD);
-
-  float colorI = i * 0.1; // floor(i / TWO_PI);
-
-  color = hsv(vec3(dot(q, vec2(0.4)) + mod(7. * 16. * (colorI) / 17., 1.), 1, 1));
-  color *= n;
-
-  q = uv - vec2(0.5 * size);
-  c = pMod2(q, vec2(size));
-  i = dot(c, vec2(61, 77)) + 19.123;
-
-  absQ = abs(q);
-  sqrD = max(absQ.x, absQ.y) - 0.4 * size;
-
-  n = smoothstep(edge, 0., sqrD);
-
-  colorI = i * 0.2; // floor(i / TWO_PI);
-
-  vec3 color2 = hsv(vec3(dot(q, vec2(0.5)) + mod(7. * 16. * (colorI) / 17., 1.), 1, 1));
-  color2 *= n;
-
-  color += color2;
-
-  color *= 0.85;
+  color = vec3(v);
 
   return color;
 }
