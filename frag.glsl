@@ -1078,21 +1078,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  vec2 axis1 = 70. * vec2(-0.1, 1.0);
-  vec2 axis2 = 0.4 * vec2(1.0, 0.1);
-  float offN = dot(q, 70. * axis2) + 2.0 * sin(4. * q.y + cosT);
-  offN = sin(offN);
-  float offNEdge = -0.2;
-  offN = smoothstep(1., offNEdge, offN);
-  offN = pow(offN, 0.2);
+  // q += 0.0500 * cos( 9. * q.yx + cosT);
+  // q += 0.0250 * cos(17. * q.yx + cosT);
+  // q += 0.0125 * cos(29. * q.yx + cosT);
 
-  float n = dot(q, axis1) + 2. * offN;
-  n = sin(n);
+  q += 0.0500 * cos(09. * q.yx + cosT);
+  q += 0.0250 * cos(23. * q.yx + cosT);
+  q += 0.0125 * cos(31. * q.yx + cosT);
 
-  float edgeStart = -0.995;
-  float v = smoothstep(4. * edge + edgeStart, edgeStart, n);
+  float v = dot(q, vec2(93));
+  v = sin(v);
+  v = smoothstep(edge, 0., v);
 
+  vec2 absQ = abs(q);
+  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.65);
   color = vec3(v);
+  color = mix(background, color, mask);
 
   return color;
 }
