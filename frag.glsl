@@ -183,18 +183,18 @@ float iqFBM (vec3 p) {
 }
 
 float fbmWarp (vec2 p, out vec2 q, out vec2 s, out vec2 r) {
-  const float scale = 4.0;
+  const float scale = 2.0;
 
   q = vec2(
         iqFBM(p + vec2(0.0, 0.0)),
-        iqFBM(p + vec2(3.2, 34.5)));
+        iqFBM(p + vec2(7.2, 34.5)));
 
   s = vec2(
-        iqFBM(p + scale * q + vec2(23.9, 234.0)),
-        iqFBM(p + scale * q + vec2(3.2, 852.0)));
+        iqFBM(p + scale * q + vec2(93.9, 234.0)),
+        iqFBM(p + scale * q + vec2(3.2, 123.0)));
 
   r = vec2(
-        iqFBM(p + scale * s + vec2(23.9, 234.0)),
+        iqFBM(p + scale * s + vec2(23.9, 74.0)),
         iqFBM(p + scale * s + vec2(3.2, 852.0)));
 
   return iqFBM(p + scale * r);
@@ -976,124 +976,73 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     }
 }
 
-float gridMask ( in vec2 c, in float innerBoundR, in float outerBoundR ) {
-  vec2 absC = abs(c);
-  float noManSqrD = max(absC.x, absC.y);
+float myFBM (in vec2 q) {
+  const float scale = 1.4;
 
-  float innerBound = smoothstep(0., edge, noManSqrD - innerBoundR);
-  float outerBound = smoothstep(edge, 0., noManSqrD - outerBoundR);
-  return saturate(innerBound * outerBound);
+  float f = 0.;
+  f += 0.5000 * snoise2(q); q *= scale + 0.100;
+  f += 0.2500 * snoise2(q); q *= scale + 0.050;
+  f += 0.1250 * snoise2(q); q *= scale - 0.095;
+  f += 0.0625 * snoise2(q); q *= scale + 0.150;
+
+  return f;
 }
 
-float helperGrid (in vec2 q, in float size) {
-  vec2 c = pMod2(q, vec2(size));
-  vec2 absQ = abs(q);
-  return smoothstep(0., edge, max(absQ.x, absQ.y) - 0.4 * size);
+float myFBMWarp (in vec2 q, out vec2 s, out vec2 p, out vec2 r) {
+  const float scale = 1.1;
+
+  s = vec2(
+      myFBM(q + vec2(0.234, 35.234)),
+      myFBM(q + vec2(34.24, 93.234)));
+
+  p = vec2(
+      myFBM(q + scale * s + vec2(0.234, 35.234)),
+      myFBM(q + scale * s + vec2(34.24, 93.234)));
+
+  r = vec2(
+      myFBM(q + scale * p + vec2(0.234, 35.234)),
+      myFBM(q + scale * p + vec2(34.24, 93.234)));
+
+  return myFBM(q + scale * r);
 }
 
-vec2 randomStep (in vec2 start, in float t, in float size) {
-  float nX = noise(start + 3.92348 * t +  0.00000);
-  float nY = noise(start + 2.26238 * t + 10.92734);
+float myFBMWarp (in vec2 q) {
+  vec2 r = vec2(0);
+  vec2 s = vec2(0);
+  vec2 p = vec2(0);
 
-  float middleEdge = 0.3 + 0.2 * sin(cosT);
-  vec2 n = vec2(
-    // X
-    -1.
-      + smoothstep(-middleEdge + 0.5, middleEdge + 0.5, nX)
-      + smoothstep(middleEdge + 0.5, middleEdge + edge + 0.5, nX),
-    // Y
-    -1.
-      + smoothstep(-middleEdge + 0.5, middleEdge + 0.5, nY)
-      + smoothstep(middleEdge + 0.5, middleEdge + edge + 0.5, nY)
-  );
-  // vec2 n = vec2(mod(t + size, 3. * size) / size - 1., mod(t, 3. * size) / size - 1.);
-
-  return start + size * n;
+  return myFBMWarp(q, s, p, r);
 }
-
-float two_numeral (in vec2 q) {
-  float d = 1000.;
-
-  // Top curve
-  const float topR = 8. * thickness;
-  vec2 topQ = q - vec2(0, 0.346);
-  float topL = length(topQ);
-  float topCurve = abs(topL - topR) - 1.0 * thickness;
-  float angle = atan(topQ.y, topQ.x);
-  float other = 0.4;
-  topCurve = mix(1000., topCurve, (smoothstep(PI * (0.5 + other), PI * (0.5 + other) - edge, angle)
-        * smoothstep(PI * (0.5 - other) - edge, PI * (0.5 - other), angle)));
-  d = min(d, topCurve);
-
-  // Cross bar
-  vec2 crossBarQ = (q - vec2(0.010125, 0.14)) * rotMat2(-0.25 * PI);
-  vec2 absCrossBarQ = abs(crossBarQ);
-  absCrossBarQ.x *= 0.094;
-  float crossBar = max(absCrossBarQ.x, absCrossBarQ.y) - thickness;
-  d = min(d, crossBar);
-
-  vec2 barQ = q + vec2(0, 0.25);
-  barQ.x *= 0.125;
-  vec2 absBar = abs(barQ);
-
-  float bar = max(absBar.x, absBar.y) - thickness;
-  d = min(d, bar);
-
-  return d;
-}
-
-vec3 stripeGrad (in float x) {
-  vec3 lookup = normalize(vec3(1));
-
-  // x = 1. - x;
-
-  vec3 color;
-
-  const int numColors = 4;
-  const float split = 1. / float(numColors);
-  float layer = 1.;
-
-  mat3 rot = rotationMatrix(normalize(vec3(4, -2., 1.1)), float(numColors + 1) * TWO_PI / float(numColors));
-
-  vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
-  color = layerColor;
-
-  for (int i = 0; i < numColors - 1; i++) {
-    lookup *= rot;
-    layerColor = 0.5 + 0.5 * cos(TWO_PI * (lookup + vec3(0, 0.33, 0.67)));
-    color = mix(color, layerColor, smoothstep(layer * split, layer * split + edge, x));
-    layer += 1.;
-  }
-
-  // color = mix(color, teal, smoothstep(layer * split, layer * split + edge, x));
-  // layer += 1.;
-
-  return color;
-}
-
-// #pragma glslify: voronoi = require(./voronoi, edge=edge, mask=sqrMask)
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
 
-  // q += 0.0500 * cos( 9. * q.yx + cosT);
-  // q += 0.0250 * cos(17. * q.yx + cosT);
-  // q += 0.0125 * cos(29. * q.yx + cosT);
+  vec2 s = vec2(0);
+  vec2 p = vec2(0);
+  vec2 r = vec2(0);
+  vec2 circPos = vec2(0); // vec2(1, 0) * rotMat2(cosT);
+  float n = myFBMWarp(0.7 * q + circPos, s, p, r);
+  color  = 0.5 + 0.5 * cos(TWO_PI * (norT + n + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (norT + dot(s, vec2(1)) + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (norT + vec3(p, norT) + vec3(0, 0.33, 0.67)));
+  color *= 0.3;
 
-  q += 0.0500 * cos(09. * q.yx + cosT);
-  q += 0.0250 * cos(23. * q.yx + cosT);
-  q += 0.0125 * cos(31. * q.yx + cosT);
-
-  float v = dot(q, vec2(93));
-  v = sin(v);
-  v = smoothstep(edge, 0., v);
-
-  vec2 absQ = abs(q);
+  vec2 absQ = abs(vec2(1) * q);
   float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.65);
-  color = vec3(v);
   color = mix(background, color, mask);
+
+  // Triple dots
+  float l1 = length(q - vec2( 0.05, 0));
+  float l2 = length(q - vec2( 0.00, 0));
+  float l3 = length(q - vec2(-0.05, 0));
+  const float dotR = 0.0075;
+  float d = 0.;
+  d = max(d, smoothstep(edge, 0., l1 - dotR));
+  d = max(d, smoothstep(edge, 0., l2 - dotR));
+  d = max(d, smoothstep(edge, 0., l3 - dotR));
+  color = mix(color, vec3(1), d);
 
   return color;
 }
