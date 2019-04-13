@@ -1019,30 +1019,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  vec2 s = vec2(0);
-  vec2 p = vec2(0);
-  vec2 r = vec2(0);
-  vec2 circPos = vec2(0); // vec2(1, 0) * rotMat2(cosT);
-  float n = myFBMWarp(0.7 * q + circPos, s, p, r);
-  color  = 0.5 + 0.5 * cos(TWO_PI * (norT + n + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (norT + dot(s, vec2(1)) + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (norT + vec3(p, norT) + vec3(0, 0.33, 0.67)));
-  color *= 0.3;
+  q *= rotMat2(-cosT);
+  float l = length(q);
+  q *= 1. + l;
+  q *= rotMat2(length(q) * PI * 0.8 * (0.5 + 0.5 * cos(generalT)));
 
-  vec2 absQ = abs(vec2(1) * q);
-  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.65);
-  color = mix(background, color, mask);
+  q.x -= 0.2;
+  q *= rotMat2(generalT + length(q) * PI * 0.5);
+  q += 0.2000 * cos( 7. * q.yx + vec2(-generalT, 0));
+  q *= rotMat2((sin(generalT) + length(q)) * PI * 0.37);
+  q += 0.1000 * cos(11. * q.yx + generalT);
+  q += 0.0500 * cos(17. * q.yx + sin(generalT));
+  q.x += 0.4;
+  q *= rotMat2((sin(generalT) + length(q)) * PI * 0.125);
+  q += 0.0250 * cos(23. * q.yx + vec2(generalT, -generalT));
 
-  // Triple dots
-  float l1 = length(q - vec2( 0.05, 0));
-  float l2 = length(q - vec2( 0.00, 0));
-  float l3 = length(q - vec2(-0.05, 0));
-  const float dotR = 0.0075;
-  float d = 0.;
-  d = max(d, smoothstep(edge, 0., l1 - dotR));
-  d = max(d, smoothstep(edge, 0., l2 - dotR));
-  d = max(d, smoothstep(edge, 0., l3 - dotR));
-  color = mix(color, vec3(1), d);
+  l = length(q);
+  float n = smoothstep(4. * edge, 0., l - 0.4);
+  color = vec3(n);
 
   return color;
 }
@@ -1052,24 +1046,24 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
-  // vec3 color = background;
+  vec3 color = vec3(1);
 
-  // const float totalT = 0.125 * PI;
-  // const int hues = 12;
-  // for (int i = 0; i < hues; i++) {
-  //   float fraction = float(i) / float(hues);
-  //   vec3 colorI = vec3(fraction) + vec3(1.2 * uv, 0) + 0.75;
-  //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-  //   // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-  //   float a = two_dimensional(uv, cosT + totalT * fraction).x;
-  //   // color *= mix(vec3(1), layerColor, a);
-  //   color += layerColor * a;
-  // }
+  const float totalT = 0.5 * PI;
+  const int hues = 70;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(0.5 * uv, 0) + 0.0 * cnoise2(0.3 * uv) + 0.2 * uv.y;
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
+    float a = two_dimensional(uv, -(cosT + totalT * fraction)).x;
+    color *= mix(vec3(1), layerColor, 0.1125 * a);
+    // color += layerColor * a;
+  }
 
-  // color *= 0.5;
-  // return vec4(color, 1);
+  // color *= 0.0625;
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
 
