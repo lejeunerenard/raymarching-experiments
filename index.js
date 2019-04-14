@@ -22,7 +22,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cosmic-fetus-render1',
+    name: 'creeping-suspicion-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

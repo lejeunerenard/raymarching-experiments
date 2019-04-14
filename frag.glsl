@@ -1019,24 +1019,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  q *= rotMat2(-cosT);
-  float l = length(q);
-  q *= 1. + l;
-  q *= rotMat2(length(q) * PI * 0.8 * (0.5 + 0.5 * cos(generalT)));
+  float wScale = 0.5;
 
-  q.x -= 0.2;
-  q *= rotMat2(generalT + length(q) * PI * 0.5);
-  q += 0.2000 * cos( 7. * q.yx + vec2(-generalT, 0));
-  q *= rotMat2((sin(generalT) + length(q)) * PI * 0.37);
-  q += 0.1000 * cos(11. * q.yx + generalT);
-  q += 0.0500 * cos(17. * q.yx + sin(generalT));
-  q.x += 0.4;
-  q *= rotMat2((sin(generalT) + length(q)) * PI * 0.125);
-  q += 0.0250 * cos(23. * q.yx + vec2(generalT, -generalT));
+  q.y += wScale * 0.2000 * cos( 7. * q.x - generalT + sin(generalT + 3. * q.x + 2. * q.y));
+  q.y += wScale * 0.1000 * cos(11. * q.y + generalT);
 
-  l = length(q);
-  float n = smoothstep(4. * edge, 0., l - 0.4);
+  vec2 preWQ = q;
+
+  const float maxR = 1.;
+
+  float c = pMod1(q.y, maxR * 0.5);
+  vec2 absQ = abs(vec2(1, 10) * q);
+
+  float n = smoothstep(edge, 0., max(absQ.x, absQ.y) - maxR);
   color = vec3(n);
+
+  absQ = abs(vec2(1, 8) * preWQ);
+  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - maxR * 9.);
+  color *= mask;
 
   return color;
 }
@@ -1046,7 +1046,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, -cosT), 1);
 
   vec3 color = vec3(1);
 
@@ -1058,7 +1058,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
     // vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
     float a = two_dimensional(uv, -(cosT + totalT * fraction)).x;
-    color *= mix(vec3(1), layerColor, 0.1125 * a);
+    color *= mix(vec3(1), layerColor, 0.085 * a);
     // color += layerColor * a;
   }
 
