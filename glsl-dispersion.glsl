@@ -103,8 +103,8 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // float dI = 0.5 * cnoise3(2.0 * nor);
 
     vec3 sceneResult = scene(iorRefract, ior);
-    // vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0) + 0.4;
-    float mixI = dI + cnoise3(1.0 * nor);
+    vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0) + 0.4;
+    // float mixI = dI + cnoise3(1.0 * nor);
 
     vec3 thisColor = vec3(0);
 
@@ -112,13 +112,13 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // axis *= rotationMatrix(normalize(vec3(0.2, -0.7, 0.4)), 1.34 * PI + mixI.x);
     // axis *= rotationMatrix(normalize(vec3(0.9, 0.13, -0.4)), 1.34 * PI + mixI.y);
     // axis *= rotationMatrix(normalize(vec3(2.0, 4.00, 0.13)), 3.34 * PI + mixI.z);
-    thisColor = 0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.33, 0.67)));
+    thisColor = 0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.1, 0.3)));
     // thisColor *= sceneResult;
 
-    thisColor += nsin(0.9 * vec3(1.0, 1.1, 0.8) * mixI + vec3(0.0, 0.5, 124.234) + sceneResult) * sceneResult;
+    thisColor += nsin(2.1 * vec3(1.0, 1.1, 0.8) * mixI + vec3(3.35, 0.5, 124.234) + sceneResult) * sceneResult;
     thisColor += nsin(1.0 * vec3(1.0, 1.1, 0.8) * mixI + vec3(0.1, 0.6, 125.234) + sceneResult) * sceneResult;
 
-    color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.33, 0.67) + dot(nor, -eye))));
+    color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.1, 0.3) + dot(nor, -eye))));
     #endif
   }
 

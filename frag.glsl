@@ -612,12 +612,13 @@ vec3 map (in vec3 p, in float dT) {
   q += 0.0500 * cos(17.35 * q.yzx + cosT);
   q = twist(q.xzy, 1. * q.y);
   q += 0.0250 * cos(29.35 * q.yzx + cosT);
+  q += 0.0125 * cos(33.35 * q.yzx + cosT);
 
   mPos = q;
-  vec3 b = vec3(sdBox(q, size * vec3(1, 1, 0.2)), 0, 0);
+  vec3 b = vec3(sdBox(q, size), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.1;
+  d.x *= 0.375;
 
   return d;
 }
@@ -795,9 +796,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0.2);
+  vec3 color = vec3(0.1);
 
-  color += 0.7 * (0.5 + 0.5 * cos(TWO_PI * (0.5 * pos + 0.6 * dot(nor, -rd) + vec3(0, 0.33, 0.67))));
+  color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (0.3 + 0.5 * pos + 0.6 * dot(nor, -rd) + vec3(0, 0.33, 0.67))));
 
   return color;
 }
@@ -838,8 +839,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // lights[0] = light(vec3(0, 0.2, 1.0), 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67))), 1.0);
     // lights[1] = light(vec3(0.4, 0.4, 1.0), 0.5 + 0.5 * cos(TWO_PI * (lightPosScale * pos + vec3(0, 0.1, 0.2))), 1.0);
     // lights[2] = light(vec3(0.4, 0, 1.0), 0.5 + 0.5 * cos(TWO_PI * (lightPosScale * pos + vec3(0.2, 0.3, 0.4))), 1.0);
-    lights[0] = light(normalize(vec3(  0., 0.3, 1.0)), #FFCCCC, 2.0);
-    lights[1] = light(normalize(vec3( 0.4, 0.7, 0.7)), #CCFFFF, 2.0);
+    lights[0] = light(normalize(vec3(  0., 0.3, 1.0)), #FFAAAA, 2.0);
+    lights[1] = light(normalize(vec3( 0.4, 0.7, 0.7)), #AAFFFF, 2.0);
     lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 2.0);
 
     if (t.x>0.) {
@@ -849,7 +850,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isFloor = isMaterialSmooth(t.y, 1.0);
 
       vec3 nor = getNormal2(pos, 0.0005 * t.x);
-      float bumpsScale = 3.75;
+      float bumpsScale = 7.75;
       float bumpIntensity = 0.1;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
@@ -917,7 +918,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.025 * reflection(pos, reflectionRd);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -927,7 +928,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.25;
+      dispersionColor *= 0.125;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
