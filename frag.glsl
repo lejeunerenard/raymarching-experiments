@@ -608,17 +608,17 @@ vec3 map (in vec3 p, in float dT) {
   vec3 size = vec3(0.75);
 
   q += 0.1000 * cos( 7.35 * q.yzx + cosT);
-  q = twist(q.xzy, 3. * q.y);
-  q += 0.0500 * cos(17.35 * q.yzx + cosT);
+  // q += 0.0500 * cos(17.35 * q.yzx + cosT);
   q = twist(q.xzy, 1. * q.y);
+  q = twist(q.xzy, 3. * q.z);
   q += 0.0250 * cos(29.35 * q.yzx + cosT);
-  q += 0.0125 * cos(33.35 * q.yzx + cosT);
+  // q += 0.0125 * cos(33.35 * q.yzx + cosT);
 
   mPos = q;
   vec3 b = vec3(sdBox(q, size), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.375;
+  d.x *= 0.125;
 
   return d;
 }
@@ -695,12 +695,12 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 
 const float n1 = 1.0;
 const float n2 = 2.45;
-const float amount = 0.0125;
+const float amount = 0.025;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float spread = saturate(1.0 - 1.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.1;
@@ -798,7 +798,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.1);
 
-  color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (0.3 + 0.5 * pos + 0.6 * dot(nor, -rd) + vec3(0, 0.33, 0.67))));
+  // color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (0.3 + 0.5 * pos + 0.6 * dot(nor, -rd) + vec3(0, 0.33, 0.67))));
 
   return color;
 }
@@ -850,13 +850,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float isFloor = isMaterialSmooth(t.y, 1.0);
 
       vec3 nor = getNormal2(pos, 0.0005 * t.x);
-      float bumpsScale = 7.75;
-      float bumpIntensity = 0.1;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 7.75;
+      // float bumpIntensity = 0.1;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -872,14 +872,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.3;
-      float specCo = 0.8;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.6;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -928,7 +928,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.125;
+      dispersionColor *= 0.5;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
@@ -1026,12 +1026,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float wScale = 0.5;
+  float wScale = 1.0;
 
-  q.y += wScale * 0.2000 * cos( 7. * q.x - generalT + sin(generalT + 3. * q.x + 2. * q.y));
-  q.y += wScale * 0.1000 * cos(11. * q.y + generalT);
-
-  vec2 preWQ = q;
+  q += wScale * 0.2000 * cos( 7. * q.yx + generalT);
+  q += wScale * 0.1000 * cos(11. * q.yx + generalT);
+  q += wScale * 0.0500 * cos(13. * q.xy + generalT);
+  q += wScale * 0.0250 * cos(23. * q.yx + generalT);
 
   const float maxR = 1.;
 
@@ -1041,10 +1041,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = smoothstep(edge, 0., max(absQ.x, absQ.y) - maxR);
   color = vec3(n);
 
-  absQ = abs(vec2(1, 8) * preWQ);
-  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - maxR * 9.);
-  color *= mask;
-
   return color;
 }
 
@@ -1053,7 +1049,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, -cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
   // vec3 color = vec3(0);
 
