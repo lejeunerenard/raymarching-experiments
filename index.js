@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'feel-cute-might-delete-later-render1',
+    name: 'distraction-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
