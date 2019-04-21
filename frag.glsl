@@ -1027,25 +1027,42 @@ float myFBMWarp (in vec2 q) {
   return myFBMWarp(q, s, p, r);
 }
 
+vec3 gradient (in float i) {
+  const float inc = 0.2;
+  vec3 color = mix(#B35673, #FFF9AD, smoothstep(1. * inc, 1. * inc + edge, i));
+  color = mix(color, #FF95B7, smoothstep(2. * inc, 2. * inc + edge, i));
+  color = mix(color, #62B5CC, smoothstep(3. * inc, 3. * inc + edge, i));
+  color = mix(color, #5FA0B3, smoothstep(4. * inc, 4. * inc + edge, i));
+  return color;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
   vec2 q = uv;
 
-  float wScale = 1.0;
+  const float spreadR = 0.7;
+  for (int i = 0; i < 23; i++) {
+    float fI = float(i);
+    vec2 myQ = q - vec2(
+        spreadR * (-0.5 + noise(7233.723 * vec2(fI))),
+        spreadR * (-0.5 + noise(3423.234 * vec2(fI))));
 
-  q += wScale * 0.2000 * cos( 7. * q.yx + generalT);
-  q += wScale * 0.1000 * cos(11. * q.yx + generalT);
-  q += wScale * 0.0500 * cos(13. * q.xy + generalT);
-  q += wScale * 0.0250 * cos(23. * q.yx + generalT);
+    float a = mod(fI + 1., 4.) + 1.;
+    float b = mod(fI, 7.) + 1.;
+    float delta = fI * PI * 0.123423;
+    myQ += 0.25 * spreadR * sin(vec2(a, b) * cosT + vec2(delta, 0));
 
-  const float maxR = 1.;
-
-  float c = pMod1(q.y, maxR * 0.5);
-  vec2 absQ = abs(vec2(1, 10) * q);
-
-  float n = smoothstep(edge, 0., max(absQ.x, absQ.y) - maxR);
-  color = vec3(n);
+    float radius = 0.15;
+    float d = length(myQ) - radius;
+    float layer = smoothstep(edge, 0., d);
+    vec3 layerColor = gradient(mod(0.3232 * fI - d / radius, 1.));
+    // vec3 layerColor = vec3(-d / radius);
+    color = mix(color, layerColor, layer);
+    // Shadow
+    // float shadow = saturate(22. * d + 0.4);
+    // color = mix(mix(vec3(0.2), color, shadow), color, layer);
+  }
 
   return color;
 }
@@ -1055,7 +1072,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   // vec3 color = vec3(0);
 

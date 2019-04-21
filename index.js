@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'distraction-render1',
+    name: 'holding-pattern-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
