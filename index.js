@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'disallusion-render1',
+    name: 'circumference-inference-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
