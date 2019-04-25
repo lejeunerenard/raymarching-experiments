@@ -1044,10 +1044,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = 0.65 * uv;
 
-  q *= 1.1 + 0.40 * cnoise2(2. * q + sin(generalT + vec2(0, 0.5 * PI)));
+  vec2 absQ = abs(q);
+  float l = max(absQ.x, absQ.y);
 
-  float l = length(q);
-  float n = sin(TWO_PI * 41. * l);
+  q += 0.1 * (0.5 + 0.5 * cos(2. * (0. * length(q) + dot(q, vec2(2))) + cosT));
+
+  absQ = abs(q);
+  l = max(absQ.x, absQ.y);
+  float n = sin(TWO_PI * 58. * l);
   n = smoothstep(-0.5, -0.5 + 3. * edge, n);
 
   n += smoothstep(0., edge, l - 0.5);
