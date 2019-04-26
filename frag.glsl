@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -606,19 +606,24 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float warpScale = 0.; // 0.35;
+  const float size = 0.45;
+  vec3 c = pMod3(q, vec3(size));
 
-  q += warpScale * 0.1000 * cos( 3. * q.yzx + cosT);
-  q += warpScale * 0.0500 * cos( 7. * q.yzx + cosT);
-  q += warpScale * 0.0250 * cos(13. * q.yzx + cosT);
-  q += warpScale * 0.0125 * cos(23. * q.yzx + cosT);
+  float offsetT = dot(c, vec3(0.2)) + 0.123 * c.x;
 
-  q *= rotationMatrix(normalize(vec3(0.3, 0.1, 0.9)), cosT);
+  float turn = smoothstep(0., 0.3, mod(norT + offsetT, 1.))
+    - smoothstep(0.5, 0.8, mod(norT + offsetT, 1.));
+  q *= rotationMatrix(vec3(1, 0, 0), PI * turn);
+
   mPos = q;
-  vec3 h = vec3(sdBox(q, vec3(0.3)), 0, 0);
+  vec3 h = vec3(sdBox(q, vec3(size * 0.35)), 0, dot(c, vec3(1)));
   d = dMin(d, h);
 
-  // d.x *= 0.5;
+  q = p;
+  float crop = sdBox(q, vec3(size * 1.5));
+  d.x = max(d.x, crop);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -798,15 +803,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  // vec2 lookup = fragCoord.xy + nor.xy;
-  vec3 lookup = vec3(fragCoord.xy, 0) + nor;
+  vec2 absPos = abs(mPos.xz);
+  float i = max(absPos.x, absPos.y);
+  i += 0.042;
+  // i += 0.125 * mPos.y;
+  i *= 21.;
+  // float i = dot(mPos, vec3(21));
+  i += 0.10123 * trap;
+  i = sin(TWO_PI * i);
+  i = smoothstep(0., edge, i);
+  i = 1. - i;
 
-  // float n = dot(lookup, 57. * vec2(0, 1));
-  float n = dot(lookup, 21. * vec3(1, 1, 0));
-  n = sin(n);
-  n = smoothstep(edge, 0., n);
-
-  color = vec3(n);
+  // i = 0.;
+  color = vec3(i);
 
   return color;
 }
@@ -1067,27 +1076,27 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
-  vec3 color = vec3(0);
+  // vec3 color = vec3(0);
 
-  const float totalT = 0.0375 * PI;
-  const int hues = 16;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(0.5 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y;
-    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-    vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-    float a = two_dimensional(uv, -(cosT + totalT * fraction)).x;
-    // vec4 t = march(ro, rd, cosT + totalT * fraction);
-    // float a = shade(ro, rd, t, uv).x;
-    // color *= mix(vec3(1), layerColor, 0.085 * a);
-    color += layerColor * a;
-  }
+  // const float totalT = 0.0375 * PI;
+  // const int hues = 16;
+  // for (int i = 0; i < hues; i++) {
+  //   float fraction = float(i) / float(hues);
+  //   vec3 colorI = vec3(fraction) + vec3(0.5 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y;
+  //   // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+  //   vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
+  //   float a = two_dimensional(uv, -(cosT + totalT * fraction)).x;
+  //   // vec4 t = march(ro, rd, cosT + totalT * fraction);
+  //   // float a = shade(ro, rd, t, uv).x;
+  //   // color *= mix(vec3(1), layerColor, 0.085 * a);
+  //   color += layerColor * a;
+  // }
 
-  color *= 0.15;
-  color = pow(color, vec3(1.15));
-  return vec4(color, 1);
+  // color *= 0.15;
+  // color = pow(color, vec3(1.15));
+  // return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
