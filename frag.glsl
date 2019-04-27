@@ -606,24 +606,51 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.45;
-  vec3 c = pMod3(q, vec3(size));
-
-  float offsetT = dot(c, vec3(0.2)) + 0.123 * c.x;
-
-  float turn = smoothstep(0., 0.3, mod(norT + offsetT, 1.))
-    - smoothstep(0.5, 0.8, mod(norT + offsetT, 1.));
-  q *= rotationMatrix(vec3(1, 0, 0), PI * turn);
-
-  mPos = q;
-  vec3 h = vec3(sdBox(q, vec3(size * 0.35)), 0, dot(c, vec3(1)));
+  vec2 dim = vec2(0.2, 0.3);
+  vec3 h = vec3(sdCappedCylinder(q, dim), 0, 0);
+  if (h.x < d.x) {
+    mPos = q;
+  }
   d = dMin(d, h);
 
   q = p;
-  float crop = sdBox(q, vec3(size * 1.5));
-  d.x = max(d.x, crop);
+  q.xz *= rotMat2(cosT);
+  float c = pModPolar(q.xz, 5.);
 
-  d.x *= 0.5;
+  q.x -= dim.x * (2.0 + 0.125);
+  h = vec3(sdCappedCylinder(q, dim), 0, 0);
+  if (h.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, h);
+
+  q = p;
+  q.xz *= rotMat2(0.22222 * cosT);
+  c = pModPolar(q.xz, 9.);
+
+  q.x -= dim.x * (4.0 + 0.125);
+  h = vec3(sdCappedCylinder(q, dim), 0, 0);
+  if (h.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, h);
+
+  q = p;
+  q.xz *= rotMat2(0.066667 * cosT);
+  c = pModPolar(q.xz, 15.);
+
+  q.x -= dim.x * (6.0 + 0.125);
+  h = vec3(sdCappedCylinder(q, dim), 0, 0);
+  if (h.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, h);
+
+  // q = p;
+  // float crop = sdBox(q, vec3(size * 1.5));
+  // d.x = max(d.x, crop);
+
+  // d.x *= 0.5;
 
   return d;
 }
@@ -803,18 +830,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  vec2 absPos = abs(mPos.xz);
-  float i = max(absPos.x, absPos.y);
-  i += 0.042;
-  // i += 0.125 * mPos.y;
+  float i = length(mPos.xz);
   i *= 21.;
-  // float i = dot(mPos, vec3(21));
-  i += 0.10123 * trap;
   i = sin(TWO_PI * i);
   i = smoothstep(0., edge, i);
   i = 1. - i;
+  i += (0.3 - pos.y) * 2.2;
 
-  // i = 0.;
   color = vec3(i);
 
   return color;
