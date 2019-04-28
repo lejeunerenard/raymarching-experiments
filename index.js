@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'self-centered-render1',
+    name: 'unravel-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
