@@ -598,6 +598,40 @@ mat3 rotOrtho (in float t) {
   return rotationMatrix(rotAxis, 1.5 * PI * (0.5 + 0.5 * cos(t)));
 }
 
+vec3 trefoild (in vec3 q, in float radius, in float thickness, in float orientation, in float rotOff) {
+  float a = atan(q.x, q.z);
+  q = vec3(
+      a + rotOff + PI,
+      length(q.xz) - radius,
+      q.y);
+
+  // q.x += orientation * cosT;
+  q.x = mod(q.x, TWO_PI);
+  q.zy *= rotMat2(1.5 * q.x + 0.0 * cosT);
+
+  q.y = abs(q.y);
+  float separate = saturate(0.35 + 0.65 * cos(a + -1. * cosT));
+  q -= vec3(0, radius * (0.025 + 0.25 * separate), 0);
+  mPos = q;
+  vec3 t = vec3(sdBox(q, vec3(TWO_PI, thickness, radius * 0.3)), 0, q.x);
+
+  float sphereR = radius * 0.15 * (1. + 0.0 * sin(cosT));
+
+  q.x += cosT * 2. / 5.;
+  float c = pMod1(q.x, TWO_PI * 0.10);
+  q.y -= (1.6 + 0.6 * cos(3. * (cosT + a))) * sphereR;
+  vec3 o = vec3(sdBox(vec3(0.6, 1, 1) * q, vec3(0.85 * sphereR)), 1, 0);
+  return dMin(t, o);
+}
+
+vec3 trefoild (in vec3 q, in float radius, in float thickness, in float orientation) {
+  return trefoild(q, radius, thickness, orientation, 0.);
+}
+
+vec3 trefoild (in vec3 q, in float radius, in float thickness) {
+  return trefoild(q, radius, thickness, 1., 0.);
+}
+
 // Return value is (distance, material, orbit trap)
 const float itemR = 0.5;
 const float itemHeight = itemR;
@@ -606,21 +640,21 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float radius = 0.7;
-  float a = atan(q.x, q.z);
-  q = vec3(
-      a,
-      length(q.xz) - radius,
-      q.y);
-
-  q.zy *= rotMat2(2.5 * q.x + 0.5 * cosT);
-
-  q.y = abs(q.y);
-  float separate = saturate(0.45 + 0.55 * cos(a + 2. * cosT));
-  q -= vec3(0, radius * (0.05 + 0.2 * separate), 0);
-  mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(PI, radius * 0.1, radius * 0.2)), 0, q.x);
+  const float radius = 0.6;
+  const float thickness = radius * 0.05;
+  // q.z += (1. - 6. * thickness) * radius;
+  vec3 o = trefoild(q, radius, thickness);
   d = dMin(d, o);
+
+  q = p;
+  q *= rotationMatrix(vec3(0, 0, 1), PI * 0.25);
+
+  // q.x *= -1.;
+  // q.z -= (1. - 6. * thickness) * radius;
+  // q.xz *= rotMat2(PI);
+
+  // o = trefoild(q, radius, thickness, -1., PI);
+  // d = dMin(d, o);
 
   // d.x *= 0.95;
 
@@ -804,10 +838,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   const vec3 darkGrey = #578071;
   const vec3 teal = #62FFC7;
 
-  vec3 color = vec3(0.01);
-
-  // vec2 absQ = abs(mPos.yz);
-  // color = vec3(smoothstep(0., edge, max(absQ.x, absQ.y) - 0.125));
+  vec3 color = mix(vec3(0.65, 0.6625, 0.65), vec3(0.01), isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -888,7 +919,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 1.0;
+        float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -905,7 +936,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.000 * amb * diffuseColor;
+        lin += 0.200 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
