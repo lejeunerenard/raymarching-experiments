@@ -1074,22 +1074,33 @@ vec3 gradient (in float i) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = 0.65 * uv;
+  vec2 q = 0.8 * uv;
 
-  vec2 absQ = abs(q);
-  float l = max(absQ.x, absQ.y);
+  float warpScale = 0.9;
 
-  q += 0.1 * (0.5 + 0.5 * cos(2. * (0. * length(q) + dot(q, vec2(2))) + cosT));
+  q += 0.4 * dot(q, vec2(0.343));
+  q += warpScale * 0.100000 * cos(                 1.714286  * q.yx + generalT + 0.25 * PI);
+  q += warpScale * 0.050000 * cos(                       13. * q.yx - 2. * generalT);
+  q += warpScale * 0.025000 * cos((23. + cnoise2(3. * q.yx)) * q.yx + sin(generalT));
+  q += warpScale * 0.012500 * cos(                       29. * q.yx - generalT + 0.75 * PI);
+  q += warpScale * 0.006250 * cos(                       31. * q.yx + vec2(generalT, -generalT));
+  q += warpScale * 0.003125 * cos(                       37. * q.yx + generalT);
 
-  absQ = abs(q);
-  l = max(absQ.x, absQ.y);
-  float n = sin(TWO_PI * 58. * l);
-  n = smoothstep(-0.5, -0.5 + 3. * edge, n);
+  const float size = 0.175;
+  vec2 c = pMod2(q, vec2(size));
 
-  n += smoothstep(0., edge, l - 0.5);
-  n = saturate(n);
+  q += 0.15 * size * vec2(
+      cnoise2(3.234 * c + 1.0 * sin(generalT)),
+      cnoise2(9.234 * c + 0.8 * cos(generalT) + vec2(1.23, 32.3))
+  );
+  float r = size * (0.400 - 0.00 * cnoise2(143. * (q + c)));
 
-  color = vec3(n);
+  float n = smoothstep(edge, 0., length(q) - r);
+  float isOdd = floor(mod(dot(c, vec2(1.1954)), 2.));
+  // n *= floor(mod(dot(c, vec2(1.0)), 2.));
+  float variation = 0.; // 0.1 * fbmWarp(0.6 * q);
+  vec3 altColor = 0.5 + 0.5 * cos(TWO_PI * (variation + vec3(vec2(3.2, 0.714286) * c, 0) + vec3(0, 0.1, 0.2)));
+  color = mix(vec3(n), n * (altColor), isOdd);
 
   return color;
 }
@@ -1099,7 +1110,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   // vec3 color = vec3(0);
 

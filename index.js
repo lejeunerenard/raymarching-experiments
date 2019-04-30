@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'endless-march-render1',
+    name: 'were-in-this-together-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
