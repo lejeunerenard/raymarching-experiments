@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'were-in-this-together-render1',
+    name: 'monster-instincts-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

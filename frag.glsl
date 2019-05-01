@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -39,7 +39,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 100.0
 #define fogMaxDistance 70.0
 
@@ -640,23 +640,18 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float radius = 0.6;
-  const float thickness = radius * 0.05;
-  // q.z += (1. - 6. * thickness) * radius;
-  vec3 o = trefoild(q, radius, thickness);
+  const float warpScale = 1.0;
+
+  q += warpScale * 0.20000 * cos( 4. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
+  q.xzy = twist(q, 2.1 * q.y + 0.0 * PI * cos(cosT + 1. * q.y));
+  q += warpScale * 0.20000 * cnoise3( 7. * q.yzx );
+  q += warpScale * 0.10000 * cos(14. * q.yzx + vec3(-cosT, -cosT, sin(cosT)));
+  q += warpScale * 0.05000 * cos(18. * q.yzx + vec3( cosT, sin(cosT), cosT));
+
+  vec3 o = vec3(sdBox(q, vec3(0.5)), 0, 0);
   d = dMin(d, o);
 
-  q = p;
-  q *= rotationMatrix(vec3(0, 0, 1), PI * 0.25);
-
-  // q.x *= -1.;
-  // q.z -= (1. - 6. * thickness) * radius;
-  // q.xz *= rotMat2(PI);
-
-  // o = trefoild(q, radius, thickness, -1., PI);
-  // d = dMin(d, o);
-
-  // d.x *= 0.95;
+  d.x *= 0.15;
 
   return d;
 }
@@ -731,19 +726,19 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 // #pragma glslify: debugColor = require(./debug-color-clip)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
-const float n1 = 1.0;
-const float n2 = 2.45;
+const float n1 = 2.0;
+const float n2 = 1.75;
 const float amount = 0.025;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.1;
 
-  vec3 spaceScaling = 2.2 * vec3(0.734, 1.14, 0.2);
+  vec3 spaceScaling = 1.5 * vec3(0.734, 1.14, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
   n = smoothstep(0.5, 0.80, n);
 
@@ -834,11 +829,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  const vec3 cyan = #27AFB3;
-  const vec3 darkGrey = #578071;
-  const vec3 teal = #62FFC7;
-
-  vec3 color = mix(vec3(0.65, 0.6625, 0.65), vec3(0.01), isMaterialSmooth(m, 1.));
+  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color = vec3(0.2);
 
   return color;
 }
@@ -911,7 +903,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.6;
       float specCo = 0.3;
 
       float specAll = 0.0;
@@ -919,7 +911,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.9;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -936,7 +928,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.200 * amb * diffuseColor;
+        lin += 0.000 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -967,10 +959,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.125;
-      // color += dispersionColor;
+      dispersionColor *= 0.15;
+      color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
       // Fog
@@ -1110,7 +1102,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
   // vec3 color = vec3(0);
 
