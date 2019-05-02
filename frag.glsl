@@ -642,16 +642,19 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 1.0;
 
+  q.y += 0.30;
+  q.x += 0.025;
   q += warpScale * 0.20000 * cos( 4. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
   q.xzy = twist(q, 2.1 * q.y + 0.0 * PI * cos(cosT + 1. * q.y));
-  q += warpScale * 0.20000 * cnoise3( 7. * q.yzx );
-  q += warpScale * 0.10000 * cos(14. * q.yzx + vec3(-cosT, -cosT, sin(cosT)));
-  q += warpScale * 0.05000 * cos(18. * q.yzx + vec3( cosT, sin(cosT), cosT));
+  q += warpScale * 0.20000 * cos( 4. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
+  // q += warpScale * 0.10000 * cos(14. * q.yzx + vec3(-cosT, -cosT, sin(cosT)));
+  // q += warpScale * 0.05000 * cos(18. * q.yzx + vec3( cosT, sin(cosT), cosT));
 
-  vec3 o = vec3(sdBox(q, vec3(0.5)), 0, 0);
+  float r = 0.5 + 0.05 * cnoise3(21. * vec3(1.4, 0.05, 1.4) * q);
+  vec3 o = vec3(sdCapsule(q, vec3(0, -1, 0), vec3(0, 1, 0), r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.15;
+  d.x *= 0.20;
 
   return d;
 }
@@ -829,8 +832,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
-  color = vec3(0.2);
+  float dI = dot(nor, -rd) + cnoise3(0.7 * pos);
+
+  vec3 colorOffset = vec3(0., 0.33, 0.73);
+  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (dI + colorOffset));
 
   return color;
 }
@@ -875,20 +880,30 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     lights[1] = light(normalize(vec3( 0.4, 0.3, 0.7)), #FFFFFF, 2.0);
     lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 2.0);
 
-    if (t.x>0.) {
+    vec2 slantUV = vec2(1.3, 1) * uv;
+    vec2 absUV = abs(slantUV);
+
+    const float maskR = 0.5;
+    float backgroundMask = smoothstep(edge, 0., max(absUV.x, absUV.y) - maskR);
+    // Allow anything in top right corner
+    backgroundMask = max(backgroundMask, smoothstep(0., edge, dot(slantUV, vec2(1))));
+    // Hide anything below bottom edge
+    backgroundMask *= smoothstep(edge, 0., -slantUV.y - maskR);
+
+    if (t.x>0. && backgroundMask > 0.) {
       vec3 color = vec3(0.0);
 
       // Material Types
       float isFloor = isMaterialSmooth(t.y, 1.0);
 
       vec3 nor = getNormal2(pos, 0.0005 * t.x);
-      // float bumpsScale = 7.75;
-      // float bumpIntensity = 0.1;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 7.75;
+      float bumpIntensity = 0.1;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -903,20 +918,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
-      float specCo = 0.3;
+      float freCo = 0.0;
+      float specCo = 0.95;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 1.0;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.9;
+        float shadowMin = 0.60;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -928,7 +943,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.000 * amb * diffuseColor;
+        lin += 0.100 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -959,10 +974,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.15;
-      color += dispersionColor;
+      // dispersionColor *= 0.15;
+      // color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
       // Fog

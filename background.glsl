@@ -2,12 +2,12 @@ vec3 getBackground (in vec2 uv) {
   // Convert from [-1,1] -> [0, 1]
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
-  const vec3 orange = #F7C09E;
-  const vec3 beige = #FFD6BD;
-  const vec3 darkGrey = #578071;
-  const vec3 teal = #62FFC7;
-  vec3 color = beige * 0.9;
-  color = vec3(1);
+  vec3 colorOffset = vec3(0, 0.33, 0.73);
+  vec2 absQ = abs(vec2(1.3, 1) * uv);
+  float frameMask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.5);
+  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * coord.y + colorOffset));
+  vec3 other = 0.5 + 0.5 * cos(TWO_PI * (0.25 - 0.25 * coord.y + colorOffset));
+  color = mix(other, color, frameMask);
   return color;
 }
 vec3 background = vec3(0.);
