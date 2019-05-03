@@ -6,7 +6,8 @@ vec3 getBackground (in vec2 uv) {
   vec2 absQ = abs(vec2(1.3, 1) * uv);
   float frameMask = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.5);
   vec3 color = 0.5 + 0.5 * cos(TWO_PI * (0.5 * coord.y + colorOffset));
-  vec3 other = 0.5 + 0.5 * cos(TWO_PI * (0.25 - 0.25 * coord.y + colorOffset));
+  color *= smoothstep(0.5, 0., uv.y);
+  vec3 other = vec3(0);
   color = mix(other, color, frameMask);
   return color;
 }

@@ -644,17 +644,19 @@ vec3 map (in vec3 p, in float dT) {
 
   q.y += 0.30;
   q.x += 0.025;
-  q += warpScale * 0.20000 * cos( 4. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
-  q.xzy = twist(q, 2.1 * q.y + 0.0 * PI * cos(cosT + 1. * q.y));
-  q += warpScale * 0.20000 * cos( 4. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
-  // q += warpScale * 0.10000 * cos(14. * q.yzx + vec3(-cosT, -cosT, sin(cosT)));
-  // q += warpScale * 0.05000 * cos(18. * q.yzx + vec3( cosT, sin(cosT), cosT));
 
-  float r = 0.5 + 0.05 * cnoise3(21. * vec3(1.4, 0.05, 1.4) * q);
-  vec3 o = vec3(sdCapsule(q, vec3(0, -1, 0), vec3(0, 1, 0), r), 0, 0);
+  q += warpScale * 0.20000 * cos( 3. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
+  q.xyz = twist(q.xzy, 1.5 * q.z);
+
+  q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT));
+  q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT));
+
+  float r = 0.5 + 0.025 * cnoise3(31. * vec3(1.4, 0.05, 1.4) * q);
+  // vec3 o = vec3(sdCapsule(q, vec3(0, -1, 0), vec3(0, 1, 0), r), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.20;
+  d.x *= 0.10;
 
   return d;
 }
@@ -832,10 +834,18 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  float dI = dot(nor, -rd) + cnoise3(0.7 * pos);
+  vec3 color = vec3(0, 2, 1);
+  float dI = dot(nor, -rd); //  + cnoise3(0.7 * pos);
+  dI = pow(dI, 1.75);
+  // dI *= dI;
 
-  vec3 colorOffset = vec3(0., 0.33, 0.73);
-  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (dI + colorOffset));
+  float bit = 0.25;
+  float fudge = 0.1;
+
+  vec3 colorOffset = vec3(0., 0.2, 0.3);
+  color = mix(vec3(0), vec3(0, 0.1, 1), smoothstep(1. * bit, 1. * (bit + fudge), dI));
+  color = mix(color, vec3(1, 0, 1), smoothstep(2. * (bit), 2. * (bit + fudge), dI));
+  color = mix(color, vec3(1), smoothstep(3. * (bit), 3. * (bit + fudge), dI));
 
   return color;
 }
@@ -872,10 +882,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // }
 
     const float lightPosScale = 0.35;
-    // lights[0] = light(vec3(0, 0.2, 1.0), #FFFFFF, 1.0);
-    // lights[0] = light(vec3(0, 0.2, 1.0), 0.5 + 0.5 * cos(TWO_PI * (pos + vec3(0, 0.33, 0.67))), 1.0);
-    // lights[1] = light(vec3(0.4, 0.4, 1.0), 0.5 + 0.5 * cos(TWO_PI * (lightPosScale * pos + vec3(0, 0.1, 0.2))), 1.0);
-    // lights[2] = light(vec3(0.4, 0, 1.0), 0.5 + 0.5 * cos(TWO_PI * (lightPosScale * pos + vec3(0.2, 0.3, 0.4))), 1.0);
     lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 2.0);
     lights[1] = light(normalize(vec3( 0.4, 0.3, 0.7)), #FFFFFF, 2.0);
     lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 2.0);
@@ -919,19 +925,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.0;
-      float specCo = 0.95;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.60;
+        float shadowMin = 0.90;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -943,7 +949,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.100 * amb * diffuseColor;
+        lin += 0.000 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
