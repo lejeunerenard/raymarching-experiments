@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'the-way-of-life-render1',
+    name: 'who-are-you-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
