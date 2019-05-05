@@ -7,7 +7,7 @@ import App from './app'
 const fr = 60
 const captureTime = 0 * 5
 const secondsLong = 6
-const capturing = false
+const capturing = true
 
 const FOV = 70
 
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'who-are-you-render1',
+    name: 'fields-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -640,21 +640,25 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float warpScale = 1.0;
+  const float size = 0.035;
 
-  q.y += 0.30;
-  // q.x += 0.025;
-
+  const float warpScale = 0.10;
   q += warpScale * 0.20000 * cos( 3. * q.yzx + vec3( cosT, -cosT, sin(cosT)));
-  // q.xyz = twist(q.xzy, 1.0 * q.z);
-
+  q.xzy = twist(q, 0.5 * q.y);
   q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT));
   q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT));
+  vec3 preWarp = q;
 
-  float r = 0.5 + 0.125 * cnoise3(51. * vec3(1.4, 0.05, 1.4) * q);
-  vec3 o = vec3(sdCapsule(q, vec3(0, -1, 0), vec3(0, 1, 0), r), 0, 0);
-  // vec3 o = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  float r = 0.05;
+  r *= size;
+  vec3 o = vec3(sdCapsule(q, vec3(0, -0.25, 0), vec3(0, 0.25, 0), r), 0, dot(c, vec2(1)));
   d = dMin(d, o);
+
+  q = preWarp;
+  float crop = sdBox(q, vec3(1.25 * backgroundR));
+  d.x = max(d.x, crop);
 
   d.x *= 0.10;
 
@@ -834,12 +838,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(0);
-  float dI = dot(nor, -rd);
-  dI = pow(dI, 0.2);
-  // dI *= dI;
-
-  color = vec3(dI);
+  vec3 color = vec3(1);
   return color;
 }
 
@@ -884,7 +883,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
     float backgroundMask = backgroundMask(uv, backgroundR);
     // Allow anything in top right corner
-    backgroundMask = max(backgroundMask, smoothstep(0., edge, uv.y + 0.575 * backgroundR));
+    backgroundMask = max(backgroundMask, smoothstep(0., edge, uv.y));
 
     if (t.x>0. && backgroundMask > 0.) {
       vec3 color = vec3(0.0);
@@ -922,7 +921,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.9;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);

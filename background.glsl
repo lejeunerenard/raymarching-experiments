@@ -1,8 +1,11 @@
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
-const float backgroundR = 0.5;
+#pragma glslify: rotMat2 = require(./rotation-matrix2)
+const float backgroundR = 0.45;
 float backgroundMask (in vec2 uv, in float r) {
-  pModPolar(uv, 6.);
-  return smoothstep(edge, 0., uv.x - r);
+  uv.y *= 2.0;
+  uv *= rotMat2(PI * 0.25);
+  vec2 absUV = abs(uv);
+  return smoothstep(edge, 0., max(absUV.x, absUV.y) - r);
 }
 
 vec3 getBackground (in vec2 uv) {
@@ -11,9 +14,11 @@ vec3 getBackground (in vec2 uv) {
 
   float frameMask = backgroundMask(uv, backgroundR);
   vec2 backgroundUv = uv;
-  pModPolar(backgroundUv, 6.);
+  backgroundUv.y *= 2.0;
+  backgroundUv *= rotMat2(PI * 0.25);
+  vec2 absUV = abs(backgroundUv);
   vec3 colorOffset = vec3(0, 0.33, 0.73);
-  vec3 color = vec3(smoothstep(0.5 * edge, 0., abs(backgroundUv.x - (backgroundR + 2. * edge))));
+  vec3 color = vec3(smoothstep(0.5 * edge, 0., abs(max(absUV.x, absUV.y) - backgroundR)));
   return color;
 }
 vec3 background = vec3(0.);
