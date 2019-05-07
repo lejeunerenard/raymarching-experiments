@@ -640,19 +640,37 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float size = 0.035;
+  float warpScale = 0.4 * smoothstep(0.5, 1.0, abs(sin(1. * q.y + cosT)));
+  q *= rotationMatrix(normalize(vec3(0.2, -0.5, 1.0)), 0.2 * sin(cosT));
+  q *= rotationMatrix(normalize(vec3(-1.2, 0.1, 0.6)), 0.3 * sin(cosT + 0.13 * PI));
 
-  const float warpScale = 0.75;
-  q *= 1. / (0.85 + 0.35 * smoothstep(0., 0.4, dot(q, vec3(1))));
-  q += warpScale * 0.20000 * cos( 3. * q.yzx + cosT);
+  q += warpScale * 0.20000 * cos( 3. * q.yzx + vec3(-cosT, sin(cosT), cosT));
   q.xzy = twist(q, 0.5 * q.y);
   q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT));
   q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT));
 
-  float r = 0.45;
-  vec3 o = vec3(dodecahedral(q, 43., r), 0, 0);
-  o.x -= 0.05 * cellular(13. * q);
+  float r = 0.65;
+  float spread = 1.4 * r * (0.5 + 0.5 * sin(cosT));
+  vec3 myQ = q; //  - vec3(spread, 0, 0);
+
+  vec3 o = vec3(dodecahedral(myQ, 43., r), 0, 0);
+  mPos = myQ;
   d = dMin(d, o);
+
+  float morph = 0.5 + 0.5 * cos(cosT);
+
+  float o2 = sdBox(myQ, vec3(r));
+  d.x = mix(d.x, o2, morph);
+
+  // myQ = q - vec3(-spread, 0, 0);
+  // o = vec3(dodecahedral(myQ, 43., r), 0, 0);
+  // if (o.x < d.x) {
+  //   mPos = myQ;
+  // }
+  // d = dSMin(d, o, r * 0.5);
+
+  // mPos = q;
+  d.x -= 0.025 * cellular(13. * mPos);
 
   d.x *= 0.20;
 
@@ -833,8 +851,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
-  color = 0.5 + 0.5 * cos(TWO_PI * (dot(nor, -rd) + vec3(0, 0.33, 0.67)));
-  color *= 0.80;
+  float dI = dot(nor, -rd);
+  dI += cnoise3(mPos);
+  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67)));
+  // color *= 0.80;
   return color;
 }
 
@@ -878,8 +898,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec2 absUV = abs(slantUV);
 
     float backgroundMask = backgroundMask(uv, backgroundR);
+    backgroundMask = 1.;
     // Allow anything in top right corner
-    backgroundMask = max(backgroundMask, smoothstep(0., edge, dot(uv, vec2(1)) + 0.05));
+    // backgroundMask = max(backgroundMask, smoothstep(0., edge, dot(uv, vec2(1)) + 0.05));
 
     if (t.x>0. && backgroundMask > 0.) {
       vec3 color = vec3(0.0);
@@ -922,7 +943,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.2;
+        float shadowMin = 0.4;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -955,10 +976,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.20 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -966,9 +987,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.5;
-      color += dispersionColor;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // dispersionColor *= 0.5;
+      // color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
       // Fog
