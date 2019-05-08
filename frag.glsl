@@ -640,37 +640,18 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float warpScale = 0.4 * smoothstep(0.5, 1.0, abs(sin(1. * q.y + cosT)));
-  q *= rotationMatrix(normalize(vec3(0.2, -0.5, 1.0)), 0.2 * sin(cosT));
-  q *= rotationMatrix(normalize(vec3(-1.2, 0.1, 0.6)), 0.3 * sin(cosT + 0.13 * PI));
+  float warpScale = 0.8; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
 
   q += warpScale * 0.20000 * cos( 3. * q.yzx + vec3(-cosT, sin(cosT), cosT));
-  q.xzy = twist(q, 0.5 * q.y);
+  q.xzy = twist(q, 1.5 * q.y);
   q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT));
   q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT));
+  q += warpScale * 0.02500 * cos(17. * q.yzx + vec3(cosT));
+  q += warpScale * 0.01250 * cos(23. * q.yzx + vec3(cosT));
 
-  float r = 0.65;
-  float spread = 1.4 * r * (0.5 + 0.5 * sin(cosT));
-  vec3 myQ = q; //  - vec3(spread, 0, 0);
-
-  vec3 o = vec3(dodecahedral(myQ, 43., r), 0, 0);
-  mPos = myQ;
+  const float r = 0.5;
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
-
-  float morph = 0.5 + 0.5 * cos(cosT);
-
-  float o2 = sdBox(myQ, vec3(r));
-  d.x = mix(d.x, o2, morph);
-
-  // myQ = q - vec3(-spread, 0, 0);
-  // o = vec3(dodecahedral(myQ, 43., r), 0, 0);
-  // if (o.x < d.x) {
-  //   mPos = myQ;
-  // }
-  // d = dSMin(d, o, r * 0.5);
-
-  // mPos = q;
-  d.x -= 0.025 * cellular(13. * mPos);
 
   d.x *= 0.20;
 
@@ -851,8 +832,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
-  float dI = dot(nor, -rd);
-  dI += cnoise3(mPos);
+  vec3 dI = refract(rd, nor, 1.1 + 0.1 * cnoise3(7. * pos));
+  dI += 0.8 * cnoise3(pos);
   color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67)));
   // color *= 0.80;
   return color;
@@ -955,7 +936,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.050 * amb * diffuseColor;
+        lin += 0.100 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -976,10 +957,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.20 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);

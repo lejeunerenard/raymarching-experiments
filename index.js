@@ -14,8 +14,8 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-// app.width = 1080
-// app.height = 1080
+app.width = 1080
+app.height = 1080
 
 // window.time = 0.3
 const still = false
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dysmorphia-render1',
+    name: 'illusion-of-power-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
