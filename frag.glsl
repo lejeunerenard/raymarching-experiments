@@ -642,18 +642,19 @@ vec3 map (in vec3 p, in float dT) {
 
   float warpScale = 1.0; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
 
-  q.xzy = twist(q, 1.5 * q.y + cosT);
-  q += warpScale * 0.20000 * cos( 2. * q.yzx + vec3(-cosT, sin(cosT), cosT));
-  q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT));
-  q *= rotationMatrix(normalize(vec3(1.3, -0.1, 0.3)), 4. * q.y);
-  q.xzy = twist(q, 1.5 * q.y + 0.25 * PI * sin(cosT + q.y));
-  q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT));
+  for (int i = 0; i < 3; i++) {
+    q = abs(q);
+    q = (vec4(q, 1) * kifsM).xyz;
+    // q *= rotationMatrix(normalize(vec3(0.2, 0.3, 1.0)), 0.33 * PI);
+    // q.x += 0.02;
+    // q *= 1.5;
+  }
 
   const float r = 0.5;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.100;
+  // d.x *= 0.100;
 
   return d;
 }

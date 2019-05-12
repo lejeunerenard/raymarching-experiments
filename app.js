@@ -44,19 +44,19 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.102,
-        y: 0.436,
-        z: 0.323
+        x: 0.38,
+        y: -0.03,
+        z: 0.355
       },
       d: 5,
-      scale: -1.42,
-      rot2angle: [2.566, 2.946, 3.142],
+      scale: 1.29,
+      rot2angle: [1.553, 0.093, 0.375],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 1.0)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -74,7 +74,7 @@ export default class App {
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -157,7 +157,7 @@ export default class App {
       .onUpdate(updatePos)
 
     // cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -179,12 +179,20 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], this.rot2angle[1], 2 * Math.PI], 20 * 1000)
+      .to([this.rot2angle[0], 2.5, this.rot2angle[2]], 10 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .to([this.rot2angle[0], 3, 2.454], 10 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([this.rot2angle[0], this.rot2angle[1], this.rot2angle[2]], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // rotTween1.chain(rotTween2)
-    // rotTween2.chain(rotTween3)
-    // rotTween3.chain(rotTweenReturn)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
+    // rotTween3.chain(rotTween1)
     rotTween1.start(0)
 
     // Scale Tween
