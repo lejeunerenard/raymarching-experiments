@@ -638,24 +638,23 @@ const float itemHeight = itemR;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.125; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
+  float warpScale = 0.5; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
 
-  // q += warpScale * 0.200 * cos( 4. * q.yzx + cosT);
-  // q += warpScale * 0.100 * cos( 7. * q.yzx + cosT);
-  // q += warpScale * 0.050 * cos(13. * q.yzx + cosT);
-  // q += warpScale * 0.025 * cos(17. * q.yzx + cosT);
+  opCheapBend(q, 2.5);
+  q.xzy = twist(q, 2. * q.y);
 
-  vec3 o = vec3(sdBox(q, vec3(0.2)), 0, 0);
-  vec3 shift = vec3(0.6, 0, 0) * rotationMatrix(normalize(vec3(0.7, 0.8, -0.3)), cosT);
-  shift *= rotationMatrix(normalize(vec3(0.3, -0.6, 0.34)), cosT + 0.34 * PI);
-  o.x -= 0.075 * cellular(3. * q + shift);
+  q += warpScale * 0.200 * cos(13. * q.yzx + cosT);
+  q += warpScale * 0.100 * cos(23. * q.yzx + cosT);
+  q += warpScale * 0.050 * cos(31. * q.yzx + cosT);
+
+  vec3 o = vec3(sdBox(q, vec3(0.3, 0.7, 0.3)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.20;
+  d.x *= 0.30;
 
   return d;
 }
@@ -837,11 +836,11 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   vec3 dI = refract(rd, nor, 0.9 + 0.10 * cnoise3(4. * pos));
   dI += 0.5 * dot(nor, -rd);
-  dI += 0.20 * vfbm6(pos);
+  dI += 0.20 * vfbm6(1.2 * pos);
   dI += 0.10 * vfbm6(33. * pos);
   dI += 0.6 * pow(1. - dot(nor, -rd), 1.0);
 
-  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) - 0.712));
+  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) - 0.212));
   color *= pow(1. - dot(nor, -rd), 1.5);
 
   color = pow(color, vec3(0.75));
@@ -979,7 +978,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.2;
+      dispersionColor *= 0.1;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
