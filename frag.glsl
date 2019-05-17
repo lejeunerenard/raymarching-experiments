@@ -642,17 +642,20 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float warpScale = 0.25; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
+  float warpScale = 0.5; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
 
-  q.xzy = twist(q, -3. * q.y);
+  // q.xzy = twist(q, -3. * q.y);
 
-  q += warpScale * 0.200 * cos(13. * q.yzx + cosT);
-  // q += warpScale * 0.100 * cos(23. * q.yzx + cosT);
+  q += warpScale * 0.200 * cos(13. * q.yzx + vec3(0, cosT, 0));
+  q += warpScale * 0.100 * cos(23. * q.yzx + vec3(cosT, 0, cosT));
 
-  vec3 o = vec3(sdBox(q, vec3(0.3, 1.9, 0.3)), 0, 0);
+  vec3 o = vec3(length(q) - 0.25, 0, 0);
+  // o.x -= 0.025 * cellular(5. * q);
+  o.x -= 0.10 * snoise3(13. * q);
+
   d = dMin(d, o);
 
-  d.x *= 0.50;
+  d.x *= 0.05;
 
   return d;
 }
@@ -838,7 +841,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   dI += 0.10 * vfbm6(33. * pos);
   dI += 0.6 * pow(1. - dot(nor, -rd), 2.0);
 
-  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) - 0.212));
+  dI *= 1.8;
+
+  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) + 0.20));
   float mask = sigmoid(dot(nor, -rd));
   // float mask = pow(dot(nor, -rd), 0.75);
   color = mix(color, vec3(0.95), mask);
