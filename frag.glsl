@@ -649,13 +649,12 @@ vec3 map (in vec3 p, in float dT) {
   q += warpScale * 0.200 * cos(13. * q.yzx + vec3(0, cosT, 0));
   q += warpScale * 0.100 * cos(23. * q.yzx + vec3(cosT, 0, cosT));
 
-  vec3 o = vec3(length(q) - 0.25, 0, 0);
-  // o.x -= 0.025 * cellular(5. * q);
-  o.x -= 0.10 * snoise3(13. * q);
+  vec3 o = vec3(length(q) - 0.5, 0, 0);
+  o.x += 0.1 * vfbm6(19. * q);
 
   d = dMin(d, o);
 
-  d.x *= 0.05;
+  d.x *= 0.5;
 
   return d;
 }
@@ -837,16 +836,20 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   vec3 dI = refract(rd, nor, 0.9 + 0.10 * cnoise3(4. * pos));
   dI += 0.5 * dot(nor, -rd);
-  dI += 0.20 * vfbm6(1.2 * pos);
-  dI += 0.10 * vfbm6(33. * pos);
+  dI += 0.50 * cos(2. * pos);
+  dI += 0.25 * cos(5. * pos + dI.yzx);
+
+  dI += 0.20 * vfbm6(9.2 * pos);
+  // dI += 0.10 * vfbm6(33. * pos);
   dI += 0.6 * pow(1. - dot(nor, -rd), 2.0);
 
-  dI *= 1.8;
+  dI *= 0.9;
 
   color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) + 0.20));
+  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * color + vec3(0, 0.33, 0.67) + 0.20));
   float mask = sigmoid(dot(nor, -rd));
   // float mask = pow(dot(nor, -rd), 0.75);
-  color = mix(color, vec3(0.95), mask);
+  color = mix(color, vec3(0.985), mask);
 
   // color = pow(color, vec3(0.75));
 
@@ -938,7 +941,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.96;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -950,7 +953,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.050 * amb * diffuseColor;
+        // lin += 0.050 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -981,10 +984,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.1;
-      // color += dispersionColor;
+      dispersionColor *= 0.4;
+      color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
       // Fog
