@@ -1097,33 +1097,41 @@ vec3 gradient (in float i) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = background;
 
-  vec2 q = 0.8 * uv;
+  vec2 q = uv;
 
-  float warpScale = 0.9;
+  float n = 0.;
+  const float thickness = 0.0020;
+  const int maxLayers = 12;
+  const float timesACycle = 2.;
+  float time = mod(timesACycle * generalT, 1.);
+  float transT = smoothstep(0.75, 1.00, time);
+  const float scaleInc = 0.06125;
 
-  q += 0.4 * dot(q, vec2(0.343));
-  q += warpScale * 0.100000 * cos(                 1.714286  * q.yx + generalT + 0.25 * PI);
-  q += warpScale * 0.050000 * cos(                       13. * q.yx - 2. * generalT);
-  q += warpScale * 0.025000 * cos((23. + cnoise2(3. * q.yx)) * q.yx + sin(generalT));
-  q += warpScale * 0.012500 * cos(                       29. * q.yx - generalT + 0.75 * PI);
-  q += warpScale * 0.006250 * cos(                       31. * q.yx + vec2(generalT, -generalT));
-  q += warpScale * 0.003125 * cos(                       37. * q.yx + generalT);
+  for (int i = 0; i < maxLayers; i++) {
+    float fI = float(i);
+    vec2 myQ = q;
+    myQ *= rotMat2(0.2 * PI * cos(generalT * TWO_PI + (fI + time) * 0.075));
 
-  const float size = 0.175;
-  vec2 c = pMod2(q, vec2(size));
+    float r = (1. + fI + time) * scaleInc;
+    float t = sdTriPrism(vec3(myQ, 0), vec2(r, 1));
+    t = smoothstep(edge + thickness, thickness, abs(t));
 
-  q += 0.15 * size * vec2(
-      cnoise2(3.234 * c + 1.0 * sin(generalT)),
-      cnoise2(9.234 * c + 0.8 * cos(generalT) + vec2(1.23, 32.3))
-  );
-  float r = size * (0.400 - 0.00 * cnoise2(143. * (q + c)));
+    // -- Fades --
+    // Outer
+    float lastR = (1. + float(maxLayers - 1)) * scaleInc;
+    t *= 1. - smoothstep(lastR, lastR + edge, r) * transT;
+    // Inner
+    t *= 1. - smoothstep(2. * scaleInc, 2. * scaleInc - edge, r) * (1. - transT);
 
-  float n = smoothstep(edge, 0., length(q) - r);
-  float isOdd = floor(mod(dot(c, vec2(1.1954)), 2.));
-  // n *= floor(mod(dot(c, vec2(1.0)), 2.));
-  float variation = 0.; // 0.1 * fbmWarp(0.6 * q);
-  vec3 altColor = 0.5 + 0.5 * cos(TWO_PI * (variation + vec3(vec2(3.2, 0.714286) * c, 0) + vec3(0, 0.1, 0.2)));
-  color = mix(vec3(n), n * (altColor), isOdd);
+    n = max(n, t);
+  }
+
+  // Center
+  vec2 absQ = abs(q);
+  float c = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.01);
+  n = max(n, c);
+
+  color = vec3(n);
 
   return color;
 }
@@ -1133,27 +1141,27 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(0);
+  vec3 color = vec3(0);
 
-  // const float totalT = 0.0375 * PI;
-  // const int hues = 16;
-  // for (int i = 0; i < hues; i++) {
-  //   float fraction = float(i) / float(hues);
-  //   vec3 colorI = vec3(fraction) + vec3(0.5 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y;
-  //   // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-  //   vec3 layerColor = hsv(vec3(colorI.x, 1, 1));
-  //   float a = two_dimensional(uv, -(cosT + totalT * fraction)).x;
-  //   // vec4 t = march(ro, rd, cosT + totalT * fraction);
-  //   // float a = shade(ro, rd, t, uv).x;
-  //   // color *= mix(vec3(1), layerColor, 0.085 * a);
-  //   color += layerColor * a;
-  // }
+  const float totalT = 0.0125;
+  const int hues = 8;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y;
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
+    float a = two_dimensional(uv, (norT + totalT * fraction)).x;
+    // vec4 t = march(ro, rd, cosT + totalT * fraction);
+    // float a = shade(ro, rd, t, uv).x;
+    // color *= mix(vec3(1), layerColor, 0.085 * a);
+    color += layerColor * a;
+  }
 
-  // color *= 0.15;
-  // color = pow(color, vec3(1.15));
-  // return vec4(color, 1);
+  color *= 0.3;
+  color = pow(color, vec3(1.15));
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
