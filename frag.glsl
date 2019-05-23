@@ -1099,39 +1099,43 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float n = 0.;
-  const float thickness = 0.0020;
-  const int maxLayers = 12;
-  const float timesACycle = 2.;
-  float time = mod(timesACycle * generalT, 1.);
-  float transT = smoothstep(0.75, 1.00, time);
-  const float scaleInc = 0.06125;
+  vec2 colorQ = 1.5 * q;
 
-  for (int i = 0; i < maxLayers; i++) {
-    float fI = float(i);
-    vec2 myQ = q;
-    myQ *= rotMat2(0.2 * PI * cos(generalT * TWO_PI + (fI + time) * 0.075));
+#define warpScale 1.0
+  colorQ += warpScale * 0.2000 * cos( 3. * colorQ.yx + vec2(-cosT, cosT));
+  float wN = vfbmWarp(colorQ.yx);
+  colorQ += warpScale * 0.1000 * wN;
+  vec2 shadeQ = colorQ;
+  colorQ += warpScale * 0.0500 * cos( 7. * colorQ.yx + cosT);
+  colorQ += warpScale * 0.0250 * cos(13. * colorQ.yx + cosT);
 
-    float r = (1. + fI + time) * scaleInc;
-    float t = sdTriPrism(vec3(myQ, 0), vec2(r, 1));
-    t = smoothstep(edge + thickness, thickness, abs(t));
+  color = 0.55 + vec3(0.5, 0.4, 0.6) * cos(TWO_PI * (vec3(1.2, 1, 1) * vec3(colorQ, 0) + vec3(0, 0.33, 0.67)));
 
-    // -- Fades --
-    // Outer
-    float lastR = (1. + float(maxLayers - 1)) * scaleInc;
-    t *= 1. - smoothstep(lastR, lastR + edge, r) * transT;
-    // Inner
-    t *= 1. - smoothstep(2. * scaleInc, 2. * scaleInc - edge, r) * (1. - transT);
+  // color *= cos(dot(shadeQ, vec2(28)));
+  color *= pow(ncnoise2(vec2(3., 0.1) * shadeQ), 1.8);
+  // color *= saturate(0.4 + 1.8 * wN);
+  color = pow(color, vec3(0.8));
 
-    n = max(n, t);
-  }
+  float d = length(q) - 0.3;
+  float mask = smoothstep(edge, 0., d);
+  vec3 preMaskColor = color;
+  color *= mask;
+  color += mix(preMaskColor, vec3(1), 0.6) *
+    (1. + wN) *
+    (0.175 * pow(saturate((0.5 - d)) * 2.0, 5.) * (1. - mask));
 
-  // Center
-  vec2 absQ = abs(q);
-  float c = smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.01);
-  n = max(n, c);
+  // Rings
+  float ringMaskD = d - 0.2;
+  float ringFlash = 1.; // smoothstep(0.5, 0.5 + edge, cos(16. * cosT + 6. * cos(cosT)));
+  float ringMask = ringFlash * (saturate(0.0001 / (ringMaskD * ringMaskD))
+      + 0.8 * saturate(0.0000075 / (ringMaskD * ringMaskD)));
 
-  color = vec3(n);
+  /* ringMaskD = d - 0.3; */
+  /* ringFlash = 1.; // smoothstep(0.5, 0.5 + edge, cos(16. * cosT + 6. * cos(cosT))); */
+  /* ringMask = max(ringMask, ringFlash * saturate(0.0001 / (ringMaskD * ringMaskD))); */
+
+  // color += n * (1. - mask);
+  color += mix(preMaskColor, vec3(1), 0.75) * vec3(ringMask);
 
   return color;
 }
@@ -1141,7 +1145,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec3 color = vec3(0);
 
