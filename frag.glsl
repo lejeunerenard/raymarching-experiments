@@ -645,18 +645,19 @@ vec3 map (in vec3 p, in float dT) {
   float warpScale = 0.5; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
 
   q.xzy = twist(q, 1.7 * q.y + 0.2 * PI * (0.5 + 0.5 * cos(cosT + q.y)));
-  q += warpScale * 0.2000 * cos( 7. * q.yzx + vec3(0, cosT, 0));
-  q += warpScale * 0.1000 * cos(13. * q.yzx + vec3(cosT, 0, cosT));
-  q += warpScale * 0.0250 * cos(31. * q.yzx + vec3(cosT, 0, cosT));
-  q += warpScale * 0.0125 * cos(51. * q.yzx + vec3(cosT, 0, cosT));
+  q += warpScale * 0.20000 * cos( 7. * q.yzx + vec3(0, cosT, 0));
+  q += warpScale * 0.10000 * cos(13. * q.yzx + vec3(cosT, 0, cosT));
+  q += warpScale * 0.02500 * cos(31. * q.yzx + vec3(cosT, 0, cosT));
+  q += warpScale * 0.01250 * cos(51. * q.yzx + vec3(cosT, 0, cosT));
+  q += warpScale * 0.00625 * cos(91. * q.yzx + vec3(cosT, 0, cosT));
 
   const float baseR = 0.9;
 
   vec3 o = vec3(length(q) - baseR, 0, 0);
-  o.x += 0.3 * snoise3(3. * q.yzx);
+  o.x += 0.15 * snoise3(3. * q.yzx);
   d = dMin(d, o);
 
-  d.x *= 0.1;
+  d.x *= 0.25;
 
   return d;
 }
@@ -839,12 +840,12 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 dI = refract(rd, nor, 0.9 + 0.10 * snoise3(4. * pos));
   dI += 0.4 * dot(nor, -rd);
   dI += 0.6 * pow(1. - dot(nor, -rd), 3.0);
-  dI += 0.1 * pos;
-  dI += 0.1 * cnoise3(3. * vec3(2, 1, 2) * pos);
+  dI += 0.2 * pos;
+  dI += 0.1 * cnoise3(3. * vec3(3, 0.5, 3) * pos);
 
   // dI *= 0.9;
 
-  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) + 0.20));
+  color = 0.55 + vec3(0.50, 0.25, 0.25) * cos(TWO_PI * (vec3(1.05, 0.975, 0.975) * dI + vec3(0, 0.33, 0.67) - 0.025));
 
   // float mask = sigmoid(dot(nor, -rd));
   // // float mask = pow(dot(nor, -rd), 1.);
