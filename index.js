@@ -14,8 +14,8 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-app.width = 1080
-app.height = 1620
+// app.width = 1080
+// app.height = 1620
 
 // window.time = 0.3
 const still = false
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'feeling-good-render1',
+    name: 'neon-tides-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -33,8 +33,8 @@ if (capturing) {
     verbose: true
   })
 
-  app.width = 1080
-  app.height = 1620
+  // app.width = 1080
+  // app.height = 1620
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
