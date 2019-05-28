@@ -1107,43 +1107,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  vec2 colorQ = 1.5 * q;
+  float n = 0.;
 
-#define warpScale 1.0
-  colorQ += warpScale * 0.2000 * cos( 3. * colorQ.yx + vec2(-cosT, cosT));
-  float wN = vfbmWarp(colorQ.yx);
-  colorQ += warpScale * 0.1000 * wN;
-  vec2 shadeQ = colorQ;
-  colorQ += warpScale * 0.0500 * cos( 7. * colorQ.yx + cosT);
-  colorQ += warpScale * 0.0250 * cos(13. * colorQ.yx + cosT);
+  q = abs(q);
+  const float circR = 0.5;
+  vec2 absQ = abs(q);
+  const float sqrR = circR * 0.7;
+  float delay = max(absQ.x, absQ.y) - sqrR;
+  float d = smoothstep(edge, 0., sin(TWO_PI * 11. * (dot(q, vec2(1)) + norT + delay)));
+  n = max(n, d);
 
-  color = 0.55 + vec3(0.5, 0.4, 0.6) * cos(TWO_PI * (vec3(1.2, 1, 1) * vec3(colorQ, 0) + vec3(0, 0.33, 0.67)));
+  // Mask
+  // float mask = smoothstep(edge, 0., length(q) - circR);
+  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - circR);
+  n *= mask;
 
-  // color *= cos(dot(shadeQ, vec2(28)));
-  color *= pow(ncnoise2(vec2(3., 0.1) * shadeQ), 1.8);
-  // color *= saturate(0.4 + 1.8 * wN);
-  color = pow(color, vec3(0.8));
+  n = 1. - n;
 
-  float d = length(q) - 0.3;
-  float mask = smoothstep(edge, 0., d);
-  vec3 preMaskColor = color;
-  color *= mask;
-  color += mix(preMaskColor, vec3(1), 0.6) *
-    (1. + wN) *
-    (0.175 * pow(saturate((0.5 - d)) * 2.0, 5.) * (1. - mask));
+  color = vec3(n);
 
-  // Rings
-  float ringMaskD = d - 0.2;
-  float ringFlash = 1.; // smoothstep(0.5, 0.5 + edge, cos(16. * cosT + 6. * cos(cosT)));
-  float ringMask = ringFlash * (saturate(0.0001 / (ringMaskD * ringMaskD))
-      + 0.8 * saturate(0.0000075 / (ringMaskD * ringMaskD)));
-
-  /* ringMaskD = d - 0.3; */
-  /* ringFlash = 1.; // smoothstep(0.5, 0.5 + edge, cos(16. * cosT + 6. * cos(cosT))); */
-  /* ringMask = max(ringMask, ringFlash * saturate(0.0001 / (ringMaskD * ringMaskD))); */
-
-  // color += n * (1. - mask);
-  color += mix(preMaskColor, vec3(1), 0.75) * vec3(ringMask);
+  // color = mix(vec3(0.3), vec3(1), n);
 
   return color;
 }
@@ -1153,7 +1136,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
