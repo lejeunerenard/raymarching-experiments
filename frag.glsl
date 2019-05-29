@@ -642,29 +642,13 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  mat3 rot = rotationMatrix(vec3(4, -0.5, 9.), 0.3 + cosT + q.x);
+  float warpScale = 0.78; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
+  const float baseR = 0.7;
 
-  float warpScale = 1.0; //  * smoothstep(0.2, 1.0, abs(sin(1. * q.y + cosT)));
-
-  // q.xzy = twist(q, 1.7 * q.y + 0.4 * PI * (0.5 + 0.5 * cos(cosT + 4. * q.y)));
-  // q += warpScale * 0.10000 * cos(11. * q.yzx + vec3(0, cosT, 0));
-
-  q *= rot;
-
-  // q = abs(q);
-  // q -= warpScale * 0.05000 * cnoise3(13. * q.yzx);
-
-  // q += warpScale * 0.10000 * cos(13. * q.yzx + vec3(cosT, 0, cosT));
-  q += warpScale * 0.02500 * cos(31. * q.yzx + vec3(cosT, 0, cosT));
-
-  // q *= rot;
-
-  // q += warpScale * 0.01250 * cos(51. * q.yzx + vec3(cosT, 0, cosT));
-  q += warpScale * 0.00625 * cos(91. * q.yzx + vec3(cosT, 0, cosT));
-
-  q = rot * q;
-
-  const float baseR = 0.9;
+  q += warpScale * 0.10000 * cos( 11. * q.yzx + vec3(cosT, -cosT, 0) );
+  q.xzy = twist(q, 4. * q.y + 0.2 * cos(cosT));
+  q += warpScale * 0.02500 * cos( 32. * q.yzx + vec3(0, -cosT, cosT) );
+  q += warpScale * 0.00625 * cos( 23. * q.yzx + vec3(sin(cosT), cosT, -cosT) );
 
   vec3 o = vec3(length(q) - baseR, 0, 0);
   // o.x += 0.15 * snoise3(3. * q.yzx);
@@ -848,18 +832,17 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  // return vec3(0.5);
   vec3 color = vec3(1);
 
   vec3 dI = refract(rd, nor, 0.9 + 0.10 * snoise3(4. * pos));
-  dI += 0.4 * dot(nor, -rd);
-  dI += 0.6 * pow(1. - dot(nor, -rd), 3.0);
+  dI += 0.3 * dot(nor, -rd);
+  dI += 0.8 * pow(1. - dot(nor, -rd), 3.0);
   // dI += 0.1 * pos;
-  dI += 0.3 * cnoise3(2. * vec3(0.2, 5, 5) * pos);
+  dI += 0.3 * cnoise3(0.5 * vec3(0.2, 5, 5) * pos);
 
-  dI *= 0.2;
+  dI *= 0.25;
 
-  color = 0.5 + vec3(0.50, 0.35, 0.35) * cos(TWO_PI * (vec3(1.25, 1.35, 1.0) * dI + vec3(0, 0.1, 0.3) - 0.20));
+  color = 0.5 + vec3(0.50, 0.35, 0.35) * cos(TWO_PI * (vec3(1.25, 1.35, 1.0) * dI + vec3(0, 0.1, 0.3) - 0.10));
 
   // float mask = sigmoid(dot(nor, -rd));
   // // float mask = pow(dot(nor, -rd), 1.);
@@ -943,7 +926,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.50;
-      float specCo = 0.4;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
@@ -990,7 +973,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      reflectColor += 0.150 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1000,7 +983,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.075;
+      dispersionColor *= 0.105;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
@@ -1136,7 +1119,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
