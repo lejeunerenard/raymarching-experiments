@@ -12,8 +12,7 @@ vec3 getBackground (in vec2 uv) {
   float frameMask = backgroundMask(uv, backgroundR);
   vec2 backgroundUv = uv;
   float l = length(uv);
-  vec3 color = vec3(0.2 * (1. - l)); // vec3(smoothstep(0.5 * edge, 0., frameMask));
-  color = vec3(1);
+  vec3 color = vec3(0.1 * max(1. - l, 1.0 * (uv.y + 1.))); // vec3(smoothstep(0.5 * edge, 0., frameMask));
   return color;
 }
 vec3 background = vec3(0.);

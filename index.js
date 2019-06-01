@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'to-be-born-render1',
+    name: 'bird-in-pursuit-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

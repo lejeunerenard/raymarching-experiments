@@ -642,23 +642,26 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float baseR = 0.7;
   float warpScale = 0.84;
 
-  q.xzy = twist(q, q.y + 0.5 * cos(2. * q.y + cosT));
+  q.xzy = twist(q, q.y + cosT);
 
-  q *= rotationMatrix(vec3(0.2, 3., 1.), 0.2 * PI * sin(cosT));
-  q += warpScale * 0.10000 * cos( 3. * q.yzx + vec3(-cosT, 0, cosT) );
-  q += warpScale * 0.05000 * cos( 7. * q.yzx + cosT );
-  q.xzy *= rotationMatrix(vec3(3, -0.4, -.5), 0.4 * PI * sin(cosT + 0.32));
-  q += warpScale * 0.02500 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.01250 * cos(23. * q.yzx + cosT );
+  q.xz += warpScale * 0.10000 * cos( 2. * q.zx + cosT);
+  q.xz += warpScale * 0.05000 * cos(11. * q.zx + cosT);
+  // q.xz += warpScale * 0.0500 * cnoise2(11. * q.zx);
+  q.xz += warpScale * 0.02500 * cos(23. * q.zx + cosT);
+  q.xz += warpScale * 0.01250 * cos(31. * q.zx + cosT);
+  q.xz += warpScale * 0.00625 * cos(71. * q.zx + cosT);
 
-  vec3 o = vec3(length(q) - baseR, 0, 0);
-  o.x -= 0.075 * cellular(3. * p);
+  float offset1 = 0.1 + 0.2 * sin(1.4 * q.y + 0.1 * cos(cosT));
+  vec3 o = vec3(sdCappedCylinder(q - vec3(offset1, 0, 0), vec2(0.1, 0.75)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.75;
+  offset1 = 0.15 + 0.25 * cos(1.7 * q.y + 0.2);
+  o = vec3(sdCappedCylinder(q + vec3(offset1, 0, 0), vec2(0.1, 0.75)), 0, 0);
+  d = dMin(d, o);
+
+  d.x *= 0.4;
 
   return d;
 }
@@ -838,19 +841,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  vec3 dI = refract(rd, nor, 0.9 + 0.15 * cnoise3(vec3(2, 1, 3) * pos));
-  dI += 0.3 * dot(nor, -rd);
-  dI += 0.4 * pow(1. - dot(nor, -rd), 6.0);
-  dI += 0.1 * pos;
-  dI += 0.2 * cnoise3(vec3(3, 5, 7) * pos - 3. * dI);
-
-  // dI *= 0.8;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (1.3 * dI + vec3(0, 0.33, 0.67) + 0.1));
-
-  // color = 0.5 + vec3(0.45, 0.60, 0.35) * cos(TWO_PI * (vec3(1.35, 1.25, 1.0) * dI + vec3(0, 0.1, 0.3) - 0.10));
-  // color = 0.5 + vec3(0.3, 0.8, 0.5) * cos(TWO_PI * (vec3(1.0, 1.1, 0.9) * dI + vec3(0, 0.3 + dot(pos, vec3(0.2)), 0.56)));
-  // color *= 0.75;
+  color = 0.5 + vec3(0.4, 0.5, 0.6) * cos(2. * atan(pos.x, pos.z) + TWO_PI * (pos + dot(nor, -rd) + vec3(0, 0.2, 0.3)));
 
   return color;
 }
@@ -940,7 +931,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.925;
+        float shadowMin = 0.725;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -952,7 +943,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.005 * amb * diffuseColor;
+        // lin += 0.005 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -975,7 +966,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.150 * reflection(pos, reflectionRd);
+      reflectColor += 0.40 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -985,14 +976,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.20;
+      dispersionColor *= 0.40;
       color += dispersionColor;
-      color = pow(color, vec3(1.1));
+      // color = pow(color, vec3(1.1));
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.1);
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.1);
 
       // color += directLighting * exp(-d * 0.0005);
 
