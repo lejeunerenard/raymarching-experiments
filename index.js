@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'bird-in-pursuit-render1',
+    name: 'weve-come-for-you-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

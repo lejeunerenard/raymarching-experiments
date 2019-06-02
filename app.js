@@ -20,9 +20,9 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0
-const BLOOM_PASSES = 0
-const BLOOM_MIN_BRIGHTNESS = 0.975
+const BLOOM_WET = 0.8
+const BLOOM_PASSES = 2
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 // Initialize shell
 export default class App {
@@ -44,23 +44,23 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.38,
-        y: -0.03,
-        z: 0.355
+        x: 0.006,
+        y: 0.004,
+        z: 0.011
       },
       d: 5,
-      scale: 1.29,
-      rot2angle: [1.553, 0.093, 0.375],
+      scale: 1.5,
+      rot2angle: [0.375, 0.375, 0.583],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.5)
+    this.cameraRo = vec3.fromValues(5.59, 0, 10.95)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -74,7 +74,7 @@ export default class App {
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
