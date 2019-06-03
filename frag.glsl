@@ -394,9 +394,9 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 6
+#define Iterations 8
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
-// #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
+#pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
 // #pragma glslify: dodecahedron = require(./dodecahedron, Iterations=Iterations, scale=scale, kifsM=kifsM)
 #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
@@ -644,16 +644,16 @@ vec3 map (in vec3 p, in float dT) {
 
   float warpScale = 0.84;
 
-  q += warpScale * 0.10000 * cos( 3. * q.yzx + cosT);
-  q += warpScale * 0.05000 * cos(13. * q.yzx + cosT);
+  // q += warpScale * 0.10000 * cos( 3. * q.yzx + cosT);
+  // q += warpScale * 0.05000 * cos(13. * q.yzx + cosT);
   // q += warpScale * 0.02500 * cos(23. * q.yzx + cosT);
 
   float minD = 100.;
-  vec2 m = mandelbox(q);
+  vec2 m = octahedron(q);
   vec3 o = vec3(m.x, 0, m.y);
   d = dMin(d, o);
 
-  d.x *= 0.2;
+  d.x *= 0.4;
 
   return d;
 }
@@ -910,7 +910,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
+      float freCo = 0.5;
       float specCo = 0.3;
 
       float specAll = 0.0;
@@ -918,12 +918,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.0;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.25;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -935,7 +935,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.05 * amb * diffuseColor;
+        // lin += 0.05 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);

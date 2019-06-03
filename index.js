@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 10
+const secondsLong = 40
 const capturing = false
 
 const FOV = 70
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'weve-come-for-you-render1',
+    name: 'cross-roads-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -34,7 +34,7 @@ if (capturing) {
   })
 
   app.width = 1080
-  app.height = 1620
+  app.height = 1080
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
