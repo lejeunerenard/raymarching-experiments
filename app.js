@@ -20,8 +20,8 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.8
-const BLOOM_PASSES = 2
+const BLOOM_WET = 0
+const BLOOM_PASSES = 0
 const BLOOM_MIN_BRIGHTNESS = 0.7
 
 // Initialize shell
@@ -44,19 +44,19 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.89, // 0.669,
-        y: -0.323, // -0.103,
-        z: 0.914 // 0.449
+        x: 0.023,
+        y: 0.373,
+        z: 1.331
       },
       d: 5,
-      scale: 1.7,
-      rot2angle: [0.35, 6.057, 0.305],
+      scale: 1.25,
+      rot2angle: [0.414, 0, 0.721],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 0.61)
+    this.cameraRo = vec3.fromValues(0.85, 0.68, 1.81)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -157,7 +157,7 @@ export default class App {
       .onUpdate(updatePos)
 
     // cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -178,10 +178,20 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([1.969, this.rot2angle[1], this.rot2angle[2]], 40 * 1000)
+      .to([2.107, 3.077, this.rot2angle[2]], 15 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .to([5.087, 5.295, 4.814], 15 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([this.rot2angle[0], this.rot2angle[1], this.rot2angle[2]], 15 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // rotTween1.chain(rotTween2)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween1)
     rotTween1.start(0)
 
     // Scale Tween

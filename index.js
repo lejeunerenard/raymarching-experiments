@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 40
+const secondsLong = 45
 const capturing = false
 
 const FOV = 70
@@ -14,8 +14,8 @@ const FOV = 70
 let app = new App()
 window.app = app
 
-// app.width = 1080
-// app.height = 1620
+app.width = 1080
+app.height = 1620
 
 // window.time = 0.3
 const still = false
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cross-roads-render1',
+    name: 'multifaceted-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -34,7 +34,7 @@ if (capturing) {
   })
 
   app.width = 1080
-  app.height = 1080
+  app.height = 1620
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
