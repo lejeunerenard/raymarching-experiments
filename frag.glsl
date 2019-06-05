@@ -638,24 +638,14 @@ const float itemHeight = itemR;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  // p *= globalRot;
   vec3 q = p;
 
-  float size = 0.25;
-  for (int i = 0; i < 5; i++) {
-    q = (vec4(q, 1) * kifsM).xyz;
+  q *= rotationMatrix(vec3(0, 1, 0), PI * cos(1.5 * q.y + cosT));
+  vec3 i = vec3(icosahedral(q.xzy, 42., 0.4), 0, 0);
+  d = dMin(d, i);
 
-    q = abs(q);
-
-    vec3 o = vec3(sdBox(q, vec3(size)), 0, 0);
-    if (o.x < d.x) {
-      mPos = q;
-    }
-
-    d = dMin(d, o);
-    size *= 0.85;
-  }
-
-  d.x *= 0.275;
+  d.x *= 0.5;
 
   return d;
 }
@@ -839,13 +829,14 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   dI += 0.10 * dot(nor, -rd);
   dI += 0.20 * (1. - pow(dot(nor, -rd), 4.));
   dI += 0.10 * cnoise3(0.4 * pos);
-  dI += 0.20 * mPos;
+  // dI += 0.20 * pos;
 
-  dI *= 0.65;
+  dI *= 0.75;
 
-  color = 0.6 + vec3(0.5, 0.4, 0.3) * cos(TWO_PI * (dot(dI, 1.45 * mPos) + vec3(0, 0.33, 0.67) + 0.2));
-  float mask = 1. - pow(dot(nor, -rd), 2.);
-  color = mix(color, vec3(1), mask);
+  color = 0.5 + vec3(0.5, 0.4, 0.3) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.2));
+
+  // float mask = 1. - pow(dot(nor, -rd), 2.);
+  // color = mix(color, vec3(1), mask);
 
   return color;
 }
@@ -900,7 +891,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Material Types
       // float isFloor = isMaterialSmooth(t.y, 1.0);
 
-      vec3 nor = getNormal(pos, 0.0001 * t.x);
+      vec3 nor = getNormal(pos, 0.1 * t.x);
       // float bumpsScale = 7.75;
       // float bumpIntensity = 0.1;
       // nor += bumpIntensity * vec3(
@@ -980,14 +971,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.30;
+      dispersionColor *= 0.20;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
       // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
-      // color *= exp(-d * 0.025);
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate((fogMaxDistance - d) / fogMaxDistance));
+      color *= exp(-d * 0.025);
 
       // color += directLighting * exp(-d * 0.0005);
 
