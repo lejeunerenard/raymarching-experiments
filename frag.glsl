@@ -641,8 +641,12 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  q *= rotationMatrix(vec3(0, 1, 0), PI * cos(1.5 * q.y + cosT));
-  vec3 i = vec3(icosahedral(q.xzy, 42., 0.4), 0, 0);
+  q *= rotationMatrix(vec3(1, 1, 0), PI * cos(1.5 * q.y + cosT));
+  q *= rotationMatrix(vec3(0, -1, 1), 0.25 * PI * sin(1.5 * q.x + cosT));
+  vec3 i = vec3(dodecahedral(q.xzy, 42., 0.4), 0, 0);
+  // i.x -=
+  //   smoothstep(0., 0.5, norT) * smoothstep(1.0, 0.5, norT) *
+  //   0.1 * cellular(3.1 * q);
   d = dMin(d, i);
 
   d.x *= 0.5;
@@ -828,12 +832,12 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 dI = refract(nor, -rd, 0.8 + 0.3 * cnoise3(3. * pos));
   dI += 0.10 * dot(nor, -rd);
   dI += 0.20 * (1. - pow(dot(nor, -rd), 4.));
-  dI += 0.10 * cnoise3(0.4 * pos);
+  dI += 0.05 * cnoise3(0.9 * pos);
   // dI += 0.20 * pos;
 
-  dI *= 0.75;
+  dI *= 0.40;
 
-  color = 0.5 + vec3(0.5, 0.4, 0.3) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.2));
+  color = 0.5 + vec3(0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.6));
 
   // float mask = 1. - pow(dot(nor, -rd), 2.);
   // color = mix(color, vec3(1), mask);
