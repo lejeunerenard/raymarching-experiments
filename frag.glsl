@@ -641,12 +641,20 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  q *= rotationMatrix(vec3(1, 1, 0), PI * cos(1.5 * q.y + cosT));
-  q *= rotationMatrix(vec3(0, -1, 1), 0.25 * PI * sin(1.5 * q.x + cosT));
-  vec3 i = vec3(dodecahedral(q.xzy, 42., 0.4), 0, 0);
-  // i.x -=
-  //   smoothstep(0., 0.5, norT) * smoothstep(1.0, 0.5, norT) *
-  //   0.1 * cellular(3.1 * q);
+  const float warpScale = 1.0;
+
+  q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT,  cosT, cosT) );
+  q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT, -cosT, cosT) );
+  q += warpScale * 0.02500 * cos(19. * q.yzx - cosT );
+  q += warpScale * 0.01250 * cos(29. * q.yzx + cosT );
+
+  vec3 move1 = 0.2 * vec3(
+      cos(cosT),
+      sin(cosT),
+      sin(2. * cosT + 1.2348));
+  vec3 localQ = q + move1;
+  mPos = localQ;
+  vec3 i = vec3(length(localQ) - 0.3, 0, 0);
   d = dMin(d, i);
 
   d.x *= 0.5;
@@ -832,10 +840,13 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 dI = refract(nor, -rd, 0.8 + 0.3 * cnoise3(3. * pos));
   dI += 0.10 * dot(nor, -rd);
   dI += 0.20 * (1. - pow(dot(nor, -rd), 4.));
-  dI += 0.05 * cnoise3(0.9 * pos);
+  dI += 0.05 * cnoise3(0.9 * mPos);
   // dI += 0.20 * pos;
 
   dI *= 0.40;
+
+  dI += norT;
+  dI += 0.01 * cnoise3(0.3 * pos);
 
   color = 0.5 + vec3(0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.6));
 
