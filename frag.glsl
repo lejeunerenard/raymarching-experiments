@@ -643,21 +643,14 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 1.0;
 
-  q += warpScale * 0.10000 * cos( 7. * q.yzx + vec3(cosT,  cosT, cosT) );
-  q += warpScale * 0.05000 * cos(11. * q.yzx + vec3(cosT, -cosT, cosT) );
-  q += warpScale * 0.02500 * cos(19. * q.yzx - cosT );
-  q += warpScale * 0.01250 * cos(29. * q.yzx + cosT );
+  q.xzy = twist(q, 2. * q.y + cosT);
 
-  vec3 move1 = 0.2 * vec3(
-      cos(cosT),
-      sin(cosT),
-      sin(2. * cosT + 1.2348));
-  vec3 localQ = q + move1;
-  mPos = localQ;
-  vec3 i = vec3(length(localQ) - 0.3, 0, 0);
+  const float nSpeed = 8.;
+  float r = 0.3 + 0.2 * snoise3(vec3(nSpeed, 0.1, nSpeed) * q);
+  vec3 i = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
   d = dMin(d, i);
 
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -843,10 +836,10 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   dI += 0.05 * cnoise3(0.9 * mPos);
   // dI += 0.20 * pos;
 
-  dI *= 0.40;
+  dI *= 0.50;
 
   dI += norT;
-  dI += 0.01 * cnoise3(0.3 * pos);
+  // dI += 0.01 * cnoise3(0.3 * pos);
 
   color = 0.5 + vec3(0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.6));
 
@@ -928,7 +921,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 1.0;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -936,7 +929,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.3;
+        float diffMin = 0.6;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -953,7 +946,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.05 * amb * diffuseColor;
+        // lin += 0.10 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -976,7 +969,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      reflectColor += 0.15 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -986,9 +979,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.20;
+      dispersionColor *= 0.30;
       color += dispersionColor;
-      // color = pow(color, vec3(1.1));
+      color = pow(color, vec3(1.1));
 
       // Fog
       float d = max(0.0, t.x);

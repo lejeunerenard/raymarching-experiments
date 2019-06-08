@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'chameleon-render1',
+    name: 'woven-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -104,6 +104,12 @@ if (capturing) {
           currentRAF = vrDisplay.requestAnimationFrame(tick)
         }
       }, 250)
+    } else {
+      console.log('done sending message')
+      var xmlHTTP = new XMLHttpRequest()
+      xmlHTTP.open('GET', 'http://localhost:7321/', false)
+      xmlHTTP.send(null)
+      console.log('response text', xmlHTTP.responseText)
     }
   }
 
