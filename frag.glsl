@@ -641,13 +641,23 @@ vec3 map (in vec3 p, in float dT) {
   // p *= globalRot;
   vec3 q = p;
 
-  const float warpScale = 1.0;
+  // q.x = abs(q.x);
+  const float warpScale = 0.5;
 
-  q.xzy = twist(q, 2. * q.y + cosT);
+  q += warpScale * 0.100000 * cos( 7. * q.yzx + cosT );
+  q += warpScale * 0.050000 * cos(17. * q.yzx + cosT );
+  q += warpScale * 0.025000 * cnoise3(13. * q.yzx);
+  q += warpScale * 0.025000 * cos(29. * q.yzx + cosT );
+  q += warpScale * 0.012500 * cos(37. * q.yzx + cosT );
 
-  const float nSpeed = 8.;
-  float r = 0.3 + 0.2 * snoise3(vec3(nSpeed, 0.1, nSpeed) * q);
+  q.xzy = twist(q, 1.3 * q.y + cosT);
+
+  float r = 0.5;
   vec3 i = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
+
+  const float nSpeed = 17.;
+  i.x -= 0.05 * cellular(vec3(nSpeed, 0.2, nSpeed) * q);
+  // i.x -= 0.05 * snoise3(vec3(nSpeed, 0.2, nSpeed) * q);
   d = dMin(d, i);
 
   d.x *= 0.125;
@@ -833,7 +843,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 dI = refract(nor, -rd, 0.8 + 0.3 * cnoise3(3. * pos));
   dI += 0.10 * dot(nor, -rd);
   dI += 0.20 * (1. - pow(dot(nor, -rd), 4.));
-  dI += 0.05 * cnoise3(0.9 * mPos);
+  dI += 0.05 * cnoise3(1.1 * mPos);
   // dI += 0.20 * pos;
 
   dI *= 0.50;
@@ -929,7 +939,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.6;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
