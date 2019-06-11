@@ -642,24 +642,25 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   // q.x = abs(q.x);
-  const float warpScale = 0.5;
+  const float warpScale = 0.9;
 
   q += warpScale * 0.100000 * cos( 7. * q.yzx + vec3(cosT, cosT, cosT) );
-  q += warpScale * 0.050000 * cos(17. * q.yzx + vec3(cosT, -cosT, cosT) );
-  q += warpScale * 0.025000 * cos(29. * q.yzx + vec3(cosT, -cosT, -cosT) );
-  q += warpScale * 0.012500 * cos(37. * q.yzx + vec3(-cosT, cosT, cosT) );
+  q *= rotationMatrix(cos(1.0 * q + cosT), 2.1 * q.y);
+  // q += warpScale * 0.050000 * cos(17. * q.yzx + vec3(cosT, -cosT, cosT) );
+  // q += warpScale * 0.025000 * cos(29. * q.yzx + vec3(cosT, -cosT, -cosT) );
+  // q += warpScale * 0.012500 * cos(37. * q.yzx + vec3(-cosT, cosT, cosT) );
 
   q.xzy = twist(q, 5.3 * q.y + cosT);
 
-  float r = 0.5;
+  float r = 0.27;
   mPos = q;
-  vec3 i = vec3(length(q) - r, 0, 0);
+  vec3 i = vec3(sdBox(q, vec3(r)), 0, 0);
 
   const float nSpeed = 17.;
   i.x -= 0.0125 * cellular(vec3(nSpeed, 0.2, nSpeed) * q);
   d = dMin(d, i);
 
-  d.x *= 0.5;
+  d.x *= 0.35;
 
   return d;
 }
@@ -845,7 +846,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   dI += 1.00 * cnoise3(0.75 * mPos);
   // dI += 0.20 * pos;
 
-  dI *= 0.35;
+  dI *= 0.60;
 
   // dI += norT;
   // dI += 0.01 * cnoise3(0.3 * pos);

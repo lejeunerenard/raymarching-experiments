@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'paint-like-a-bird-sings-render1',
+    name: 'twitch-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
