@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -635,32 +635,42 @@ vec3 trefoild (in vec3 q, in float radius, in float thickness) {
 // Return value is (distance, material, orbit trap)
 const float itemR = 0.5;
 const float itemHeight = itemR;
+const float objLength = 0.35;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
   vec3 q = p;
 
-  // q.x = abs(q.x);
-  const float warpScale = 0.9;
+  const float warpScale = 1.0;
 
-  q += warpScale * 0.100000 * cos( 7. * q.yzx + vec3(cosT, cosT, cosT) );
-  q *= rotationMatrix(cos(1.0 * q + cosT), 2.1 * q.y);
-  // q += warpScale * 0.050000 * cos(17. * q.yzx + vec3(cosT, -cosT, cosT) );
-  // q += warpScale * 0.025000 * cos(29. * q.yzx + vec3(cosT, -cosT, -cosT) );
-  // q += warpScale * 0.012500 * cos(37. * q.yzx + vec3(-cosT, cosT, cosT) );
+  vec3 qW = q;
 
-  q.xzy = twist(q, 5.3 * q.y + cosT);
+  qW.xy += warpScale * 0.10000 * cos( 3. * q.yx + cosT );
+  qW.xy += warpScale * 0.05000 * cos( 9. * q.yx + cosT );
+  qW.xy += warpScale * 0.02500 * cos(13. * q.yx + cosT );
+  qW.xy += warpScale * 0.01250 * cos(23. * q.yx + cosT );
 
-  float r = 0.27;
+  // q = qW;
+
+  q.xy *= vec2(1., 0.75);
+
+  vec3 preQ = q;
+
+  const float size = 0.5;
+  pMod2(q.xy, vec2(size));
+
+  float r = size * 0.30 * (1. - 1.0 * cnoise2(3. * qW.xy));
+
   mPos = q;
-  vec3 i = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 i = vec3(sdCappedCylinder(q.xzy, vec2(r, objLength)), 0, length(q.xy) - r);
 
-  const float nSpeed = 17.;
-  i.x -= 0.0125 * cellular(vec3(nSpeed, 0.2, nSpeed) * q);
   d = dMin(d, i);
 
-  d.x *= 0.35;
+  // Crop
+  float crop = sdBox(preQ, vec3(vec2(size * 1.5), 5));
+  d.x = max(d.x, crop);
+
+  d.x *= 0.75;
 
   return d;
 }
@@ -840,21 +850,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  vec3 dI = 0.1 * refract(nor, -rd, 0.8 + 0.5 * cnoise3(1. * pos));
-  dI += 0.40 * dot(nor, -rd);
-  dI += 0.70 * (1. - pow(dot(nor, -rd), 4.));
-  dI += 1.00 * cnoise3(0.75 * mPos);
-  // dI += 0.20 * pos;
+  float n = smoothstep(edge, 0.0, abs(trap));
 
-  dI *= 0.60;
+  // Stripes
+  n *= smoothstep(0.9, 0.9 + edge, cos(TWO_PI * 8. * pos.z / objLength));
 
-  // dI += norT;
-  // dI += 0.01 * cnoise3(0.3 * pos);
-
-  color = 0.5 + vec3(0.45) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.27));
-
-  // float mask = 1. - pow(dot(nor, -rd), 2.);
-  // color = mix(color, vec3(1), mask);
+  color = vec3(n);
 
   return color;
 }
@@ -1003,7 +1004,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
