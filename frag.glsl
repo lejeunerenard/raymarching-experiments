@@ -641,36 +641,25 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float warpScale = 1.0;
+  const float warpScale = 2.0;
 
   vec3 qW = q;
 
-  qW.xy += warpScale * 0.10000 * cos( 3. * q.yx + cosT );
-  qW.xy += warpScale * 0.05000 * cos( 9. * q.yx + cosT );
-  qW.xy += warpScale * 0.02500 * cos(13. * q.yx + cosT );
-  qW.xy += warpScale * 0.01250 * cos(23. * q.yx + cosT );
+  qW += warpScale * 0.10000 * cos( 3. * qW.yzx + cosT );
+  qW += warpScale * 0.05000 * cos(11. * qW.yzx + vec3(-cosT, cosT, 0) );
+  qW += warpScale * 0.02500 * cos(13. * qW.yzx + vec3(cosT, 0, cos(cosT)) );
+  qW += warpScale * 0.01250 * cos(23. * qW.yzx + cosT );
+  qW += warpScale * 0.00625 * cos(29. * qW.yzx + cosT );
 
-  // q = qW;
+  q = mix(q, qW, 0.5 + 0.5 * cos(dot(q, 1.5 * vec3(-1, 1, 1)) + cosT));
 
-  q.xy *= vec2(1., 0.75);
-
-  vec3 preQ = q;
-
-  const float size = 0.5;
-  pMod2(q.xy, vec2(size));
-
-  float r = size * 0.30 * (1. - 1.0 * cnoise2(3. * qW.xy));
+  float r = 0.6;
 
   mPos = q;
-  vec3 i = vec3(sdCappedCylinder(q.xzy, vec2(r, objLength)), 0, length(q.xy) - r);
-
+  vec3 i = vec3(length(q) - r, 0, 0);
   d = dMin(d, i);
 
-  // Crop
-  float crop = sdBox(preQ, vec3(vec2(size * 1.5), 5));
-  d.x = max(d.x, crop);
-
-  d.x *= 0.75;
+  d.x *= 0.35;
 
   return d;
 }
@@ -850,12 +839,14 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  float n = smoothstep(edge, 0.0, abs(trap));
+  vec3 dI = refract(nor, rd, 0.4 + 0.2 * cnoise3(2. * pos));
+  // dI += 0.2 * dot(nor, -rd);
+  // dI += 0.3 * pow(1. - dot(nor, -rd), 4.);
+  // dI += 0.2 * cnoise3(0.5 * mPos);
 
-  // Stripes
-  n *= smoothstep(0.9, 0.9 + edge, cos(TWO_PI * 8. * pos.z / objLength));
+  dI *= 1.0;
 
-  color = vec3(n);
+  color = 0.5 + vec3(0.4, 0.6, 0.5) * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67) + 0.1));
 
   return color;
 }
@@ -989,10 +980,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.30;
-      // color += dispersionColor;
-      // color = pow(color, vec3(1.1));
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.30;
+      color += dispersionColor;
+      color = pow(color, vec3(1.1));
 
       // Fog
       float d = max(0.0, t.x);
@@ -1004,7 +995,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
