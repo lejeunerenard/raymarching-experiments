@@ -56,7 +56,7 @@ export default class App {
     preset.cameraAngles = [0, 0, 0]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.8, 0.4, 1.3)
+    this.cameraRo = vec3.fromValues(0, 2.9, 0.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
@@ -152,12 +152,13 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ z: 1.8 }, 40 * 1000)
+      .delay(3 * 1000)
+      .to({ x: 0.7, y: 0.7, z: 0.7 }, 12 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     // cameraPosTween.chain(cameraPosTween2)
-    // cameraPosTween.start(0)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -192,7 +193,7 @@ export default class App {
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween3)
     rotTween3.chain(rotTween1)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
