@@ -1085,20 +1085,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 0.;
 
-  q = abs(q);
-  const float circR = 0.5;
-  vec2 absQ = abs(q);
-  const float sqrR = circR * 0.7;
-  float delay = max(absQ.x, absQ.y) - sqrR;
-  float d = smoothstep(edge, 0., sin(TWO_PI * 11. * (dot(q, vec2(1)) + norT + delay)));
+  q *= rotMat2(0.25 * PI);
+  q.y += (0.2 + 0.1 * cos(cosT + 3. * PI * q.x)) * sin(TWO_PI * q.x);
+  float d = smoothstep(edge, 0., sin(TWO_PI * 11. * (q.y + norT)));
   n = max(n, d);
-
-  // Mask
-  // float mask = smoothstep(edge, 0., length(q) - circR);
-  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - circR);
-  n *= mask;
-
-  n = 1. - n;
 
   color = vec3(n);
 
@@ -1112,7 +1102,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
