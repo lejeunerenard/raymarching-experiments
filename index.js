@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'nada-render1',
+    name: 'soft-speech-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
