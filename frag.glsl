@@ -643,11 +643,13 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  const float warpFactor = 1.0;
+  const float warpFactor = 1.00;
 
-  q += warpFactor * 0.100000 * cos(11. * q.yzx + cosT );
+  q += warpFactor * 0.100000 * cos(11. * q.yzx + vec3(-cosT, cosT, sin(cosT)) );
   q += warpFactor * 0.050000 * cos(17. * q.yzx + cosT );
   q += warpFactor * 0.025000 * cos(27. * q.yzx + cosT );
+  q += warpFactor * 0.012500 * cos(31. * q.yzx + cosT );
+  q += warpFactor * 0.006250 * cos(43. * q.yzx + cosT );
 
   mPos = q;
   vec3 s = vec3(sdBox(q, vec3(1, 1, 0.2)), 0, 0);
@@ -834,15 +836,15 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0.1);
 
   vec3 hI = refract(nor, rd, 0.7 + 0.3 * cnoise3(mPos));
-  hI += 0.3 * dot(nor, -rd);
-  hI += 0.2 * pow(1. - dot(nor, -rd), 8.);
+  hI += 0.1 * dot(nor, -rd);
+  hI += 0.4 * pow(1. - dot(nor, -rd), 8.);
 
-  hI += 0.1 * cnoise3(mPos);
-  hI += 0.2 * pos;
+  hI += 0.05 * cnoise3(mPos);
+  hI += 0.1 * pos;
 
-  hI *= 0.55;
+  hI *= 0.60;
 
-  color = 0.5 + 0.35 * cos( TWO_PI * (hI + vec3(0, 0.33, 0.67)) );
+  color = 0.5 + 0.35 * cos( TWO_PI * (hI + vec3(0, 0.33, 0.67) + 0.40) );
 
   return color;
 }
