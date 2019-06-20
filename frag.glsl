@@ -645,17 +645,19 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpFactor = 1.00;
 
-  q += warpFactor * 0.100000 * cos(11. * q.yzx + vec3(-cosT, cosT, sin(cosT)) );
-  q += warpFactor * 0.050000 * cos(17. * q.yzx + cosT );
-  q += warpFactor * 0.025000 * cos(27. * q.yzx + cosT );
-  q += warpFactor * 0.012500 * cos(31. * q.yzx + cosT );
-  q += warpFactor * 0.006250 * cos(43. * q.yzx + cosT );
+  q += warpFactor * 0.100000 * cos( 7. * q.yzx + vec3(-cosT, cosT, sin(cosT)) );
+  q += warpFactor * 0.033330 * cos(11. * q.yzx + cosT );
+  q.xzy = twist(q, 0.5 * q.y + 0.1 * PI * sin(q.y + cosT));
+  q += warpFactor * 0.011110 * cos(21. * q.yzx + cosT );
+  // q += warpFactor * 0.012500 * cos(31. * q.yzx + cosT );
+  // q += warpFactor * 0.006250 * cos(43. * q.yzx + cosT );
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(1, 1, 0.2)), 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(0.4)), 0, 0);
+  s.x -= 0.8 * cnoise3(3. * q);
   d = dMin(d, s);
 
-  d.x *= 0.4;
+  d.x *= 0.1;
 
   return d;
 }
