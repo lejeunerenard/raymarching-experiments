@@ -1084,20 +1084,32 @@ vec3 gradient (in float i) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = background;
+  vec3 color = vec3(1);
 
   vec2 q = uv;
 
-  float n = 0.;
+  const float r = 0.3;
+  for (int j = -3; j < 4; j++) {
+    float fJ = float(j);
 
-  q *= rotMat2(0.25 * PI);
-  q.y += (0.2 + 0.1 * cos(cosT + 3. * PI * q.x)) * sin(TWO_PI * q.x);
-  float d = smoothstep(edge, 0., sin(TWO_PI * 11. * (q.y + norT)));
-  n = max(n, d);
+    for (int i = -3; i < 4; i++) {
+      float fI = float(i);
+      vec2 qW = q - vec2(fI * r * 0.2, fJ * r * 0.2);
+      float n = smoothstep(edge, 0., length(qW) - r);
 
-  color = vec3(n);
+      vec3 cI = vec3(0, q + 0.0 * vec2(fJ, fI)) +
+        cnoise2(vec2(0.111 * fI, 0.2 * fJ)) +
+            0.3 * vec3(
+                cnoise2(q + qW + fI),
+                cnoise2(q - fI),
+                cnoise2(qW + vec2(fI, -fI)));
 
-  // color = mix(vec3(0.3), vec3(1), n);
+      vec3 tI = vec3(0.2, 0, 0) * rotationMatrix(vec3(0.2, -0.5, 1.0), cosT);
+      vec3 layerColor = 0.5 + 0.5 * cos( TWO_PI * ( cI + vec3(0, 0.33, 0.67) + tI) );
+      color = mix(color, color * layerColor, sqrt(length(color)) * 0.25 * n);
+      // color = mix(color, color + layerColor, 0.05 * n);
+    }
+  }
 
   return color;
 }
@@ -1107,7 +1119,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
