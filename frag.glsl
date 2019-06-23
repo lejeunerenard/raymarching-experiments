@@ -639,17 +639,15 @@ const float objLength = 0.35;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
-
   vec3 q = p;
 
   const float size = 0.40;
 
   vec3 cQ = q;
   vec2 c = pMod2(cQ.xz, vec2(size));
-  vec3 nQ = vec3(c.x, 0, c.y) + vec3(0.4, 0, 0) * rotationMatrix(vec3(0.2, -0.9, 0.05), cosT);
-  cQ.y -= 0.25 * cos(dot(c, vec2(1)) * 1.0234 + cosT);
-  cQ.y -= 0.15 * cnoise3(nQ);
+  vec3 nQ = vec3(c.x, 0, c.y) + vec3(0.6, 0, 0) * rotationMatrix(vec3(0.2, -0.9, 0.05), cosT);
+  cQ.y -= 0.25 * cos(dot(c, vec2(1, -1)) * 1.0234 + cosT);
+  cQ.y -= 0.25 * cnoise3(nQ);
 
   vec3 localQ = cQ;
   mPos = localQ;
@@ -657,10 +655,10 @@ vec3 map (in vec3 p, in float dT) {
   vec3 s = vec3(sdBox(localQ, vec3(sizeFactor * size, 0.4, sizeFactor * size)), 0, 0);
   d = dMin(d, s);
 
-  float crop = sdBox(p, vec3(size * 1.5, 2, size * 1.5));
+  float crop = sdBox(p, vec3(size * 5.5, 2, size * 5.5));
   d.x = max(d.x, crop);
 
-  d.x *= 0.4;
+  d.x *= 0.3;
 
   return d;
 }
