@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 5.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -644,21 +644,30 @@ vec3 map (in vec3 p, in float dT) {
   const float size = 0.40;
 
   vec3 cQ = q;
-  vec2 c = pMod2(cQ.xz, vec2(size));
-  vec3 nQ = vec3(c.x, 0, c.y) + vec3(0.6, 0, 0) * rotationMatrix(vec3(0.2, -0.9, 0.05), cosT);
-  cQ.y -= 0.25 * cos(dot(c, vec2(1, -1)) * 1.0234 + cosT);
-  cQ.y -= 0.25 * cnoise3(nQ);
+  float c = 0.;
 
-  vec3 localQ = cQ;
-  mPos = localQ;
-  const float sizeFactor = 0.3;
-  vec3 s = vec3(sdBox(localQ, vec3(sizeFactor * size, 0.4, sizeFactor * size)), 0, 0);
-  d = dMin(d, s);
+  mat3 rot = rotationMatrix(vec3(0, 1, 0), 0.194 * PI);
 
-  float crop = sdBox(p, vec3(size * 5.5, 2, size * 5.5));
-  d.x = max(d.x, crop);
+  for (int i = 0; i < 27; i++) {
+    float c = float(i);
 
-  d.x *= 0.3;
+    cQ *= rot;
+    vec3 nQ = vec3(c, 0, 0) + vec3(0.6, 0, 0) * rotationMatrix(vec3(0.2, -0.9, 0.05), cosT);
+    cQ.y -= 0.125 * cos(c * 1.0234 + cosT);
+    cQ.y -= 0.0625 * cos(cQ.y + c * 5.0234 + cosT);
+    cQ.y -= 0.0625 * cnoise3(nQ);
+
+    const float sizeFactor = 0.2;
+    vec3 localQ = cQ - vec3(sqrt(c) * 1.875 * sizeFactor * size, 0, 0);
+    mPos = localQ;
+    vec3 s = vec3(sdCappedCylinder(localQ, vec2(sizeFactor * size, 0.4)), 0, 0);
+    d = dMin(d, s);
+  }
+
+  // float crop = sdBox(p, vec3(size * 2.5, 2, size * 2.5));
+  // d.x = max(d.x, crop);
+
+  // d.x *= 0.3;
 
   return d;
 }
