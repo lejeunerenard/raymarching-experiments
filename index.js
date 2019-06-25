@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'congregate-render1',
+    name: 'laughing-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -33,8 +33,8 @@ if (capturing) {
     verbose: true
   })
 
-  app.width = 720
-  app.height = 1080
+  app.width = 1080
+  app.height = 1620
 
   let currentTime = captureTime * 1000
   window.capturer = capturer

@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -636,38 +636,26 @@ vec3 trefoild (in vec3 q, in float radius, in float thickness) {
 const float itemR = 0.5;
 const float itemHeight = itemR;
 const float objLength = 0.35;
+const float objR = 0.6;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
 
-  const float size = 0.40;
+  vec3 wQ = 2. * q;
 
-  vec3 cQ = q;
-  float c = 0.;
+  const float warpScale = 2.0;
 
-  mat3 rot = rotationMatrix(vec3(0, 1, 0), 0.194 * PI);
+  wQ.xzy = twist(wQ, 2. * wQ.y);
+  wQ += warpScale * 0.10000 * cos( 3. * q.yzx + vec3(-cosT, 0, cosT) );
+  wQ += warpScale * 0.05000 * cos(11. * q.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(17. * q.yzx + sin(cosT) );
 
-  for (int i = 0; i < 27; i++) {
-    float c = float(i);
+  mPos = q;
+  vec3 s = vec3(length(q + 0.075 * wQ) - (objR + 0.3 * cnoise3(wQ)), 0, 0);
+  d = dMin(d, s);
 
-    cQ *= rot;
-    vec3 nQ = vec3(c, 0, 0) + vec3(0.6, 0, 0) * rotationMatrix(vec3(0.2, -0.9, 0.05), cosT);
-    cQ.y -= 0.125 * cos(c * 1.0234 + cosT);
-    cQ.y -= 0.0625 * cos(cQ.y + c * 5.0234 + cosT);
-    cQ.y -= 0.0625 * cnoise3(nQ);
-
-    const float sizeFactor = 0.2;
-    vec3 localQ = cQ - vec3(sqrt(c) * 1.875 * sizeFactor * size, 0, 0);
-    mPos = localQ;
-    vec3 s = vec3(sdCappedCylinder(localQ, vec2(sizeFactor * size, 0.4)), 0, 0);
-    d = dMin(d, s);
-  }
-
-  // float crop = sdBox(p, vec3(size * 2.5, 2, size * 2.5));
-  // d.x = max(d.x, crop);
-
-  // d.x *= 0.3;
+  d.x *= 0.55;
 
   return d;
 }
@@ -847,6 +835,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = mix(background, vec3(1), pos.y + 0.4);
 
+  const vec3 color1 = #879CFF;
+  // const vec3 color2 = #A47BE8;
+  const vec3 color3 = #F894FF;
+
+  float verticalColorI = 0.5 * (mPos.y + objR) / objR + 0.2 * cnoise3(3. * mPos + 0.3 * vfbmWarp(0.3 * mPos));
+
+  const float blur = 0.15;
+  vec3 verticalColor = mix(color1, color3, saturate(verticalColorI));
+  // vec3 verticalColor = mix(color1, color2, smoothstep(0.33 - blur, 0.33 + blur, verticalColorI));
+  // verticalColor = mix(verticalColor, color3, smoothstep(0.66 - blur, 0.66 + blur, verticalColorI));
+
+  color = verticalColor;
+
   return color;
 }
 
@@ -922,7 +923,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.2;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -935,7 +936,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.99;
+        float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
