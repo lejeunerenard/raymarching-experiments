@@ -642,20 +642,25 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  vec3 wQ = 2. * q;
+  mat3 rot = rotationMatrix(vec3(0, 1, 0), 0.437 * PI);
 
-  const float warpScale = 2.0;
+  for (int i = 1; i < 40; i++) {
+    float c = float(i);
+    q *= rot;
 
-  wQ.xzy = twist(wQ, 2. * wQ.y);
-  wQ += warpScale * 0.10000 * cos( 3. * q.yzx + vec3(-cosT, 0, cosT) );
-  wQ += warpScale * 0.05000 * cos(11. * q.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(17. * q.yzx + sin(cosT) );
+    const float sizeFactor = 0.2;
+    vec3 localQ = q - vec3(pow(c, 0.4) * 1.1 * sizeFactor, 0, 0);
+    localQ *= rotationMatrix(vec3(0, 0, 1), PI * (0.25 + 0.1 * cos(cosT + PI * 0.0932432 * c)));
+    mPos = localQ;
+    vec3 s = vec3(sdBox(localQ.zyx, vec3(0.2, 0.3, 0.03)), 0, 0);
+    d = dMin(d, s);
+  }
 
-  mPos = q;
-  vec3 s = vec3(length(q + 0.075 * wQ) - (objR + 0.3 * cnoise3(wQ)), 0, 0);
-  d = dMin(d, s);
+  vec3 b = vec3(length(q + vec3(0, 0.35, 0)) - 0.4, 1, 0);
+  b.x -= 0.02 * cellular(8. * q);
+  d = dMin(d, b);
 
-  d.x *= 0.55;
+  // d.x *= 0.55;
 
   return d;
 }
@@ -835,9 +840,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = mix(background, vec3(1), pos.y + 0.4);
 
-  const vec3 color1 = #879CFF;
+  const vec3 color1 = #FFD7C9;
   // const vec3 color2 = #A47BE8;
-  const vec3 color3 = #F894FF;
+  const vec3 color3 = #FFBDC6;
 
   float verticalColorI = 0.5 * (mPos.y + objR) / objR + 0.2 * cnoise3(3. * mPos + 0.3 * vfbmWarp(0.3 * mPos));
 
@@ -847,6 +852,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   // verticalColor = mix(verticalColor, color3, smoothstep(0.66 - blur, 0.66 + blur, verticalColorI));
 
   color = verticalColor;
+  color = mix(color, #FFC7CF, isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -899,7 +905,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color = vec3(0.0);
 
       // Material Types
-      // float isFloor = isMaterialSmooth(t.y, 1.0);
+      float isCore = isMaterialSmooth(t.y, 1.0);
 
       vec3 nor = getNormal(pos, 0.01 * t.x);
       // float bumpsScale = 7.75;
@@ -931,7 +937,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 1.0;
+        float diffMin = mix(0.99, 0.95, isCore);
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -948,7 +954,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        // lin += 0.05 * amb * diffuseColor;
+        lin += 0.025 * amb * diffuseColor;
         // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
