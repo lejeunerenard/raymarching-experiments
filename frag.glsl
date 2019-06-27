@@ -642,22 +642,7 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  mat3 rot = rotationMatrix(vec3(0, 1, 0), 0.437 * PI);
-
-  for (int i = 1; i < 40; i++) {
-    float c = float(i);
-    q *= rot;
-
-    const float sizeFactor = 0.2;
-    vec3 localQ = q - vec3(pow(c, 0.4) * 1.1 * sizeFactor, 0, 0);
-    localQ *= rotationMatrix(vec3(0, 0, 1), PI * (0.25 + 0.1 * cos(cosT + PI * 0.0932432 * c)));
-    mPos = localQ;
-    vec3 s = vec3(sdBox(localQ.zyx, vec3(0.2, 0.3, 0.03)), 0, 0);
-    d = dMin(d, s);
-  }
-
   vec3 b = vec3(length(q + vec3(0, 0.35, 0)) - 0.4, 1, 0);
-  b.x -= 0.02 * cellular(8. * q);
   d = dMin(d, b);
 
   // d.x *= 0.55;
@@ -1094,28 +1079,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float r = 0.3;
-  for (int j = -3; j < 4; j++) {
-    float fJ = float(j);
+  float rate = 1. - saturate(1.25 * abs(q.y));
+  q.x += 0.085 * rate * sin(TWO_PI * ((0.5 * rate + 1.) * 3. * q.y + 2. * generalT));
+  q.x += 0.075 * sin(TWO_PI * (2. * q.y + generalT));
 
-    for (int i = -3; i < 4; i++) {
-      float fI = float(i);
-      vec2 qW = q - vec2(fI * r * 0.2, fJ * r * 0.2);
-      float n = smoothstep(edge, 0., length(qW) - r);
+  float n = smoothstep(0.985, 0.985 + edge, abs(sin(TWO_PI * 2. * q.x)));
+  color = vec3(n);
 
-      vec3 cI = vec3(0, q + 0.0 * vec2(fJ, fI)) +
-        cnoise2(vec2(0.111 * fI, 0.2 * fJ)) +
-            0.3 * vec3(
-                cnoise2(q + qW + fI),
-                cnoise2(q - fI),
-                cnoise2(qW + vec2(fI, -fI)));
-
-      vec3 tI = vec3(0.2, 0, 0) * rotationMatrix(vec3(0.2, -0.5, 1.0), cosT);
-      vec3 layerColor = 0.5 + 0.5 * cos( TWO_PI * ( cI + vec3(0, 0.33, 0.67) + tI) );
-      color = mix(color, color * layerColor, sqrt(length(color)) * 0.25 * n);
-      // color = mix(color, color + layerColor, 0.05 * n);
-    }
-  }
+  float mask = smoothstep(1.0 + edge, 1.0, 2. * abs(q.x));
+  color *= mask;
 
   return color;
 }
@@ -1127,25 +1099,25 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
-  // const float totalT = 0.0125;
-  // const int hues = 8;
-  // for (int i = 0; i < hues; i++) {
-  //   float fraction = float(i) / float(hues);
-  //   vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y;
-  //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-  //   // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
-  //   float a = two_dimensional(uv, (norT + totalT * fraction)).x;
-  //   // vec4 t = march(ro, rd, cosT + totalT * fraction);
-  //   // float a = shade(ro, rd, t, uv).x;
-  //   // color *= mix(vec3(1), layerColor, 0.085 * a);
-  //   color += layerColor * a;
-  // }
+  float totalT = (0.025 + 0.04 * (1. - saturate(3. * abs(uv.y)))) * PI;
+  const int hues = 8;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
+    vec3 layerColor = 0.5 + 0.4 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
+    float a = two_dimensional(uv, (norT + totalT * fraction)).x;
+    // vec4 t = march(ro, rd, cosT + totalT * fraction);
+    // float a = shade(ro, rd, t, uv).x;
+    color *= mix(vec3(1), layerColor, a);
+    // color += layerColor * a;
+  }
 
   // color *= 0.3;
   // color = pow(color, vec3(1.15));
-  // return vec4(color, 1);
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
