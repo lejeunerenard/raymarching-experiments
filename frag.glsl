@@ -1077,13 +1077,15 @@ vec3 gradient (in float i) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  vec2 q = uv;
+  vec2 q = 0.5 * uv;
 
+  const float warpScale = 1.2;
   float rate = 1. - saturate(1.25 * abs(q.y));
-  q.x += 0.085 * rate * sin(TWO_PI * ((0.5 * rate + 1.) * 3. * q.y + 2. * generalT));
-  q.x += 0.075 * sin(TWO_PI * (2. * q.y + generalT));
+  q.x += warpScale * 0.060 * sin(TWO_PI * (q.y + 2. * generalT));
+  q.x += warpScale * 0.030 * sin(TWO_PI * (3. * q.y + generalT));
+  q.x += warpScale * 0.015 * sin(TWO_PI * (7. * q.x + generalT));
 
-  float n = smoothstep(0.985, 0.985 + edge, abs(sin(TWO_PI * 2. * q.x)));
+  float n = smoothstep(0.955, 0.955 + edge, abs(sin(TWO_PI * 2.5 * q.x)));
   color = vec3(n);
 
   float mask = smoothstep(1.0 + edge, 1.0, 2. * abs(q.x));
@@ -1101,7 +1103,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(1);
 
-  float totalT = (0.025 + 0.04 * (1. - saturate(3. * abs(uv.y)))) * PI;
+  float totalT = 0.065 * PI;
   const int hues = 8;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
