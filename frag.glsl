@@ -1077,19 +1077,22 @@ vec3 gradient (in float i) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  vec2 q = 0.5 * uv;
+  vec2 q = uv;
 
-  const float warpScale = 1.2;
-  float rate = 1. - saturate(1.25 * abs(q.y));
-  q.x += warpScale * 0.060 * sin(TWO_PI * (q.y + 2. * generalT));
-  q.x += warpScale * 0.030 * sin(TWO_PI * (3. * q.y + generalT));
-  q.x += warpScale * 0.015 * sin(TWO_PI * (7. * q.x + generalT));
+  const float warpScale = 1.0;
 
-  float n = smoothstep(0.955, 0.955 + edge, abs(sin(TWO_PI * 2.5 * q.x)));
-  color = vec3(n);
+  for (int i = 20; i > 0; i--) {
+    q = uv;
+    q *= rotMat2(0.4 * sin(generalT - 3. * length(q) - 0.1234 * float(i)));
+    vec2 absQ = abs(q);
 
-  float mask = smoothstep(1.0 + edge, 1.0, 2. * abs(q.x));
-  color *= mask;
+    float r = 0.05 + 0.030 * float(i);
+    r *= 1. - 1.9 * length(q);
+    r *= 0.5;
+    float mask = smoothstep(edge, 0., min(absQ.x, absQ.y) - r);
+    // float n = smoothstep(0.955, 0.955 + edge, abs(sin(TWO_PI * 2.5 * q.x)));
+    color = mix(color, vec3(mod(float(i), 2.)), mask);
+  }
 
   return color;
 }
@@ -1099,18 +1102,18 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   vec3 color = vec3(1);
 
-  float totalT = 0.065 * PI;
+  float totalT = 0.7 * PI;
   const int hues = 8;
   for (int i = 0; i < hues; i++) {
     float fraction = float(i) / float(hues);
     vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
     vec3 layerColor = 0.5 + 0.4 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
     // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
-    float a = two_dimensional(uv, (norT + totalT * fraction)).x;
+    float a = two_dimensional(uv, (cosT + totalT * fraction)).x;
     // vec4 t = march(ro, rd, cosT + totalT * fraction);
     // float a = shade(ro, rd, t, uv).x;
     color *= mix(vec3(1), layerColor, a);

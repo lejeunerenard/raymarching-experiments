@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'pirouette-render1',
+    name: 'embrace-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
