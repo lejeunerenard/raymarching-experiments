@@ -640,12 +640,28 @@ const float objR = 0.6;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  // p *= globalRot;
   vec3 q = p;
 
-  vec3 b = vec3(length(q + vec3(0, 0.35, 0)) - 0.4, 1, 0);
+  const float warpScale = 0.75;
+
+  vec3 bQ = q;
+  bQ += warpScale * 0.10000 * cos( 7. * bQ.yzx + vec3(0, -cosT, cosT) );
+  bQ.xzy = twist(bQ, 2. * bQ.y);
+  bQ += warpScale * 0.05000 * cos(13. * bQ.yzx + vec3(cosT, 0, sin(cosT)) );
+  bQ += warpScale * 0.02500 * cos(21. * bQ.yzx + vec3(cosT, -cosT, -cosT) );
+  bQ += warpScale * 0.01250 * cos(31. * bQ.yzx + vec3(cosT) );
+  bQ += warpScale * 0.00625 * cos(47. * bQ.yzx + vec3(-cosT) );
+
+  const float r = 0.5;
+  vec3 b = vec3(length(bQ) - r, 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.55;
+  q.y += r;
+  // vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  // d = dMin(d, f);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -823,21 +839,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = mix(background, vec3(1), pos.y + 0.4);
-
-  const vec3 color1 = #FFD7C9;
-  // const vec3 color2 = #A47BE8;
-  const vec3 color3 = #FFBDC6;
-
-  float verticalColorI = 0.5 * (mPos.y + objR) / objR + 0.2 * cnoise3(3. * mPos + 0.3 * vfbmWarp(0.3 * mPos));
-
-  const float blur = 0.15;
-  vec3 verticalColor = mix(color1, color3, saturate(verticalColorI));
-  // vec3 verticalColor = mix(color1, color2, smoothstep(0.33 - blur, 0.33 + blur, verticalColorI));
-  // verticalColor = mix(verticalColor, color3, smoothstep(0.66 - blur, 0.66 + blur, verticalColorI));
-
-  color = verticalColor;
-  color = mix(color, #FFC7CF, isMaterialSmooth(m, 1.));
+  vec3 color = #C1FFA2;
 
   return color;
 }
@@ -858,8 +860,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       vec3 color;
       float intensity;
     };
-    const int NUM_OF_LIGHTS = 3;
-    const float repNUM_OF_LIGHTS = 0.33;
+    const int NUM_OF_LIGHTS = 2;
+    const float repNUM_OF_LIGHTS = 0.5;
     light lights[NUM_OF_LIGHTS];
 
     // vec2 lightPosRef = vec2(0.95, 0.2);
@@ -874,9 +876,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     // }
 
     const float lightPosScale = 0.35;
-    lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 2.0);
-    lights[1] = light(normalize(vec3( 0.4, 0.3, 0.7)), #FFFFFF, 2.0);
-    lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 2.0);
+    // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
+    lights[0] = light(normalize(vec3( 0.4, 0.3, 0.7)), #FFFFFF, 1.0);
+    lights[1] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 1.0);
+    // lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 2.0);
 
     vec2 slantUV = vec2(1.3, 1) * uv;
     vec2 absUV = abs(slantUV);
@@ -914,15 +917,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.4;
+      float freCo = 0.3;
+      float specCo = 0.3;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = mix(0.99, 0.95, isCore);
+        float diffMin = 0.85;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -960,10 +963,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1102,27 +1105,27 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
-
-  vec3 color = vec3(1);
-
-  float totalT = 0.7 * PI;
-  const int hues = 8;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
-    vec3 layerColor = 0.5 + 0.4 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
-    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
-    float a = two_dimensional(uv, (cosT + totalT * fraction)).x;
-    // vec4 t = march(ro, rd, cosT + totalT * fraction);
-    // float a = shade(ro, rd, t, uv).x;
-    color *= mix(vec3(1), layerColor, a);
-    // color += layerColor * a;
-  }
-
-  // color *= 0.3;
-  // color = pow(color, vec3(1.15));
-  return vec4(color, 1);
+  /* return vec4(two_dimensional(uv, cosT), 1); */
+  /*  */
+  /* vec3 color = vec3(1); */
+  /*  */
+  /* float totalT = 0.7 * PI; */
+  /* const int hues = 8; */
+  /* for (int i = 0; i < hues; i++) { */
+  /*   float fraction = float(i) / float(hues); */
+  /*   vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3; */
+  /*   vec3 layerColor = 0.5 + 0.4 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))); */
+  /*   // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1)); */
+  /*   float a = two_dimensional(uv, (cosT + totalT * fraction)).x; */
+  /*   // vec4 t = march(ro, rd, cosT + totalT * fraction); */
+  /*   // float a = shade(ro, rd, t, uv).x; */
+  /*   color *= mix(vec3(1), layerColor, a); */
+  /*   // color += layerColor * a; */
+  /* } */
+  /*  */
+  /* // color *= 0.3; */
+  /* // color = pow(color, vec3(1.15)); */
+  /* return vec4(color, 1); */
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
