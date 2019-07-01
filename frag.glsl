@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 5.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -598,40 +598,6 @@ mat3 rotOrtho (in float t) {
   return rotationMatrix(rotAxis, 1.5 * PI * (0.5 + 0.5 * cos(t)));
 }
 
-vec3 trefoild (in vec3 q, in float radius, in float thickness, in float orientation, in float rotOff) {
-  float a = atan(q.x, q.z);
-  q = vec3(
-      a + rotOff + PI,
-      length(q.xz) - radius,
-      q.y);
-
-  // q.x += orientation * cosT;
-  q.x = mod(q.x, TWO_PI);
-  q.zy *= rotMat2(1.5 * q.x + 0.0 * cosT);
-
-  q.y = abs(q.y);
-  float separate = saturate(0.35 + 0.65 * cos(a + -1. * cosT));
-  q -= vec3(0, radius * (0.025 + 0.25 * separate), 0);
-  mPos = q;
-  vec3 t = vec3(sdBox(q, vec3(TWO_PI, thickness, radius * 0.3)), 0, q.x);
-
-  float sphereR = radius * 0.15 * (1. + 0.0 * sin(cosT));
-
-  q.x += cosT * 2. / 5.;
-  float c = pMod1(q.x, TWO_PI * 0.10);
-  q.y -= (1.6 + 0.6 * cos(3. * (cosT + a))) * sphereR;
-  vec3 o = vec3(sdBox(vec3(0.6, 1, 1) * q, vec3(0.85 * sphereR)), 1, 0);
-  return dMin(t, o);
-}
-
-vec3 trefoild (in vec3 q, in float radius, in float thickness, in float orientation) {
-  return trefoild(q, radius, thickness, orientation, 0.);
-}
-
-vec3 trefoild (in vec3 q, in float radius, in float thickness) {
-  return trefoild(q, radius, thickness, 1., 0.);
-}
-
 // Return value is (distance, material, orbit trap)
 const float itemR = 0.5;
 const float itemHeight = itemR;
@@ -640,26 +606,29 @@ const float objR = 0.6;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   vec3 q = p;
 
-  const float warpScale = 0.75;
+  const float warpScale = 1.0;
 
-  vec3 bQ = q;
-  bQ += warpScale * 0.10000 * cos( 7. * bQ.yzx + vec3(0, -cosT, cosT) );
-  bQ.xzy = twist(bQ, 2. * bQ.y);
-  bQ += warpScale * 0.05000 * cos(13. * bQ.yzx + vec3(cosT, 0, sin(cosT)) );
-  bQ += warpScale * 0.02500 * cos(21. * bQ.yzx + vec3(cosT, -cosT, -cosT) );
-  bQ += warpScale * 0.01250 * cos(31. * bQ.yzx + vec3(cosT) );
-  bQ += warpScale * 0.00625 * cos(47. * bQ.yzx + vec3(-cosT) );
+  const float thickness = 0.5 * 0.05;
 
-  const float r = 0.5;
-  vec3 b = vec3(length(bQ) - r, 0, 0);
-  d = dMin(d, b);
+  q *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI );
+  for (int i = 0; i < 7; i++) {
+    float fI = float(i);
+    float r = 0.5 - fI * 0.075;
+    float rotAngle = sin(cosT + 0.23 * PI * fI);
+    mat3 rot = rotationMatrix(vec3(0.8, 0.5, -0.1), PI * 0.23 * rotAngle);
 
-  q.y += r;
-  // vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  // d = dMin(d, f);
+    float rotAngle2 = sin(TWO_PI * (norT + 0.173 * fI));
+    mat3 rot2 = rotationMatrix(vec3(-0.2, -0.7, 1.), 0.4 * PI * rotAngle2);
+
+    vec3 bQ = q * rot * rot2;
+    vec3 b = vec3(abs(length(bQ) - r) - thickness, 0, 0);
+    float cropHalf = sdBox(bQ - vec3(0, 2, 0), vec3(2));
+    b.x = max(b.x, -cropHalf);
+    d = dMin(d, b);
+  }
 
   d.x *= 0.5;
 
@@ -839,7 +808,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = #C1FFA2;
+  vec3 color = mix(background, vec3(1), 1.3 * pos.y + (1. - length(pos)));
 
   return color;
 }
@@ -965,7 +934,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      reflectColor += 0.01 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);

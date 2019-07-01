@@ -12,7 +12,7 @@ vec3 getBackground (in vec2 uv) {
   float frameMask = backgroundMask(uv, backgroundR);
   vec2 backgroundUv = uv;
   float l = length(uv);
-  vec3 color = 1.030 * #C1FFA2;
+  vec3 color = vec3(0, 0.05, 1);
   return color;
 }
 vec3 background = vec3(0.);
