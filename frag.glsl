@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 5.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -606,7 +606,7 @@ const float objR = 0.6;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
   const float warpScale = 1.0;
@@ -1049,22 +1049,34 @@ vec3 gradient (in float i) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  vec2 q = uv;
+  vec2 q = uv * 1.7 * (1. - 0.5 * norT);
 
   const float warpScale = 1.0;
 
-  for (int i = 20; i > 0; i--) {
-    q = uv;
-    q *= rotMat2(0.4 * sin(generalT - 3. * length(q) - 0.1234 * float(i)));
-    vec2 absQ = abs(q);
+  float n = 0.;
 
-    float r = 0.05 + 0.030 * float(i);
-    r *= 1. - 1.9 * length(q);
-    r *= 0.5;
-    float mask = smoothstep(edge, 0., min(absQ.x, absQ.y) - r);
-    // float n = smoothstep(0.955, 0.955 + edge, abs(sin(TWO_PI * 2.5 * q.x)));
-    color = mix(color, vec3(mod(float(i), 2.)), mask);
-  }
+  const float r = 0.2;
+  float of = r * (2.0 + 1.5 * - quint(smoothstep(0., 0.4, norT)));
+  vec2 absQ1 = abs(q - vec2(-of, of));
+  float m = step(0., max(absQ1.x, absQ1.y) - r);
+  n = mix(n, 1. - n, m);
+
+  of = r * (2.0 + 1.5 * - quint(smoothstep(0.20, 0.60, norT)));
+  absQ1 = abs(q - vec2(of, of));
+  m = step(0., max(absQ1.x, absQ1.y) - r);
+  n = mix(n, 1. - n, m);
+
+  of = r * (2.0 + 1.5 * - quint(smoothstep(0.40, 0.80, norT)));
+  absQ1 = abs(q - vec2(of, -of));
+  m = step(0., max(absQ1.x, absQ1.y) - r);
+  n = mix(n, 1. - n, m);
+
+  of = r * (2.0 + 1.5 * - quint(smoothstep(0.60, 1.00, norT)));
+  absQ1 = abs(q - vec2(-of, -of));
+  m = step(0., max(absQ1.x, absQ1.y) - r);
+  n = mix(n, 1. - n, m);
+
+  color = vec3(n);
 
   return color;
 }
@@ -1074,7 +1086,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  /* return vec4(two_dimensional(uv, cosT), 1); */
+  return vec4(two_dimensional(uv, cosT), 1);
   /*  */
   /* vec3 color = vec3(1); */
   /*  */
