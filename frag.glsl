@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -598,39 +598,80 @@ mat3 rotOrtho (in float t) {
   return rotationMatrix(rotAxis, 1.5 * PI * (0.5 + 0.5 * cos(t)));
 }
 
-// Return value is (distance, material, orbit trap)
-const float itemR = 0.5;
-const float itemHeight = itemR;
-const float objLength = 0.35;
-const float objR = 0.6;
+
+void ptQ (inout vec3 q, in float i) {
+  const float pt1L = 0.142857; // Time Length
+  const float pt1O = pt1L * 0.5; // Time Offset
+  const float rotAmount = 0.33 * PI;
+
+  float t = smoothstep(i * pt1O + pt1L, i * pt1O, norT);
+  q = q * rotationMatrix(vec3( 0, 1, 1), rotAmount * t);
+  vec3 trans = vec3(4, 0, 0) * rotationMatrix(vec3(0.3, 0.1, -0.3), PI * 0.234 * i);
+  q += trans;
+  q = q * rotationMatrix(vec3( 4, 2, -3), rotAmount * t);
+  q -= trans;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
   vec3 q = p;
 
-  const float warpScale = 1.0;
+  const float r = 0.2;
 
-  const float thickness = 0.5 * 0.05;
+  // q *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI );
 
-  q *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI );
-  for (int i = 0; i < 7; i++) {
-    float fI = float(i);
-    float r = 0.5 - fI * 0.075;
-    float rotAngle = sin(cosT + 0.23 * PI * fI);
-    mat3 rot = rotationMatrix(vec3(0.8, 0.5, -0.1), PI * 0.23 * rotAngle);
+  float startT = 0.;
 
-    float rotAngle2 = sin(TWO_PI * (norT + 0.173 * fI));
-    mat3 rot2 = rotationMatrix(vec3(-0.2, -0.7, 1.), 0.4 * PI * rotAngle2);
+  float i = 0.;
+  q = p;
+  q -= vec3( 2. * r,  2. * r,       0);
+  ptQ(q, i); i++;
+  vec3 b1 = vec3(sdBox(q, vec3(r)), 1, 0);
+  d = dMin(d, b1);
 
-    vec3 bQ = q * rot * rot2;
-    vec3 b = vec3(abs(length(bQ) - r) - thickness, 0, 0);
-    float cropHalf = sdBox(bQ - vec3(0, 2, 0), vec3(2));
-    b.x = max(b.x, -cropHalf);
-    d = dMin(d, b);
-  }
+  q = p;
+  q -= vec3(      0,  2. * r,  2. * r);
+  ptQ(q, i); i++;
+  vec3 b2 = vec3(sdBox(q, vec3(r)), 1, 0);
+  d = dMin(d, b2);
 
-  d.x *= 0.5;
+  q = p;
+  q -= vec3(-2. * r,       0,  2. * r);
+  ptQ(q, i); i++;
+  vec3 b3 = vec3(sdBox(q, vec3(r)), 1, 0);
+  d = dMin(d, b3);
+
+  q = p;
+  q -=  vec3(-2. * r, -2. * r,       0);
+  ptQ(q, i); i++;
+  vec3 b4 = vec3(sdBox(q, vec3(r)), 1, 0);
+  d = dMin(d, b4);
+
+  q = p;
+  q -= vec3(      0, -2. * r, -2. * r);
+  ptQ(q, i); i++;
+  vec3 b5 = vec3(sdBox(q, vec3(r)), 1, 0);
+  d = dMin(d, b5);
+
+  q = p;
+  q -= vec3( 2. * r,       0, -2. * r);
+  ptQ(q, i); i++;
+  vec3 b6 = vec3(sdBox(q, vec3(r)), 1, 0);
+  d = dMin(d, b6);
+
+  const float pt2Start = 0.5;
+  float pt2Show = step(pt2Start, norT);
+
+  float pt1D = d.x;
+  d.x = mix(d.x, maxDistance, pt2Show);
+  
+  q = p;
+  q *= rotationMatrix(vec3(0.7, 0.3, 1.), PI * smoothstep(pt2Start, 0.75, norT));
+  q *= 1. - 0.8 * smoothstep(0.60, 0.9, norT);
+  vec3 center = vec3(sdBox(q, vec3(r)), 0, 0);
+  center.x += maxDistance * (1. - pt2Show);
+  d = dMin(d, center);
 
   return d;
 }
@@ -808,7 +849,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = mix(background, vec3(1), 1.3 * pos.y + (1. - length(pos)));
+  vec3 color = vec3(isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -853,8 +894,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
     vec2 slantUV = vec2(1.3, 1) * uv;
     vec2 absUV = abs(slantUV);
 
-    float backgroundMask = backgroundMask(uv, backgroundR);
-    backgroundMask = 1.;
+    float backgroundMask = 1.;
     // Allow anything in top right corner
     // backgroundMask = max(backgroundMask, smoothstep(0., edge, dot(uv, vec2(1)) + 0.05));
 
@@ -958,7 +998,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv ) {
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -1086,7 +1126,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
   /*  */
   /* vec3 color = vec3(1); */
   /*  */

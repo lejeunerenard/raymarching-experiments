@@ -12,7 +12,7 @@ uniform sampler2D buffer;
 uniform sampler2D prevBuffer;
 uniform float wet;
 
-const float totalT = 8.0;
+const float totalT = 5.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
