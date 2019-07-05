@@ -53,7 +53,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 32.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1091,39 +1091,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float setT = mod(norT, 0.5) * 2.;
-  float dT = smoothstep(0., 0.333, setT) * smoothstep(1.0, 0.667, setT);
-  float scaleT = quint(dT);
-  float moveT = smoothstep(0.333, 0.667, setT);
-  moveT = expo(moveT);
+  const float r = 0.25;
 
-  float firstHalf = smoothstep(0.5 + edge, 0.5, norT);
+  float lT = mod(generalT, 1.);
+  float spinOut = r * (0.5 + smoothstep(0., 0.3, lT) * smoothstep(1., 0.7, lT));
 
-  const float size = 0.15;
+  float n = 0.;
+  for (int i = 0; i < 10; i++) {
+    float fI = float(i);
+    vec2 lQ = q;
+    lQ *= rotMat2(TWO_PI * (fI + 1.) * lT);
+    lQ.x += spinOut;
 
-  vec2 gridSize = vec2(size * 0.5) * (1. + 1.25 * scaleT);
+    vec2 absLQ = abs(lQ);
+    float lN = max(absLQ.x, absLQ.y) - r;
+    lN = smoothstep(edge, 0., lN);
+    // n = max(n, lN);
+    n = mix(n, 1. - n, lN);
+  }
 
-	vec2 cID = floor((q + gridSize*0.5)/gridSize);
-  vec2 cOdd = mod(cID, 2.);
-
-  q.y -=        firstHalf * (1. - 2. * cOdd.x) * gridSize.y * 2. * moveT;
-  q.x -= (1. - firstHalf) * (1. - 2. * cOdd.y) * gridSize.x * 2. * moveT;
-
-  vec2 c = pMod2(q, gridSize);
-
-  vec2 absQ = abs(q);
-  float dSqr = max(absQ.x, absQ.y) - size * 0.5;
-  float dCir = length(q) - size * 0.4;
-
-  float d = mix(dSqr, dCir, dT);
-  d = smoothstep(edge, 0., d);
-
-  float odd = mod(dot(c, vec2(1)), 2.);
-
-  vec3 firstHalfcolor = mix(vec3(d), vec3(0), odd);
-  vec3 secondHalfColor = mix(vec3(1), vec3(1. - d), odd);
-
-  color = mix(secondHalfColor, firstHalfcolor, firstHalf);
+  color = vec3(n);
 
   return color;
 }
@@ -1133,27 +1120,27 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
-  /*  */
-  /* vec3 color = vec3(1); */
-  /*  */
-  /* float totalT = 0.7 * PI; */
-  /* const int hues = 8; */
-  /* for (int i = 0; i < hues; i++) { */
-  /*   float fraction = float(i) / float(hues); */
-  /*   vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3; */
-  /*   vec3 layerColor = 0.5 + 0.4 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))); */
-  /*   // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1)); */
-  /*   float a = two_dimensional(uv, (cosT + totalT * fraction)).x; */
-  /*   // vec4 t = march(ro, rd, cosT + totalT * fraction); */
-  /*   // float a = shade(ro, rd, t, uv).x; */
-  /*   color *= mix(vec3(1), layerColor, a); */
-  /*   // color += layerColor * a; */
-  /* } */
-  /*  */
-  /* // color *= 0.3; */
-  /* // color = pow(color, vec3(1.15)); */
-  /* return vec4(color, 1); */
+  // return vec4(two_dimensional(uv, norT), 1);
+
+  vec3 color = vec3(0);
+
+  float totalT = 0.15 * PI;
+  const int hues = 8;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
+    float a = two_dimensional(uv, (norT + totalT * fraction)).x;
+    // vec4 t = march(ro, rd, cosT + totalT * fraction);
+    // float a = shade(ro, rd, t, uv).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+
+  color *= 0.30;
+  color = pow(color, vec3(1.20));
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
