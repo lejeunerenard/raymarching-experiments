@@ -1052,25 +1052,33 @@ vec3 gradient (in float i) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  vec2 q = uv;
+  vec2 q = 1.4 * uv;
 
   const float r = 0.25;
 
-  float lT = mod(generalT, 1.);
-  float spinOut = r * (0.5 + smoothstep(0., 0.3, lT) * smoothstep(1., 0.7, lT));
-
   float n = 0.;
-  for (int i = 0; i < 10; i++) {
-    float fI = float(i);
-    vec2 lQ = q;
-    lQ *= rotMat2(TWO_PI * (fI + 1.) * lT);
-    lQ.x += spinOut;
+  float t = mod(generalT, 1.);
 
-    vec2 absLQ = abs(lQ);
-    float lN = max(absLQ.x, absLQ.y) - r;
-    lN = smoothstep(edge, 0., lN);
-    // n = max(n, lN);
-    n = mix(n, 1. - n, lN);
+  for (int i = 0; i < 5; i++) {
+    float fI = float(i);
+    vec2 l1Q = q;
+    l1Q *= rotMat2(PI * 0.5 * smoothstep(0.1 * fI, 0.1 * fI + 0.3, t));
+    l1Q *= vec2(0.5, 5);
+    l1Q -= vec2(0, r * 4. * fI - 2.);
+    vec2 absl1Q = abs(l1Q);
+    float n1 = smoothstep(edge, 0., max(absl1Q.x, absl1Q.y) - r);
+    n = mix(n, 1. - n, n1);
+  }
+
+  for (int i = 0; i < 5; i++) {
+    float fI = float(i);
+    vec2 l1Q = q;
+    l1Q *= rotMat2(PI * 0.5 * smoothstep(0.1 * fI + 0.1, 0.1 * fI + 0.4, t));
+    l1Q *= vec2(5, 0.5);
+    l1Q -= vec2(r * 4. * fI - 2., 0);
+    vec2 absl1Q = abs(l1Q);
+    float n1 = smoothstep(edge, 0., max(absl1Q.x, absl1Q.y) - r);
+    n = mix(n, 1. - n, n1);
   }
 
   color = vec3(n);
@@ -1085,25 +1093,25 @@ vec3 two_dimensional (in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  /* vec3 color = vec3(0); */
-  /*  */
-  /* float totalT = 0.15 * PI; */
-  /* const int hues = 8; */
-  /* for (int i = 0; i < hues; i++) { */
-  /*   float fraction = float(i) / float(hues); */
-  /*   vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3; */
-  /*   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67))); */
-  /*   // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1)); */
-  /*   float a = two_dimensional(uv, (norT + totalT * fraction)).x; */
-  /*   // vec4 t = march(ro, rd, cosT + totalT * fraction); */
-  /*   // float a = shade(ro, rd, t, uv).x; */
-  /*   // color *= mix(vec3(1), layerColor, a); */
-  /*   color += layerColor * a; */
-  /* } */
-  /*  */
-  /* color *= 0.30; */
-  /* color = pow(color, vec3(1.20)); */
-  /* return vec4(color, 1); */
+  vec3 color = vec3(0);
+
+  float totalT = 0.02 * PI;
+  const int hues = 12;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
+    float a = two_dimensional(uv, (norT + totalT * fraction)).x;
+    // vec4 t = march(ro, rd, cosT + totalT * fraction);
+    // float a = shade(ro, rd, t, uv).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+
+  color *= 0.30;
+  color = pow(color, vec3(1.20));
+  return vec4(color, 1);
 
   vec4 t = march(ro, rd, 0.20);
   return shade(ro, rd, t, uv);
