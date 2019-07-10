@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'grounded-multi-dimensional-grey-render1',
+    name: 'stationary-waterfall-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

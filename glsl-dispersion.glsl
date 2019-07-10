@@ -111,6 +111,8 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     vec3 axis = vec3(1, 1, 1);
     axis *= rotationMatrix(vec3(0.2, -0.7, 0.4), 4.34 * PI + mixI.x);
     thisColor = 0.5 + 0.5 * cos(TWO_PI * (axis + vec3(0, 0.33, 0.67)));
+    thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + vec3(0, 0.33, 0.67)));
+    thisColor *= 0.6;
     thisColor *= sceneResult;
 
     color = thisColor;
