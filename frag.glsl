@@ -620,24 +620,17 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 0.63, 1.);
   vec3 q = p;
 
-  const float warpScale = 0.5;
+  const float warpScale = 1.0;
 
-  q += warpScale * 0.100000 * cos( 9. * q.yzx + vec3(0, cosT, -cosT) );
-  q += warpScale * 0.070000 * cos(17. * q.yzx + vec3(cosT, cosT, sin(-cosT)) );
-
-  const float rotR = 0.5;
-  q.x += rotR;
-  q.xzy = twist(q, 5. * q.y);
-  q.x -= rotR;
-
-  q += warpScale * 0.052500 * cos(29. * q.yzx + vec3(-cosT, cosT, -cosT) );
-  /* q += warpScale * 0.039375 * cos(37. * q.yzx + vec3(cosT, sin(cosT), cosT) ); */
+  q += warpScale * 0.100000 * cos(7. * q.yzx + vec3(-cosT, cosT, -cosT) );
+  q += warpScale * 0.050000 * cos(13. * q.yzx + vec3(cosT, sin(cosT), cosT) );
+  q += warpScale * 0.003125 * cos(51. * q.yzx + vec3(cosT) );
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(1, 1, 0.2)), 0, 0);
   d = dMin(d, o);
 
-  d *= 0.125;
+  d *= 0.8;
 
   return d;
 }
@@ -820,12 +813,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(1);
 
-  vec3 dI = vec3(dot(nor, -rd));
-  dI += 0.2 * pos;
-  dI += 0.4 * cnoise3(3.1 * pos);
-  dI += 0.4 * cnoise3(7.1 * pos + dI);
+  vec3 dI = vec3(0.5 * dot(nor, -rd));
+  dI += 0.8 * pos;
+  dI += 0.02 * cnoise3((vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
 
-  dI *= 0.6;
+  dI *= 0.7;
+
+  dI *= rotationMatrix(vec3(0.2, -0.5, 1.), cnoise3(rd));
 
   color = 0.5 + 0.4 * cos(TWO_PI * ( dI + vec3(0, 0.33, 0.67) ));
 
@@ -946,10 +940,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -958,7 +952,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.70;
+      dispersionColor *= 0.40;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
