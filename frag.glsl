@@ -620,7 +620,7 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 0.63, 1.);
   vec3 q = p;
 
-  const float warpScale = 1.0;
+  const float warpScale = 0.8;
 
   q += warpScale * 0.100000 * cos(7. * q.yzx + vec3(-cosT, cosT, -cosT) );
   q += warpScale * 0.050000 * cos(13. * q.yzx + vec3(cosT, sin(cosT), cosT) );
@@ -628,6 +628,7 @@ vec3 map (in vec3 p, in float dT) {
 
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(1, 1, 0.2)), 0, 0);
+  o.x += 0.002 * cellular(5. * q.yzx);
   d = dMin(d, o);
 
   d *= 0.8;
@@ -817,11 +818,14 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   dI += 0.8 * pos;
   dI += 0.02 * cnoise3((vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
 
-  dI *= 0.7;
+  dI *= 0.55;
 
   dI *= rotationMatrix(vec3(0.2, -0.5, 1.), cnoise3(rd));
+  // dI += 0.010 * cnoise3(3. * pos);
 
-  color = 0.5 + 0.4 * cos(TWO_PI * ( dI + vec3(0, 0.33, 0.67) ));
+  color = 0.5 + 0.4 * cos(TWO_PI * ( dI + vec3(0, 0.33, 0.67) + 0.23));
+
+  color.r = pow(color.r, 0.4);
 
   return color;
 }
@@ -894,7 +898,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.7;
       float specCo = 0.5;
 
       float specAll = 0.0;
@@ -952,7 +956,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.40;
+      dispersionColor *= 0.60;
       color += dispersionColor;
       // color = pow(color, vec3(1.1));
 
