@@ -20,8 +20,8 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 2
-const BLOOM_PASSES = 2
+const BLOOM_WET = 0
+const BLOOM_PASSES = 0
 const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
@@ -48,7 +48,7 @@ export default class App {
         y: 0.373,
         z: 1.331
       },
-      d: 5,
+      d: 1,
       scale: 1.25,
       rot2angle: [0.414, 0, 0.721],
       cameraAngles: [-0.203, -0.009, 0]
@@ -70,7 +70,7 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = this.rot2angle[0]
+    this.angle1C = 0.5
     this.angle2C = this.rot2angle[1]
     this.angle3C = this.rot2angle[2]
 
@@ -367,6 +367,8 @@ export default class App {
     this.shader.uniforms.angle1C = this.angle1C
     this.shader.uniforms.angle2C = this.angle2C
     this.shader.uniforms.angle3C = this.angle3C
+
+    this.shader.uniforms.d = this.d
   }
 
   bloomBlur (gl, t) {

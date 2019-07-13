@@ -30,6 +30,8 @@ uniform float angle1C;
 uniform float angle2C;
 uniform float angle3C;
 
+uniform float d;
+
 // KIFS
 uniform mat4 kifsM;
 uniform mat4 kifsM2;
@@ -1062,42 +1064,122 @@ vec3 gradient (in float i) {
   return color;
 }
 
+const float sqrStartDist = 0.3;
+
+float triObject (in vec2 q, in float triI, in float triT, in float sqrR, in float zoom) {
+  const float triIRotAngle = TWO_PI * 0.125;
+  float triR = 0.27 * sqrR;
+
+  float isRight = floor(triI / 5.0);
+  float isLeft = 1. - isRight;
+  float squareI = mod(triI, 4.);
+
+  mat2 triRot1 = rotMat2(triIRotAngle * triI);
+
+  float transStart = 0.05 * (triI - 1.);
+  float transTime = smoothstep(transStart, transStart + 0.5, triT);
+  vec2 target =
+    (1. - transTime) * vec2(0, sqrR * 1.1400) * triRot1 // Octagon edge
+    + transTime * isLeft * (
+        isMaterialSmooth(squareI, 1.) * vec2(-zoom * sqrStartDist + triR, 0) // Square destination Right
+      + isMaterialSmooth(squareI, 2.) * vec2(-zoom * sqrStartDist,    -triR) // Square destination Bottom
+      + isMaterialSmooth(squareI, 3.) * vec2(-zoom * sqrStartDist - triR, 0) // Square destination Left
+      + isMaterialSmooth(squareI, 0.) * vec2(-zoom * sqrStartDist,     triR) // Square destination Up
+    )
+    + transTime * isRight * (
+        isMaterialSmooth(squareI, 1.) * vec2(zoom * sqrStartDist + triR, 0) // Square destination Right
+      + isMaterialSmooth(squareI, 2.) * vec2(zoom * sqrStartDist,    -triR) // Square destination Bottom
+      + isMaterialSmooth(squareI, 3.) * vec2(zoom * sqrStartDist - triR, 0) // Square destination Left
+      + isMaterialSmooth(squareI, 0.) * vec2(zoom * sqrStartDist,     triR) // Square destination Up
+    )
+    ;
+  vec2 triQ1 = q - target;
+
+  float targetAngle =
+    (1. - transTime)    * (-triIRotAngle * triI) // Octagon edge rotation
+  + isLeft  * transTime * PI * 0.5 * (
+       -1. * isMaterialSmooth(squareI, 1.)
+      + 0. * isMaterialSmooth(squareI, 2.)
+      + 1. * isMaterialSmooth(squareI, 3.)
+      + 2. * isMaterialSmooth(squareI, 0.)
+    )
+  + isRight * transTime * PI * 0.5 * (
+       -1. * isMaterialSmooth(squareI, 1.)
+      - 4. * isMaterialSmooth(squareI, 2.)
+      - 3. * isMaterialSmooth(squareI, 3.)
+      - 2. * isMaterialSmooth(squareI, 0.)
+    );
+  triQ1 *= rotMat2(targetAngle);
+
+  float t1 = max(abs(triQ1.x) * 0.5 + triQ1.y * 0.5, - triQ1.y) - triR * 0.5;
+  t1 = 1. - step(0., t1);
+  return t1;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  vec2 q = 1.15 * uv;
+  float t = mod(generalT, 1.);
+  float zoom = 1. - 0.594 * t;
+  vec2 q = zoom * uv;
 
-  const float r = 0.05;
+  const float sqrR = 0.2;
 
   float n = 0.;
 
-  float t = mod(generalT, 1.);
-  const int numRing = 4;
-  for (int j = 0; j < numRing; j++) {
+  const float sqrStart = 0.0;
+  const float triStart = 0.5;
 
-    const int num = 9;
-    float div = 1. / float(num);
-    float layerT = float(j) + t;
+  // Squares
+  float sqrN = 0.;
+  float sqrT = saturate((t - sqrStart) / (triStart - sqrStart));
+  float sqrStopPosMag = 1. - sqrT;
 
-    float layerR = 0.15 * layerT;
+  vec2 q1 = q - sqrStopPosMag * vec2(-sqrStartDist, 0);
+  q1 *= rotMat2(0.25 * PI * sqrT);
+  vec2 absQ1 = abs(q1);
+  float s1 = step(0., max(absQ1.x, absQ1.y) - sqrR);
+  sqrN = mix(sqrN, 1. - sqrN, s1);
 
-    for (int i = 0; i < num; i++) {
-      float fI = float(i);
-      vec2 lQ = q;
-      lQ *= rotMat2(div * fI * TWO_PI + 0.125 * PI * sin(TWO_PI * (t + div * fI + 0.2325123 * layerT)));
-      lQ.x -= layerR;
+  vec2 q2 = q - sqrStopPosMag * vec2(sqrStartDist, 0);
+  vec2 absQ2 = abs(q2);
+  float s2 = step(0., max(absQ2.x, absQ2.y) - sqrR);
+  sqrN = mix(sqrN, 1. - sqrN, s2);
 
-      float d = smoothstep(edge, 0., length(lQ) - r);
-      d *= (1.
-          - smoothstep(0.5, 1.0, t) // Transition time
-          * step(float(numRing) - 1.75, float(j))); // Select only last ring
-      n = max(n, d);
-    }
-  }
+  n = mix(n, sqrN, smoothstep(sqrStart - edge, sqrStart, t));
 
-  n = max(n, smoothstep(edge, 0., length(q) - r));
+  // Triangle
+  float triN = 0.;
+  float triT = saturate((t - triStart) / (1. - triStart));
+  float triI = 1.;
 
-  color = vec3(n);
+  // n = mix(n, triN, smoothstep(triStart, triStart + edge, t));
+
+  float tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
+  triN = max(triN, tri);
+
+  color = mix(vec3(n), vec3(triN), smoothstep(-edge, 0., t - triStart));
 
   return color;
 }
@@ -1107,7 +1189,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
