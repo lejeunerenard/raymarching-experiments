@@ -1120,66 +1120,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   float t = mod(generalT, 1.);
-  float zoom = 1. - 0.594 * t;
-  vec2 q = zoom * uv;
-
-  const float sqrR = 0.2;
+  vec2 q = 1.175 * uv;
 
   float n = 0.;
 
-  const float sqrStart = 0.0;
-  const float triStart = 0.5;
+  const float size = 0.04;
+  vec2 c = pMod2(q, vec2(size));
 
-  // Squares
-  float sqrN = 0.;
-  float sqrT = saturate((t - sqrStart) / (triStart - sqrStart));
-  float sqrStopPosMag = 1. - sqrT;
+  float r = size * (0.2 + 0.1 * sin(generalT + 0.123 * length(c)));
+  n = smoothstep(edge, 0., length(q) - r);
 
-  vec2 q1 = q - sqrStopPosMag * vec2(-sqrStartDist, 0);
-  q1 *= rotMat2(0.25 * PI * sqrT);
-  vec2 absQ1 = abs(q1);
-  float s1 = step(0., max(absQ1.x, absQ1.y) - sqrR);
-  sqrN = mix(sqrN, 1. - sqrN, s1);
+  const float maskR = 13.;
+  vec2 absQ = abs(c);
+  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR);
+  absQ = abs(c * rotMat2(0.25 * PI));
+  mask = min(mask, smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR));
 
-  vec2 q2 = q - sqrStopPosMag * vec2(sqrStartDist, 0);
-  vec2 absQ2 = abs(q2);
-  float s2 = step(0., max(absQ2.x, absQ2.y) - sqrR);
-  sqrN = mix(sqrN, 1. - sqrN, s2);
-
-  n = mix(n, sqrN, smoothstep(sqrStart - edge, sqrStart, t));
-
-  // Triangle
-  float triN = 0.;
-  float triT = saturate((t - triStart) / (1. - triStart));
-  float triI = 1.;
-
-  // n = mix(n, triN, smoothstep(triStart, triStart + edge, t));
-
-  float tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  tri = triObject(q, triI, triT, sqrR, zoom); triI++;
-  triN = max(triN, tri);
-
-  color = mix(vec3(n), vec3(triN), smoothstep(-edge, 0., t - triStart));
+  n *= mask;
+  color = vec3(n);
 
   return color;
 }
@@ -1189,7 +1147,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
