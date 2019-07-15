@@ -1116,27 +1116,56 @@ float triObject (in vec2 q, in float triI, in float triT, in float sqrR, in floa
   return t1;
 }
 
+float shape (in vec2 uv, in vec2 c, in float rotInc, in float generalT, in float rSize, in float size) {
+  float angle = (c.x + 0.5) * rotInc + 0.25 * rotInc * cos(cosT + 0.23 * length(c));
+  float posR = (c.y + 0.5) * rSize;
+  vec2 center = vec2(
+      posR * cos(angle),
+      posR * sin(angle));
+
+  vec2 q = uv - center;
+  float r = size * (0.125 + 0.075 * sin(generalT + 0.23 * length(c)));
+  return smoothstep(edge, 0., length(q) - r);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
   float t = mod(generalT, 1.);
-  vec2 q = 1.175 * uv;
+  vec2 q = uv;
 
   float n = 0.;
 
-  const float size = 0.04;
-  vec2 c = pMod2(q, vec2(size));
+  const float size = 0.09;
+  q = vec2(
+      atan(q.y, q.x),
+      length(q));
 
-  float r = size * (0.2 + 0.1 * sin(generalT + 0.123 * length(c)));
-  n = smoothstep(edge, 0., length(q) - r);
+  const float rSize = size * 1.25;
+  float rC = floor(q.y / rSize);
 
-  const float maskR = 13.;
-  vec2 absQ = abs(c);
-  float mask = smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR);
-  absQ = abs(c * rotMat2(0.25 * PI));
-  mask = min(mask, smoothstep(edge, 0., max(absQ.x, absQ.y) - maskR));
+  // q.x += cosT * (1. - 2. * mod(rC, 2.));
 
-  n *= mask;
+  float rotN = 13. + floor(pow(rC, 2.0));
+  float rotInc = TWO_PI / rotN;
+
+  vec2 c = vec2(
+      floor( q.x / rotInc ),
+      rC);
+
+  n = shape(uv, c, rotInc, generalT, rSize, size);
+  // n = max(n, shape(uv, c + vec2(rotN, 0), rotInc, generalT, rSize, size));
+  n = max(n, shape(uv, c + vec2(1, 0), rotInc, generalT, rSize, size));
+  n = max(n, shape(uv, c + vec2(-1, 0), rotInc, generalT, rSize, size));
+
+  // Add Center circle
+
+
+  const float maskR = 14.;
+  q = uv;
+  float mask = smoothstep(edge, 0., length(c) - maskR);
+  // n *= mask;
+
   color = vec3(n);
 
   return color;
