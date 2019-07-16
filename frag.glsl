@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -617,23 +617,22 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float r = 0.4;
+  const float r = 0.45;
 
-  float t = mod(dT + 0.63, 1.);
-  vec3 q = p;
+  float t = mod(dT, 1.);
+  vec3 q = 0.8 * p;
 
   const float warpScale = 0.8;
 
-  q += warpScale * 0.100000 * cos(7. * q.yzx + vec3(-cosT, cosT, -cosT) );
-  q += warpScale * 0.050000 * cos(13. * q.yzx + vec3(cosT, sin(cosT), cosT) );
-  q += warpScale * 0.003125 * cos(51. * q.yzx + vec3(cosT) );
-
-  mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(1, 1, 0.2)), 0, 0);
-  o.x += 0.002 * cellular(5. * q.yzx);
+  // Cellular Approach
+  vec3 o = vec3(sdBox(q, vec3(r)), 1, 0);
+  float cell = 0.2 * cellular(0.9 * q) - saturate(0.465 - 0.525 * (0.5 + 0.5 * cos(-(PI + 0.4) + -cosT + 1.3 * q.x + 0.5 * length(q)))) * r;
+  o.x = max(o.x, -cell);
   d = dMin(d, o);
 
-  d *= 0.8;
+  vec3 crop = vec3(sdBox(q, vec3(1.000 * r)), 0, 0);
+  d = dMax(d, crop);
+  d.x *= 0.5;
 
   return d;
 }
@@ -723,7 +722,7 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.0;
 
-  vec3 spaceScaling = 0.5 * vec3(0.734, 1.14, 0.2);
+  vec3 spaceScaling = 1.0 * vec3(0.734, 1.14, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
   n = smoothstep(0.0, 0.80, n);
 
@@ -814,20 +813,23 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.8);
 
   vec3 dI = vec3(0.5 * dot(nor, -rd));
-  dI += 0.8 * pos;
+  dI += 1.8 * pos;
   dI += 0.02 * cnoise3((vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
 
   dI *= 0.55;
 
   dI *= rotationMatrix(vec3(0.2, -0.5, 1.), cnoise3(rd));
-  // dI += 0.010 * cnoise3(3. * pos);
 
-  color = 0.5 + 0.4 * cos(TWO_PI * ( dI + vec3(0, 0.33, 0.67) + 0.23));
+  vec3 insideColor = 0.5 + 0.4 * cos(TWO_PI * ( dI + vec3(0, 0.33, 0.67) + 0.23));
+  insideColor.r = pow(insideColor.r, 0.4);
 
-  color.r = pow(color.r, 0.4);
+  color = mix(color, insideColor, isMaterialSmooth(m, 1.));
+
+  color = mix(color, vec3(0, 0, 1), isMaterialSmooth(m, 2.));
+  color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 3.));
 
   return color;
 }
@@ -876,6 +878,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 color = vec3(0.0);
 
       // Material Types
+      float interior = isMaterialSmooth(t.y, 1.);
 
       // Normals
       vec3 nor = getNormal2(pos, 0.0001 * t.x, generalT);
@@ -958,8 +961,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.60;
-      color += dispersionColor;
+      dispersionColor *= 0.70;
+      color += interior* dispersionColor;
+      // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
       // Fog
@@ -1176,7 +1180,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
