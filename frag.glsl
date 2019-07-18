@@ -617,25 +617,24 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float r = 0.475;
+  const float r = 0.575;
 
   float t = mod(dT, 1.);
   vec3 q = 0.8 * p;
 
   const float warpScale = 0.8;
 
-  float scale = saturate(0.520 - 0.525 * (0.5 + 0.5 * cos(-(PI + 0.9) + -cosT + 3.5 * length(q))));
+  q += warpScale * 0.100000 * cos( 5. * q.yzx + cosT );
+  q += warpScale * 0.050000 * cos( 9. * q.yzx + cosT );
+  q += warpScale * 0.025000 * cos(13. * q.yzx + cosT );
+  q += warpScale * 0.012500 * cos(17. * q.yzx + cosT );
+  q += warpScale * 0.006250 * cos(23. * q.yzx + cosT );
+  q += warpScale * 0.003125 * cos(29. * q.yzx + cosT );
 
-  // Cellular intersection
-  q *= 1. + 1.3 * scale;
-  vec3 o = vec3(sdBox(q, vec3(r)), 1, 0);
-  float cell = 0.2 * cellular(2.9 * q) - scale * r;
-  o.x = max(o.x, -cell);
-  d = dMin(d, o);
+  vec3 b = vec3(length(q) - r, 1, 0);
+  d = dMin(d, b);
 
-  vec3 crop = vec3(sdBox(q, vec3(1.000 * r)), 0, 0);
-  d = dMax(d, crop);
-  d.x *= 0.3;
+  d.x *= 0.8;
 
   return d;
 }
@@ -820,13 +819,13 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
 
   vec3 dI = vec3(0.5 * dot(nor, -rd));
   dI += 1.8 * pos;
-  dI += 0.02 * cnoise3((vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
+  dI += 0.02 * cnoise3((0.2 * vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
 
   dI *= 0.55;
 
   dI *= rotationMatrix(vec3(0.2, -0.5, 1.), cnoise3(rd));
 
-  vec3 insideColor = 0.5 + 0.4 * cos(TWO_PI * ( dI + vec3(0, 0.33, 0.67) + 0.23));
+  vec3 insideColor = 0.5 + 0.4 * cos(TWO_PI * ( norT + dI + vec3(0, 0.33, 0.67) + 0.23));
   insideColor.r = pow(insideColor.r, 0.4);
 
   color = mix(color, insideColor, isMaterialSmooth(m, 1.));
@@ -904,8 +903,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
-      float specCo = 0.8;
+      float freCo = 1.0;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -917,7 +916,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.90;
+        float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -929,7 +928,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.000 * amb * diffuseColor;
+        lin += 0.100 * amb * diffuseColor;
         dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -952,7 +951,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += interior * 0.20 * reflection(pos, reflectionRd);
+      reflectColor += interior * 0.10 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -960,10 +959,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.50;
-      color += interior * dispersionColor;
+      // dispersionColor *= 0.50;
+      // color += interior * dispersionColor;
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
