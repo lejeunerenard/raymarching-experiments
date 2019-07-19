@@ -617,24 +617,28 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float r = 0.575;
+  const float r = 0.45;
 
   float t = mod(dT, 1.);
   vec3 q = 0.8 * p;
+  // q = abs(q);
 
   const float warpScale = 0.8;
 
   q += warpScale * 0.100000 * cos( 5. * q.yzx + cosT );
+  q *= rotationMatrix(vec3(1), dot(q, vec3(1)));
+
+  // q.xzy = twist(q, q.y);
   q += warpScale * 0.050000 * cos( 9. * q.yzx + cosT );
   q += warpScale * 0.025000 * cos(13. * q.yzx + cosT );
   q += warpScale * 0.012500 * cos(17. * q.yzx + cosT );
   q += warpScale * 0.006250 * cos(23. * q.yzx + cosT );
   q += warpScale * 0.003125 * cos(29. * q.yzx + cosT );
 
-  vec3 b = vec3(length(q) - r, 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  d.x *= 0.3;
 
   return d;
 }
@@ -818,8 +822,8 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0.05);
 
   vec3 dI = vec3(0.5 * dot(nor, -rd));
-  dI += 1.8 * pos;
-  dI += 0.02 * cnoise3((0.2 * vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
+  dI += 0.2 * pos;
+  // dI += 0.02 * cnoise3((0.2 * vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
 
   dI *= 0.55;
 
@@ -959,10 +963,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.50;
-      // color += interior * dispersionColor;
+      dispersionColor *= 0.50;
+      color += dispersionColor;
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
