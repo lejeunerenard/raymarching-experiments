@@ -617,25 +617,22 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float r = 0.45;
+  const float r = 0.125;
 
   float t = mod(dT, 1.);
   vec3 q = 0.8 * p;
   // q = abs(q);
 
-  const float warpScale = 0.8;
+  const float warpScale = 0.5;
 
-  q += warpScale * 0.100000 * cos( 5. * q.yzx + cosT );
-  q *= rotationMatrix(vec3(1), dot(q, vec3(1)));
+  q += warpScale * 0.100000 * cos( 7. * q.yzx + cosT );
+  q += warpScale * 0.050000 * cos(19. * q.yzx + cosT );
+  q += warpScale * 0.025000 * cos(23. * q.yzx + cosT );
+  q += warpScale * 0.012500 * cos(29. * q.yzx + cosT );
+  q += warpScale * 0.006250 * cos(37. * q.yzx + cosT );
+  q += warpScale * 0.003125 * cos(41. * q.yzx + cosT );
 
-  // q.xzy = twist(q, q.y);
-  q += warpScale * 0.050000 * cos( 9. * q.yzx + cosT );
-  q += warpScale * 0.025000 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.012500 * cos(17. * q.yzx + cosT );
-  q += warpScale * 0.006250 * cos(23. * q.yzx + cosT );
-  q += warpScale * 0.003125 * cos(29. * q.yzx + cosT );
-
-  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(6.0 * r, r, r)), 1, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -822,7 +819,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 color = vec3(0.05);
 
   vec3 dI = vec3(0.5 * dot(nor, -rd));
-  dI += 0.2 * pos;
+  dI += 0.4 * pos;
   // dI += 0.02 * cnoise3((0.2 * vec3(17., 8., 17.) + 2. * cnoise2(dI.zy)) * dI.yzx);
 
   dI *= 0.55;
