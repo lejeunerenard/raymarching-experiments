@@ -6,7 +6,9 @@ vec3 getBackground (in vec2 uv) {
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
   float l = length(uv);
-  vec3 color = mix(vec3(0.7), vec3(1.0), saturate(l));
+  vec3 color = mix(1.3 * #FFB0DD, vec3(1.0), saturate(uv.y));
+
+  // color *= 0.8;
 
   return color;
 }

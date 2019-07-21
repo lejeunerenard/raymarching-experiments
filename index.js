@@ -25,16 +25,13 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'jolly-rancher-render1',
+    name: 'fez-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
   })
-
-  app.width = 1080
-  app.height = 1620
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
