@@ -7,7 +7,8 @@ vec3 getBackground (in vec2 uv) {
 
   float l = length(uv);
   vec3 color = mix(vec3(0.8), vec3(1.0), l);
-  color = #18E9FF; // OPT 3
+  color = #18E9FF;
+  color = pow(color, vec3(0.15));
 
   // color *= 0.8;
 
