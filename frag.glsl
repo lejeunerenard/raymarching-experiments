@@ -1126,43 +1126,52 @@ float shape (in vec2 uv, in vec2 c, in float rotInc, in float generalT, in float
   return smoothstep(edge, 0., length(q) - r);
 }
 
+float angleOffset (in float qR, in float t) {
+  return 0.125 * PI * sin(t + 0.73 * PI * qR);
+}
+
+float angleOffset (in float qR) {
+  return angleOffset(qR, cosT);
+}
+
+vec2 getCenter (in vec2 q, in float size, in float aSize, in float t, in float qRAdjustment) {
+  float qR = (floor(length(q) / size) + 0.5) * size;
+
+  q *= rotMat2(angleOffset(qR, t * TWO_PI));
+
+  q = vec2(
+      atan(q.y, q.x),
+      length(q));
+
+  q.y += size * t;
+
+  qR = (floor(q.y / size) + 0.5) * size;
+  float qA = (floor(q.x / aSize) + 0.5) * aSize;
+  qA -= angleOffset(qR, t * TWO_PI);
+
+  qR += qRAdjustment;
+
+  return qR * vec2(cos(qA), sin(qA));
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  float t = mod(generalT, 1.);
+  float t = generalT; // mod(generalT, 1.);
   vec2 q = uv;
 
   float n = 0.;
 
   const float size = 0.09;
-  q = vec2(
-      atan(q.y, q.x),
-      length(q));
+  const float aSize = TWO_PI * 0.05;
 
-  const float rSize = size * 1.25;
-  float rC = floor(q.y / rSize);
+  float r = size * 0.3;
 
-  // q.x += cosT * (1. - 2. * mod(rC, 2.));
-
-  float rotN = 13. + floor(pow(rC, 2.0));
-  float rotInc = TWO_PI / rotN;
-
-  vec2 c = vec2(
-      floor( q.x / rotInc ),
-      rC);
-
-  n = shape(uv, c, rotInc, generalT, rSize, size);
-  // n = max(n, shape(uv, c + vec2(rotN, 0), rotInc, generalT, rSize, size));
-  n = max(n, shape(uv, c + vec2(1, 0), rotInc, generalT, rSize, size));
-  n = max(n, shape(uv, c + vec2(-1, 0), rotInc, generalT, rSize, size));
-
-  // Add Center circle
-
-
-  const float maskR = 14.;
-  q = uv;
-  float mask = smoothstep(edge, 0., length(c) - maskR);
-  // n *= mask;
+  vec2 center = getCenter(q, size, aSize, t, 0.);
+  center = mix(center, getCenter(q, size, aSize, t, -size), t);
+  r = size * 0.3 * (0.9 * smoothstep(0.1, 4. * size, length(center)) + 0.1);
+  float l = length(q - center) - r;
+  n = smoothstep(edge, 0., l);
 
   color = vec3(n);
 
@@ -1174,7 +1183,15 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
+  vec4 color = vec4(vec3(0), 1);
+
+  color += vec4(1, 0, 0, 1) * vec4(two_dimensional(uv, 0.), 1);
+  color += vec4(0, 0, 1, 1) * vec4(two_dimensional(uv, 0.969 * norT), 1);
+  color += vec4(0, 1, 0, 1) * vec4(two_dimensional(uv, 0.969 - 0.969 * norT), 1);
+  // color += vec4(0, 1, 0, 1) * vec4(two_dimensional(uv, angle1C), 1);
+
+  return color;
 
   /* vec3 color = vec3(0); */
   /*  */
