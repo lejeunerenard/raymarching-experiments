@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -620,20 +620,19 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
+
+  const float r = 0.125;
+  const float h = 0.3;
   const float warpScale = 1.0;
 
-  q += warpScale * 0.10000 * sin(q.yzx + cosT);
-  q += warpScale * 0.05000 * sin(q.yzx + cosT);
-  q += warpScale * 0.02500 * sin(q.yzx + cosT);
-
-  const float r = 0.5;
-
-  float l = max(q.x, q.y) - abs(q.z);
-
-  vec3 o = vec3(l - r, 0, 0);
+  vec3 o = vec3(sdCappedCylinder(q, vec2(r, h)), 0, 0);
   d = dMin(d, o);
 
-  d *= 0.25;
+  float i = 0.;
+
+  const float rRange = 4.45;
+
+  // d *= 0.25;
 
   return d;
 }
@@ -814,17 +813,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  float n = sin(4. * TWO_PI * dot(pos, vec3(0.4, 1, 1)));
-  n = smoothstep(0., edge, n);
-  vec3 color = vec3(n);
+  vec3 color = vec3(1);
 
-  vec3 dI = pos + dot(nor, -rd);
-  dI *= 0.5;
-  dI += 0.05 * cnoise3(nor + 4. * pos);
-  dI += 0.20;
-
-  vec3 iridescent = 0.55 + 0.3 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  // color = mix(color, iridescent, 0.7 * pow(1. - dot(nor, -rd), 4.));
+  color = mix(color, vec3(0), 1. - dot(nor, vec3(0, 1, 0)));
 
   return color;
 }
@@ -897,8 +888,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
-      float specCo = 0.4;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -910,7 +901,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.80;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1157,23 +1148,39 @@ vec2 getCenter (in vec2 q, in float size, in float aSize, in float t, in float q
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
-  float t = generalT; // mod(generalT, 1.);
+  float t = mod(generalT, 1.);
+
   vec2 q = uv;
 
   float n = 0.;
 
-  const float size = 0.09;
-  const float aSize = TWO_PI * 0.05;
+  const float r = 0.035;
+  const float bigR = 0.4125;
+  const float thickness = 0.0075;
 
-  float r = size * 0.3;
+  const int num = 13;
+  const float fNumInv = 1. / float(num);
 
-  vec2 center = getCenter(q, size, aSize, t, 0.);
-  center = mix(center, getCenter(q, size, aSize, t, -size), t);
-  r = size * 0.3 * (0.9 * smoothstep(0.1, 4. * size, length(center)) + 0.1);
-  float l = length(q - center) - r;
-  n = smoothstep(edge, 0., l);
+  q *= rotMat2(-TWO_PI * fNumInv * 2.5 * t);
 
-  color = vec3(n);
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
+
+    vec2 localQ = q;
+    localQ += bigR * vec2(
+        cos(fI * TWO_PI * fNumInv),
+        sin(fI * TWO_PI * fNumInv));
+
+    vec2 destination = q + bigR * vec2(
+        cos(PI + fI * TWO_PI * fNumInv),
+        sin(PI + fI * TWO_PI * fNumInv));
+
+    localQ = mix(localQ, destination, smoothstep(0., 3. * fNumInv, mod(max(0., t - 0.5 * fI * fNumInv), 1.)));
+
+    n = max(n, smoothstep(edge, 0., abs(length(localQ) - r) - thickness));
+  }
+
+  color = vec3(1. - n);
 
   return color;
 }
@@ -1183,16 +1190,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
-  vec4 color = vec4(vec3(0), 1);
-
-  color += vec4(1, 0, 0, 1) * vec4(two_dimensional(uv, 0.), 1);
-  color += vec4(0, 0, 1, 1) * vec4(two_dimensional(uv, 0.969 * norT), 1);
-  color += vec4(0, 1, 0, 1) * vec4(two_dimensional(uv, 0.969 - 0.969 * norT), 1);
-  // color += vec4(0, 1, 0, 1) * vec4(two_dimensional(uv, angle1C), 1);
-
-  return color;
-
+  return vec4(two_dimensional(uv, norT), 1);
+  
   /* vec3 color = vec3(0); */
   /*  */
   /* float totalT = 0.02 * PI; */
