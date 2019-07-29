@@ -621,18 +621,27 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  const float r = 0.125;
-  const float h = 0.3;
-  const float warpScale = 1.0;
+  const float size = 0.2;
 
-  vec3 o = vec3(sdCappedCylinder(q, vec2(r, h)), 0, 0);
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  const float r = size * 0.25;
+
+  float n1 = cnoise2(7.234 * c + 2.342 * norT);
+  float n2 = cnoise2(7.234 * c + 2.342 * (norT - 1.));
+
+  float n = mix(n1, n2, saturate((norT - 0.75) / 0.25));
+
+  float h = 0.2 * n + 0.2;
+  vec3 o = vec3(sdBox(q, vec3(r, h, r)), 0, 0);
   d = dMin(d, o);
 
-  float i = 0.;
+  q = p;
+  const float cropSize = 3.5 * size;
+  float crop = sdBox(q, vec3(cropSize, 100, cropSize));
+  d.x = max(d.x, crop);
 
-  const float rRange = 4.45;
-
-  // d *= 0.25;
+  d *= 0.25;
 
   return d;
 }
@@ -813,9 +822,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1);
+  vec3 color = #FF3F30;
 
-  color = mix(color, vec3(0), 1. - dot(nor, vec3(0, 1, 0)));
+  color = mix(color, #CC3227, dot(nor, vec3(0, 0, 1)));
+  color = mix(color, #801F18, dot(nor, vec3(1, 0, 0)));
 
   return color;
 }
@@ -961,7 +971,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -1190,7 +1200,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
   
   /* vec3 color = vec3(0); */
   /*  */
