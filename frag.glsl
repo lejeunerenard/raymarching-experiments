@@ -1162,35 +1162,38 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
+  const float size = 0.1; // 0.075;
+
+  vec2 c = pMod2(q, vec2(size));
+
+  t -= 0.05 * length(c);
+  t -= 0.05 * atan(c.y, c.x) + PI;
+  t = mod(t, 1.);
+  t += 0.1;
+
   float n = 0.;
 
-  const float r = 0.035;
-  const float bigR = 0.4125;
-  const float thickness = 0.0075;
+  float r = size * 0.20;
 
-  const int num = 13;
-  const float fNumInv = 1. / float(num);
+  float sph = abs(length(q) - r);
+  n = sph;
 
-  q *= rotMat2(-TWO_PI * fNumInv * 2.5 * t);
+  const float transHalfT = 0.05;
 
-  for (int i = 0; i < num; i++) {
-    float fI = float(i);
+  vec2 absQ = abs(q);
+  float sqr = abs(max(absQ.x, absQ.y) - r);
+  n = mix(n, sqr, smoothstep(0.333 - transHalfT, 0.333 + transHalfT, t));
 
-    vec2 localQ = q;
-    localQ += bigR * vec2(
-        cos(fI * TWO_PI * fNumInv),
-        sin(fI * TWO_PI * fNumInv));
+  float tri = sdTriPrism(vec3(q, 0.), vec2(r, 1));
+  tri = abs(tri);
+  n = mix(n, tri, smoothstep(0.667 - transHalfT, 0.667 + transHalfT, t));
 
-    vec2 destination = q + bigR * vec2(
-        cos(PI + fI * TWO_PI * fNumInv),
-        sin(PI + fI * TWO_PI * fNumInv));
+  // Return back to sphere
+  n = mix(n, sph, smoothstep(1.0 - transHalfT, 1.0 + transHalfT, t));
 
-    localQ = mix(localQ, destination, smoothstep(0., 3. * fNumInv, mod(max(0., t - 0.5 * fI * fNumInv), 1.)));
-
-    n = max(n, smoothstep(edge, 0., abs(length(localQ) - r) - thickness));
-  }
-
-  color = vec3(1. - n);
+  float thickness = r * 0.2;
+  n = smoothstep(edge + thickness, thickness, n);
+  color = mix(background, #BE74CF, n);
 
   return color;
 }
@@ -1200,7 +1203,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
   
   /* vec3 color = vec3(0); */
   /*  */
