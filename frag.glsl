@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1155,45 +1155,57 @@ vec2 getCenter (in vec2 q, in float size, in float aSize, in float t, in float q
   return qR * vec2(cos(qA), sin(qA));
 }
 
-vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1);
-
-  float t = mod(generalT, 1.);
-
-  vec2 q = uv;
-
-  const float size = 0.1; // 0.075;
-
-  vec2 c = pMod2(q, vec2(size));
-
-  t -= 0.05 * length(c);
-  t -= 0.05 * atan(c.y, c.x) + PI;
-  t = mod(t, 1.);
-  t += 0.1;
+float fan ( in vec2 q, in float t ) {
+  t = saturate(t);
+  q *= 1. - 0.95 * t;
 
   float n = 0.;
 
-  float r = size * 0.20;
+  float r = 0.1;
+  const int num = 9;
+  const float fInvNum = 1. / float(num);
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
 
-  float sph = abs(length(q) - r);
-  n = sph;
+    vec2 localQ = q;
+    localQ *= rotMat2(fI * TWO_PI * fInvNum);
+    localQ -= vec2(saturate(4. * (t - fI * 0.05)) * 0.5 * r, 0);
 
-  const float transHalfT = 0.05;
+    float localN = length(localQ) - r;
+    localN = smoothstep(0.5 * edge, 0., localN);
+    n = mix(n, 1. - n, saturate(localN));
+    // n = max(n, localN);
+  }
 
-  vec2 absQ = abs(q);
-  float sqr = abs(max(absQ.x, absQ.y) - r);
-  n = mix(n, sqr, smoothstep(0.333 - transHalfT, 0.333 + transHalfT, t));
+  return n;
+}
 
-  float tri = sdTriPrism(vec3(q, 0.), vec2(r, 1));
-  tri = abs(tri);
-  n = mix(n, tri, smoothstep(0.667 - transHalfT, 0.667 + transHalfT, t));
+vec3 two_dimensional (in vec2 uv, in float generalT) {
+  vec3 color = vec3(0);
 
-  // Return back to sphere
-  n = mix(n, sph, smoothstep(1.0 - transHalfT, 1.0 + transHalfT, t));
+  float t = mod(generalT, 1.);
+  const float overlapScale = 0.4;
+  const float preLengthT = 1. / (2. * (overlapScale + 1.));
 
-  float thickness = r * 0.2;
-  n = smoothstep(edge + thickness, thickness, n);
-  color = mix(background, #BE74CF, n);
+  vec2 q = uv;
+
+  float n = fan(q, smoothstep(0., preLengthT, t));
+
+  const float startT = overlapScale * preLengthT;
+  float preTrans = smoothstep(startT, startT + preLengthT, t);
+  preTrans = sqrt(preTrans);
+  float n2 = fan((30. - 29. * preTrans) * q, smoothstep(startT + preLengthT, startT + 2. * preLengthT, t));
+  n = mix(n, 1. - n, step(startT, t) * saturate(n2));
+
+  // (2. * 0.6 + 2) * x = 1.
+
+  // Second White circle
+  preTrans = smoothstep(2. * startT + 1. * preLengthT, 2. * startT + 2. * preLengthT, t);
+  preTrans = sqrt(preTrans);
+  float n3 = fan((30. - 29. * preTrans) * q, 0.);
+  n = mix(n, 1. - n, step(2. * startT + 1. * preLengthT, t) * saturate(n3));
+
+  color = vec3(n);
 
   return color;
 }
@@ -1204,7 +1216,7 @@ vec3 two_dimensional (in vec2 uv) {
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   return vec4(two_dimensional(uv, norT), 1);
-  
+
   /* vec3 color = vec3(0); */
   /*  */
   /* float totalT = 0.02 * PI; */
