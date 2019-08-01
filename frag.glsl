@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -621,27 +621,23 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  const float size = 0.2;
+  const float warpScale = 0.5;
 
-  vec2 c = pMod2(q.xz, vec2(size));
+  q += warpScale * 0.100000 * cos( 5. * q.yzx + cosT);
+  q += warpScale * 0.050000 * cos(11. * q.yzx + cosT);
+  q += warpScale * 0.025000 * cos(23. * q.yzx + cosT);
+  q += warpScale * 0.012500 * cos(31. * q.yzx + cosT);
+  q += warpScale * 0.006250 * cos(37. * q.yzx + cosT);
+  q += warpScale * 0.003125 * cos(41. * q.yzx + cosT);
+  q += warpScale * 0.001562 * cos(47. * q.yzx + cosT);
 
-  const float r = size * 0.25;
 
-  float n1 = cnoise2(7.234 * c + 2.342 * norT);
-  float n2 = cnoise2(7.234 * c + 2.342 * (norT - 1.));
+  float r = 0.9 * (0.45 + 0.3 * cnoise3(q));
 
-  float n = mix(n1, n2, saturate((norT - 0.75) / 0.25));
-
-  float h = 0.2 * n + 0.2;
-  vec3 o = vec3(sdBox(q, vec3(r, h, r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  q = p;
-  const float cropSize = 3.5 * size;
-  float crop = sdBox(q, vec3(cropSize, 100, cropSize));
-  d.x = max(d.x, crop);
-
-  d *= 0.25;
+  // d *= 0.25;
 
   return d;
 }
@@ -822,10 +818,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = #FF3F30;
+  vec3 color = vec3(1.);
 
-  color = mix(color, #CC3227, dot(nor, vec3(0, 0, 1)));
-  color = mix(color, #801F18, dot(nor, vec3(1, 0, 0)));
+  vec3 dF = vec3(1.0 * cnoise3(pos));
+  dF += vec3(0.3 * cnoise3(pos + dF));
+  dF += 0.2 * pos;
+  dF += norT;
+  dF += 0.2 * pow(dot(nor, -rd), 3.);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.33, 0.67)));
 
   return color;
 }
@@ -898,15 +899,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.4;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 1.0;
+        const float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -954,10 +955,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= t.y * 0.60;
-      // color += dispersionColor;
+      dispersionColor *= 0.30;
+      color += dispersionColor;
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
@@ -971,7 +972,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
@@ -1215,7 +1216,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
