@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'i-made-you-something-shiny-render2',
+    name: 'thingamabob-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
