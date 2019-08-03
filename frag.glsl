@@ -624,19 +624,20 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 1.0;
 
-  const float thickness = 0.05;
+  const float thickness = 0.025;
 
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 23; i++) {
     float fI = float(i);
 
-    float localT = t + fI * 0.05;
+    float localT = t + fI * 0.025;
     localT = mod(localT, 1.);
-    float angle = 0.5 * (smoothstep(0.1, 0.5, localT) + smoothstep(0.6, 1.0, localT));
+    float angle = TWO_PI * localT;
+    angle = sin(angle);
 
     vec3 localQ = q;
-    localQ *= rotationMatrix(vec3(0.3, 0.7, -0.3), TWO_PI * angle);
+    localQ *= rotationMatrix(vec3(0.3, 0.7, -0.3), 0.145 * PI * angle);
 
-    float r = 0.4 - 0.05 * fI;
+    float r = 0.4 - 0.025 * fI;
     vec3 o = vec3(sdBox(localQ, vec3(r)), 0, 0);
 
     const float bigR = 2.;
@@ -838,10 +839,12 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   vec3 dF = vec3(1.0 * cnoise3(pos));
   dF += vec3(0.3 * cnoise3(pos + dF));
   dF += 0.2 * pos;
-  dF += norT;
   dF += 0.2 * pow(dot(nor, -rd), 3.);
 
-  color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67)));
+  dF *= 0.34;
+  dF += 0.1 * cos(cosT);
+
+  color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
 
   return color;
 }
@@ -962,7 +965,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -971,7 +974,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       // dispersionColor *= 0.10;
       // color += dispersionColor;
       // color = mix(color, dispersionColor, interior);
