@@ -345,6 +345,10 @@ float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
   return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
 }
+float sdBox( vec4 p, vec4 b ) {
+  vec4 d = abs(p) - b;
+  return min(max(d.x,max(d.y,max(d.z, d.w))),0.0) + length(max(d,0.0));
+}
 float udRoundBox( vec3 p, vec3 b, float r ) {
   return length(max(abs(p)-b,0.0))-r;
 }
@@ -617,6 +621,8 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= globalRot;
+
   vec3 q = p;
 
   // float t = mod(dT, 1.);
@@ -625,35 +631,33 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 1.0;
 
   const float thickness = 0.025;
+  const float r = 0.2;
 
-  for (int i = 0; i < 23; i++) {
-    float fI = float(i);
+  // q += warpScale * 0.1000 * cos( 4. * q.yzx + cosT);
+  // q += warpScale * 0.0500 * cos( 7. * q.yzx + cosT);
+  // q += warpScale * 0.0250 * cos(13. * q.yzx + cosT);
+  // q += warpScale * 0.0125 * cos(21. * q.yzx + cosT);
 
-    float localT = t + fI * 0.025;
-    localT = mod(localT, 1.);
-    float angle = TWO_PI * localT;
-    angle = sin(angle);
+  // Rotation Matrix to apply to 4D objects
+  // From: https://www.shadertoy.com/view/Md2XDV
+  float aaa = 10.+ PI * t * 1.0;
+  float bbb =  9.+ PI * t * 2.00;
+  float ccc = 11.+ PI * t * 2.00;
+  float c1 = cos(aaa), s1 = sin(aaa),
+        c2 = cos(bbb), s2 = sin(bbb),
+        c3 = cos(ccc), s3 = sin(ccc);
 
-    vec3 localQ = q;
-    localQ *= rotationMatrix(vec3(0.3, 0.7, -0.3), 0.145 * PI * angle);
+  mat4 B = mat4(c2,  s2*s3,   0, -s2*c3,
+      0,  c1*c3, -s1,  c1*s3,
+      0,  c3*s1,  c1,  s1*s3,
+      s2, -c2*s3,   0,  c2*c3);
 
-    float r = 0.4 - 0.025 * fI;
-    vec3 o = vec3(sdBox(localQ, vec3(r)), 0, 0);
+  vec3 o = vec3(
+      sdBox(vec4(q, (r * 0.85) * cos(cosT)) * B, vec4(r)),
+      0, 0);
+  d = dMin(d, o);
 
-    const float bigR = 2.;
-    float cut = sdBox(localQ, vec3(r - thickness, r - thickness, bigR));
-    o.x = max(o.x, -cut);
-
-    cut = sdBox(localQ, vec3(bigR, r - thickness, r - thickness));
-    o.x = max(o.x, -cut);
-
-    cut = sdBox(localQ, vec3(r - thickness, bigR, r - thickness));
-    o.x = max(o.x, -cut);
-
-    d = dMin(d, o);
-  }
-
-  // d *= 0.25;
+  // d *= 0.5;
 
   return d;
 }
@@ -834,7 +838,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(1.);
+  vec3 color = vec3(0.1);
+  return color;
 
   vec3 dF = vec3(1.0 * cnoise3(pos));
   dF += vec3(0.3 * cnoise3(pos + dF));
@@ -930,7 +935,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.95;
+        float shadowMin = 0.90;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -973,10 +978,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.10;
-      // color += dispersionColor;
+      // dispersionColor *= 0.40;
+      color += dispersionColor;
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
