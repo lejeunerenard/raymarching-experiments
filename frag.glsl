@@ -652,10 +652,32 @@ vec3 map (in vec3 p, in float dT) {
       0,  c3*s1,  c1,  s1*s3,
       s2, -c2*s3,   0,  c2*c3);
 
+  vec4 q4 = vec4(q, (r * 0.85) * cos(cosT));
   vec3 o = vec3(
-      sdBox(vec4(q, (r * 0.85) * cos(cosT)) * B, vec4(r)),
+      sdBox(q4 * B, vec4(r)),
       0, 0);
   d = dMin(d, o);
+
+  aaa =  4.+ PI * t * 3.0;
+  bbb = 13.+ PI * t * 1.00;
+  ccc = 11.+ PI * t * 2.00;
+  c1 = cos(aaa), s1 = sin(aaa),
+        c2 = cos(bbb), s2 = sin(bbb),
+        c3 = cos(ccc), s3 = sin(ccc);
+
+  B = mat4(c2,  s2*s3,   0, -s2*c3,
+      0,  c1*c3, -s1,  c1*s3,
+      0,  c3*s1,  c1,  s1*s3,
+      s2, -c2*s3,   0,  c2*c3);
+  vec3 s = vec3(
+      sdBox(q4 * B, vec4(r)),
+      0, 0);
+  s.x *= -1.0;
+  d = dMax(d, s);
+
+  s = vec3(length(q4) - r, 0, 0);
+  s.x *= -1.0;
+  d = dMax(d, s);
 
   // d *= 0.5;
 
@@ -839,7 +861,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.1);
-  return color;
 
   vec3 dF = vec3(1.0 * cnoise3(pos));
   dF += vec3(0.3 * cnoise3(pos + dF));
@@ -850,6 +871,8 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) 
   dF += 0.1 * cos(cosT);
 
   color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
+
+  color *= 0.5;
 
   return color;
 }
