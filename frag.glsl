@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -628,21 +628,16 @@ vec3 map (in vec3 p, in float dT) {
   // float t = mod(dT, 1.);
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.0;
+  const float warpScale = 0.3;
 
   const float thickness = 0.025;
-  const float r = 0.2;
-
-  // q += warpScale * 0.1000 * cos( 4. * q.yzx + cosT);
-  // q += warpScale * 0.0500 * cos( 7. * q.yzx + cosT);
-  // q += warpScale * 0.0250 * cos(13. * q.yzx + cosT);
-  // q += warpScale * 0.0125 * cos(21. * q.yzx + cosT);
+  const float r = 0.5;
 
   // Rotation Matrix to apply to 4D objects
   // From: https://www.shadertoy.com/view/Md2XDV
-  float aaa = 10.+ PI * t * 4.0;
-  float bbb =  9.+ PI * t * 2.00;
-  float ccc = 11.+ PI * t * 2.00;
+  float aaa = 13.+ PI * t * 2.0;
+  float bbb =  7.+ PI * t * 4.0;
+  float ccc =  1.+ PI * t * 2.00;
   float c1 = cos(aaa), s1 = sin(aaa),
         c2 = cos(bbb), s2 = sin(bbb),
         c3 = cos(ccc), s3 = sin(ccc);
@@ -653,14 +648,22 @@ vec3 map (in vec3 p, in float dT) {
       s2, -c2*s3,   0,  c2*c3);
 
   vec4 q4 = vec4(q, (r * 0.85) * cos(cosT)) * B;
+
   vec3 o = vec3(
       sdBox(q4, vec4(r)),
       0, 0);
   d = dMin(d, o);
 
-  d.x -= 0.2 * cellular(q4);
+  q4 = vec4(q, (r * 0.85) * cos(cosT));
 
-  // d *= 0.5;
+  vec3 clip = vec3(
+      sdBox(q4, vec4(0.95 * r)),
+      0, 0);
+  d = dMax(d, clip);
+
+  // d.x -= 0.05 * cellular(q4);
+
+  d *= 0.5;
 
   return d;
 }
@@ -739,8 +742,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.75;
-const float amount = 0.125;
+const float n2 = 1.20;
+const float amount = 0.25;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -750,7 +753,7 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.0;
 
-  vec3 spaceScaling = 0.3 * vec3(0.734, 1.14, 0.2);
+  vec3 spaceScaling = 1.0 * vec3(0.734, 1.14, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
   n = smoothstep(0.0, 0.80, n);
 
@@ -842,19 +845,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0.1);
-  return color;
 
-  vec3 dF = vec3(1.0 * cnoise3(pos));
-  dF += vec3(0.3 * cnoise3(pos + dF));
-  dF += 0.2 * pos;
-  dF += 0.2 * pow(dot(nor, -rd), 3.);
+  vec3 dF = vec3(dot(nor, -rd));
+  dF += 0.3 * pos;
+  dF += 0.2 * pow(dot(nor, vec3(0, 0, 1)), 3.);
 
-  dF *= 0.34;
-  dF += 0.1 * cos(cosT);
+  float d = length(pos - cameraRo);
+  color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.33, 0.67)));
+  color += vec3(1, 0, 0.2) * smoothstep(0.9, 0.2, dF);
 
-  color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
-
-  color *= 0.5;
+  // color *= 0.5;
 
   return color;
 }
@@ -927,20 +927,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 0.8;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.95;
+        const float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.90;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -952,7 +952,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.100 * amb * diffuseColor;
+        lin += 0.000 * amb * diffuseColor;
         dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
@@ -973,10 +973,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.20 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -984,9 +984,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.40;
-      color += dispersionColor;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.30;
+      color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
