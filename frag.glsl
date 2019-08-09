@@ -621,7 +621,7 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  vec3 q = p + vec3(0, 0.25, 0);
+  vec3 q = p;
 
   // float t = mod(dT, 1.);
   float t = mod(norT, 1.);
@@ -630,47 +630,32 @@ vec3 map (in vec3 p, in float dT) {
 
   const float r = 0.2;
 
-  const float size = r * 3.25;
+  const float space = 2.1 * r;
+  vec3 pos = q - vec3(space, 0, 0) - vec3(-space, space, 0)
+    * vec3(
+        smoothstep(0.5, 1.0, t),
+        smoothstep(0., 0.5, t),
+        0);
+  vec3 c1 = vec3(sdBox(pos, vec3(r)), 0, 0);
+  d = dMin(d, c1);
 
-  q.x -= size * t;
-  // float c = pMod1(q.x, size);
-  vec2 c = pMod2(q.xz, vec2(size));
+  pos = q - vec3(0, space, 0) - vec3(0, -space, space)
+    * vec3(
+        0,
+        smoothstep(0.5, 1.0, t),
+        smoothstep(0.0, 0.5, t));
+  vec3 c2 = vec3(sdBox(pos, vec3(r)), 0, 0);
+  d = dMin(d, c2);
 
-  vec3 qWin = q - vec3(0, 0, r);
-  const float winSize = r * 0.33;
-  vec3 c2 = pMod3(qWin, vec3(winSize));
+  pos = q - vec3(0, 0, space) - vec3(space, 0, -space)
+    * vec3(
+        smoothstep(0., 0.5, t),
+        0,
+        smoothstep(0.5, 1.0, t));
+  vec3 c3 = vec3(sdBox(pos, vec3(r)), 0, 0);
+  d = dMin(d, c3);
 
-  // Main building
-  vec3 o = vec3(sdBox(q, vec3(r, 0.8, r)), 0, 0);
-  d = dMin(d, o);
-
-  // Whole Building crop
-  const float buildingCropDepth = size * 2.5;
-  float buildingCrop = sdBox(p + vec3(0, 0, buildingCropDepth - r), vec3(5, 5, buildingCropDepth));
-  d.x = max(d.x, buildingCrop);
-
-  // "Windows"
-  const float winR = 0.3333 * 0.3 * r;
-  vec3 win = vec3(sdBox(qWin, vec3(winR)), 0, 0);
-
-  const float numWin = 2.5;
-  float winCrop = sdBox(q, vec3(winSize * numWin, 3, winSize * numWin));
-  // win.x = max(win.x, winCrop);
-
-  // d = dMin(d, win);
-  win.x *= -1.;
-  d = dMax(d, win);
-
-  // Road?
-  const float roadWidth = 0.2 * r;
-  vec3 road = vec3(sdBox(q - vec3(0.5 * size, -0.4, 0), vec3(roadWidth, 0.005, r * 2.5)));
-  d = dMin(d, road);
-
-  q.zx = q.xz;
-  road = vec3(sdBox(q - vec3(0.5 * size, -0.4, 0), vec3(roadWidth, 0.005, r * 2.5)));
-  d = dMin(d, road);
-
-  vec3 f = vec3(sdPlane(q + vec3(0, 0.4, 0), vec4(0, 1, 0, 0)), 1, 0);
+  vec3 f = vec3(sdPlane(q + vec3(0, 1.2, 0), vec4(0, 1, 0, 0)), 1, 0);
   d = dMin(d, f);
 
   // d *= 0.5;
@@ -854,11 +839,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
-  vec3 color = vec3(40);
+  vec3 color = vec3(1.00);
 
-  color = mix(color, background, smoothstep(0.2, -0.75, pos.y));
-
-  color = mix(color, background, isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0.85), isMaterialSmooth(m, 1.));
 
   return color;
 }
@@ -879,25 +862,25 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 color;
       float intensity;
     };
+
     const int NUM_OF_LIGHTS = 3;
-    const float repNUM_OF_LIGHTS = 0.33333;
+    const float repNUM_OF_LIGHTS = 0.333333;
+
     light lights[NUM_OF_LIGHTS];
 
     // vec2 lightPosRef = vec2(0.95, 0.2);
     // mat2 lightPosRefInc = rotMat2(TWO_PI * repNUM_OF_LIGHTS);
-    // lightPosRef *= rotMat2(TWO_PI * mod(time * 0.1, 1.));
 
     // for (int i = 0; i < NUM_OF_LIGHTS; i++) {
     //   vec3 lightColor = hsb2rgb(vec3(float(i) * 1.1 * repNUM_OF_LIGHTS, 1., 1));
-    //   float greenish = 0.0; // dot(normalize(lightColor), #00FF00);
-    //   lights[i] = light(vec3(lightPosRef, 0.25), lightColor, mix(1.8, 0.8, greenish));
+    //   lights[i] = light(vec3(lightPosRef, 0.25), lightColor, 2.0);
     //   lightPosRef *= lightPosRefInc;
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(normalize(vec3( 0.4, 0.3, 0.7)), #FA537A, 1.0);
-    lights[1] = light(normalize(vec3(-0.5, 0.9, 0.7)), #CCFFFF, 1.0);
-    lights[2] = light(normalize(vec3(-0.5, 0.9, 0.7)), #FFFFFF, 1.0);
+    lights[0] = light(vec3( 1.0, 0.5, -0.5), #FF3333, 3.0);
+    lights[1] = light(vec3(-1.0, 1.0, -1.0), #33FF33, 3.0);
+    lights[2] = light(vec3(-0.5, 0.5,  1.0), #3333FF, 3.0);
 
     float backgroundMask = 1.;
     // Allow anything in top right corner
@@ -932,8 +915,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.1 * (1. - isFloor);
-      float specCo = 0.2 * (1. - isFloor);
+      float freCo = 0.2;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -945,7 +928,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = mix(0.9, 1., isFloor);
+        float shadowMin = mix(0.5, 0.6, isFloor);;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -957,13 +940,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.000 * amb * diffuseColor;
+        lin += 0.500 * amb * diffuseColor;
         dif += 0.000 * amb;
 
-        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 2.0);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.5);
+        distIntensity = mix(distIntensity, saturate(length(pos.xz)), isFloor);
         distIntensity = saturate(distIntensity);
         color +=
-          // mix(#7A32AD, vec3(1), dif)
           saturate((dif * distIntensity) * lights[i].color * diffuseColor)
           + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
 
@@ -979,10 +962,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.20 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -999,7 +982,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
-      // color *= exp(-d * 0.025);
+      color *= exp(-d * 0.025);
 
       // color += directLighting * exp(-d * 0.0005);
 
