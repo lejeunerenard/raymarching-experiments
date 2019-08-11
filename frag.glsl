@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -621,31 +621,32 @@ void ptQ (inout vec3 q, in float i) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
-
   vec3 q = p;
 
   // float t = mod(dT, 1.);
   float t = mod(norT, 1.);
 
   // const float warpScale = 0.8;
-  const float warpScale = 0.22;
+  const float warpScale = 0.2;
+  const float size = 0.25;
+  const float r = 0.3 * size;
 
-  const float r = 0.6;
+  vec2 c = pMod2(q.xy, vec2(size));
 
-  q += warpScale * 0.10000 * cos( 3. * q.yzx + cosT );
-  q += warpScale * 0.05000 * cos( 7. * q.yzx + cosT );
-  q += warpScale * 0.02500 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.01250 * cos(23. * q.yzx + cosT );
+  q *= rotationMatrix(vec3(1), TWO_PI * (t + dot(c, vec2(0.023, 0.053))));
 
   mPos = q;
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
+
+  q = p;
+  float crop = sdBox(q, vec3(3.5 * size));
+  d.x = max(d.x, crop);
 
   // vec3 f = vec3(sdPlane(q + vec3(0, 1.2, 0), vec4(0, 1, 0, 0)), 0, 0);
   // d = dMin(d, f);
 
-  d *= 0.75;
+  // d *= 0.75;
 
   return d;
 }
@@ -828,15 +829,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
   vec3 color = vec3(0);
 
-  vec3 axis = vec3(0.5, 0, 0);
-
-  for (int i = 0; i < 46; i++) {
-    float fI = float(i);
-    axis *= rotationMatrix(vec3(0, 1, sin(fI * PI * 5.234)), PI * 1.71 * fI);
-    float l = length(mPos - axis);
-    float n = smoothstep(0., edge, sin(18. * TWO_PI * l));
-    color = mix(color, vec3(n), smoothstep(edge, 0., l - 0.35));
-  }
+  color = vec3(smoothstep(0., edge, sin(dot(mPos, vec3(90.)))));
 
   return color;
 }
