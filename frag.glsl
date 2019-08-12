@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -618,33 +618,50 @@ void ptQ (inout vec3 q, in float i) {
   q -= trans;
 }
 
+float getLayer (in float t) {
+  float l = 0.;
+  l += step(0.3, t);
+  l += step(0.6, t);
+
+  return l;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
 
-  // float t = mod(dT, 1.);
-  float t = mod(norT, 1.);
+  float t = mod(dT, 1.);
 
-  // const float warpScale = 0.8;
-  const float warpScale = 0.2;
-  const float size = 0.25;
-  const float r = 0.3 * size;
+  const float r = 0.5;
 
-  vec2 c = pMod2(q.xy, vec2(size));
+  float layer = getLayer(t);
+  float t1 = smoothstep(0., 0.3, t);
+  t1 *= isMaterialSmooth(layer, 0.);
 
-  q *= rotationMatrix(vec3(1), TWO_PI * (t + dot(c, vec2(0.023, 0.053))));
+  float t2 = smoothstep(0.3, 0.6, t);
+  t2 *= isMaterialSmooth(layer, 1.);
+
+  float t3 = smoothstep(0.6, 1., t);
+  t3 *= isMaterialSmooth(layer, 2.);
+
+  float scaleFactor = 1.
+    + 0.665 * t1
+    + 0.55 * t2
+    + 0.00 * t3;
+
+  q *= scaleFactor;
+
+  q *= rotationMatrix(vec3(1), 0.3234 * PI * t1);
+  q *= rotationMatrix(vec3(-.8, 1, 0.3), 0.7 * PI * t2);
+  q *= rotationMatrix(vec3(0, 0, 1), 0.5 * PI * t3);
+  q *= rotationMatrix(vec3(0, 1, 0), PI * t3);
 
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  q = p;
-  float crop = sdBox(q, vec3(3.5 * size));
-  d.x = max(d.x, crop);
-
-  // vec3 f = vec3(sdPlane(q + vec3(0, 1.2, 0), vec4(0, 1, 0, 0)), 0, 0);
-  // d = dMin(d, f);
+  d.x /= scaleFactor;
 
   // d *= 0.75;
 
@@ -826,10 +843,45 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
-vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap) {
+vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  color = vec3(smoothstep(0., edge, sin(dot(mPos, vec3(90.)))));
+  float l = getLayer(t);
+  float frontEdge = smoothstep(0., edge, mPos.z - 0.49);
+
+  // Layer 1
+  color = vec3(0);
+
+  // Layer 2
+  float mask = 0.;
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(1.939, 1)) - 0.881);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-1.951, -1)) - 0.885);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.632, -0.597)) - 0.366);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-1.345, 1.277)) - 0.79);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.556, 1.151)) - 0.514);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-1.31, -2.72)) - 1.207);
+
+  // layer2 += smoothstep(0., edge, dot(mPos.xy, vec2(angle1C, angle2C)) - angle3C);
+
+  vec3 layer2 = mask * frontEdge + vec3(1, 0, 0) * (1. - frontEdge);
+  // layer2 = vec3(mask);
+  color = mix(color, layer2, saturate(l));
+
+  // Layer 3
+  mask = 0.;
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.6, 1)) - 0.527);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(2.055, -0.013)) - 0.917);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-0.27, 1.036)) - 0.465);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.184, -0.701)) - 0.312);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-0.896, 0.005)) - 0.4);
+  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-0.139, -0.232)) - 0.121);
+
+  // mask += smoothstep(0., edge, dot(mPos.xy, vec2(angle1C, angle2C)) - angle3C);
+
+  vec3 layer3 = mix(vec3(1, 0, 0), vec3(1), mask) * frontEdge
+    + vec3(0) * (1. - frontEdge);
+  // layer3 = vec3(mask);
+  color = mix(color, layer3, saturate(l - 1.));
 
   return color;
 }
@@ -897,7 +949,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       gRd = rayDirection;
 
       // Basic Diffusion
-      vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w);
+      vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1243,8 +1295,25 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   /* color = pow(color, vec3(1.20)); */
   /* return vec4(color, 1); */
 
-  vec4 t = march(ro, rd, norT);
-  return shade(ro, rd, t, uv, norT);
+  vec4 color = vec4(0);
+  float time = norT;
+  vec4 t = march(ro, rd, time);
+  vec4 layer = shade(ro, rd, t, uv, time);
+  return layer;
+  color += layer.w * vec4(1, 0, 0, 1) * layer.x;
+  // color += layer;
+
+  time = 0.75 + edge;
+  t = march(ro, rd, time);
+  vec4 layer2 = shade(ro, rd, t, uv, time);
+  color += layer2.w * vec4(0, 1, 0, 1) * layer2.x;
+
+  time = 0.;
+  t = march(ro, rd, time);
+  vec4 layer3 = shade(ro, rd, t, uv, time);
+  color += layer3.w * vec4(0, 0, 1, 1) * layer3.x;
+
+  return color;
 }
 
 void main() {
