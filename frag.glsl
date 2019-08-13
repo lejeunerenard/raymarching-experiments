@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -41,9 +41,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
-#define maxDistance 30.0
-#define fogMaxDistance 2.0
+#define maxSteps 256
+#define maxDistance 50.0
+#define fogMaxDistance 50.0
 
 #define slowTime time * 0.2
 // v3
@@ -633,37 +633,56 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  const float r = 0.5;
+  // KIFS code copied (and tweaked) from https://www.shadertoy.com/view/XsKXzc
+  vec3 offs = vec3(1. + 0.1 * sin(cosT + 1.5 * p.z), .55, .5 + 0.05 * cos(cosT + 0.23 * PI)); // Offset point.
+  vec2 a = sin(vec2(0, 0.5 * PI) + (1.57 + 0.2 * cos(cosT))/2.);
+  mat2 m = mat2(a.y, -a.x, a);
+  vec2 a2 = sin(vec2(0, 0.5 * PI) + 1.57/(4. + sin(cosT)));
+  mat2 m2 = mat2(a2.y, -a2.x, a2);
 
-  float layer = getLayer(t);
-  float t1 = smoothstep(0., 0.3, t);
-  t1 *= isMaterialSmooth(layer, 0.);
+  const float s = 6.; // Scale factor.
 
-  float t2 = smoothstep(0.3, 0.6, t);
-  t2 *= isMaterialSmooth(layer, 1.);
+  p  = abs(fract(p*.5)*2. - 1.); // Standard spacial repetition.
 
-  float t3 = smoothstep(0.6, 1., t);
-  t3 *= isMaterialSmooth(layer, 2.);
+  float amp = 1./s; // Analogous to layer amplitude.
 
-  float scaleFactor = 1.
-    + 0.665 * t1
-    + 0.55 * t2
-    + 0.00 * t3;
+  // With only two iterations, you could unroll this for more speed,
+  // but I'm leaving it this way for anyone who wants to try more
+  // iterations.
+  for(int i=0; i<3; i++){
 
-  q *= scaleFactor;
+    // Rotating.
+    p.xy = m*p.xy;
+    p.yz = m2*p.yz;
 
-  q *= rotationMatrix(vec3(1), 0.3234 * PI * t1);
-  q *= rotationMatrix(vec3(-.8, 1, 0.3), 0.7 * PI * t2);
-  q *= rotationMatrix(vec3(0, 0, 1), 0.5 * PI * t3);
-  q *= rotationMatrix(vec3(0, 1, 0), PI * t3);
+    p = abs(p);
 
-  mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  d = dMin(d, o);
+    // Folding about tetrahedral planes of symmetry... I think, or is it octahedral? 
+    // I should know this stuff, but topology was many years ago for me. In fact, 
+    // everything was years ago. :)
+    // Branchless equivalent to: if (p.x<p.y) p.xy = p.yx;
+    p.xy += step(p.x, p.y)*(p.yx - p.xy);
+    p.xz += step(p.x, p.z)*(p.zx - p.xz);
+    p.yz += step(p.y, p.z)*(p.zy - p.yz);
 
-  d.x /= scaleFactor;
+    // Stretching about an offset.
+    p = p*s + offs*(1. - s);
 
-  // d *= 0.75;
+    // Branchless equivalent to:
+    // if( p.z < offs.z*(1. - s)*.5)  p.z -= offs.z*(1. - s);
+    p.z -= step(p.z, offs.z*(1. - s)*.5)*offs.z*(1. - s);
+
+    // Compute distance
+    p=abs(p);
+    d = dMin(d, vec3(max(p.x, max(p.y, p.z)) * amp, 0, 0));
+
+    amp /= s; // Decrease the amplitude by the scaling factor.
+  }
+
+  d.x -= 0.0075;
+
+  // vec3 o = vec3(sdBox(q, vec3(0.3)), 0, 0);
+  // d = dMin(d, o);
 
   return d;
 }
@@ -844,44 +863,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1.5);
 
-  float l = getLayer(t);
-  float frontEdge = smoothstep(0., edge, mPos.z - 0.49);
-
-  // Layer 1
-  color = vec3(0);
-
-  // Layer 2
-  float mask = 0.;
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(1.939, 1)) - 0.881);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-1.951, -1)) - 0.885);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.632, -0.597)) - 0.366);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-1.345, 1.277)) - 0.79);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.556, 1.151)) - 0.514);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-1.31, -2.72)) - 1.207);
-
-  // layer2 += smoothstep(0., edge, dot(mPos.xy, vec2(angle1C, angle2C)) - angle3C);
-
-  vec3 layer2 = mask * frontEdge + vec3(1, 0, 0) * (1. - frontEdge);
-  // layer2 = vec3(mask);
-  color = mix(color, layer2, saturate(l));
-
-  // Layer 3
-  mask = 0.;
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.6, 1)) - 0.527);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(2.055, -0.013)) - 0.917);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-0.27, 1.036)) - 0.465);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(0.184, -0.701)) - 0.312);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-0.896, 0.005)) - 0.4);
-  mask += smoothstep(0., edge, dot(mPos.xy, vec2(-0.139, -0.232)) - 0.121);
-
-  // mask += smoothstep(0., edge, dot(mPos.xy, vec2(angle1C, angle2C)) - angle3C);
-
-  vec3 layer3 = mix(vec3(1, 0, 0), vec3(1), mask) * frontEdge
-    + vec3(0) * (1. - frontEdge);
-  // layer3 = vec3(mask);
-  color = mix(color, layer3, saturate(l - 1.));
+  // color = mix(vec3(0.1), vec3(0.6), smoothstep(0.4, 0.6, dot(nor, -rd)));
+  // color = vec3(dot(nor, -rd));
 
   return color;
 }
@@ -918,9 +903,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3( 1.0, 0.5, -0.5), #FFAAAA, 1.0);
-    lights[1] = light(vec3(-1.0, 1.0, -1.0), #AAFFAA, 1.0);
-    lights[2] = light(vec3(-0.5, 0.5,  1.0), #AAAAFF, 1.0);
+    lights[0] = light(vec3( 1.0, 0.5,  0.5), #FFEEEE, 1.0);
+    lights[1] = light(vec3(-1.0, 1.0,  1.0), #EEFFEE, 1.0);
+    lights[2] = light(vec3( 0.0, 0.0,  1.0), #EEEEFF, 1.0);
 
     float backgroundMask = 1.;
     // Allow anything in top right corner
@@ -933,7 +918,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float isFloor = isMaterialSmooth(t.y, 1.);
 
       // Normals
-      vec3 nor = getNormal2(pos, 0.0001 * t.x, generalT);
+      vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
       // float bumpsScale = 7.75;
       // float bumpIntensity = 0.1;
       // nor += bumpIntensity * vec3(
@@ -955,39 +940,39 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
-      float specCo = 0.2;
+      float freCo = 0.2;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 1.0;
+        const float diffMin = 0.6;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;;
+        float shadowMin = 1.0;;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * dif * occ;
-        lin += fre;
-        specAll += specCo * spec * (1. - fre);
+        // fre *= freCo * dif * occ;
+        // lin += fre;
+        // specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.000 * amb * diffuseColor;
-        dif += 0.000 * amb;
+        lin += 0.100 * amb * diffuseColor;
+        // dif += 0.000 * amb;
 
-        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.5);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
         color +=
           saturate((dif * distIntensity) * lights[i].color * diffuseColor)
-          + saturate(lights[i].intensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
+          + saturate(distIntensity * mix(lights[i].color, vec3(1), 0.1) * lin * mix(diffuseColor, vec3(1), 0.4));
 
         vec3 fromLight = rayOrigin - lightPos;
         float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
@@ -1019,16 +1004,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.1));
 
       // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
-      // color *= exp(-d * 0.025);
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
+      color *= exp(-d * 0.025);
 
       // color += directLighting * exp(-d * 0.0005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
