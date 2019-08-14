@@ -634,13 +634,13 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT, 1.);
 
   // KIFS code copied (and tweaked) from https://www.shadertoy.com/view/XsKXzc
-  vec3 offs = vec3(1. + 0.1 * sin(cosT + 1.5 * p.z), .55, .5 + 0.05 * cos(cosT + 0.23 * PI)); // Offset point.
-  vec2 a = sin(vec2(0, 0.5 * PI) + (1.57 + 0.2 * cos(cosT))/2.);
+  vec3 offs = vec3(1.0 + 0.1 * cos(cosT), .55, .5); // Offset point.
+  vec2 a = sin(vec2(0, 0.5 * PI) + (1.57)/2.);
   mat2 m = mat2(a.y, -a.x, a);
-  vec2 a2 = sin(vec2(0, 0.5 * PI) + 1.57/(4. + sin(cosT)));
+  vec2 a2 = sin(0.5 * cosT + vec2(0, 0.5 * PI) + 1.57/(3.));
   mat2 m2 = mat2(a2.y, -a2.x, a2);
 
-  const float s = 6.; // Scale factor.
+  const float s = 9.; // Scale factor.
 
   p  = abs(fract(p*.5)*2. - 1.); // Standard spacial repetition.
 
@@ -649,7 +649,7 @@ vec3 map (in vec3 p, in float dT) {
   // With only two iterations, you could unroll this for more speed,
   // but I'm leaving it this way for anyone who wants to try more
   // iterations.
-  for(int i=0; i<3; i++){
+  for(int i=0; i<2; i++){
 
     // Rotating.
     p.xy = m*p.xy;
@@ -674,12 +674,16 @@ vec3 map (in vec3 p, in float dT) {
 
     // Compute distance
     p=abs(p);
-    d = dMin(d, vec3(max(p.x, max(p.y, p.z)) * amp, 0, 0));
+    float sqr = max(p.x, max(p.y, p.z)) * amp;
+    if (sqr < d.x) {
+      mPos = p;
+    }
+    d = dMin(d, vec3(sqr, 0, 0));
 
     amp /= s; // Decrease the amplitude by the scaling factor.
   }
 
-  d.x -= 0.0075;
+  d.x -= 0.020;
 
   // vec3 o = vec3(sdBox(q, vec3(0.3)), 0, 0);
   // d = dMin(d, o);
@@ -863,10 +867,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
+  // vec3 color = mix(vec3(1.5), background, saturate(-0.2 * pos.z));
   vec3 color = vec3(1.5);
 
-  // color = mix(vec3(0.1), vec3(0.6), smoothstep(0.4, 0.6, dot(nor, -rd)));
-  // color = vec3(dot(nor, -rd));
+  color = mix(color, vec3(0, 0, 1), smoothstep(0., edge, sin(0.75 * PI * mPos.y)));
 
   return color;
 }
@@ -953,7 +957,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;;
+        float shadowMin = 0.9;;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -968,7 +972,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += 0.100 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
-        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
         color +=
           saturate((dif * distIntensity) * lights[i].color * diffuseColor)
@@ -1006,7 +1010,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.025);
+      color *= exp(-d * 0.1);
 
       // color += directLighting * exp(-d * 0.0005);
 

@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'temple-of-transparency-render1',
+    name: 'R2-Doo-Doo-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
