@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 12.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -673,7 +673,9 @@ vec3 map (in vec3 p, in float dT) {
     p.z -= step(p.z, offs.z*(1. - s)*.5)*offs.z*(1. - s);
 
     // Compute distance
-    vec3 b = vec3(amp * sdBox(p, s * vec3(0.025, 0.2, 0.025)), 0, 0);
+    vec3 localP = p;
+    localP *= rotationMatrix(vec3(1, 0.5, 1.3), cosT + dot(q, vec3(1)));
+    vec3 b = vec3(amp * sdBox(localP, s * vec3(0.025, 0.2, 0.025)), 0, 0);
     d = dMin(d, b);
 
     amp /= s; // Decrease the amplitude by the scaling factor.
@@ -1229,24 +1231,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float preLengthT = 1. / (2. * (overlapScale + 1.));
 
   vec2 q = uv;
+  const float size = 0.05;
 
-  float n = fan(q, smoothstep(0., preLengthT, t));
+  vec2 c = pMod2(q, vec2(size));
 
-  const float startT = overlapScale * preLengthT;
-  float preTrans = smoothstep(startT, startT + preLengthT, t);
-  preTrans = sqrt(preTrans);
-  float n2 = fan((30. - 29. * preTrans) * q, smoothstep(startT + preLengthT, startT + 2. * preLengthT, t));
-  n = mix(n, 1. - n, step(startT, t) * saturate(n2));
+  const float r = size * 0.3;
+  q.y += 3.0 * r * (1. - (0.5 + 0.5 * sin(generalT + dot(c, vec2(0.123)) + 0.3 * cnoise2(0.423 * c) - 0.4 * PI)));
 
-  // (2. * 0.6 + 2) * x = 1.
+  float d = length(q) - r;
+  float n = smoothstep(edge, 0., d);
 
-  // Second White circle
-  preTrans = smoothstep(2. * startT + 1. * preLengthT, 2. * startT + 2. * preLengthT, t);
-  preTrans = sqrt(preTrans);
-  float n3 = fan((30. - 29. * preTrans) * q, 0.);
-  n = mix(n, 1. - n, step(2. * startT + 1. * preLengthT, t) * saturate(n3));
+  vec2 absC = abs(c);
+  float crop = 1. - step(8., max(absC.x, absC.y));
+  n *= crop;
 
-  color = vec3(n);
+  color = mix(#402828, #FF9EA1 * saturate(1. + 0.75 * q.y / (2. * r)), n);
 
   return color;
 }
@@ -1256,7 +1255,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
