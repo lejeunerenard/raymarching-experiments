@@ -1231,21 +1231,47 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float preLengthT = 1. / (2. * (overlapScale + 1.));
 
   vec2 q = uv;
-  const float size = 0.05;
+  const float size = 0.080;
 
   vec2 c = pMod2(q, vec2(size));
 
   const float r = size * 0.3;
-  q.y += 3.0 * r * (1. - (0.5 + 0.5 * sin(generalT + dot(c, vec2(0.123)) + 0.3 * cnoise2(0.423 * c) - 0.4 * PI)));
 
-  float d = length(q) - r;
+  t -= length(0.055 * c) + 0.60;
+  t = mod(t + 0., 1.);
+
+  float leftSideClose = saturate(4. * (t - 0.));
+  float rightSideLap = saturate(4. * (t - 0.25));
+  float leftSideLap = saturate(4. * (t - 0.5));
+  float rightSideClose = saturate(4. * (t - 0.75));
+
+  const float power = 20.;
+  const float coe = 50.;
+
+  vec2 stretch = mix(vec2(1), vec2(1. + coe * pow(leftSideClose, power), 1.), step(0., -q.x));
+  stretch = mix(stretch, vec2(1), step(0.5, t));
+  stretch = mix(stretch, vec2(1. + coe * (1. - pow(rightSideClose, 1. / power)), 1.), step(0.75, t) * step(0., q.x));
+
+  float d = length(
+      stretch
+      * q) - r;
   float n = smoothstep(edge, 0., d);
 
+  stretch = mix(vec2(1), vec2(1. + coe * (1. - pow(rightSideLap, 1. / power)), 1.), step(0., q.x));
+  stretch = mix(stretch, vec2(1), step(0.5, t));
+  stretch = mix(stretch, vec2(1. + coe * pow(leftSideLap, power), 1.), step(0., -q.x));
+
+  float d2 = length(
+      stretch
+      * q) - r;
+  n -= (step(0.25, t) * step(0.25, 1. - t)) * smoothstep(edge, 0., d2);
+
   vec2 absC = abs(c);
-  float crop = 1. - step(8., max(absC.x, absC.y));
+  float crop = 1. - step(6., max(absC.x, absC.y));
   n *= crop;
 
-  color = mix(#402828, #FF9EA1 * saturate(1. + 0.75 * q.y / (2. * r)), n);
+  n = saturate(n);
+  color = mix(#363B4F, #FFFEFA * saturate(1. + 0.75 * q.x / (2. * r)), n);
 
   return color;
 }
@@ -1255,7 +1281,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
