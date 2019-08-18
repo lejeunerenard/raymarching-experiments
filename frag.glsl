@@ -1223,6 +1223,14 @@ float fan ( in vec2 q, in float t ) {
   return n;
 }
 
+float petal (in vec2 q, in float r) {
+  float dist = r * 0.8;
+  q.y += r * 0.65;
+  float s1 = smoothstep(edge, 0., length(q - vec2(dist, 0)) - r);
+  float s2 = smoothstep(edge, 0., length(q + vec2(dist, 0)) - r);
+  return min(s1, s2);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
@@ -1231,47 +1239,44 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float preLengthT = 1. / (2. * (overlapScale + 1.));
 
   vec2 q = uv;
-  const float size = 0.080;
+  const float size = 0.13;
 
+  // Grid space
   vec2 c = pMod2(q, vec2(size));
 
   const float r = size * 0.3;
 
+  // Timing offset
   t -= length(0.055 * c) + 0.60;
   t = mod(t + 0., 1.);
 
-  float leftSideClose = saturate(4. * (t - 0.));
-  float rightSideLap = saturate(4. * (t - 0.25));
-  float leftSideLap = saturate(4. * (t - 0.5));
-  float rightSideClose = saturate(4. * (t - 0.75));
+  // Shape
+  float n = 0.;
 
-  const float power = 20.;
-  const float coe = 50.;
+  q.xy = q.yx;
 
-  vec2 stretch = mix(vec2(1), vec2(1. + coe * pow(leftSideClose, power), 1.), step(0., -q.x));
-  stretch = mix(stretch, vec2(1), step(0.5, t));
-  stretch = mix(stretch, vec2(1. + coe * (1. - pow(rightSideClose, 1. / power)), 1.), step(0.75, t) * step(0., q.x));
+  mat2 rot = rotMat2(-0.142857 * (0.0 + 1.0 * (0.5 + 0.5 * cos(TWO_PI * saturate(1.1 * t)))) * TWO_PI);
+  n = max(n, petal(q, r));
+  q *= rot;
+  n = max(n, petal(q, r));
+  q *= rot;
+  n = max(n, petal(q, r));
+  q *= rot;
+  n = max(n, petal(q, r));
+  q *= rot;
+  n = max(n, petal(q, r));
+  q *= rot;
+  n = max(n, petal(q, r));
+  q *= rot;
+  n = max(n, petal(q, r));
 
-  float d = length(
-      stretch
-      * q) - r;
-  float n = smoothstep(edge, 0., d);
-
-  stretch = mix(vec2(1), vec2(1. + coe * (1. - pow(rightSideLap, 1. / power)), 1.), step(0., q.x));
-  stretch = mix(stretch, vec2(1), step(0.5, t));
-  stretch = mix(stretch, vec2(1. + coe * pow(leftSideLap, power), 1.), step(0., -q.x));
-
-  float d2 = length(
-      stretch
-      * q) - r;
-  n -= (step(0.25, t) * step(0.25, 1. - t)) * smoothstep(edge, 0., d2);
-
+  // Crop Grid
   vec2 absC = abs(c);
-  float crop = 1. - step(6., max(absC.x, absC.y));
+  float crop = 1. - step(4., max(absC.x, absC.y));
   n *= crop;
 
   n = saturate(n);
-  color = mix(#363B4F, #FFFEFA * saturate(1. + 0.75 * q.x / (2. * r)), n);
+  color = mix(#79B082, #E3FFE7, n);
 
   return color;
 }
