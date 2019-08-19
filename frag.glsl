@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 12.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1224,7 +1224,7 @@ float fan ( in vec2 q, in float t ) {
 }
 
 float petal (in vec2 q, in float r) {
-  float dist = r * 0.8;
+  float dist = r * 0.945;
   q.y += r * 0.65;
   float s1 = smoothstep(edge, 0., length(q - vec2(dist, 0)) - r);
   float s2 = smoothstep(edge, 0., length(q + vec2(dist, 0)) - r);
@@ -1239,44 +1239,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float preLengthT = 1. / (2. * (overlapScale + 1.));
 
   vec2 q = uv;
-  const float size = 0.13;
+  const float size = 0.3;
 
-  // Grid space
-  vec2 c = pMod2(q, vec2(size));
-
-  const float r = size * 0.3;
+  const float r = 0.4;
 
   // Timing offset
-  t -= length(0.055 * c) + 0.60;
+  // t -= length(0.055 * c) + 0.60;
   t = mod(t + 0., 1.);
 
   // Shape
   float n = 0.;
 
-  q.xy = q.yx;
+  // q.xy = q.yx;
+  q.y = -q.y;
 
-  mat2 rot = rotMat2(-0.142857 * (0.0 + 1.0 * (0.5 + 0.5 * cos(TWO_PI * saturate(1.1 * t)))) * TWO_PI);
+  t = 0.5 + 0.5 * cos(TWO_PI * saturate(1.1 * t));
+  float turns = 2.;
+  float perPetal = 0.04;
+  // n = max(n, petal(q, r));
+  q *= rotMat2(-(0.0 + 1.0 * t) * turns * PI);
   n = max(n, petal(q, r));
-  q *= rot;
-  n = max(n, petal(q, r));
-  q *= rot;
-  n = max(n, petal(q, r));
-  q *= rot;
-  n = max(n, petal(q, r));
-  q *= rot;
-  n = max(n, petal(q, r));
-  q *= rot;
-  n = max(n, petal(q, r));
-  q *= rot;
+  q *= rotMat2(-(0.0 + 1.0 * t) * turns * PI);
   n = max(n, petal(q, r));
 
   // Crop Grid
-  vec2 absC = abs(c);
-  float crop = 1. - step(4., max(absC.x, absC.y));
-  n *= crop;
+  // vec2 absC = abs(c);
+  // float crop = 1. - step(4., max(absC.x, absC.y));
+  // n *= crop;
 
   n = saturate(n);
-  color = mix(#79B082, #E3FFE7, n);
+  color = vec3(n);
+  // color = mix(#79B082, #E3FFE7, n);
 
   return color;
 }
@@ -1286,48 +1279,48 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
-  /* vec3 color = vec3(0); */
+  vec3 color = vec3(0);
+
+  float totalT = 0.02 * PI;
+  const int hues = 12;
+  for (int i = 0; i < hues; i++) {
+    float fraction = float(i) / float(hues);
+    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67) + 0.2));
+    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
+    float a = two_dimensional(uv, (norT + totalT * fraction)).x;
+    // float layerT = norT + totalT * fraction;
+    // vec4 t = march(ro, rd, layerT);
+    // float a = shade(ro, rd, t, uv, layerT).x;
+    // color *= mix(vec3(1), layerColor, a);
+    color += layerColor * a;
+  }
+
+  color *= 0.83;
+  color = pow(color, vec3(1.20));
+  return vec4(color, 1);
+
+  /* vec4 color = vec4(0); */
+  /* float time = norT; */
+  /* vec4 t = march(ro, rd, time); */
+  /* vec4 layer = shade(ro, rd, t, uv, time); */
+  /* return layer; */
+  /* color += layer.w * vec4(1, 0, 0, 1) * layer.x; */
+  /* // color += layer; */
   /*  */
-  /* float totalT = 0.02 * PI; */
-  /* const int hues = 12; */
-  /* for (int i = 0; i < hues; i++) { */
-  /*   float fraction = float(i) / float(hues); */
-  /*   vec3 colorI = vec3(fraction) + vec3(0.5 * uv, 0) + 0.1 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3; */
-  /*   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67) + 0.2)); */
-  /*   // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1)); */
-  /*   // float a = two_dimensional(uv, (norT + totalT * fraction)).x; */
-  /*   float layerT = norT + totalT * fraction; */
-  /*   vec4 t = march(ro, rd, layerT); */
-  /*   float a = shade(ro, rd, t, uv, layerT).x; */
-  /*   // color *= mix(vec3(1), layerColor, a); */
-  /*   color += layerColor * a; */
-  /* } */
+  /* time = 0.75 + edge; */
+  /* t = march(ro, rd, time); */
+  /* vec4 layer2 = shade(ro, rd, t, uv, time); */
+  /* color += layer2.w * vec4(0, 1, 0, 1) * layer2.x; */
   /*  */
-  /* color *= 0.20; */
-  /* color = pow(color, vec3(1.20)); */
-  /* return vec4(color, 1); */
-
-  vec4 color = vec4(0);
-  float time = norT;
-  vec4 t = march(ro, rd, time);
-  vec4 layer = shade(ro, rd, t, uv, time);
-  return layer;
-  color += layer.w * vec4(1, 0, 0, 1) * layer.x;
-  // color += layer;
-
-  time = 0.75 + edge;
-  t = march(ro, rd, time);
-  vec4 layer2 = shade(ro, rd, t, uv, time);
-  color += layer2.w * vec4(0, 1, 0, 1) * layer2.x;
-
-  time = 0.;
-  t = march(ro, rd, time);
-  vec4 layer3 = shade(ro, rd, t, uv, time);
-  color += layer3.w * vec4(0, 0, 1, 1) * layer3.x;
-
-  return color;
+  /* time = 0.; */
+  /* t = march(ro, rd, time); */
+  /* vec4 layer3 = shade(ro, rd, t, uv, time); */
+  /* color += layer3.w * vec4(0, 0, 1, 1) * layer3.x; */
+  /*  */
+  /* return color; */
 }
 
 void main() {
