@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -42,8 +42,8 @@ uniform float rot;
 // Greatest precision = 0.000001;
 uniform float epsilon;
 #define maxSteps 256
-#define maxDistance 50.0
-#define fogMaxDistance 20.0
+#define maxDistance 60.0
+#define fogMaxDistance 50.0
 
 #define slowTime time * 0.2
 // v3
@@ -633,11 +633,23 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  q *= rotationMatrix(vec3(0, 1, 0), 0.125 * PI * sin(cosT + q.y + 1.0 * cnoise3(vec3(1, 1.5, 1) * q)));
-  vec3 o = vec3(dodecahedral(q, 42., 0.5), 0., 0.);
+  const float size = 0.2;
+
+  vec3 c = pMod3(q, vec3(size));
+
+  float r = 0.45 * size * (0.65 + 0.4 * cnoise3(vec3(1, 3.423, 7.) * c));
+  q *= rotationMatrix(vec3(0, 1, 0), PI * cos(cosT + dot(c, vec3(0.23))));
+
+  mPos = q;
+  vec3 o = vec3(sdBox(q, vec3(r)), 0., 0.);
   d = dMin(d, o);
 
-  // d.x *= 0.25;
+  // float crop = sdBox(c, vec3(8));
+  q = p;
+  float crop = sdBox(q, vec3(6.5 * size));
+  d.x = max(d.x, crop);
+
+  d.x *= 0.25;
 
   return d;
 }
@@ -820,11 +832,14 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  vec3 dI = vec3(pow(dot(nor, -rd), 3.));
-  dI += pos;
-  dI += 0.5 * cnoise3(pos + 0.5 * nor);
+  vec3 dI = vec3(0); // vec3(pow(dot(nor, -rd), 1.5));
+  dI += 0.5 * pos;
+  dI += 0.4 * cnoise3(1.3 * pos + 0.25 * nor);
+  dI += 0.6 * mPos.y;
+  dI += norT;
 
-  color = 0.5 + 0.3 * cos(TWO_PI * (dI + vec3(0., 0.33, 0.67)));
+  color = 0.5 + 0.4 * cos(TWO_PI * (dI + vec3(0., 0.33, 0.67)));
+
   // color = vec3(0);
 
   return color;
@@ -912,7 +927,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.9;;
+        float shadowMin = 0.95;;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -924,7 +939,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.200 * amb * diffuseColor;
+        lin += 0.400 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
@@ -955,17 +970,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.60;
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.50;
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.25);
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
+      // color *= exp(-d * 0.25);
 
       // color += directLighting * exp(-d * 0.0005);
 
