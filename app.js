@@ -13,7 +13,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1.0
+const dpr = 1
 
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
