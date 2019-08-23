@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1207,42 +1207,39 @@ float petal (in vec2 q, in float r) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
-  float t = mod(generalT, 1.);
-  const float overlapScale = 0.4;
-  const float preLengthT = 1. / (2. * (overlapScale + 1.));
-
   vec2 q = uv;
-  const float size = 0.3;
 
-  const float r = 0.4;
+  q *= rotMat2(0.5 * PI * norT);
 
-  // Timing offset
-  // t -= length(0.055 * c) + 0.60;
-  t = mod(t + 0., 1.);
+  float size = 0.1 * (1. + generalT);
+  float r = size * 0.25 / (1. + generalT);
 
+  vec2 space = q;
   // Shape
   float n = 0.;
 
-  // q.xy = q.yx;
-  q.y = -q.y;
+  vec2 c = pMod2(space, vec2(size));
 
-  t = 0.5 + 0.5 * cos(TWO_PI * saturate(1.1 * t));
-  float turns = 2.;
-  float perPetal = 0.04;
-  // n = max(n, petal(q, r));
-  q *= rotMat2(-(0.0 + 1.0 * t) * turns * PI);
-  n = max(n, petal(q, r));
-  q *= rotMat2(-(0.0 + 1.0 * t) * turns * PI);
-  n = max(n, petal(q, r));
+  // Primary square
+  vec2 absQ = abs(space);
+  n = 1. - step(0., max(absQ.x, absQ.y) - r);
 
-  // Crop Grid
-  // vec2 absC = abs(c);
-  // float crop = 1. - step(4., max(absC.x, absC.y));
-  // n *= crop;
+  space = q;
+  c = pMod2(space, vec2(0.5 * size));
+
+  float t = mod(saturate(generalT - length(0.02 * c)), 1.);
+  t = saturate(t);
+
+  // Secondary squares
+  float secondaryScale = smoothstep(0.4, 0.9, t);
+  vec2 dir = vec2(1, 0) * rotMat2(0.25 * PI * dot(c, vec2(2, 3)));
+  absQ = abs(space + dir * 0.25 * size * (1. - secondaryScale));
+  float sqr2 = 1. - step(0., max(absQ.x, absQ.y) - r * secondaryScale);
+  sqr2 *= 1. - saturate(1. - mod(c.x, 2.) - mod(c.y, 2.));
+  n = max(n, sqr2);
 
   n = saturate(n);
   color = vec3(n);
-  // color = mix(#79B082, #E3FFE7, n);
 
   return color;
 }
@@ -1252,7 +1249,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   /* vec3 color = vec3(0); */
   /*  */
