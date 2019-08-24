@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1209,10 +1209,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  q *= rotMat2(0.5 * PI * norT);
+  // q *= rotMat2(0.5 * PI * norT);
 
-  float size = 0.1 * (1. + generalT);
-  float r = size * 0.25 / (1. + generalT);
+  float size = 0.065; //  * (1. + generalT);
+  float r = size * 0.200; // / (1. + generalT);
 
   vec2 space = q;
   // Shape
@@ -1221,21 +1221,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = pMod2(space, vec2(size));
 
   // Primary square
-  vec2 absQ = abs(space);
-  n = 1. - step(0., max(absQ.x, absQ.y) - r);
+  // vec2 absQ = abs(space);
+  // n = 1. - step(0., max(absQ.x, absQ.y) - r);
 
   space = q;
   c = pMod2(space, vec2(0.5 * size));
 
-  float t = mod(saturate(generalT - length(0.02 * c)), 1.);
+  float t = mod(saturate(generalT - length(0.01 * c) - 0.03 * cnoise2( 0.23423 * c)), 1.);
   t = saturate(t);
 
   // Secondary squares
-  float secondaryScale = smoothstep(0.4, 0.9, t);
+  float secondaryScale = smoothstep(0.15, 0.4, t) * smoothstep(0.85, 0.6, t);
   vec2 dir = vec2(1, 0) * rotMat2(0.25 * PI * dot(c, vec2(2, 3)));
-  absQ = abs(space + dir * 0.25 * size * (1. - secondaryScale));
+  vec2 absQ = abs(space + dir * 0.25 * size * (1. - secondaryScale));
   float sqr2 = 1. - step(0., max(absQ.x, absQ.y) - r * secondaryScale);
-  sqr2 *= 1. - saturate(1. - mod(c.x, 2.) - mod(c.y, 2.));
+  // sqr2 *= 1. - saturate(1. - mod(c.x, 2.) - mod(c.y, 2.));
+
+  // Mask
+  vec2 absC = abs(c);
+  sqr2 *= 1. - step(0., max(absC.x, absC.y) - 15.);
+
   n = max(n, sqr2);
 
   n = saturate(n);
