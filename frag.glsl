@@ -634,23 +634,25 @@ vec3 map (in vec3 p, in float dT) {
   float warpScale = 0.125;
 
   // float spin = PI * smoothstep(0., 1., sin(cosT + 2. * q.y));
-  float spin = cosT + 8. * q.y;
+  float spin = PI * sin(cosT + 0.85 * sin(cosT + 4. * q.y));
   q *= rotationMatrix(vec3(0, 1, 0), spin);
 
-  q += warpScale * 0.1000 * cos( 7. * q.yzx + cosT );
-  q += warpScale * 0.0500 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.0250 * cos(17. * q.yzx + cosT );
-  q += warpScale * 0.0125 * cos(23. * q.yzx + cosT );
+  q += warpScale * 0.100000 * cos( 7. * q.yzx + cosT );
+  q += warpScale * 0.050000 * cos(23. * q.yzx + cosT );
+  q += warpScale * 0.025000 * cos(37. * q.yzx + cosT );
+  q += warpScale * 0.012500 * cos(43. * q.yzx + cosT );
 
   float t = mod(dT, 1.);
 
-  const float size = 0.2;
+  const float size = 0.2125;
 
   mPos = q;
-  vec3 o = vec3(dodecahedral(q, 52., size), 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., size), 0, 0);
   d = dMin(d, o);
 
   d.x += 0.00125 * cellular(17. * q);
+
+  d.x *= 0.8;
 
   return d;
 }
@@ -838,7 +840,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
   dI += 0.3 * cnoise3(4. * pos);
   dI += 0.6 * pow(dot(nor, -rd), 2.);
 
-  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  dI *= 0.5;
+
+  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.5));
 
   return color;
 }
@@ -960,7 +964,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * reflection(pos, reflectionRd);
+      reflectColor += 0.30 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
