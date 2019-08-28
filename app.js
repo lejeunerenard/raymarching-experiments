@@ -56,7 +56,7 @@ export default class App {
     preset.cameraAngles = [-1.797, 0.937, 1.608]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 1.25, 2.25)
+    this.cameraRo = vec3.fromValues(0, 0, 3)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters

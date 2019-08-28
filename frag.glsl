@@ -633,29 +633,19 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  float warpScale = 0.1;
-  const float innerR = 0.2;
+  float warpScale = 0.4;
 
-  q *= rotationMatrix(vec3(1, 1, 1), 0.1 * cos(cosT));
-  q *= rotationMatrix(vec3(0, 0, 1), PI * 0.2 + 0.175 * cos(cosT));
-
-  vec3 tQ = q;
-  tQ += warpScale * 0.1000 * cos( 11. * q.yzx + cosT );
-  tQ += warpScale * 0.0500 * cos( 21. * q.yzx + cosT );
-  tQ += warpScale * 0.0250 * cos( 41. * q.yzx + cosT );
-
-  mPos = tQ;
-  vec3 o = vec3(sdTorus(tQ, vec2(0.6, innerR)), 0, 0);
-  d = dMin(d, o);
-
-  d.x += 0.00125 * cellular(17. * tQ);
+  q += warpScale * 0.100000 * cos( 7. * q.yzx + cosT );
+  q.xzy = twist(q, 4. * q.y);
+  q += warpScale * 0.050000 * cos(17. * q.yzx + cosT );
+  q += warpScale * 0.025000 * cos(23. * q.yzx + cosT );
+  q += warpScale * 0.012500 * cos(37. * q.yzx + cosT );
+  q += warpScale * 0.006250 * cos(47. * q.yzx + cosT );
 
   // Objects
-  vec3 objQ = q - vec3(0, 0.9 * (-1.0 + 2.0 * expo(0.5 + 0.5 * sin(cosT))), 0);
-  vec3 s = vec3(length(objQ) - innerR, 0, 0);
-  s.x = mix(s.x, sdBox(objQ, vec3(innerR)), smoothstep(0.4875, 0.5125, norT) * smoothstep(1.0, 0.9875, norT));
+  vec3 s = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), 0.5), 0, 0);
 
-  s.x += 0.00125 * cellular(17. * objQ);
+  s.x += 0.00125 * cellular(17. * q);
   d = dMin(d, s);
 
   // d.x *= 0.8;
@@ -848,7 +838,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
 
   dI *= 0.5;
 
-  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.5));
+  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.56));
 
   color.r = pow(color.r, 0.5);
 
