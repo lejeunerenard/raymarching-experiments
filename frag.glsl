@@ -643,7 +643,7 @@ vec3 map (in vec3 p, in float dT) {
   q += warpScale * 0.006250 * cos(47. * q.yzx + cosT );
 
   // Objects
-  vec3 s = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), 0.5), 0, 0);
+  vec3 s = vec3(length(q) - 0.8, 0, 0);
 
   s.x += 0.00125 * cellular(17. * q);
   d = dMin(d, s);
@@ -836,9 +836,9 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
   dI += 0.3 * cnoise3(4. * pos);
   dI += 0.6 * pow(dot(nor, -rd), 2.);
 
-  dI *= 0.5;
+  dI *= 0.40;
 
-  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.56));
+  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.76));
 
   color.r = pow(color.r, 0.5);
 
