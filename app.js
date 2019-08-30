@@ -56,11 +56,11 @@ export default class App {
     preset.cameraAngles = [-1.797, 0.937, 1.608]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.25)
+    this.cameraRo = vec3.fromValues(1.1, 1.1, 1.1)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.01
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -74,7 +74,7 @@ export default class App {
     this.angle2C = 1
     this.angle3C = 0.8
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -152,12 +152,20 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .delay(3 * 1000)
-      .to({ x: 0.7, y: 0.7, z: 0.7 }, 12 * 1000)
+      .delay(0 * 1000)
+      .to({ x: self.cameraRo[0], y: -0.9, z: self.cameraRo[2] }, 4 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
-    // cameraPosTween.chain(cameraPosTween2)
+    let cameraPosTween2 = new TWEEN.Tween(ob)
+    cameraPosTween2
+      .delay(0 * 1000)
+      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 2 * 1000)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .onUpdate(updatePos)
+
+    cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween2.chain(cameraPosTween)
     cameraPosTween.start(0)
 
     // Camera rotation

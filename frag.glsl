@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -629,26 +629,73 @@ float getLayer (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  vec3 q = p;
+  vec3 q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * smoothstep(0.72, 0.95, norT));
 
   float t = mod(dT, 1.);
 
-  float warpScale = 0.4;
+  const float tDeltaCo = 0.0075;
+  const float baseR = 0.3;
 
-  q += warpScale * 0.100000 * cos( 7. * q.yzx + cosT );
-  q.xzy = twist(q, 4. * q.y);
-  q += warpScale * 0.050000 * cos(17. * q.yzx + cosT );
-  q += warpScale * 0.025000 * cos(23. * q.yzx + cosT );
-  q += warpScale * 0.012500 * cos(37. * q.yzx + cosT );
-  q += warpScale * 0.006250 * cos(47. * q.yzx + cosT );
-
+  float mI = 0.;
   // Objects
-  vec3 s = vec3(length(q) - 0.8, 0, 0);
-
-  s.x += 0.00125 * cellular(17. * q);
+  float r = baseR;
+  vec3 localQ = q;
+  vec3 s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  // s.x += 0.00125 * cellular(17. * localQ);
+  float inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
   d = dMin(d, s);
+  mI++;
 
-  // d.x *= 0.8;
+  r *= 0.7;
+  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
+  localQ = q - vec3(0.7, 0, 0);
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  // s.x += 0.00125 * cellular(17. * localQ);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r *= 0.7;
+  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
+  localQ = q + vec3(0.0, 0.8, 0);
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  // s.x += 0.00125 * cellular(17. * localQ);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.7;
+  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
+  localQ = q - vec3(-0.4, 0.6, 0);
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  // s.x += 0.00125 * cellular(17. * localQ);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.4;
+  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
+  localQ = q - vec3(0.4, 0.5, 0);
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  // s.x += 0.00125 * cellular(17. * localQ);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.4;
+  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
+  localQ = q - vec3(-0.6, -0.5, 0);
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  // s.x += 0.00125 * cellular(17. * localQ);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
 
   return d;
 }
@@ -832,15 +879,15 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
   vec3 color = vec3(0);
 
   vec3 dI = vec3(dot(nor, -rd));
-  dI += 0.75 * pos;
-  dI += 0.3 * cnoise3(4. * pos);
+  dI += 0.5 * pos;
+  dI += 0.3 * cnoise3(2. * pos);
   dI += 0.6 * pow(dot(nor, -rd), 2.);
 
-  dI *= 0.40;
+  dI *= 0.80;
 
-  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.76));
+  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.76 + trap * 0.13523));
 
-  color.r = pow(color.r, 0.5);
+  // color.r = pow(color.r, 0.5);
 
   return color;
 }
@@ -927,7 +974,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.925;;
+        float shadowMin = 0.9;;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -962,7 +1009,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -972,7 +1019,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.50;
+      dispersionColor *= 0.25;
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
