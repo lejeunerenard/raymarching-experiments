@@ -629,69 +629,128 @@ float getLayer (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  vec3 q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * smoothstep(0.72, 0.95, norT));
+  vec3 q = p; //  * rotationMatrix(vec3(0, 1, 0), TWO_PI * smoothstep(0.72, 0.95, norT));
 
   float t = mod(dT, 1.);
 
   const float tDeltaCo = 0.0075;
-  const float baseR = 0.3;
+  const float baseR = 0.275;
+  const float bobAmount = 0.1;
 
   float mI = 0.;
   // Objects
   float r = baseR;
   vec3 localQ = q;
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
   vec3 s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  // s.x += 0.00125 * cellular(17. * localQ);
   float inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
   s.x = max(s.x, -inner);
   d = dMin(d, s);
   mI++;
 
   r *= 0.7;
-  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
   localQ = q - vec3(0.7, 0, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
   s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  // s.x += 0.00125 * cellular(17. * localQ);
   inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
   s.x = max(s.x, -inner);
   d = dMin(d, s);
   mI++;
 
   r *= 0.7;
-  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
   localQ = q + vec3(0.0, 0.8, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
   s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  // s.x += 0.00125 * cellular(17. * localQ);
   inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
   s.x = max(s.x, -inner);
   d = dMin(d, s);
   mI++;
 
   r = baseR * 0.7;
-  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
   localQ = q - vec3(-0.4, 0.6, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
   s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  // s.x += 0.00125 * cellular(17. * localQ);
   inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
   s.x = max(s.x, -inner);
   d = dMin(d, s);
   mI++;
 
   r = baseR * 0.4;
-  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
   localQ = q - vec3(0.4, 0.5, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
   s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  // s.x += 0.00125 * cellular(17. * localQ);
   inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
   s.x = max(s.x, -inner);
   d = dMin(d, s);
   mI++;
 
   r = baseR * 0.4;
-  q = p * rotationMatrix(vec3(0, 1, 0), TWO_PI * sine(smoothstep(0.72, 0.95, mod(norT + mI * tDeltaCo, 1.))));
   localQ = q - vec3(-0.6, -0.5, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
   s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  // s.x += 0.00125 * cellular(17. * localQ);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.3;
+  localQ = q - vec3(-0.8, 0.0, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.7;
+  localQ = q - vec3( 0.8, 0.6, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.5;
+  localQ = q - vec3( 0.0, 1.0, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.3;
+  localQ = q - vec3( 0.3,-1.0, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.45;
+  localQ = q - vec3(-0.5,-0.9, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.35;
+  localQ = q - vec3( 0.4, 1.0, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
+  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
+  s.x = max(s.x, -inner);
+  d = dMin(d, s);
+  mI++;
+
+  r = baseR * 0.55;
+  localQ = q - vec3(-0.95,-0.45, 0);
+  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
+  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
   inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
   s.x = max(s.x, -inner);
   d = dMin(d, s);
@@ -885,7 +944,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
 
   dI *= 0.80;
 
-  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.76 + trap * 0.13523));
+  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.2 + trap * 0.13523));
 
   // color.r = pow(color.r, 0.5);
 
