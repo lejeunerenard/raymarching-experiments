@@ -633,128 +633,20 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  const float tDeltaCo = 0.0075;
-  const float baseR = 0.275;
-  const float bobAmount = 0.1;
+  const float warpScale = 0.8;
+  const float r = 0.675;
 
-  float mI = 0.;
-  // Objects
-  float r = baseR;
-  vec3 localQ = q;
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  vec3 s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  float inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
+  q += warpScale * 0.100000 * cos( 4. * q.yzx + cosT + length(p));
+  q += warpScale * 0.075000 * cos(13. * q.yzx + cosT + length(p));
+  q += warpScale * 0.056250 * cos(23. * q.yzx + cosT + length(p));
+  q += warpScale * 0.009375 * cos(31. * q.yzx + cosT + length(p));
+  q += warpScale * 0.006250 * cos(47. * q.yzx + cosT + length(p));
 
-  r *= 0.7;
-  localQ = q - vec3(0.7, 0, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
+  mPos = q;
+  vec3 o = vec3(length(q) - r, 0, 0);
+  d = dMin(o, d);
 
-  r *= 0.7;
-  localQ = q + vec3(0.0, 0.8, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.7;
-  localQ = q - vec3(-0.4, 0.6, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.4;
-  localQ = q - vec3(0.4, 0.5, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.4;
-  localQ = q - vec3(-0.6, -0.5, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.3;
-  localQ = q - vec3(-0.8, 0.0, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.7;
-  localQ = q - vec3( 0.8, 0.6, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.5;
-  localQ = q - vec3( 0.0, 1.0, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.3;
-  localQ = q - vec3( 0.3,-1.0, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.45;
-  localQ = q - vec3(-0.5,-0.9, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.35;
-  localQ = q - vec3( 0.4, 1.0, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
-
-  r = baseR * 0.55;
-  localQ = q - vec3(-0.95,-0.45, 0);
-  localQ.y += r * bobAmount * cos( TWO_PI * (norT + mI * 0.123523) );
-  s = vec3(sdBox(localQ, vec3(r)), 0, mI);
-  inner = sdBox(localQ, vec3(r * 0.8, r * 0.8, 2.));
-  s.x = max(s.x, -inner);
-  d = dMin(d, s);
-  mI++;
+  d.x *= 0.5;
 
   return d;
 }
@@ -935,18 +827,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(background);
 
-  vec3 dI = vec3(dot(nor, -rd));
-  dI += 0.5 * pos;
-  dI += 0.3 * cnoise3(2. * pos);
-  dI += 0.6 * pow(dot(nor, -rd), 2.);
+  vec2 pol = vec2(
+      atan(mPos.z, mPos.x),
+      PI * mPos.y);
 
-  dI *= 0.80;
+  const float size = 0.065;
+  vec2 c = floor((pol + size*0.5)/size);
 
-  color = 0.6 + 0.4 * cos(TWO_PI * (dI + vec3(0, 0.40, 0.50) + 0.2 + trap * 0.13523));
-
-  // color.r = pow(color.r, 0.5);
+  color = mix(color, vec3(1), mod(dot(c, vec2(1)), 2.));
 
   return color;
 }
@@ -1066,34 +956,34 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.25 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += textures(refractionRd);
       // color += refractColor;
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.25;
-      color += saturate(dispersionColor);
+      // dispersionColor *= 0.25;
+      // color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
+      color = diffuseColor;
+
       // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
-      // color *= exp(-d * 0.025);
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
+      color *= exp(-d * 0.025);
 
       // color += directLighting * exp(-d * 0.0005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
-
-      // color = diffuseColor;
 
       // Debugging
       #ifdef debugMapCalls
