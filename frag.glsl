@@ -634,19 +634,19 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT, 1.);
 
   const float warpScale = 0.8;
-  const float r = 0.675;
+  const float r = 0.85;
 
-  q += warpScale * 0.100000 * cos( 4. * q.yzx + cosT + length(p));
-  q += warpScale * 0.075000 * cos(13. * q.yzx + cosT + length(p));
-  q += warpScale * 0.056250 * cos(23. * q.yzx + cosT + length(p));
-  q += warpScale * 0.009375 * cos(31. * q.yzx + cosT + length(p));
-  q += warpScale * 0.006250 * cos(47. * q.yzx + cosT + length(p));
+  q += warpScale * 0.100000 * cos(vec3( 7., 11, 13) * q.yzx + cosT);
+  q += warpScale * 0.075000 * cos(vec3(13., 17, 19) * q.yzx + cosT);
+  q += warpScale * 0.056250 * cos(vec3(23., 29, 31) * q.yzx + cosT);
+  q += warpScale * 0.009375 * cos(vec3(31., 37, 41) * q.yzx + cosT);
+  q += warpScale * 0.006250 * cos(vec3(47., 53, 57) * q.yzx + cosT);
 
   mPos = q;
   vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(o, d);
 
-  d.x *= 0.5;
+  d.x *= 0.1;
 
   return d;
 }
@@ -833,10 +833,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
       atan(mPos.z, mPos.x),
       PI * mPos.y);
 
-  const float size = 0.065;
-  vec2 c = floor((pol + size*0.5)/size);
-
-  color = mix(color, vec3(1), mod(dot(c, vec2(1)), 2.));
+  color = mix(color, vec3(1), smoothstep(0., edge, sin(PI * pow(dot(mPos, vec3(10)), 1.3))));
 
   return color;
 }
