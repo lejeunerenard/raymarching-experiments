@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'ruffles-render1',
+    name: 'lost-in-the-flow-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
