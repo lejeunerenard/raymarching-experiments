@@ -633,10 +633,10 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT, 1.);
 
-  const float warpScale = 0.8;
-  const float r = 0.85;
+  const float warpScale = 0.5;
+  const float r = 0.80;
 
-  q += warpScale * 0.100000 * cos(vec3( 7., 11, 13) * q.yzx + cosT);
+  q += warpScale * 0.100000 * cos(vec3( 5.,  7, 11) * q.yzx + cosT);
   q += warpScale * 0.075000 * cos(vec3(13., 17, 19) * q.yzx + cosT);
   q += warpScale * 0.056250 * cos(vec3(23., 29, 31) * q.yzx + cosT);
   q += warpScale * 0.009375 * cos(vec3(31., 37, 41) * q.yzx + cosT);
@@ -646,7 +646,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(o, d);
 
-  d.x *= 0.1;
+  d.x *= 0.75;
 
   return d;
 }
@@ -726,23 +726,23 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 
 const float n1 = 1.0;
 const float n2 = 1.50;
-const float amount = 0.35;
+const float amount = 0.3;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.0;
 
-  vec3 spaceScaling = 1.0 * vec3(0.734, 1.14, 0.2);
-  float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.0, 0.80, n);
+  /* vec3 spaceScaling = 1.0 * vec3(0.734, 1.14, 0.2); */
+  /* float n = ncnoise3(spaceScaling * rd + startPoint); */
+  /* n = smoothstep(0.0, 0.80, n); */
 
-  // vec3 spaceScaling = vec3(2.8);
-  // float n = vfbmWarp(spaceScaling * rd + startPoint);
-  // n = smoothstep(0.525, 0.80, n);
+  vec3 spaceScaling = vec3(2.8);
+  float n = vfbmWarp(spaceScaling * rd + startPoint);
+  n = smoothstep(0.525, 0.80, n);
 
   /* vec3 spaceScaling = vec3(0.8); */
   /* float n = vfbm4(spaceScaling * rd + startPoint); */
@@ -827,13 +827,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0.);
 
-  vec2 pol = vec2(
-      atan(mPos.z, mPos.x),
-      PI * mPos.y);
+  float n = pow(1. - dot(nor, -rd), 9.);
+  vec3 dI = vec3(pow(dot(nor, -rd), 0.3));
 
-  color = mix(color, vec3(1), smoothstep(0., edge, sin(PI * pow(dot(mPos, vec3(10)), 1.3))));
+  dI += pow(dot(nor, -rd), 2.);
+
+  color += 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67)  + 0.6) );
+  color *= smoothstep(0., edge, n);
 
   return color;
 }
@@ -964,13 +966,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.25;
-      // color += saturate(dispersionColor);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 1.25 * (1. - dot(nor, -rayDirection));
+      color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       float d = max(0.0, t.x);
@@ -1231,34 +1233,35 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  /* return vec4(two_dimensional(uv, cosT), 1); */
+  /*  */
+  /* vec3 color = vec3(0); */
+  /*  */
+  /* float totalT = 0.5 * PI; */
+  /* const int hues = 8; */
+  /* for (int i = 0; i < hues; i++) { */
+  /*   float fraction = float(i) / float(hues); */
+  /*   vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3; */
+  /*   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67) + 0.2)); */
+  /*   // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1)); */
+  /*   float a = two_dimensional(uv, (cosT + totalT * fraction)).x; */
+  /*   // float layerT = norT + totalT * fraction; */
+  /*   // vec4 t = march(ro, rd, layerT); */
+  /*   // float a = shade(ro, rd, t, uv, layerT).x; */
+  /*   // color *= mix(vec3(1), layerColor, a); */
+  /*   color += layerColor * a; */
+  /* } */
+  /*  */
+  /* color *= 0.83; */
+  /* // color = pow(color, vec3(1.20)); */
+  /* return vec4(color, 1); */
 
-  vec3 color = vec3(0);
+  vec4 color = vec4(0);
+  float time = norT;
+  vec4 t = march(ro, rd, time);
+  vec4 layer = shade(ro, rd, t, uv, time);
+  return layer;
 
-  float totalT = 0.5 * PI;
-  const int hues = 8;
-  for (int i = 0; i < hues; i++) {
-    float fraction = float(i) / float(hues);
-    vec3 colorI = vec3(fraction) + vec3(0.75 * uv, 0) + 0.2 * cnoise2(0.3 * uv) + 0.2 * uv.y + 0.3;
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67) + 0.2));
-    // vec3 layerColor = hsv(vec3(-colorI.x, 1, 1));
-    float a = two_dimensional(uv, (cosT + totalT * fraction)).x;
-    // float layerT = norT + totalT * fraction;
-    // vec4 t = march(ro, rd, layerT);
-    // float a = shade(ro, rd, t, uv, layerT).x;
-    // color *= mix(vec3(1), layerColor, a);
-    color += layerColor * a;
-  }
-
-  color *= 0.83;
-  // color = pow(color, vec3(1.20));
-  return vec4(color, 1);
-
-  /* vec4 color = vec4(0); */
-  /* float time = norT; */
-  /* vec4 t = march(ro, rd, time); */
-  /* vec4 layer = shade(ro, rd, t, uv, time); */
-  /* return layer; */
   /* color += layer.w * vec4(1, 0, 0, 1) * layer.x; */
   /* // color += layer; */
   /*  */
