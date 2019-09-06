@@ -835,7 +835,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
   dI += pow(dot(nor, -rd), 2.);
 
   color += 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67)  + 0.6) );
-  color *= smoothstep(0., edge, n);
+  // color *= smoothstep(0., edge, n);
 
   return color;
 }
@@ -966,9 +966,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 1.25 * (1. - dot(nor, -rayDirection));
-      color += saturate(dispersionColor);
+      /* vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1); */
+      /* dispersionColor *= 1.25 * (1. - dot(nor, -rayDirection)); */
+      /* color += saturate(dispersionColor); */
       // color = mix(color, dispersionColor, interior);
       // color = pow(color, vec3(1.1));
 
@@ -1206,13 +1206,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float size = 0.06;
 
-  float cY = floor((q.y + size*0.5)/size);
-  vec2 yOff = vec2(mod(cY, 2.) * 0.5 * size, 0);
-  vec2 c = floor((q + yOff + size*0.5)/size);
-  q = mod(q + yOff + size*0.5,size) - size*0.5;
+  vec2 c = floor((q + size*0.5)/size);
+
+  vec2 xOff = vec2(mod(c.y, 2.) * 0.5 * size, 0);
+  vec2 yOff = vec2(0, 0.20 * size * (0.5 + 0.5 * cos(generalT + dot(c, vec2(0.1, 0.4)))));
+  vec2 off = xOff + yOff;
+
+  c = floor((q + off + size*0.5)/size);
+  q = mod(q + off + size*0.5,size) - size*0.5;
 
   vec2 absQ = abs(vec2(1, 1) * q);
-  float r = size * 0.25;
+  float r = size * 0.20 * (-0.1 + 1.1 * smoothstep(0.2, 1.0, 0.5 + 0.5 * cos(generalT + dot(c, 0.1 * vec2(1.0, 0.5)))));
   float nSqr = max(absQ.x, absQ.y) - r;
   float nCir = length(q) - 1.3 * r;
   float n = mix(nSqr, nCir, smoothstep(0.1, 0.9, 0.5 + 0.5 * cos(generalT - 0.3 * length(c))));
@@ -1233,7 +1237,8 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  /* return vec4(two_dimensional(uv, cosT), 1); */
+  return vec4(two_dimensional(uv, cosT), 1);
+
   /*  */
   /* vec3 color = vec3(0); */
   /*  */
