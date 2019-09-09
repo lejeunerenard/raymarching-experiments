@@ -636,19 +636,23 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 0.5;
   const float r = 0.40;
 
-  z.xyz += warpScale * 0.1000 * cos(2. * z.yzw + cosT);
+  z.xyzw += warpScale * 0.10000 * cos( 7. * z.yzwx + cosT);
   z.zwx *= rotationMatrix(vec3(1, 1, 1), cosT +  1. * z.y);
-  z.xyz = abs(z.xyz);
-  z.yzw += warpScale * 0.0500 * cos(5. * z.zwx + cosT);
+  z.xzy = twist(z.xyz, 2. * z.y + cosT);
+  z.yzwx += warpScale * 0.05000 * cos(13. * z.zwxy + cosT);
   z.xyz *= rotationMatrix(vec3(1, 1, 1), cosT +  1. * z.w);
-  z.zwx += warpScale * 0.0250 * cos(7. * z.wxy + cosT);
+  z.ywz = twist(z.yzw, 2. * z.z + cosT);
+  z.zwxy += warpScale * 0.02500 * cos(19. * z.wxyz + cosT);
   z.yzw *= rotationMatrix(vec3(1, 1, 1), cosT +  1. * z.x);
+  z.wxyz += warpScale * 0.01250 * cos(27. * z.xyzw + cosT);
+  z.zwx *= rotationMatrix(vec3(1, 1, 1), cosT +  1. * z.z);
 
   mPos = z.xyz;
   vec3 o = vec3(sdBox(z, vec4(r)), 0, 0);
+  // vec3 o = vec3(length(z) - r, 0, 0);
   d = dMin(o, d);
 
-  d.x *= 0.95;
+  d.x *= 0.6;
 
   return d;
 }
@@ -839,7 +843,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
 
   dI *= 0.25;
 
-  color += 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) + 0.0 ) );
+  color += 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) + 0.2 ) );
 
   return color;
 }
@@ -892,13 +896,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.0005 * t.x, generalT);
-      // float bumpsScale = 7.75;
-      // float bumpIntensity = 0.1;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 7.75;
+      float bumpIntensity = 0.3;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -914,7 +918,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.6;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
@@ -961,7 +965,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      reflectColor += 0.30 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -970,17 +974,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.5;
-      // color += saturate(dispersionColor);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.125;
+      color += saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
 
       // color = diffuseColor;
 
       // Fog
-      /* float d = max(0.0, t.x); */
-      /* color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance)); */
-      /* color *= exp(-d * 0.025); */
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
+      color *= exp(-d * 0.025);
 
       // color += directLighting * exp(-d * 0.0005);
 
