@@ -84,7 +84,7 @@ void main() {
   // colorMap(gl_FragColor.rgb);
   // gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.6);
 
-  gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.1));
+  // gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.1));
 
   // Gamma encode
   // gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
