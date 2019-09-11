@@ -1194,37 +1194,77 @@ float petal (in vec2 q, in float r) {
   return min(s1, s2);
 }
 
-vec3 two_dimensional (in vec2 uv, in float generalT) {
+vec4 fraiserWilcoxDisk (in vec2 uv, in float size) {
   vec3 color = vec3(0);
+  const float rNumBands = 5.;
+  const float aNum = 30.;
 
-  vec2 q = uv;
+  // Polar coordinates
+  float a = atan(uv.y, uv.x);
+  float r = length(uv);
 
-  float size = 0.06;
+  float rStep = size / rNumBands;
+  float rIndex = floor(r / rStep);
+  float aStep = TWO_PI / aNum;
+  float luminanceTime = mod(a + aStep * 0.5 * rIndex, aStep) / aStep;
 
-  vec2 c = floor((q + size*0.5)/size);
+  // Get luminance index
+  float luminanceIndex =
+    smoothstep(0., edge, luminanceTime - 1. * 0.25) +
+    smoothstep(0., edge, luminanceTime - 2. * 0.25) +
+    smoothstep(0., edge, luminanceTime - 3. * 0.25);
 
-  vec2 xOff = vec2(mod(c.y, 2.) * 0.5 * size, 0);
-  vec2 yOff = vec2(0, 0.20 * size * (0.5 + 0.5 * cos(generalT + dot(c, vec2(0.1, 0.4)))));
-  vec2 off = xOff + yOff;
+  // Get target luminance value
+  float luminanceValue = mix(0., 42./100., smoothstep(-edge, 0., luminanceIndex - 1.));
+  luminanceValue = mix(luminanceValue, 1.0, smoothstep(-edge, 0., luminanceIndex - 2.));
+  luminanceValue = mix(luminanceValue, 80./100., smoothstep(-edge, 0., luminanceIndex - 3.));
 
-  c = floor((q + off + size*0.5)/size);
-  q = mod(q + off + size*0.5,size) - size*0.5;
+  // Get color
+  // Purple based
+  // color = mix(vec3(0), vec3(0.5, 0.35785794183445185, 0.8), step(-edge, luminanceValue - 42. / 100.));
+  // color = mix(color, vec3(0.7320790216368768, 0.8, 1), step(-edge, luminanceValue - 80. / 100.));
 
-  vec2 absQ = abs(vec2(1, 1) * q);
-  float r = size * 0.20 * (-0.1 + 1.1 * smoothstep(0.2, 1.0, 0.5 + 0.5 * cos(generalT + dot(c, 0.1 * vec2(1.0, 0.5)))));
-  float nSqr = max(absQ.x, absQ.y) - r;
-  float nCir = length(q) - 1.3 * r;
-  float n = mix(nSqr, nCir, smoothstep(0.1, 0.9, 0.5 + 0.5 * cos(generalT - 0.3 * length(c))));
+  // Red & Green
+  color = mix(vec3(0), vec3(1, 0.2798937360178971, 0.1), step(-edge, luminanceValue - 42. / 100.));
+  color = mix(color, vec3(0.599435559736595, 0.9, 0.4), step(-edge, luminanceValue - 80. / 100.));
 
-  n = smoothstep(edge, 0., n);
+  color = mix(color, vec3(1), step(-edge, luminanceValue - 1.));
 
-  // Crop
-  vec2 absC = abs(c);
-  n *= 1. - step(0., max(absC.x, absC.y) - 8.);
+  // Test colors
+  // color = vec3(luminanceIndex / 3.);
+  // color = vec3(luminanceValue);
 
-  color = mix(color, vec3(1), n);
+  float crop = length(uv) - size;
 
-  return color;
+  return vec4(color, 1. - step(0., crop));
+}
+
+vec3 two_dimensional (in vec2 uv, in float generalT) {
+  const float size = 0.25;
+  const float spread = size * 1.05;
+
+  // Top
+  vec4 layer1 = fraiserWilcoxDisk(uv - vec2(spread, spread * 1.0), size);
+  vec4 layer2 = fraiserWilcoxDisk(vec2(-1, 1) * uv - vec2(spread, spread * 1.0), size);
+
+  // Bottom
+  vec4 layer3 = fraiserWilcoxDisk(vec2( 1, 1) * uv - vec2(spread, -spread * 1.0), size);
+  vec4 layer4 = fraiserWilcoxDisk(vec2(-1, 1) * uv - vec2(spread, -spread * 1.0), size);
+
+  // Middle
+  vec4 layer5 = fraiserWilcoxDisk(vec2(1, 1) * uv - vec2(0, 0), size);
+
+  float backgroundAlpha = max(max(layer1.a, layer2.a), max(layer3.a, layer4.a));
+  backgroundAlpha = max(backgroundAlpha, layer5.a);
+
+  vec4 color = mix(layer5, layer1, layer1.a);
+  color = mix(color, layer2, layer2.a);
+  color = mix(color, layer3, layer3.a);
+  color = mix(color, layer4, layer4.a);
+
+  color.rgb = mix(background, color.rgb, backgroundAlpha);
+
+  return color.rgb;
 }
 
 vec3 two_dimensional (in vec2 uv) {
@@ -1232,7 +1272,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   /*  */
   /* vec3 color = vec3(0); */

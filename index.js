@@ -18,14 +18,14 @@ app.width = 1080
 app.height = 1620
 
 // window.time = 0.3
-const still = false
+const still = true
 
 let capturer = {}
 if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'peacemaker-not-render1',
+    name: 'peripheral-vision-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
