@@ -1060,209 +1060,57 @@ float myFBMWarp (in vec2 q) {
   return myFBMWarp(q, s, p, r);
 }
 
-vec3 gradient (in float i) {
-  const float inc = 0.2;
-  vec3 color = mix(#B35673, #FFF9AD, smoothstep(1. * inc, 1. * inc + edge, i));
-  color = mix(color, #FF95B7, smoothstep(2. * inc, 2. * inc + edge, i));
-  color = mix(color, #62B5CC, smoothstep(3. * inc, 3. * inc + edge, i));
-  color = mix(color, #5FA0B3, smoothstep(4. * inc, 4. * inc + edge, i));
-  return color;
-}
-
-const float sqrStartDist = 0.3;
-
-float triObject (in vec2 q, in float triI, in float triT, in float sqrR, in float zoom) {
-  const float triIRotAngle = TWO_PI * 0.125;
-  float triR = 0.27 * sqrR;
-
-  float isRight = floor(triI / 5.0);
-  float isLeft = 1. - isRight;
-  float squareI = mod(triI, 4.);
-
-  mat2 triRot1 = rotMat2(triIRotAngle * triI);
-
-  float transStart = 0.05 * (triI - 1.);
-  float transTime = smoothstep(transStart, transStart + 0.5, triT);
-  vec2 target =
-    (1. - transTime) * vec2(0, sqrR * 1.1400) * triRot1 // Octagon edge
-    + transTime * isLeft * (
-        isMaterialSmooth(squareI, 1.) * vec2(-zoom * sqrStartDist + triR, 0) // Square destination Right
-      + isMaterialSmooth(squareI, 2.) * vec2(-zoom * sqrStartDist,    -triR) // Square destination Bottom
-      + isMaterialSmooth(squareI, 3.) * vec2(-zoom * sqrStartDist - triR, 0) // Square destination Left
-      + isMaterialSmooth(squareI, 0.) * vec2(-zoom * sqrStartDist,     triR) // Square destination Up
-    )
-    + transTime * isRight * (
-        isMaterialSmooth(squareI, 1.) * vec2(zoom * sqrStartDist + triR, 0) // Square destination Right
-      + isMaterialSmooth(squareI, 2.) * vec2(zoom * sqrStartDist,    -triR) // Square destination Bottom
-      + isMaterialSmooth(squareI, 3.) * vec2(zoom * sqrStartDist - triR, 0) // Square destination Left
-      + isMaterialSmooth(squareI, 0.) * vec2(zoom * sqrStartDist,     triR) // Square destination Up
-    )
-    ;
-  vec2 triQ1 = q - target;
-
-  float targetAngle =
-    (1. - transTime)    * (-triIRotAngle * triI) // Octagon edge rotation
-  + isLeft  * transTime * PI * 0.5 * (
-       -1. * isMaterialSmooth(squareI, 1.)
-      + 0. * isMaterialSmooth(squareI, 2.)
-      + 1. * isMaterialSmooth(squareI, 3.)
-      + 2. * isMaterialSmooth(squareI, 0.)
-    )
-  + isRight * transTime * PI * 0.5 * (
-       -1. * isMaterialSmooth(squareI, 1.)
-      - 4. * isMaterialSmooth(squareI, 2.)
-      - 3. * isMaterialSmooth(squareI, 3.)
-      - 2. * isMaterialSmooth(squareI, 0.)
-    );
-  triQ1 *= rotMat2(targetAngle);
-
-  float t1 = max(abs(triQ1.x) * 0.5 + triQ1.y * 0.5, - triQ1.y) - triR * 0.5;
-  t1 = 1. - step(0., t1);
-  return t1;
-}
-
-float shape (in vec2 uv, in vec2 c, in float rotInc, in float generalT, in float rSize, in float size) {
-  float angle = (c.x + 0.5) * rotInc + 0.25 * rotInc * cos(cosT + 0.23 * length(c));
-  float posR = (c.y + 0.5) * rSize;
-  vec2 center = vec2(
-      posR * cos(angle),
-      posR * sin(angle));
-
-  vec2 q = uv - center;
-  float r = size * (0.125 + 0.075 * sin(generalT + 0.23 * length(c)));
-  return smoothstep(edge, 0., length(q) - r);
-}
-
-float angleOffset (in float qR, in float t) {
-  return 0.125 * PI * sin(t + 0.73 * PI * qR);
-}
-
-float angleOffset (in float qR) {
-  return angleOffset(qR, cosT);
-}
-
-vec2 getCenter (in vec2 q, in float size, in float aSize, in float t, in float qRAdjustment) {
-  float qR = (floor(length(q) / size) + 0.5) * size;
-
-  q *= rotMat2(angleOffset(qR, t * TWO_PI));
-
-  q = vec2(
-      atan(q.y, q.x),
-      length(q));
-
-  q.y += size * t;
-
-  qR = (floor(q.y / size) + 0.5) * size;
-  float qA = (floor(q.x / aSize) + 0.5) * aSize;
-  qA -= angleOffset(qR, t * TWO_PI);
-
-  qR += qRAdjustment;
-
-  return qR * vec2(cos(qA), sin(qA));
-}
-
-float fan ( in vec2 q, in float t ) {
-  t = saturate(t);
-  q *= 1. - 0.95 * t;
-
+vec3 weirdDots (in vec2 uv, in float size) {
   float n = 0.;
 
-  float r = 0.1;
-  const int num = 9;
-  const float fInvNum = 1. / float(num);
-  for (int i = 0; i < num; i++) {
-    float fI = float(i);
+  vec2 q = uv;
 
-    vec2 localQ = q;
-    localQ *= rotMat2(fI * TWO_PI * fInvNum);
-    localQ -= vec2(saturate(4. * (t - fI * 0.05)) * 0.5 * r, 0);
+  const float warpScale = 0.125;
+  q += warpScale * 0.100000 * cos( 5. * q.yx + 0.2);
+  q += warpScale * 0.050000 * cos(11. * q.yx + 0.2);
+  q += warpScale * 0.025000 * cos(17. * q.yx + 0.2);
 
-    float localN = length(localQ) - r;
-    localN = smoothstep(0.5 * edge, 0., localN);
-    n = mix(n, 1. - n, saturate(localN));
-    // n = max(n, localN);
-  }
+  vec2 c = pMod2(q, vec2(size));
 
-  return n;
-}
+  q += 0.5 * warpScale * 0.050000 * cos(33. * q.yx );
+  q += 0.5 * warpScale * 0.025000 * cos(53. * q.yx );
+  q += 0.5 * warpScale * 0.012500 * cos(73. * q.yx );
 
-float petal (in vec2 q, in float r) {
-  float dist = r * 0.945;
-  q.y += r * 0.65;
-  float s1 = smoothstep(edge, 0., length(q - vec2(dist, 0)) - r);
-  float s2 = smoothstep(edge, 0., length(q + vec2(dist, 0)) - r);
-  return min(s1, s2);
-}
+  float r = size * 0.2;
 
-vec4 fraiserWilcoxDisk (in vec2 uv, in float size) {
-  vec3 color = vec3(0);
-  const float rNumBands = 5.;
-  const float aNum = 30.;
+  n = length(q) - r;
+  n = smoothstep(edge, 0., n);
 
-  // Polar coordinates
-  float a = atan(uv.y, uv.x);
-  float r = length(uv);
-
-  float rStep = size / rNumBands;
-  float rIndex = floor(r / rStep);
-  float aStep = TWO_PI / aNum;
-  float luminanceTime = mod(a + aStep * 0.5 * rIndex, aStep) / aStep;
-
-  // Get luminance index
-  float luminanceIndex =
-    smoothstep(0., edge, luminanceTime - 1. * 0.25) +
-    smoothstep(0., edge, luminanceTime - 2. * 0.25) +
-    smoothstep(0., edge, luminanceTime - 3. * 0.25);
-
-  // Get target luminance value
-  float luminanceValue = mix(0., 42./100., smoothstep(-edge, 0., luminanceIndex - 1.));
-  luminanceValue = mix(luminanceValue, 1.0, smoothstep(-edge, 0., luminanceIndex - 2.));
-  luminanceValue = mix(luminanceValue, 80./100., smoothstep(-edge, 0., luminanceIndex - 3.));
-
-  // Get color
-  // Purple based
-  // color = mix(vec3(0), vec3(0.5, 0.35785794183445185, 0.8), step(-edge, luminanceValue - 42. / 100.));
-  // color = mix(color, vec3(0.7320790216368768, 0.8, 1), step(-edge, luminanceValue - 80. / 100.));
-
-  // Red & Green
-  color = mix(vec3(0), vec3(1, 0.2798937360178971, 0.1), step(-edge, luminanceValue - 42. / 100.));
-  color = mix(color, vec3(0.599435559736595, 0.9, 0.4), step(-edge, luminanceValue - 80. / 100.));
-
-  color = mix(color, vec3(1), step(-edge, luminanceValue - 1.));
-
-  // Test colors
-  // color = vec3(luminanceIndex / 3.);
-  // color = vec3(luminanceValue);
-
-  float crop = length(uv) - size;
-
-  return vec4(color, 1. - step(0., crop));
+  return vec3(n, c);
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  const float size = 0.25;
-  const float spread = size * 1.05;
+  vec3 color = vec3(background);
 
-  // Top
-  vec4 layer1 = fraiserWilcoxDisk(uv - vec2(spread, spread * 1.0), size);
-  vec4 layer2 = fraiserWilcoxDisk(vec2(-1, 1) * uv - vec2(spread, spread * 1.0), size);
+  const float size = 0.0725;
+  const float offset = size * 0.03;
 
-  // Bottom
-  vec4 layer3 = fraiserWilcoxDisk(vec2( 1, 1) * uv - vec2(spread, -spread * 1.0), size);
-  vec4 layer4 = fraiserWilcoxDisk(vec2(-1, 1) * uv - vec2(spread, -spread * 1.0), size);
+  // Color
+  vec3 o = weirdDots(uv, size);
+  vec2 c = o.yz;
+  float colorAlpha = o.x;
 
-  // Middle
-  vec4 layer5 = fraiserWilcoxDisk(vec2(1, 1) * uv - vec2(0, 0), size);
+  float swap = (1. - 2. * floor(mod(c.x, 6.0) / 3.));
 
-  float backgroundAlpha = max(max(layer1.a, layer2.a), max(layer3.a, layer4.a));
-  backgroundAlpha = max(backgroundAlpha, layer5.a);
+  // Shade
+  o = weirdDots(uv + swap * vec2(offset), size);
+  color = mix(color, vec3(0), o.x);
 
-  vec4 color = mix(layer5, layer1, layer1.a);
-  color = mix(color, layer2, layer2.a);
-  color = mix(color, layer3, layer3.a);
-  color = mix(color, layer4, layer4.a);
+  // Highlight
+  o = weirdDots(uv - swap * vec2(offset), size);
+  color = mix(color, vec3(1), o.x);
 
-  color.rgb = mix(background, color.rgb, backgroundAlpha);
+  float colorLayerI = saturate(0.5 + dot(uv, vec2(1)));
+  vec3 colorLayer = mix(0.8 * #006A95, 0.7 * #FF3095, colorLayerI);
+  color = mix(color, colorLayer, colorAlpha);
+
+  vec2 absC = abs(o.yz);
+  color = mix(color, background, smoothstep(0., edge, max(absC.x, absC.y) - 6.));
 
   return color.rgb;
 }
