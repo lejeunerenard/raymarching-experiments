@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 5.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1064,18 +1064,7 @@ vec3 weirdDots (in vec2 uv, in float size) {
   float n = 0.;
 
   vec2 q = uv;
-
-  const float warpScale = 0.125;
-  q += warpScale * 0.100000 * cos( 5. * q.yx + 0.2);
-  q += warpScale * 0.050000 * cos(11. * q.yx + 0.2);
-  q += warpScale * 0.025000 * cos(17. * q.yx + 0.2);
-
   vec2 c = pMod2(q, vec2(size));
-
-  q += 0.5 * warpScale * 0.050000 * cos(33. * q.yx );
-  q += 0.5 * warpScale * 0.025000 * cos(53. * q.yx );
-  q += 0.5 * warpScale * 0.012500 * cos(73. * q.yx );
-
   float r = size * 0.2;
 
   n = length(q) - r;
@@ -1087,30 +1076,33 @@ vec3 weirdDots (in vec2 uv, in float size) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  const float size = 0.0725;
-  const float offset = size * 0.03;
+  float size = angle3C;
+  float offset = size * angle1C;
 
   // Color
   vec3 o = weirdDots(uv, size);
   vec2 c = o.yz;
   float colorAlpha = o.x;
 
-  float swap = (1. - 2. * floor(mod(c.x, 6.0) / 3.));
+  float swapStep = 2.0;
+  float swap = floor(mod(length(c), 4. * swapStep) / swapStep);
+
+  vec2 offsetDir = vec2(offset) * rotMat2(TWO_PI * 0.25 * swap);
 
   // Shade
-  o = weirdDots(uv + swap * vec2(offset), size);
+  o = weirdDots(uv + offsetDir, size);
   color = mix(color, vec3(0), o.x);
 
   // Highlight
-  o = weirdDots(uv - swap * vec2(offset), size);
+  o = weirdDots(uv - offsetDir, size);
   color = mix(color, vec3(1), o.x);
 
   float colorLayerI = saturate(0.5 + dot(uv, vec2(1)));
-  vec3 colorLayer = mix(0.8 * #006A95, 0.7 * #FF3095, colorLayerI);
+  vec3 colorLayer = vec3(0.2 + 0.65 * abs(2. * norT - 1.)); // mix(0.8 * #006A95, 0.7 * #FF3095, colorLayerI);
   color = mix(color, colorLayer, colorAlpha);
 
   vec2 absC = abs(o.yz);
-  color = mix(color, background, smoothstep(0., edge, max(absC.x, absC.y) - 6.));
+  color = mix(color, background, smoothstep(0., edge, max(absC.x, absC.y) - 8.));
 
   return color.rgb;
 }
