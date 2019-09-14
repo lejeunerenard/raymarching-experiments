@@ -42,6 +42,6 @@ function getColorWFixedLuminance (red, green, blue, targetLuminance) {
 // console.log(getColorWFixedLuminance(0.5, null, 0.8, 42 / 100)) // 42
 // console.log(getColorWFixedLuminance(null, 0.8, 1.0, 80 / 100)) // 80
 
-console.log(getColorWFixedLuminance(1, null, 0.1, 42 / 100)) // 42
-console.log(getColorWFixedLuminance(null, 0.9, 0.4, 80 / 100)) // 80
-console.log(getLuminance([1, 0x6A / 255, 0x95 / 255]))
+console.log(getColorWFixedLuminance(0.1, null, 0.9, 0.5)) // 42
+// console.log(getColorWFixedLuminance(null, 0.9, 0.4, 80 / 100)) // 80
+console.log(getLuminance([0.65, 0.65, 0.65]))

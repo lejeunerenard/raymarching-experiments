@@ -1064,7 +1064,15 @@ vec3 weirdDots (in vec2 uv, in float size) {
   float n = 0.;
 
   vec2 q = uv;
-  vec2 c = pMod2(q, vec2(size));
+
+  vec2 c = floor((q + size*0.5)/size);
+
+  vec2 xOff = vec2(mod(c.y, 2.) * 0.5 * size, 0);
+  vec2 yOff = vec2(0, 0.20 * size);
+  vec2 off = xOff + yOff;
+
+  c = floor((q + off + size*0.5)/size);
+  q = mod(q + off + size*0.5,size) - size*0.5;
   float r = size * 0.2;
 
   n = length(q) - r;
@@ -1085,7 +1093,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float colorAlpha = o.x;
 
   float swapStep = 2.0;
-  float swap = floor(mod(length(c), 4. * swapStep) / swapStep);
+  float swap = floor(mod(dot(c, vec2(1)), 4. * swapStep) / swapStep);
 
   vec2 offsetDir = vec2(offset) * rotMat2(TWO_PI * 0.25 * swap);
 
@@ -1098,11 +1106,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   color = mix(color, vec3(1), o.x);
 
   float colorLayerI = saturate(0.5 + dot(uv, vec2(1)));
-  vec3 colorLayer = vec3(0.2 + 0.65 * abs(2. * norT - 1.)); // mix(0.8 * #006A95, 0.7 * #FF3095, colorLayerI);
+  vec3 colorLayer = vec3(0.2, 0.8392897091722596, 0.1) * (0.95 + 0.05 * cos(2. * cosT));
   color = mix(color, colorLayer, colorAlpha);
 
   vec2 absC = abs(o.yz);
-  color = mix(color, background, smoothstep(0., edge, max(absC.x, absC.y) - 8.));
+  color = mix(color, background, smoothstep(0., edge, max(absC.x, absC.y) - floor(angle2C * 8.)));
 
   return color.rgb;
 }
