@@ -41,7 +41,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 60.0
 #define fogMaxDistance 50.0
 
@@ -629,28 +629,39 @@ float getLayer (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  vec4 z = vec4(p, 0.2 * cos(cosT));
+  vec3 q = p;
+
+  q *= rotationMatrix(vec3(0.2, 1.,-0.9), cosT);
+  q *= rotationMatrix(vec3(-0.7, 0.3, 0.1), cosT);
 
   float t = mod(dT, 1.);
 
   const float warpScale = 0.5;
-  const float r = 0.40;
+  const float r = 0.45;
 
-  z.xyzw += warpScale * 0.10000 * cos( 7. * z.yzwx + cosT);
-  z.zwx *= rotationMatrix(vec3(1, 1, 1), cosT +  1. * z.y);
-  z.xzy = twist(z.xyz, 2. * z.y + cosT);
-  z.yzwx += warpScale * 0.05000 * cos(13. * z.zwxy + cosT);
-  z.ywz = twist(z.yzw, 3. * z.z + cosT);
-  z.zwxy += warpScale * 0.02500 * cos(19. * z.wxyz + cosT);
-  z.zxw = twist(z.zwx, 4. * z.z + cosT);
-  z.wxyz += warpScale * 0.01250 * cos(27. * z.xyzw + cosT);
+  mPos = q.xyz;
 
-  mPos = z.xyz;
-  vec3 o = vec3(sdBox(z, vec4(r)), 0, 0);
-  // vec3 o = vec3(length(z) - r, 0, 0);
+  q = mPos;
+  t = smoothstep(0.2, 0.6, norT);
+  q *= rotationMatrix(vec3(0, 1, 0), PI * sine(t));
+  vec3 o = vec3(sdBox(q - vec3(0, 2. * 0.30 * r, 0), vec3(r, 0.33 * r, r)), 0, 0);
   d = dMin(o, d);
 
-  d.x *= 0.4;
+  q = mPos;
+  t = smoothstep(0.4, 0.8, norT);
+  q *= rotationMatrix(vec3(0, 1, 0), PI * sine(t));
+  o = vec3(sdBox(q, vec3(r, 0.33 * r, r)), 0, 0);
+  d = dMin(o, d);
+
+  q = mPos;
+  t = smoothstep(0.6, 1.0, norT);
+  q *= rotationMatrix(vec3(0, 1, 0), PI * sine(t));
+  o = vec3(sdBox(q + vec3(0, 2. * 0.30 * r, 0), vec3(r, 0.33 * r, r)), 0, 0);
+  d = dMin(o, d);
+
+  d.x -= mix(0., 0.005, 0.5 + 0.5 * cos(cosT + dot(q, vec3(1)))) * cellular(3. * q.yzx);
+
+  // d.x *= 0.4;
 
   return d;
 }
@@ -735,18 +746,18 @@ const float amount = 0.3;
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float spread = saturate(1.0 - 1.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.0;
 
-  /* vec3 spaceScaling = 1.0 * vec3(0.734, 1.14, 0.2); */
-  /* float n = ncnoise3(spaceScaling * rd + startPoint); */
-  /* n = smoothstep(0.0, 0.80, n); */
+  vec3 spaceScaling = 0.3 * vec3(0.734, 1.14, 0.2);
+  float n = ncnoise3(spaceScaling * rd + startPoint);
+  n = smoothstep(0.0, 0.80, n);
 
-  vec3 spaceScaling = vec3(0.8);
-  float n = vfbmWarp(spaceScaling * rd + startPoint);
-  n = smoothstep(0.525, 0.80, n);
+  /* vec3 spaceScaling = vec3(0.8); */
+  /* float n = vfbmWarp(spaceScaling * rd + startPoint); */
+  /* n = smoothstep(0.525, 0.80, n); */
 
   /* vec3 spaceScaling = vec3(0.8); */
   /* float n = vfbm4(spaceScaling * rd + startPoint); */
@@ -831,7 +842,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.9);
+  vec3 color = vec3(0.1);
+
+  vec3 dF = vec3(1.0 * cnoise3(pos));
+  dF += vec3(0.3 * cnoise3(pos + dF));
+  dF += 0.2 * pos;
+  dF += 0.2 * pow(dot(nor, -rd), 4.);
+
+  dF *= 0.34;
+  dF += 0.1 * cos(cosT);
+
+  color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
+
+  color *= 0.5;
 
   return color;
 }
@@ -884,13 +907,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.0005 * t.x, generalT);
-      float bumpsScale = 7.75;
-      float bumpIntensity = 0.3;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 7.75;
+      // float bumpIntensity = 0.3;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -961,10 +984,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* refractColor += 0.05 * textures(refractionRd); */
       /* color += refractColor; */
 
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       // dispersionColor *= 0.125;
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
 
       // color = diffuseColor;
@@ -1120,7 +1143,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
   /*  */
   /* vec3 color = vec3(0); */
