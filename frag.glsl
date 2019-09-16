@@ -55,7 +55,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 5.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -499,6 +499,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
 #pragma glslify: bounceIn = require(glsl-easings/bounce-in)
 #pragma glslify: bounceOut = require(glsl-easings/bounce-out)
+#pragma glslify: bounce= require(glsl-easings/bounce-in-out)
 #pragma glslify: cubic = require(glsl-easings/cubic-in-out)
 #pragma glslify: cubicOut = require(glsl-easings/cubic-out)
 #pragma glslify: cubicIn = require(glsl-easings/cubic-in)
@@ -634,34 +635,24 @@ vec3 map (in vec3 p, in float dT) {
   q *= rotationMatrix(vec3(0.2, 1.,-0.9), cosT);
   q *= rotationMatrix(vec3(-0.7, 0.3, 0.1), cosT);
 
-  float t = mod(dT, 1.);
+  float t = mod(norT, 1.);
 
   const float warpScale = 0.5;
   const float r = 0.45;
 
+  q *= rotationMatrix(vec3(0, 1, 0), PI * bounceOut(smoothstep(0.4, 0.6, mod(t + 0.1 * q.y, 1.))));
   mPos = q.xyz;
+  float b = sdBox(q, vec3(r));
+  vec3 o = vec3(b, 0, 0);
 
-  q = mPos;
-  t = smoothstep(0.2, 0.6, norT);
-  q *= rotationMatrix(vec3(0, 1, 0), PI * sine(t));
-  vec3 o = vec3(sdBox(q - vec3(0, 2. * 0.30 * r, 0), vec3(r, 0.33 * r, r)), 0, 0);
+  float i = icosahedral(q, 52., r);
+
+  o.x = mix(o.x, i, bounceOut(saturate(2. * t)));
+  o.x = mix(o.x, b, bounceOut(saturate(2. * t - 1.)));
+
   d = dMin(o, d);
 
-  q = mPos;
-  t = smoothstep(0.4, 0.8, norT);
-  q *= rotationMatrix(vec3(0, 1, 0), PI * sine(t));
-  o = vec3(sdBox(q, vec3(r, 0.33 * r, r)), 0, 0);
-  d = dMin(o, d);
-
-  q = mPos;
-  t = smoothstep(0.6, 1.0, norT);
-  q *= rotationMatrix(vec3(0, 1, 0), PI * sine(t));
-  o = vec3(sdBox(q + vec3(0, 2. * 0.30 * r, 0), vec3(r, 0.33 * r, r)), 0, 0);
-  d = dMin(o, d);
-
-  d.x -= mix(0., 0.005, 0.5 + 0.5 * cos(cosT + dot(q, vec3(1)))) * cellular(3. * q.yzx);
-
-  // d.x *= 0.4;
+  d.x *= 0.8;
 
   return d;
 }
