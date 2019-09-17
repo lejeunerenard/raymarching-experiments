@@ -638,18 +638,13 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(norT, 1.);
 
   const float warpScale = 0.5;
-  const float r = 0.45;
+  const float r = 0.60;
 
-  q *= rotationMatrix(vec3(0, 1, 0), PI * bounceOut(smoothstep(0.4, 0.6, mod(t + 0.1 * q.y, 1.))));
+  q *= rotationMatrix(vec3(0, 1, 0), PI * bounceOut(smoothstep(0.2, 0.8, mod(t + 0.05 * q.y, 1.))));
+
   mPos = q.xyz;
-  float b = sdBox(q, vec3(r));
-  vec3 o = vec3(b, 0, 0);
-
-  float i = icosahedral(q, 52., r);
-
-  o.x = mix(o.x, i, bounceOut(saturate(2. * t)));
-  o.x = mix(o.x, b, bounceOut(saturate(2. * t - 1.)));
-
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  o.x -= 0.0075 * cellular(3. * q);
   d = dMin(o, d);
 
   d.x *= 0.8;
