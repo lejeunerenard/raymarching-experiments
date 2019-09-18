@@ -8,6 +8,7 @@
 // #define debugMapMaxed
 // #define SS 2
 // #define ORTHO 1
+// #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -41,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 50.0
 
@@ -632,6 +633,8 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
+  q = abs(q);
+
   q *= rotationMatrix(vec3(0.2, 1.,-0.9), cosT);
   q *= rotationMatrix(vec3(-0.7, 0.3, 0.1), cosT);
 
@@ -640,14 +643,24 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 0.5;
   const float r = 0.60;
 
-  q *= rotationMatrix(vec3(0, 1, 0), PI * bounceOut(smoothstep(0.2, 0.8, mod(t + 0.05 * q.y, 1.))));
+  q += warpScale * 0.1000 * cos( 5. * q.yzx + cosT );
+  q += warpScale * 0.0500 * cos(13. * q.yzx + cosT );
+  q += warpScale * 0.0250 * cos(21. * q.yzx + cosT );
 
-  mPos = q.xyz;
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
-  o.x -= 0.0075 * cellular(3. * q);
-  d = dMin(o, d);
+  // q *= rotationMatrix(vec3(0, 1, 0), PI * bounceOut(smoothstep(0.2, 0.8, mod(t + 0.05 * q.y, 1.))));
 
-  d.x *= 0.8;
+  for (int i = 0; i < 3; i++) {
+    q = abs(q);
+
+    q = (vec4(q, 1) * kifsM).xyz;
+
+    mPos = q.xyz;
+    vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
+    d = dMin(o, d);
+  }
+
+  d.x -= 0.02000 * cellular(3. * q);
+  d.x *= 0.05;
 
   return d;
 }
@@ -835,13 +848,17 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
   dF += 0.2 * pos;
   dF += 0.2 * pow(dot(nor, -rd), 4.);
 
-  dF *= 0.34;
-  dF += 0.1 * cos(cosT);
+  // dF += 0.1 * noise(vec2(23. * norT + 111. * pos));
+  // dF *= 0.34;
+  dF += norT;
 
   color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
 
-  color *= 0.5;
+  // color *= 0.5;
 
+#ifdef NO_MATERIALS
+  color = vec3(0.5);
+#endif
   return color;
 }
 
@@ -927,7 +944,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -970,11 +987,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* refractColor += 0.05 * textures(refractionRd); */
       /* color += refractColor; */
 
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.125;
+#ifndef NO_MATERIALS
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.125;
       color += saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
+#endif
 
       // color = diffuseColor;
 
@@ -989,6 +1008,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += 0.5 * innerGlow(5.0 * t.w);
 
       // Debugging
+#ifdef NO_MATERIALS
+      color = diffuseColor;
+#endif
+
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
       #endif

@@ -13,7 +13,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1
+const dpr = 1.0
 
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
@@ -44,13 +44,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.023,
-        y: 0.373,
-        z: 1.331
+        x: 0.878,
+        y: 0.449,
+        z: 1.221
       },
       d: 1,
-      scale: 1.25,
-      rot2angle: [0.414, 0, 0.721],
+      scale: 1.71,
+      rot2angle: [0.375, 0, 0.721],
       cameraAngles: [-0.203, -0.009, 0]
     }
     preset.cameraAngles = [-1.797, 0.937, 1.608]
@@ -60,7 +60,7 @@ export default class App {
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00001
+    this.epsilon = preset.epsilon || 0.005
 
     // Fractal parameters
     this.offset = (preset.offset)
