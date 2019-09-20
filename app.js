@@ -13,7 +13,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1
+const dpr = 1.0
 
 // const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
@@ -56,7 +56,7 @@ export default class App {
     preset.cameraAngles = [-1.797, 0.937, 1.608]
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.1, 1.1, 1.1)
+    this.cameraRo = vec3.fromValues(1.3, 1.3, 1.3)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     // Ray Marching Parameters
