@@ -6,11 +6,8 @@ vec3 getBackground (in vec2 uv) {
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
   const float size = 0.0075;
-  vec2 c = floor(coord / size) / size;
-  vec3 color = mix(vec3(0.), vec3(0.2), mod(dot(c, vec2(1)), 2.));
-  color = vec3(0.1, 0.5785234899328859, 0.9);
-  color = #C5B9FF;
-  // color = #DB5E6B;
+
+  vec3 color = mix(#C5B9FF, vec3(1), saturate(0.65 * length(coord)));
 
   return color;
 }

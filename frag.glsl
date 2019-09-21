@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 128
 #define maxDistance 60.0
 #define fogMaxDistance 50.0
 
@@ -56,7 +56,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 12.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -631,46 +631,23 @@ float getLayer (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= globalRot;
+
   vec3 q = p;
 
-  float t = mod(2. * norT, 2.);
-  // float t = mod(angle1C, 1.);
-  // float t = angle1C;
+  float t = mod(norT, 1.);
 
   const float warpScale = 0.5;
-  const float r = 0.60;
-
-  const float difX = 0.4;
-
-  q.y += 0.15 * sin(cosT);
-
-  q.yzx = q.xyz;
+  const float r = 0.75;
+  const float sharpness = 105.;
 
   mPos = q.xyz;
-  vec3 localQ = q;
-  localQ *= rotationMatrix(vec3(2. + 0. * difX, 0.3, -0.6), TWO_PI * t);
-  vec3 c = vec3(sdBox(localQ, vec3(r)), 1, 0);
-  d = dMin(c, d);
+  vec3 ico = vec3(icosahedral(q, sharpness, r), 0, 0);
+  d = dMin(ico, d);
 
-  localQ = q;
-  localQ *= rotationMatrix(vec3(2. + 1. * difX, 0.3, -0.6), 3. * PI * t);
-  c = vec3(sdBox(localQ, vec3(r)), 1, 0);
-  d = dMax(c, d);
-
-  localQ = q;
-  localQ *= rotationMatrix(vec3(2. + 2. * difX, 0.3, -0.6), 4. * PI * t);
-  c = vec3(sdBox(localQ, vec3(r)), 1, 0);
-  d = dMax(c, d);
-
-  localQ = q;
-  localQ *= rotationMatrix(vec3(2. + 3. * difX, 0.3, -0.6), 5. * PI * t);
-  c = vec3(sdBox(localQ, vec3(r)), 1, 0);
-  d = dMax(c, d);
-
-  /* localQ = q; */
-  /* localQ *= rotationMatrix(vec3(2. + 4. * difX, 0.3, -0.6), 6. * PI * t); */
-  /* c = vec3(sdBox(localQ, vec3(r)), 1, 0); */
-  /* d = dMax(c, d); */
+  vec3 dod = vec3(dodecahedral(q, sharpness, r * 1.), 1, 0);
+  // d = dMin(dod, d);
+  d = dMax(dod, d);
 
   // d.x *= 0.75;
 
@@ -864,14 +841,18 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
 
   dF *= 0.34;
 
+  dF += 0.20 * isMaterialSmooth(m, 1.);
+
   dF += norT;
 
   color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
 
-  color *= 0.6;
+  color *= 0.8;
 
-  /* color = mix(vec3(0), vec3(1, 0, 0), isMaterialSmooth(m, 1.)); */
-  /* color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 2.)); */
+  // color *= 1. - 0.7 * isMaterialSmooth(m, 0.);
+
+  // color = mix(vec3(0, 1, 0), vec3(1, 0, 0), isMaterialSmooth(m, 1.));
+  // color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 2.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -956,12 +937,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.5;
+        const float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.7;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -996,7 +977,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      reflectColor += 0.40 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1005,8 +986,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       dispersionColor *= 0.75;
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
