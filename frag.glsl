@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 50.0
 
@@ -631,25 +631,26 @@ float getLayer (in float t) {
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
-
   vec3 q = p;
 
   float t = mod(norT, 1.);
 
   const float warpScale = 0.5;
   const float r = 0.75;
-  const float sharpness = 105.;
+
+  q.x *= 0.4;
+
+  q += warpScale * 0.10000 * cos(23. * q.yzx + cosT );
+  q += warpScale * 0.05000 * cos(37. * q.yzx + cosT );
+  q += warpScale * 0.02500 * cos(49. * q.yzx + cosT );
+  q += warpScale * 0.01250 * cos(63. * q.yzx + cosT );
 
   mPos = q.xyz;
-  vec3 ico = vec3(icosahedral(q, sharpness, r), 0, 0);
-  d = dMin(ico, d);
+  vec3 s = vec3(length(q) - r, 0, 0);
+  s.x -= 0.062750 * snoise3(vec3(0.2 + 0.2 * sin(cosT + 2. * q.x), 8, 8) * q);
+  d = dMin(s, d);
 
-  vec3 dod = vec3(dodecahedral(q, sharpness, r * 1.), 1, 0);
-  // d = dMin(dod, d);
-  d = dMax(dod, d);
-
-  // d.x *= 0.75;
+  d.x *= 0.0625;
 
   return d;
 }
@@ -832,6 +833,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.1);
 
+  // return vec3(0.5);
+
   vec3 dF = vec3(1.0 * cnoise3(pos));
   dF += vec3(0.6 * cnoise3(pos + dF));
   dF += 0.2 * pos;
@@ -847,7 +850,7 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
 
   color = 0.7 + 0.3 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
 
-  color *= 0.8;
+  color *= 0.7;
 
   // color *= 1. - 0.7 * isMaterialSmooth(m, 0.);
 
