@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'i-am-the-river-render1',
+    name: 'party-trick-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

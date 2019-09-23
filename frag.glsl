@@ -636,21 +636,32 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(norT, 1.);
 
   const float warpScale = 0.5;
-  const float r = 0.75;
+  const float r = 0.125;
+  const float bigR = 0.475;
 
-  q.x *= 0.4;
+  q *= rotationMatrix(vec3(0, 1, 0), 11. * q.y + cosT);
 
-  q += warpScale * 0.10000 * cos(23. * q.yzx + cosT );
-  q += warpScale * 0.05000 * cos(37. * q.yzx + cosT );
-  q += warpScale * 0.02500 * cos(49. * q.yzx + cosT );
-  q += warpScale * 0.01250 * cos(63. * q.yzx + cosT );
+  float c = pModPolar(q.xz, 3.);
+  // q.xz = abs(q.xz);
+
+  // q += warpScale * 0.10000 * cos(23. * q.yzx + cosT );
+  // q += warpScale * 0.05000 * cos(37. * q.yzx + cosT );
+  // q += warpScale * 0.02500 * cos(49. * q.yzx + cosT );
+  // q += warpScale * 0.01250 * cos(63. * q.yzx + cosT );
+
+  float xDis = sqrt(bigR * bigR - q.y * q.y); // + bigR * 0.5 * cos(q.y + cos(q.y)); //  + bigR * 0.6 * cnoise2(3. * q.xy);
 
   mPos = q.xyz;
-  vec3 s = vec3(length(q) - r, 0, 0);
-  s.x -= 0.062750 * snoise3(vec3(0.2 + 0.2 * sin(cosT + 2. * q.x), 8, 8) * q);
+  vec3 s = vec3(sdCapsule(q - vec3(xDis, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0), r), c, 0);
+
+  // float n1 = cnoise3(vec3(0.2, 8, 8) * q + vec3(0, norT, 0));
+  // float n2 = cnoise3(vec3(0.2, 8, 8) * q + vec3(0, 1. - norT, 0));
+  // float n = mix(n1, n2, saturate((norT - 0.3) / (1.- 0.3)));
+  // s.x -= 0.12 * n;
+
   d = dMin(s, d);
 
-  d.x *= 0.0625;
+  d.x *= 0.4;
 
   return d;
 }
@@ -837,14 +848,14 @@ vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, 
 
   vec3 dF = vec3(1.0 * cnoise3(pos));
   dF += vec3(0.6 * cnoise3(pos + dF));
-  dF += 0.2 * pos;
+  dF += 0.2 * pos * vec3(1, 4.5, 1);
   dF += 0.2 * pow(dot(nor, -rd), 4.);
 
   // dF += 0.1 * noise(vec2(23. * norT + 111. * pos));
 
   dF *= 0.34;
 
-  dF += 0.20 * isMaterialSmooth(m, 1.);
+  dF += 9. / 7. * m;
 
   dF += norT;
 
@@ -989,9 +1000,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.75;
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.70;
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
