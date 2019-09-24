@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 128
 #define maxDistance 60.0
 #define fogMaxDistance 50.0
 
@@ -636,12 +636,13 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(norT, 1.);
 
   const float warpScale = 0.5;
-  const float r = 0.125;
   const float bigR = 0.475;
 
-  q *= rotationMatrix(vec3(0, 1, 0), 11. * q.y + cosT);
+  q += vec3(angle1C, angle2C, angle3C);
 
-  float c = pModPolar(q.xz, 3.);
+  q.xzy = twist(q.xyz, 5. * q.y + cosT);
+
+  float c = pModPolar(q.xz, 9.);
   // q.xz = abs(q.xz);
 
   // q += warpScale * 0.10000 * cos(23. * q.yzx + cosT );
@@ -649,7 +650,10 @@ vec3 map (in vec3 p, in float dT) {
   // q += warpScale * 0.02500 * cos(49. * q.yzx + cosT );
   // q += warpScale * 0.01250 * cos(63. * q.yzx + cosT );
 
-  float xDis = sqrt(bigR * bigR - q.y * q.y); // + bigR * 0.5 * cos(q.y + cos(q.y)); //  + bigR * 0.6 * cnoise2(3. * q.xy);
+  const float other = 1.;
+  float r = 0.055 + 0.05 * snoise3(vec3(8.15, other, 3.) * q);
+
+  float xDis = 0.4 - 0.35 * saturate(-q.y); // sqrt(bigR * bigR - q.y * q.y); //  + bigR * 0.25 * abs(cnoise2(9. * q.xy));
 
   mPos = q.xyz;
   vec3 s = vec3(sdCapsule(q - vec3(xDis, 0, 0), vec3(0, -1, 0), vec3(0, 1, 0), r), c, 0);
@@ -956,7 +960,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.7;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -968,7 +972,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // specAll += specCo * spec * (1. - fre);
 
         // Ambient
-        lin += 0.200 * amb * diffuseColor;
+        lin += 0.000 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
@@ -1002,7 +1006,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.70;
+      dispersionColor *= 0.65;
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
