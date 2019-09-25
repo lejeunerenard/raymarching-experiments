@@ -7,7 +7,8 @@ vec3 getBackground (in vec2 uv) {
 
   const float size = 0.0075;
 
-  vec3 color = mix(#C5B9FF, vec3(1), saturate(0.65 * length(coord)));
+  vec3 color = mix(#668FCC, vec3(1), saturate(0.65 * length(coord)));
+  color = #668FCC;
 
   return color;
 }
