@@ -1135,33 +1135,19 @@ vec3 weirdDots (in vec2 uv, in float size) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  float size = angle3C;
-  float offset = size * angle1C;
+  vec2 q = uv;
 
-  // Color
-  vec3 o = weirdDots(uv, size);
-  vec2 c = o.yz;
-  float colorAlpha = o.x;
+  float n = 0.;
 
-  float swapStep = 2.0;
-  float swap = floor(mod(dot(c, vec2(1)), 4. * swapStep) / swapStep);
+  const float r = 0.4;
+  vec2 absQ = abs(q);
 
-  vec2 offsetDir = vec2(offset) * rotMat2(TWO_PI * 0.25 * swap);
+  float innerCircle = length(q) - 1.20 * r * (0.5 + 0.5 * sin(cosT));
+  float phase = 0. * step(0., max(absQ.x, absQ.y) - r)
+    - smoothstep(0.05, 0., abs(innerCircle));
+  n = smoothstep(0., edge, sin(dot(q, vec2(PI * 31.)) + phase + 2. * cosT));
 
-  // Shade
-  o = weirdDots(uv + offsetDir, size);
-  color = mix(color, vec3(0), o.x);
-
-  // Highlight
-  o = weirdDots(uv - offsetDir, size);
-  color = mix(color, vec3(1), o.x);
-
-  float colorLayerI = saturate(0.5 + dot(uv, vec2(1)));
-  vec3 colorLayer = vec3(0.2, 0.8392897091722596, 0.1) * (0.95 + 0.05 * cos(2. * cosT));
-  color = mix(color, colorLayer, colorAlpha);
-
-  vec2 absC = abs(o.yz);
-  color = mix(color, background, smoothstep(0., edge, max(absC.x, absC.y) - floor(angle2C * 8.)));
+  color = vec3(n);
 
   return color.rgb;
 }
@@ -1171,7 +1157,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   /*  */
   /* vec3 color = vec3(0); */
