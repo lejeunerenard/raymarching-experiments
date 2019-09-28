@@ -1122,13 +1122,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 0.;
 
-  const float r = 0.4;
-  vec2 absQ = abs(q);
+  const float r = 0.5;
 
-  float innerCircle = length(q) - 1.20 * r * (0.5 + 0.5 * sin(cosT));
-  float phase = 0. * step(0., max(absQ.x, absQ.y) - r)
-    - smoothstep(0.05, 0., abs(innerCircle));
-  n = smoothstep(0., edge, sin(dot(q, vec2(PI * 31.)) + phase + 2. * cosT));
+  vec2 pol = vec2(
+      atan(q.y, q.x),
+      length(q));
+
+  const float numLayers = 20.;
+  const float stepR = r / numLayers;
+  float c = pMod1(pol.y, stepR);
+
+  pol.x -= PI * 0.5; // General offset
+
+  float layerT = 0.5 + 0.5 * sin(cosT + c * 0.2 * PI / numLayers);
+  layerT = pow(layerT, 1. + 8. * c / numLayers);
+  pol.x += layerT * PI;
+
+  // pol.x += TWO_PI * (1. - step(0., pol.x + PI));
+
+  // Convert to 0 -> 1
+  pol.x = pol.x / PI + 1.;
+  pol.x = mod(pol.x, 2.);
+  // Convert back to -PI -> PI
+  pol.x = PI * (pol.x - 1.);
+
+  vec2 absPol = abs(pol * vec2(0.375 * stepR / PI, 1));
+
+  n = smoothstep(0.001 * edge, 0., max(absPol.x, absPol.y) - 0.25 * stepR);
+
+  n *= smoothstep(edge, 0., c - numLayers);
 
   color = vec3(n);
 
@@ -1140,7 +1162,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   /*  */
   /* vec3 color = vec3(0); */
