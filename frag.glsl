@@ -636,20 +636,18 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(norT, 1.);
 
   const float r = 0.5;
-  const float warpScale = 1.0;
+  const float warpScale = 0.6;
 
   q += warpScale * 0.10000 * cos( 7. * q.yzx + cosT );
-  q.xzy = twist(q.xyz, 2. * q.y);
+  q.xzy = twist(q.xyz, 2. * q.y + 0.05 * cos(cosT));
   q += warpScale * 0.05000 * cos(21. * q.yzx + cosT );
-  q += warpScale * 0.01250 * snoise3(11. * q.yzx);
-  q += warpScale * 0.02500 * cos(37. * q.yzx + cosT );
   q += warpScale * 0.01250 * cos(53. * q.yzx + cosT );
 
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(o, d);
 
-  d.x *= 0.25;
+  d.x *= 0.5;
 
   return d;
 }
@@ -830,7 +828,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor(in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.6);
+  vec3 color = vec3(0.2);
+
+  return color;
 
   vec3 dF = vec3(1.0 * cnoise3(pos));
   dF += vec3(0.6 * cnoise3(pos + dF));
@@ -988,11 +988,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = color * mix(#6AA0CC, vec3(1), smoothstep(0.4, 0.6, length(color)));
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.45;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.45 * pow(1. - dot(nor, -rayDirection), 2.);
       color += saturate(dispersionColor);
+      // color = vec3(pow(dot(nor, -rayDirection), 2.));
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
 #endif
@@ -1162,7 +1163,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, cosT), 1);
+  // return vec4(two_dimensional(uv, cosT), 1);
 
   /*  */
   /* vec3 color = vec3(0); */
