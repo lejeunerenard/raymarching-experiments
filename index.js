@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'deaths-shroud-render1',
+    name: 'breathe-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -125,12 +125,6 @@ if (capturing) {
   offsetF.add(app.offset, '1', -5, 5).step(0.001).listen()
   offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
 
-  // let offsetC = gui.addFolder('Offset C')
-  // offsetC.add(app.offsetC, '0', -5, 5).step(0.001).listen()
-  // offsetC.add(app.offsetC, '1', -5, 5).step(0.001).listen()
-  // offsetC.add(app.offsetC, '2', -5, 5).step(0.001).listen()
-  // offsetC.add(app.offsetC, '3', -5, 5).step(0.001).listen()
-
   gui.add(app, 'd', 0, 20).step(0.01).listen()
   gui.add(app, 'scale', -6, 6).step(0.01).listen()
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
@@ -156,6 +150,10 @@ if (capturing) {
   cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
   cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
   cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
+
+  let colorsF = gui.addFolder('Colors')
+  colorsF.addColor(app, 'colors1').listen()
+  colorsF.addColor(app, 'colors2').listen()
 
   // ----- Setup -----
 

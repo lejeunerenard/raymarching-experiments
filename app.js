@@ -58,6 +58,9 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, 1.95) // 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
+    this.colors1 = [84, 8, 138]
+    this.colors2 = [140, 108, 5]
+
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.000125
 
@@ -374,6 +377,9 @@ export default class App {
     this.shader.uniforms.angle1C = this.angle1C
     this.shader.uniforms.angle2C = this.angle2C
     this.shader.uniforms.angle3C = this.angle3C
+
+    this.shader.uniforms.colors1 = [this.colors1[0] / 255, this.colors1[1] / 255, this.colors1[2] / 255]
+    this.shader.uniforms.colors2 = [this.colors2[0] / 255, this.colors2[1] / 255, this.colors2[2] / 255]
 
     this.shader.uniforms.d = this.d
   }

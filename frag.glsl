@@ -31,6 +31,9 @@ uniform float angle1C;
 uniform float angle2C;
 uniform float angle3C;
 
+uniform vec3 colors1;
+uniform vec3 colors2;
+
 uniform float d;
 
 // KIFS
@@ -1117,7 +1120,7 @@ vec3 weirdDots (in vec2 uv, in float size) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
@@ -1125,35 +1128,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float r = 0.5;
 
-  vec2 pol = vec2(
-      atan(q.y, q.x),
-      length(q));
+  const float size = 0.095;
 
-  const float numLayers = 20.;
-  const float stepR = r / numLayers;
-  float c = pMod1(pol.y, stepR);
+  vec2 c = pMod2(q, vec2(size));
 
-  pol.x -= PI * 0.5; // General offset
+  // Rotation
+  // q *= rotMat2(PI * cnoise2((0.3234 + angle1C) * c));
+  q *= rotMat2(atan(c.y, c.x));
 
-  float layerT = 0.5 + 0.5 * sin(cosT + c * 0.2 * PI / numLayers);
-  layerT = pow(layerT, 1. + 8. * c / numLayers);
-  pol.x += layerT * PI;
+  // Ellipse
+  const float elR = 0.125 * size;
+  const vec2 elScale = vec2(1, 0.5);
+  vec2 elQ = elScale * q;
+  float elD = length(elQ) - elR;
 
-  // pol.x += TWO_PI * (1. - step(0., pol.x + PI));
+  // Edge
+  float theta = atan(elQ.y, elQ.x);
+  vec2 revQ = elR * vec2(cos(theta), sin(theta));
+  revQ = elQ - revQ;
+  revQ *= 1. / elScale;
 
-  // Convert to 0 -> 1
-  pol.x = pol.x / PI + 1.;
-  pol.x = mod(pol.x, 2.);
-  // Convert back to -PI -> PI
-  pol.x = PI * (pol.x - 1.);
+  float el = smoothstep(0.01 * edge, 0., elD);
+  n = mix(1., 3., step(0., elQ.x)) * smoothstep(edge, 0., length(revQ) - elR * 0.5);
+  n = mix(n, 2., el);
 
-  vec2 absPol = abs(pol * vec2(0.375 * stepR / PI, 1));
+  // Crop
+  vec2 absC = abs(c);
+  n *= smoothstep(edge, 0., max(absC.x, absC.y) - 5.);
 
-  n = smoothstep(0.001 * edge, 0., max(absPol.x, absPol.y) - 0.25 * stepR);
-
-  n *= smoothstep(edge, 0., c - numLayers);
-
-  color = vec3(n);
+  color = mix(colors1, vec3(0), saturate(n));
+  color = mix(color, colors2 + vec3(0.4 * cos(cosT)), isMaterialSmooth(n, 2.));
+  color = mix(color, vec3(1), isMaterialSmooth(n, 3.));
 
   return color.rgb;
 }
@@ -1163,7 +1168,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, cosT), 1);
 
   /*  */
   /* vec3 color = vec3(0); */
