@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cold-season-render1',
+    name: 'black-snake-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
