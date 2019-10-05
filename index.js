@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'ethereal-render1',
+    name: 's-e-l-f-s-e-l-f-s-e-l-f-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
