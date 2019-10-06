@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 's-e-l-f-s-e-l-f-s-e-l-f-render1',
+    name: 'jewel-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -102,11 +102,13 @@ if (capturing) {
         }
       }, 250)
     } else {
-      console.log('done sending message')
-      var xmlHTTP = new XMLHttpRequest()
-      xmlHTTP.open('GET', 'http://localhost:7321/', false)
-      xmlHTTP.send(null)
-      console.log('response text', xmlHTTP.responseText)
+      window.setTimeout(() => {
+        console.log('done sending message')
+        var xmlHTTP = new XMLHttpRequest()
+        xmlHTTP.open('GET', 'http://localhost:7321/', false)
+        xmlHTTP.send(null)
+        console.log('response text', xmlHTTP.responseText)
+      }, 500)
     }
   }
 
