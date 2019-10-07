@@ -643,9 +643,6 @@ vec3 map (in vec3 p, in float dT) {
 
   q.y -= 0.04 * cos(cosT);
 
-  // Global tilt
-  q *= rotationMatrix(vec3(-0.85, 1., 0.3), 0.5 * PI);
-
   vec3 wQ = q;
 
   // wQ += warpScale * 0.10000 * cos(13. * wQ.yzx + cosT );
@@ -655,20 +652,12 @@ vec3 map (in vec3 p, in float dT) {
   // wQ += warpScale * 0.02500 * cos(37. * wQ.yzx + pow(wQ.yzx, vec3(2.)) + cosT );
   // wQ += warpScale * 0.01250 * cos(43. * wQ.yzx + wQ.yzx + cosT );
 
-  const int num = 6;
-  for (int i = 0; i < num; i++) {
-    q = wQ;
+  vec3 pol = vec3(atan(q.y, q.x), length(q.xy) - 2. * r, q.z);
+  pol.yz *= rotMat2(5. * 0.25 * pol.x + cosT);
 
-    q *= rotationMatrix(vec3(0.2, 1., 0.1), 0.2 * PI * cos(cosT + float(i) * 0.06 * PI) + 0.1 * PI);
-
-    q *= rotationMatrix(vec3(0.4, 1., 0), float(i) * 0.9 * TWO_PI / float(num) );
-
-    q.z -= r;
-    mPos = q;
-    vec3 o = vec3(sdBox(q, vec3(r)), 0, i);
-    o.x -= 0.005 * cellular(4.2 * q);
-    d = dMin(o, d);
-  }
+  vec3 o = vec3(sdBox(pol, vec3(PI, r, r)), 0, 0);
+  o.x -= 0.05 * cellular(2. * q);
+  d = dMin(d, o);
 
   d.x *= 0.5;
 
@@ -1001,11 +990,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = color * mix(#6AA0CC, vec3(1), smoothstep(0.4, 0.6, length(color)));
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= pow(1. - dot(nor, -rayDirection), 2.5);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= pow(dot(nor, -rayDirection), 2.0);
       dispersionColor = pow(dispersionColor, vec3(2.));
+      dispersionColor *= 0.75;
 
       color += saturate(dispersionColor);
 
