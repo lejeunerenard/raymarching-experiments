@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'watching-shadows-flash-as-i-fall-render1',
+    name: 'golden-child-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
