@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'golden-child-render1',
+    name: 'pour-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
