@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -637,26 +637,33 @@ const float tall = 1.5 * r;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= globalRot;
+
   vec3 q = p;
 
   float t = mod(norT, 1.);
 
   const float warpScale = 1.0;
 
+  const float size = r * 0.333;
+  vec3 c = floor((q + size*0.5)/size);
+
   vec3 wQ = q;
 
-  wQ.xz *= 1. - 0.25 * pow(wQ.y, 2.);
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0250 * cos(11. * wQ.yzx + cosT);
-  wQ -= warpScale * 0.0250 * cnoise3(13. * wQ.yzx);
-  wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT);
+  // wQ.xz *= 1. - 0.25 * pow(wQ.y, 2.);
+  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
+  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  // wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0250 * cos(11. * wQ.yzx + cosT);
+  // wQ -= warpScale * 0.0250 * cnoise3(13. * wQ.yzx);
+  // wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT);
 
-  q = mix(q, wQ, saturate((wQ.y + 0.5 * tall) / (1.5 * tall)));
+  float tOff = saturate((wQ.y + tall) / (2.0 * tall));
+  q = mix(q, wQ, tOff);
 
   float trap = pow(1. - 0.5 * (q.y + tall), 2.);
   vec3 o = vec3(sdBox(q, vec3(r, tall, r)), 0., trap);
+  o.x -= 0.05 * (smoothstep(-0.25, 0.25, sin(PI * (dot(c, vec3(0.125)) + 0.5 * cnoise3(3.23 * c)) + 0. * tOff * PI + cosT))) * cellular(3. * q.yzx);
   d = dMin(d, o);
 
   mPos = q;
