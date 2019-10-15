@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -637,17 +637,14 @@ const float tall = 1.5 * r;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
+  q.x += 0.1;
 
   float t = mod(norT, 1.);
 
   const float warpScale = 1.0;
-
-  const float size = r * 0.333;
-  vec3 c = floor((q + size*0.5)/size);
-
   vec3 wQ = q;
 
   // wQ.xz *= 1. - 0.25 * pow(wQ.y, 2.);
@@ -658,17 +655,35 @@ vec3 map (in vec3 p, in float dT) {
   // wQ -= warpScale * 0.0250 * cnoise3(13. * wQ.yzx);
   // wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT);
 
-  float tOff = saturate((wQ.y + tall) / (2.0 * tall));
-  q = mix(q, wQ, tOff);
-
-  float trap = pow(1. - 0.5 * (q.y + tall), 2.);
-  vec3 o = vec3(sdBox(q, vec3(r, tall, r)), 0., trap);
-  o.x -= 0.05 * (smoothstep(-0.25, 0.25, sin(PI * (dot(c, vec3(0.125)) + 0.5 * cnoise3(3.23 * c)) + 0. * tOff * PI + cosT))) * cellular(3. * q.yzx);
-  d = dMin(d, o);
-
   mPos = q;
 
-  d.x *= 0.5;
+  q *= rotationMatrix(vec3(0.115, 0.115, 0.115), -0.2 * PI);
+  vec3 tQ = q;
+  tQ *= rotationMatrix(vec3(0, 1, 0), cosT);
+  tQ.y += 0.06 * sin(cosT + 0.3 * PI);
+  vec3 o = vec3(tetrahedron(tQ, r), 0, 0);
+  o.x -= 0.0200 * cellular(2.1 * tQ);
+  d = dMin(d, o);
+
+  const float sqrR = r * 1.65;
+  const float sqrThick = 0.025;
+  q *= rotationMatrix(vec3(0.43, -2.1, 0.3), 0.015 * PI * sin(cosT));
+  q.y += 0.01 * sin(cosT);
+  q.y += 0.1;
+  vec3 b = vec3(sdBox(q, vec3(sqrR + sqrThick, 0.0125, sqrR + sqrThick)), 1, 0);
+  b.x = max(b.x, -sdBox(q, vec3(sqrR, 1, sqrR)));
+  d = dMin(d, b);
+
+  const float sqrR2 = sqrR * 0.8;
+  q.y -= 0.1;
+  q *= rotationMatrix(vec3(0, 1., 0), 0.05 * PI);
+  q *= rotationMatrix(vec3(-0.5, 2., 0.8), 0.020 * PI * sin(cosT + 0.3 * PI));
+  q.y += 0.02 * sin(cosT + 0.7 * PI);
+  b = vec3(sdBox(q, vec3(sqrR2 + sqrThick, 0.0125, sqrR2 + sqrThick)), 1, 0);
+  b.x = max(b.x, -sdBox(q, vec3(sqrR2, 1, sqrR2)));
+  d = dMin(d, b);
+
+  d.x *= 0.85;
 
   return d;
 }
@@ -853,7 +868,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec3 dF = vec3(0.2 * cnoise3(pos));
   // dF += vec3(0.5 * cnoise3(pos + dF));
-  dF += 0.5 * pos;
+  dF += 0.7 * pos;
   dF += 0.5 * pow(1. - dot(nor, -rd), 4.);
 
   dF += 0.1 * dot(fragCoord.xy, vec2(1));
@@ -867,10 +882,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color *= 0.85;
   color = 0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25);
 
-  color += 0.9 * background;
+  color += 0.8 * background;
 
   color *= 1. - 0.2 * pow(dot(nor, -rd), 2.0);
-  color = mix(color, vec3(1), trap);
+
+  color = mix(color, vec3(0.3), isMaterialSmooth(m, 1.));
+
 #ifdef NO_MATERIALS
   color = vec3(0.5);
 #endif
@@ -946,15 +963,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
-      float specCo = 0.75;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.8;
+        const float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -992,10 +1009,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.05 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -1003,14 +1020,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       dispersionColor *= pow(1. - dot(nor, -rayDirection), 1.0);
       dispersionColor = pow(dispersionColor, vec3(1.5));
       // dispersionColor *= t.w;
 
-      color += saturate(dispersionColor);
+      color += isMaterialSmooth(t.y, 0.) * saturate(dispersionColor);
 
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
