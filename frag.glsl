@@ -1130,25 +1130,29 @@ float myFBMWarp (in vec2 q) {
   return myFBMWarp(q, s, p, r);
 }
 
-vec3 weirdDots (in vec2 uv, in float size) {
-  float n = 0.;
+vec3 spiral (in vec2 q, in float t) {
+  vec3 color = vec3(1);
 
-  vec2 q = uv;
+  float r = 0.175 * (1. - 0.65 * smoothstep(0.3, 1.0, t));
 
-  vec2 c = floor((q + size*0.5)/size);
+  const int num = 18;
+  const float angleStep = TWO_PI / float(num);
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
 
-  vec2 xOff = vec2(mod(c.y, 2.) * 0.5 * size, 0);
-  vec2 yOff = vec2(0, 0.20 * size);
-  vec2 off = xOff + yOff;
+    float dist = 1.2 * saturate(1. - (1.1 * t + 0.05 * mod(fI, 2.) + 0.01 * fI / float(num)));
 
-  c = floor((q + off + size*0.5)/size);
-  q = mod(q + off + size*0.5,size) - size*0.5;
-  float r = size * 0.2;
+    vec2 local = q;
+    local *= rotMat2(angleStep * fI + 0.25 * PI * t);
+    local.x -= dist;
 
-  n = length(q) - r;
-  n = smoothstep(edge, 0., n);
+    vec3 layer = 0.5 + 0.5 * cos(TWO_PI * (t + 0.3 * vec3(q, 0) + float(i) / float(num) + vec3(0, 0.33, 0.67)));
+    float mask = smoothstep(edge, 0., length(local) - r);
+    color *= mix(vec3(1), layer, mask);
+  }
+  // color *= 0.95;
 
-  return vec3(n, c);
+  return color;
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
@@ -1156,23 +1160,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float n = 0.;
+  color = spiral(q, generalT);
+  float shiftedT = mod(generalT + 0.5, 1.);
+  color *= spiral(q, shiftedT);
 
-  const float r = 0.5;
-  const float warpScale = 1.0;
+  shiftedT = mod(generalT + 0.25, 1.);
+  color *= spiral(q, shiftedT);
 
-  q += warpScale * 0.1000 * cos(5. * q.yx + cosT);
-  q *= rotMat2(0.125 * PI * cos(cosT + dot(q, vec2(0.5))));
-  q += warpScale * 0.0250 * cnoise2(3. * q.yx);
+  shiftedT = mod(generalT + 0.75, 1.);
+  color *= spiral(q, shiftedT);
 
-  q += warpScale * 0.0500 * cos(5. * q.yx + cosT);
-  q *= rotMat2(0.0625 * PI * sin(cosT + dot(q, vec2(0.5))));
-
-  q += warpScale * 0.0250 * cos(5. * q.yx + cosT);
-
-  n = smoothstep(0., edge, sin(TWO_PI * dot(q, vec2(20))));
-
-  color = vec3(n);
+  // Finl
+  color *= spiral(q, 1.);
 
   return color.rgb;
 }
@@ -1182,7 +1181,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, cosT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
