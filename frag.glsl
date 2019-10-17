@@ -647,43 +647,19 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 1.0;
   vec3 wQ = q;
 
-  // wQ.xz *= 1. - 0.25 * pow(wQ.y, 2.);
-  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  // wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT);
-  // wQ += warpScale * 0.0250 * cos(11. * wQ.yzx + cosT);
-  // wQ -= warpScale * 0.0250 * cnoise3(13. * wQ.yzx);
-  // wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT);
+  wQ.xz *= 1. - 0.25 * pow(wQ.y, 2.);
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.25 * PI * sin(cosT + wQ.y));
+  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT);
+  wQ.yzx = twist(wQ.yxz, 2. * wQ.x + 0.125 * PI * sin(cosT + wQ.z));
+
+  q = wQ;
 
   mPos = q;
+  vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
+  d = dMin(d, s);
 
-  q *= rotationMatrix(vec3(0.115, 0.115, 0.115), -0.2 * PI);
-  vec3 tQ = q;
-  tQ *= rotationMatrix(vec3(0, 1, 0), cosT);
-  tQ.y += 0.06 * sin(cosT + 0.3 * PI);
-  vec3 o = vec3(tetrahedron(tQ, r), 0, 0);
-  o.x -= 0.0200 * cellular(2.1 * tQ);
-  d = dMin(d, o);
-
-  const float sqrR = r * 1.65;
-  const float sqrThick = 0.025;
-  q *= rotationMatrix(vec3(0.43, -2.1, 0.3), 0.015 * PI * sin(cosT));
-  q.y += 0.01 * sin(cosT);
-  q.y += 0.1;
-  vec3 b = vec3(sdBox(q, vec3(sqrR + sqrThick, 0.0125, sqrR + sqrThick)), 1, 0);
-  b.x = max(b.x, -sdBox(q, vec3(sqrR, 1, sqrR)));
-  d = dMin(d, b);
-
-  const float sqrR2 = sqrR * 0.8;
-  q.y -= 0.1;
-  q *= rotationMatrix(vec3(0, 1., 0), 0.05 * PI);
-  q *= rotationMatrix(vec3(-0.5, 2., 0.8), 0.020 * PI * sin(cosT + 0.3 * PI));
-  q.y += 0.02 * sin(cosT + 0.7 * PI);
-  b = vec3(sdBox(q, vec3(sqrR2 + sqrThick, 0.0125, sqrR2 + sqrThick)), 1, 0);
-  b.x = max(b.x, -sdBox(q, vec3(sqrR2, 1, sqrR2)));
-  d = dMin(d, b);
-
-  d.x *= 0.85;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1181,7 +1157,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
