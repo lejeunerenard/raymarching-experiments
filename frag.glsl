@@ -1136,18 +1136,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  color = spiral(q, generalT);
-  float shiftedT = mod(generalT + 0.5, 1.);
-  color *= spiral(q, shiftedT);
+  const float warpScale = 1.;
 
-  shiftedT = mod(generalT + 0.25, 1.);
-  color *= spiral(q, shiftedT);
+  q += warpScale * 0.1000 * cos( 3. * q.yx + cosT);
+  q += warpScale * 0.0500 * cos( 5. * q.yx);
+  q *= rotMat2(PI * 0.125 * sin(cosT + dot(q, vec2(1))));
+  q += warpScale * 0.0250 * cos( 7. * q.yx - cosT);
+  q += warpScale * 0.0125 * cos(13. * q.yx + cosT);
 
-  shiftedT = mod(generalT + 0.75, 1.);
-  color *= spiral(q, shiftedT);
+  float n = smoothstep(0.8, 0.8 + edge, sin(dot(q, vec2(80))));
+  color = vec3(n);
 
-  // Finl
-  color *= spiral(q, 1.);
+  vec2 absQ = abs(uv * vec2(1, 0.8));
+
+  color *= smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.45);
 
   return color.rgb;
 }
@@ -1157,7 +1159,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
