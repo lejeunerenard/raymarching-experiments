@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1256
+#define maxSteps 1024
 #define maxDistance 7.0
-#define fogMaxDistance 50.0
+#define fogMaxDistance 8.0
 
 #define slowTime time * 0.2
 // v3
@@ -632,7 +632,6 @@ float getLayer (in float t) {
 }
 
 const float r = 0.5;
-const float tall = 1.5 * r;
 
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -644,14 +643,15 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.0;
+  const float warpScale = 3.0;
   vec3 wQ = q;
 
-  wQ.xz *= 1. - 0.25 * pow(wQ.y, 2.);
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.25 * PI * sin(cosT + wQ.y));
   wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT);
-  wQ.yzx = twist(wQ.yxz, 2. * wQ.x + 0.125 * PI * sin(cosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.25 * PI * sin(cosT + wQ.y));
+  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT);
+  wQ.yzx = twist(wQ.yxz, 3. * wQ.x + 0.125 * PI * sin(cosT + wQ.z));
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT);
 
   q = wQ;
 
@@ -659,7 +659,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.5;
+  d.x *= 0.025;
 
   return d;
 }
@@ -843,26 +843,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0.4);
 
   vec3 dF = vec3(0.2 * cnoise3(pos));
-  // dF += vec3(0.5 * cnoise3(pos + dF));
-  dF += 0.7 * pos;
+  dF += 0.2 * pos;
   dF += 0.5 * pow(1. - dot(nor, -rd), 4.);
-
-  dF += 0.1 * dot(fragCoord.xy, vec2(1));
-  // dF += 0.2 * vec3(0.1, 1., 0.1) * mPos;
 
   dF *= 0.4;
 
   dF += norT;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
-  color *= 0.85;
-  color = 0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25);
-
-  color += 0.8 * background;
-
-  color *= 1. - 0.2 * pow(dot(nor, -rd), 2.0);
-
-  color = mix(color, vec3(0.3), isMaterialSmooth(m, 1.));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25);
+  color += 0.8 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -999,11 +989,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= pow(1. - dot(nor, -rayDirection), 1.0);
-      dispersionColor = pow(dispersionColor, vec3(1.5));
-      // dispersionColor *= t.w;
+      dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
+      dispersionColor = pow(dispersionColor, vec3(2.0));
 
-      color += isMaterialSmooth(t.y, 0.) * saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
@@ -1159,7 +1148,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
