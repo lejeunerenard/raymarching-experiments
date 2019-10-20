@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'pheromones-render1',
+    name: 'too-cold-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

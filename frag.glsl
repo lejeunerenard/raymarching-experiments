@@ -636,22 +636,18 @@ const float r = 0.5;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
+  p *= rotationMatrix(vec3(1), cosT);
 
   vec3 q = p;
-  q.x += 0.1;
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 3.0;
+  const float warpScale = 0.5;
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.25 * PI * sin(cosT + wQ.y));
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT);
-  wQ.yzx = twist(wQ.yxz, 3. * wQ.x + 0.125 * PI * sin(cosT + wQ.z));
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT);
+  wQ += warpScale * 0.1000 * cnoise3(3. * wQ.yzx);
+  wQ += warpScale * 0.0500 * cnoise3(7. * wQ.yzx);
 
   q = wQ;
 
@@ -659,7 +655,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.025;
+  d.x *= 0.5;
 
   return d;
 }
@@ -738,20 +734,20 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.50;
-const float amount = 0.9;
+const float n2 = 2.00;
+const float amount = 0.5;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float spread = saturate(1.0 - 1.0 * dot(-rd, gNor));
   // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.0;
 
-  // vec3 spaceScaling = 0.8 * vec3(0.734, 1.14, 0.2);
-  // float n = ncnoise3(spaceScaling * rd + startPoint);
-  // n = smoothstep(0.0, 0.80, n);
+  vec3 spaceScaling = 1.0 * vec3(0.734, 1.14, 0.2);
+  float n = ncnoise3(spaceScaling * rd + startPoint);
+  n = smoothstep(0.0, 0.80, n);
 
   /* vec3 spaceScaling = vec3(0.8); */
   /* float n = vfbmWarp(spaceScaling * rd + startPoint); */
@@ -766,7 +762,7 @@ vec3 textures (in vec3 rd) {
   /* float n = cnoise3(3.5 * rd); */
   /* n = smoothstep(-0.1, 0.9, n); */
 
-  float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
+  // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
   color = vec3(n * spread);
 
@@ -852,7 +848,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
   // color = 0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25);
-  color += 0.8 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25));
+  // color += 0.8 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -989,12 +985,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
-      dispersionColor = pow(dispersionColor, vec3(2.0));
+      // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
+      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
-      // color = saturate(dispersionColor);
+      color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
 #endif
 
