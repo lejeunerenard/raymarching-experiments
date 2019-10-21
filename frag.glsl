@@ -631,7 +631,7 @@ float getLayer (in float t) {
   return l;
 }
 
-const float r = 0.5;
+const float r = 0.80;
 
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -646,16 +646,26 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 0.5;
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cnoise3(3. * wQ.yzx);
-  wQ += warpScale * 0.0500 * cnoise3(7. * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, PI * smoothstep(0.3, 1., cos(cosT + wQ.y)));
 
   q = wQ;
+  q *= rotationMatrix(vec3(0.3, 1.2, -0.9), cosT);
 
   mPos = q;
   vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.5;
+  q = wQ;
+  q *= rotationMatrix(vec3(0.7, 0.2, -0.4), cosT + 0.3);
+
+  mPos = q;
+  s = vec3(sdBox(q, vec3(r)), 0, 0);
+  // s.x *= -1.;
+  d = dMax(d, s);
+
+  d.x -= 0.005 * snoise3(vec3(3., 0.1, 3.) * q);
+
+  d.x *= 0.35;
 
   return d;
 }
@@ -840,15 +850,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec3 dF = vec3(0.2 * cnoise3(pos));
   dF += 0.2 * pos;
-  dF += 0.5 * pow(1. - dot(nor, -rd), 4.);
+  dF += 0.5 * pow(1. - dot(nor, -rd), 2.);
 
-  dF *= 0.4;
+  dF *= 0.5;
 
   dF += norT;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + 0.5));
   // color = 0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25);
-  // color += 0.8 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25));
+  color += 0.8 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + 0.25));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -988,9 +998,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
       dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
-      color = saturate(dispersionColor);
+      // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
 #endif
 
