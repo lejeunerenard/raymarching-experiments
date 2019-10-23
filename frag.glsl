@@ -640,18 +640,18 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.25;
+  const float warpScale = 0.125;
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos(13. * q.yzx + cosT + dot(q, vec3(1)) );
-  wQ += warpScale * 0.0500 * cos(29. * q.yzx + cosT + dot(q, vec3(1)) );
-  wQ += warpScale * 0.0250 * cos(43. * q.yzx + cosT + dot(q, vec3(1)) );
+  wQ += warpScale * 0.1000 * cos( 7. * q.yzx + cosT + dot(q, vec3(1)) );
+  // wQ += warpScale * 0.0500 * cos(29. * q.yzx + cosT + dot(q, vec3(1)) );
+  // wQ += warpScale * 0.0250 * cos(43. * q.yzx + cosT + dot(q, vec3(1)) );
 
   q = wQ;
 
   mPos = q;
   vec3 s = vec3(length(q) - r, 0, 0);
-  s.x -= 0.010 * snoise3(9. * q);
+  s.x -= 0.010 * vfbm4(9. * q);
   d = dMin(d, s);
 
   d.x *= 0.5;
@@ -841,12 +841,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dF += 0.2 * pos;
   dF += 0.500 * pow(1. - dot(nor, -rd), 2.);
 
-  dF *= 0.5;
+  dF *= angle3C;
 
   // dF += norT;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + -0.488));
-  color += 0.9 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + -0.965));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + angle1C));
+  color += 0.9 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + angle2C));
+
+  color = mix(#120634, color, pow(1. - dot(nor, -rd), 2.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);

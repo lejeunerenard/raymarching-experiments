@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'will-we-sink-render1',
+    name: 'where-no-man-has-gone-before-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
