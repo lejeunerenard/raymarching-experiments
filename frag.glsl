@@ -631,8 +631,6 @@ float getLayer (in float t) {
   return l;
 }
 
-const float r = 0.80;
-
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -642,16 +640,18 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 0.125;
   vec3 wQ = q;
-
-  wQ += warpScale * 0.1000 * cos( 7. * q.yzx + cosT + dot(q, vec3(1)) );
-  // wQ += warpScale * 0.0500 * cos(29. * q.yzx + cosT + dot(q, vec3(1)) );
-  // wQ += warpScale * 0.0250 * cos(43. * q.yzx + cosT + dot(q, vec3(1)) );
-
   q = wQ;
 
+  float rN1 = snoise3(vec3(3., 3., 0.4) * q + vec3(vec2(0), 2. * t));
+  float rN2 = snoise3(vec3(3., 3., 0.4) * q + vec3(vec2(0), 2. * saturate(1. - t)));
+  const float startT = 0.8;
+  float rN = mix(rN1, rN2, saturate(t - startT) / (1. - startT));
+
+  float r = 0.3 + 0.1 * rN;
+  r -= 0.001 * snoise3(9. * q.yzx);
+
   mPos = q;
-  vec3 s = vec3(length(q) - r, 0, 0);
-  s.x -= 0.010 * vfbm4(9. * q);
+  vec3 s = vec3(sdCappedCylinder(q.xzy, vec2(r, 0.4)), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.5;
@@ -846,9 +846,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dF += norT;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + angle1C));
-  color += 0.9 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + angle2C));
+  // color += 0.9 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + angle2C));
 
-  color = mix(#120634, color, pow(1. - dot(nor, -rd), 2.));
+  // color = mix(#120634, color, pow(1. - dot(nor, -rd), 2.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -984,11 +984,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 2.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
