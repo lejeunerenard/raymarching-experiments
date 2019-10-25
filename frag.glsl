@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -642,19 +642,22 @@ vec3 map (in vec3 p, in float dT) {
   vec3 wQ = q;
   q = wQ;
 
-  float rN1 = snoise3(vec3(3., 3., 0.4) * q + vec3(vec2(0), 2. * t));
-  float rN2 = snoise3(vec3(3., 3., 0.4) * q + vec3(vec2(0), 2. * saturate(1. - t)));
+  const vec3 spaceScale = vec3(2., 3., 0.4);
+  float rN1 = snoise3(spaceScale * q + vec3(vec2(0), 2. * t));
+  float rN2 = snoise3(spaceScale * q + vec3(vec2(0), 2. * saturate(1. - t)));
   const float startT = 0.8;
   float rN = mix(rN1, rN2, saturate(t - startT) / (1. - startT));
 
-  float r = 0.3 + 0.1 * rN;
-  r -= 0.001 * snoise3(9. * q.yzx);
+  q.xy += 0.05 * sin(cosT + vec2(0, 0.3 * PI));
+  float r = 0.7 + 0.2 * rN;
+  // r -= 0.001 * snoise3(9. * q.yzx);
 
   mPos = q;
-  vec3 s = vec3(sdCappedCylinder(q.xzy, vec2(r, 0.4)), 0, 0);
+  // vec3 s = vec3(sdBox(q, vec3(vec2(r), 0.4)), 0, 0);
+  vec3 s = vec3(sdCappedCylinder(q.xzy, vec2(r, 0.7)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.5;
+  d.x *= 0.3;
 
   return d;
 }
