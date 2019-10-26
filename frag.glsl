@@ -638,26 +638,24 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.125;
+  const float warpScale = 0.5;
   vec3 wQ = q;
+
+  wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
+  wQ.yzx = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.050000 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.003125 * cos(17. * wQ.yzx + cosT );
+
   q = wQ;
 
-  const vec3 spaceScale = vec3(2., 3., 0.4);
-  float rN1 = snoise3(spaceScale * q + vec3(vec2(0), 2. * t));
-  float rN2 = snoise3(spaceScale * q + vec3(vec2(0), 2. * saturate(1. - t)));
-  const float startT = 0.8;
-  float rN = mix(rN1, rN2, saturate(t - startT) / (1. - startT));
-
-  q.xy += 0.05 * sin(cosT + vec2(0, 0.3 * PI));
-  float r = 0.7 + 0.2 * rN;
-  // r -= 0.001 * snoise3(9. * q.yzx);
-
   mPos = q;
-  // vec3 s = vec3(sdBox(q, vec3(vec2(r), 0.4)), 0, 0);
-  vec3 s = vec3(sdCappedCylinder(q.xzy, vec2(r, 0.7)), 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(0.7, 0.7, 0.05)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.3;
+  d.x *= 0.7;
 
   return d;
 }
