@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'xray-render1',
+    name: 'frills-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -638,16 +638,15 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.5;
+  const float warpScale = 0.8;
   vec3 wQ = q;
 
   wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
-  wQ.yzx = twist(wQ.xyz, 2. * wQ.y);
+  wQ.yzx = twist(wQ.xyz, 4. * wQ.y);
   wQ += warpScale * 0.050000 * cos(13. * wQ.yzx + cosT );
   wQ += warpScale * 0.025000 * cos(17. * wQ.yzx + cosT );
   wQ += warpScale * 0.012500 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(17. * wQ.yzx + cosT );
-  wQ += warpScale * 0.003125 * cos(17. * wQ.yzx + cosT );
+  wQ.yzx = twist(wQ.xyz, 2. * wQ.y);
 
   q = wQ;
 
@@ -655,7 +654,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 s = vec3(sdBox(q, vec3(0.7, 0.7, 0.05)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.7;
+  d.x *= 0.2;
 
   return d;
 }
@@ -838,9 +837,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4);
 
-  vec3 dF = vec3(0.2 * cnoise3(pos));
+  vec3 dF = vec3(0.1 * cnoise3(pos));
   dF += 0.2 * pos;
   dF += 0.500 * pow(1. - dot(nor, -rd), 2.);
+  dF += 0.250 * pow(1. - dot(nor, -rd), 1.);
 
   dF *= angle3C;
 
@@ -987,7 +987,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 2.5);
-      // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
+      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
       color += saturate(dispersionColor);
 
