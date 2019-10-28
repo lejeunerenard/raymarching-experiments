@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'frills-render1',
+    name: 'sunset-shore-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
