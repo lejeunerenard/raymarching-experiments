@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
-#define maxDistance 7.0
-#define fogMaxDistance 8.0
+#define maxSteps 256
+#define maxDistance 20.0
+#define fogMaxDistance 20.0
 
 #define slowTime time * 0.2
 // v3
@@ -631,6 +631,9 @@ float getLayer (in float t) {
   return l;
 }
 
+const float height = 0.1;
+const float size = 0.35;
+float r = size * 0.3;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -638,21 +641,33 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
+  vec2 c = pMod2(q.xz, vec2(size));
+
+  q.xz += size * 0.125 * vec2(
+      snoise2(19.3423 * c + 0.3),
+      snoise2(7.8264 * c + 4.3));
+
+  q.y -= 0.2 * height * sin(dot(c, vec2(1)) + cosT);
+
   const float warpScale = 1.0;
   vec3 wQ = q;
-
-  wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(cosT + wQ.y));
-  wQ += warpScale * 0.05000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(21. * wQ.yzx + cosT );
-
   q = wQ;
 
   mPos = q;
-  vec3 s = vec3(length(q) - 2.0, 0, 0);
+
+  float rSmall = r * 0.75;
+
+  vec3 s = vec3(sdBox(q, vec3(r, height, r)), 0, 0);
+  float center = sdBox(q, vec3(rSmall, height + 0.1, rSmall));
+  s.x = max(s.x, -center);
   d = dMin(d, s);
 
-  d.x *= 0.6;
+  // Floor
+  q = p;
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, height)), 1, 0);
+  d = dMin(d, f);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -835,21 +850,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4);
 
-  vec3 dF = vec3(0.1 * cnoise3(pos));
-  dF += 0.3 * pos;
-  dF += 0.500 * pow(1. - dot(nor, -rd), 4.);
-  // dF += 0.250 * pow(1. - dot(nor, -rd), 1.);
+  color = mix(#443D66, #99D9FF, (mPos.y + height) / height);
+  color = mix(color, vec3(1.5), mPos.y / height);
 
-  dF *= angle3C;
-
-  // dF += norT;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dF + vec3(0, 0.23, 0.67) + angle1C));
-  color += 0.9 * length(mPos) * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(0, 0.23, 0.67)) + angle2C));
-
-  // color = mix(vec3(0), color, pow(1. - dot(nor, -rd), 1.5));
-
-  color *= 0.5;
 #ifdef NO_MATERIALS
   color = vec3(0.5);
 #endif
@@ -925,15 +928,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 0.0;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 1.0;
+        const float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -971,10 +974,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      /* vec3 reflectColor = vec3(0); */
+      /* vec3 reflectionRd = reflect(rayDirection, nor); */
+      /* reflectColor += 0.10 * reflection(pos, reflectionRd); */
+      /* color += reflectColor; */
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -984,13 +987,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.25;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // dispersionColor *= 0.25;
 
       // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 2.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
