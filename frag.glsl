@@ -633,7 +633,6 @@ float getLayer (in float t) {
 
 const float height = 0.1;
 const float size = 0.35;
-float r = size * 0.3;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -643,11 +642,12 @@ vec3 map (in vec3 p, in float dT) {
 
   vec2 c = pMod2(q.xz, vec2(size));
 
-  q.xz += size * 0.125 * vec2(
-      snoise2(19.3423 * c + 0.3),
-      snoise2(7.8264 * c + 4.3));
+  /* vec2 offset = size * 0.125 * vec2( */
+  /*     snoise2(19.3423 * c + 0.3), */
+  /*     snoise2(7.8264 * c + 4.3)); */
+  /* q.xz += offset; */
 
-  q.y -= 0.2 * height * sin(dot(c, vec2(1)) + cosT);
+  q.y -= 0.2 * height * sin(-length(c) + cosT);
 
   const float warpScale = 1.0;
   vec3 wQ = q;
@@ -655,10 +655,11 @@ vec3 map (in vec3 p, in float dT) {
 
   mPos = q;
 
+  float r = size * (0.3 + 0.125 * snoise2(3. * q.xz + 19.3423 * c + 0.3));
   float rSmall = r * 0.75;
 
-  vec3 s = vec3(sdBox(q, vec3(r, height, r)), 0, 0);
-  float center = sdBox(q, vec3(rSmall, height + 0.1, rSmall));
+  vec3 s = vec3(sdCappedCylinder(q, vec2(r, height)), 0, 0);
+  float center = sdCappedCylinder(q, vec2(rSmall, height + 0.1));
   s.x = max(s.x, -center);
   d = dMin(d, s);
 
@@ -850,8 +851,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4);
 
-  color = mix(#443D66, #99D9FF, (mPos.y + height) / height);
-  color = mix(color, vec3(1.5), mPos.y / height);
+  color = mix(vec3(1, 0, 0), vec3(0, 0, 1.), saturate((mPos.y + height) / height));
+  color = mix(color, vec3(vec2(0.9), 1.0), saturate(mPos.y / height));
+
+  color = mix(color, vec3(1, 0, 0), isMaterialSmooth(m, 1.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -999,7 +1002,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.1));
 #endif
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
