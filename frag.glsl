@@ -640,33 +640,26 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  // Floor
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0.)), 1, 0);
-  d = dMin(d, f);
+  const float warpScale = 1.00;
 
-  q = p;
-  vec2 c = pMod2(q.xz, vec2(size));
-
-  // float wave = 0.5 + 0.5 * sin(-length(c) + cosT);
-  float wave = 0.5 + 0.5 * sin(-length(c) + cosT);
-
-  q.y -= 1.0 * height * -smoothstep(0.5, 0.9, wave);
-
-  const float warpScale = 1.0;
   vec3 wQ = q;
+
+  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT);
+  wQ.xz += 0.6 * wQ.zy;
+  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ, 3. * wQ.y + cosT);
+  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT);
+
   q = wQ;
 
-  mPos = q;
+  float r = 0.8;
 
-  float r = size * 0.4;
+  vec3 s = vec3(length(q) - r, 0, 0);
+  // vec3 s = vec3(sdTorus(q, vec2(r, 0.4 * r)), 0, 0);
+  d = dMin(d, s);
 
-  vec3 s = vec3(sdCappedCylinder(q - vec3(0, height, 0), vec2(r, height)), 0, 0);
-  // vec3 s = vec3(sdBox(q - vec3(0, height, 0), vec3(r, height, r)), 0, 0);
-  s.x *= -1.;
-  // d = dMin(d, s);
-  d.x = max(d.x, s.x);
-
-  // d.x *= 0.5;
+  d.x *= 0.3;
 
   return d;
 }
@@ -849,7 +842,17 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4);
 
-  color = mix(vec3(1), vec3(0), saturate(-pos.y * 7.));
+  vec3 dI = vec3(0);
+
+  dI += 0.2 * pos;
+  dI += 0.1 * dot(nor, -rd);
+  dI += 0.3 * pow(dot(nor, -rd), 2.);
+
+  dI *= 0.7;
+  dI += norT;
+
+  color = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (pos + dot(nor, -rd) + vec3(0, 0.33, 0.67))));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -983,15 +986,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.25;
+      dispersionColor *= 0.25;
 
       // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 2.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // color = saturate(dispersionColor);
       // color = pow(color, vec3(1.1));
