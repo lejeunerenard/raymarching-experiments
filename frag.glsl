@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -640,26 +640,34 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.00;
+  const float warpScale = 1.0;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT);
-  wQ.xz += 0.6 * wQ.zy;
-  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT);
+  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT);
+  // wQ.zy += 0.6 * wQ.xz;
+  // wQ.zy *= 1. + 0.6 * wQ.xz;
+  wQ += warpScale * 0.0500 * cos(17. * wQ.yzx + cosT);
   wQ.xzy = twist(wQ, 3. * wQ.y + cosT);
-  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0250 * cos(29. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125 * cos(37. * wQ.yzx + cosT);
 
   q = wQ;
 
   float r = 0.8;
+  float l = length(q);
 
-  vec3 s = vec3(length(q) - r, 0, 0);
+  const float nAmp = 0.05;
+  if ((l - r) < 4.0 * nAmp) {
+    r -= nAmp * cellular(3. * q);
+  }
+
+  vec3 s = vec3(l - r, 0, 0);
+
   // vec3 s = vec3(sdTorus(q, vec2(r, 0.4 * r)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.3;
+  d.x *= 0.125;
 
   return d;
 }
@@ -840,19 +848,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.4);
-
-  vec3 dI = vec3(0);
-
-  dI += 0.2 * pos;
-  dI += 0.1 * dot(nor, -rd);
-  dI += 0.3 * pow(dot(nor, -rd), 2.);
-
-  dI *= 0.7;
-  dI += norT;
-
-  color = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-  color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (pos + dot(nor, -rd) + vec3(0, 0.33, 0.67))));
+  vec3 color = vec3(1);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -937,12 +933,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.95;
+        const float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.75;
+        const float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -975,10 +971,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      /* vec3 reflectColor = vec3(0); */
-      /* vec3 reflectionRd = reflect(rayDirection, nor); */
-      /* reflectColor += 0.10 * reflection(pos, reflectionRd); */
-      /* color += reflectColor; */
+      vec3 highlightColor = 0.5 + 0.5 * cos(TWO_PI * (0.5 * pos + 1. - t.z / float(maxSteps) + vec3(0, 0.33, 0.67)));
+      color = highlightColor * (1. + 2. * color);
+
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -986,18 +985,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       dispersionColor *= 0.25;
 
-      // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 2.5);
+      dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 2.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
       color += saturate(dispersionColor);
 
       // color = saturate(dispersionColor);
-      // color = pow(color, vec3(1.1));
+      color = pow(color, vec3(1.5));
 #endif
 
       // color = diffuseColor;
