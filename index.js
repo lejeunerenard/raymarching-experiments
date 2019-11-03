@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'play-render1',
+    name: 'present-flame-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
