@@ -646,20 +646,22 @@ vec3 map (in vec3 p, in float dT) {
 
   wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT);
   wQ.zy *= 1. + 0.6 * wQ.xz;
-  wQ *= mat3(
-      0.3, -0.2,-1.3,
-     -0.8,  0.5,-0.9,
-     -0.9,  0.1, 0.6);
-  wQ.xyz = twist(wQ, 1. * wQ.z + cosT);
-  wQ += warpScale * 0.0500 * cos(17. * wQ.yzx + cosT);
+  /* wQ *= mat3( */
+  /*     0.3, -0.2,-1.3, */
+  /*    -0.8,  0.5,-0.9, */
+  /*    -0.9,  0.1, 0.6); */
+  // wQ.xyz = twist(wQ, 1. * wQ.z + cosT);
   wQ.xzy = twist(wQ, 3. * wQ.y + cosT);
-  wQ += warpScale * 0.0250 * cos(29. * wQ.yzx);
-  wQ += warpScale * 0.0125 * cos(37. * wQ.yzx);
+  wQ += warpScale * 0.0500 * cos(17. * wQ.yzx + cosT);
+  // wQ.xzy = twist(wQ, 3. * wQ.y + cosT);
+  wQ += warpScale * 0.02500 * cos(29. * wQ.yzx);
+  wQ += warpScale * 0.01250 * cos(37. * wQ.yzx);
+  wQ += warpScale * 0.00625 * cos(57. * wQ.yzx);
 
   q = wQ;
 
   mPos = q;
-  const float r = 0.6;
+  float r = 0.6 + 0.05 * snoise3(3. * q.yzx);
   vec3 s = vec3(length(q) - r, 0, 0);
   // vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
@@ -750,17 +752,17 @@ vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
-  // float n = smoothstep(0.75, 1.0, sin(250.0 * rd.x + 0.01 * noise(433.0 * rd)));
+  // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.0;
 
-  vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2);
-  float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.0, 0.80, n);
+  /* vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2); */
+  /* float n = ncnoise3(spaceScaling * rd + startPoint); */
+  /* n = smoothstep(0.0, 0.80, n); */
 
-  /* vec3 spaceScaling = vec3(0.8); */
-  /* float n = vfbmWarp(spaceScaling * rd + startPoint); */
-  /* n = smoothstep(0.525, 0.80, n); */
+  vec3 spaceScaling = vec3(0.8);
+  float n = vfbmWarp(spaceScaling * rd + startPoint);
+  n = smoothstep(0.525, 0.80, n);
 
   /* vec3 spaceScaling = vec3(9.8); */
   /* float n = vfbm4(spaceScaling * rd + startPoint); */
@@ -845,9 +847,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = background;
 
-  return vec3(1, 0.3, 1.4) * mPos + 0.25 * length(pos);
+  return 0.7 * color; // vec3(1, 0.3, 1.4) * mPos + 0.25 * length(pos);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -887,9 +889,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(-1.0, 0.5,  0.5), #AAAAFF, 1.0);
-    lights[1] = light(vec3(-1.0, 1.0,  1.0), #FFAAAA, 1.0);
-    lights[2] = light(vec3( 0.0, 0.0,  1.0), #AAFFAA, 1.0);
+    lights[0] = light(vec3(-1.0, 0.5,  0.5), #8888FF, 1.0);
+    lights[1] = light(vec3(-1.0, 1.0,  1.0), #FF8888, 1.0);
+    lights[2] = light(vec3( 0.0, 0.0,  1.0), #88FF88, 1.0);
 
     float backgroundMask = 1.;
     // Allow anything in top right corner
@@ -925,19 +927,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.5;
-      float specCo = 0.5;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.8;
+        const float diffMin = 1.00;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.8;
+        const float shadowMin = 0.90;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
