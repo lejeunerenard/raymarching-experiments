@@ -13,9 +13,9 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1.0
+const dpr = 1.00
 
-// const TWO_PI = 2 * Math.PI
+const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
@@ -44,18 +44,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.878,
-        y: 0.449,
-        z: 1.221
+        x: 1.331,
+        y: 1.883,
+        z: 1.883
       },
       d: 1,
-      scale: 1.71,
-      rot2angle: [-0.039, 0.121, 0],
+      scale: 1.26,
+      rot2angle: [0.721, 0, 0.652],
       cameraAngles: [-0.039, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.44, 0.88, 0.77)
+    this.cameraRo = vec3.fromValues(3.8, 7.73, 7.63)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
@@ -189,21 +189,17 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([2.107, 3.077, this.rot2angle[2]], 15 * 1000)
+      .to([this.rot2angle[0], TWO_PI, this.rot2angle[2]], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([5.087, 5.295, 4.814], 15 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween3 = new TWEEN.Tween(this.rot2angle)
-    rotTween3
-      .to([this.rot2angle[0], this.rot2angle[1], this.rot2angle[2]], 15 * 1000)
+      .to([...this.rot2angle], 0)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
-    rotTween3.chain(rotTween1)
-    // rotTween1.start(0)
+    rotTween2.chain(rotTween1)
+    // rotTween3.chain(rotTween1)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)

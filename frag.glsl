@@ -640,30 +640,29 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.0;
+  const float warpScale = 0.5;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT);
-  wQ.zy *= 1. + 0.6 * wQ.xz;
-  /* wQ *= mat3( */
-  /*     0.3, -0.2,-1.3, */
-  /*    -0.8,  0.5,-0.9, */
-  /*    -0.9,  0.1, 0.6); */
-  // wQ.xyz = twist(wQ, 1. * wQ.z + cosT);
-  wQ.xzy = twist(wQ, 3. * wQ.y + cosT);
-  wQ += warpScale * 0.0500 * cos(17. * wQ.yzx + cosT);
-  // wQ.xzy = twist(wQ, 3. * wQ.y + cosT);
-  wQ += warpScale * 0.02500 * cos(29. * wQ.yzx);
-  wQ += warpScale * 0.01250 * cos(37. * wQ.yzx);
-  wQ += warpScale * 0.00625 * cos(57. * wQ.yzx);
+  for (int i = 0; i < 8; i++) {
+    wQ = (vec4(wQ, 1.) * kifsM).xyz;
+    // wQ *= 0.9;
+    // wQ -= 0.1;
+    wQ = abs(wQ);
+    wQ /= scale;
+  }
 
   q = wQ;
 
   mPos = q;
-  float r = 0.6 + 0.05 * snoise3(3. * q.yzx);
-  vec3 s = vec3(length(q) - r, 0, 0);
-  // vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
+  float r = 0.6;
+  /* const float nR = 0.025; */
+  /* float l = length(q); */
+  /* if (l - r < 1.5 * nR){ */
+  /*   r += nR * cellular(7. * q.yzx); */
+  /* } */
+
+  vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.125;
@@ -847,9 +846,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = background;
+  vec3 color = vec3(0);
 
-  return 0.7 * color; // vec3(1, 0.3, 1.4) * mPos + 0.25 * length(pos);
+  color += 0.25 + 0.25 * cos(TWO_PI * (0.2 * pos + dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+
+  return color;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -926,7 +927,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 1.0;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -939,7 +940,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.90;
+        const float shadowMin = 0.975;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -974,7 +975,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      reflectColor += 0.05 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -983,12 +984,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 1.0;
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      dispersionColor *= 0.5;
 
-      dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
+      // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
       color += saturate(dispersionColor);
