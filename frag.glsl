@@ -640,22 +640,19 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.5;
+  const float warpScale = 2.0;
 
   vec3 wQ = q;
 
-  for (int i = 0; i < 8; i++) {
-    wQ = (vec4(wQ, 1.) * kifsM).xyz;
-    // wQ *= 0.9;
-    // wQ -= 0.1;
-    wQ = abs(wQ);
-    wQ /= scale;
-  }
+  wQ += warpScale * 0.2000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(21. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
-  float r = 0.6;
+  float r = 2.7;
   /* const float nR = 0.025; */
   /* float l = length(q); */
   /* if (l - r < 1.5 * nR){ */
@@ -848,7 +845,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  color += 0.25 + 0.25 * cos(TWO_PI * (0.2 * pos + dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  vec3 dI = vec3(0.2 * dot(nor, -rd));
+  dI += 0.2 * snoise3(pos);
+  dI += 0.4 * pow(dot(nor, -rd), 5.0);
+
+  dI *= 0.7;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)) + 1.252);
 
   return color;
 
@@ -984,15 +987,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      dispersionColor *= 0.5;
+      // dispersionColor *= 0.5;
 
       // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
