@@ -645,24 +645,21 @@ vec3 map (in vec3 p, in float dT) {
   vec3 wQ = q;
 
   wQ += warpScale * 0.2000 * cos( 3. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
   wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2.3 * wQ.y);
   wQ += warpScale * 0.0250 * cos(21. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
   float r = 2.7;
-  /* const float nR = 0.025; */
-  /* float l = length(q); */
-  /* if (l - r < 1.5 * nR){ */
-  /*   r += nR * cellular(7. * q.yzx); */
-  /* } */
 
-  vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 s = vec3(length(q) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.125;
+  d.x *= 0.025;
 
   return d;
 }
@@ -845,13 +842,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  vec3 dI = vec3(0.2 * dot(nor, -rd));
-  dI += 0.2 * snoise3(pos);
-  dI += 0.4 * pow(dot(nor, -rd), 5.0);
-
-  dI *= 0.7;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)) + 1.252);
+  color = mix(vec3(0), vec3(1), pow(1. - dot(nor, -rd), 2.));
 
   return color;
 
@@ -1000,7 +991,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.5));
 #endif
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
@@ -1123,24 +1114,24 @@ vec3 spiral (in vec2 q, in float t) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
   vec2 q = uv;
 
   const float warpScale = 1.;
 
-  q += warpScale * 0.1000 * cos( 3. * q.yx + cosT);
-  q += warpScale * 0.0500 * cos( 5. * q.yx);
-  q *= rotMat2(PI * 0.125 * sin(cosT + dot(q, vec2(1))));
-  q += warpScale * 0.0250 * cos( 7. * q.yx - cosT);
-  q += warpScale * 0.0125 * cos(13. * q.yx + cosT);
-
-  float n = smoothstep(0.8, 0.8 + edge, sin(dot(q, vec2(80))));
-  color = vec3(n);
-
-  vec2 absQ = abs(uv * vec2(1, 0.8));
-
-  color *= smoothstep(edge, 0., max(absQ.x, absQ.y) - 0.45);
+  const float r = 0.3;
+  const int total = 3; 
+  for (int i = 0; i < total; i++) {
+    q = uv;
+    q *= rotMat2(1. / float(total) * TWO_PI * float(i));
+    q.x -= r * 0.7;
+    float l = length(q);
+    float n = smoothstep(0.0 + edge, 0.0, l - r);
+    vec3 layer = 0.5 + 0.5 * cos(TWO_PI * (0.33 * float(i) + vec3(q, 0) + vec3(0, 0.33, 0.67)));
+    color = mix(color, color * layer, n);
+    // color += n;
+  }
 
   return color.rgb;
 }
