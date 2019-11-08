@@ -4,7 +4,7 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-// #define debugMapCalls
+#define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
 // #define ORTHO 1
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 210
 #define maxDistance 20.0
 #define fogMaxDistance 20.0
 
@@ -640,7 +640,7 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 2.0;
+  const float warpScale = 1.0;
 
   vec3 wQ = q;
 
@@ -659,7 +659,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 s = vec3(length(q) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.025;
+  d.x *= 0.125;
 
   return d;
 }
@@ -842,7 +842,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  color = mix(vec3(0), vec3(1), pow(1. - dot(nor, -rd), 2.));
+  color = 0.5 + 0.5 * cos(TWO_PI * (mPos + dot(nor, -rd) + vec3(0, 0.33, 0.67)));
+  color = mix(vec3(0), color, pow(1. - dot(nor, -rd), 4.));
 
   return color;
 
@@ -980,13 +981,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       // dispersionColor *= 0.5;
 
-      // dispersionColor *= pow(saturate(1. - dot(nor, -rayDirection)), 1.5);
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor) * pow(1. - dot(nor, -rayDirection), 2.);
 
       // color = pow(color, vec3(1.5));
 #endif
