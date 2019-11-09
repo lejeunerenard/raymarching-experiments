@@ -45,8 +45,8 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 210
-#define maxDistance 20.0
+#define maxSteps 84
+#define maxDistance 10.0
 #define fogMaxDistance 20.0
 
 #define slowTime time * 0.2
@@ -640,23 +640,21 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.0;
+  const float warpScale = 0.5;
 
   vec3 wQ = q;
 
   wQ += warpScale * 0.2000 * cos( 3. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
   wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2.3 * wQ.y);
-  wQ += warpScale * 0.0250 * cos(21. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
-  float r = 2.7;
+  float r = 1.7;
+  r -= 0.50 * cellular(2. * q.yzx);
 
-  vec3 s = vec3(length(q) - r, 0, 0);
+  vec3 s = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.125;
