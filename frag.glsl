@@ -4,7 +4,7 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-#define debugMapCalls
+// #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
 // #define ORTHO 1
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 84
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 20.0
 
@@ -644,17 +644,18 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.2000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.2000 * cos( 5. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(29. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
-  float r = 1.7;
-  r -= 0.50 * cellular(2. * q.yzx);
 
-  vec3 s = vec3(dodecahedral(q, 42., r), 0, 0);
+  float r = 1.7;
+  vec3 s = vec3(length(q) - r, 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.125;
@@ -841,7 +842,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0);
 
   color = 0.5 + 0.5 * cos(TWO_PI * (mPos + dot(nor, -rd) + vec3(0, 0.33, 0.67)));
-  color = mix(vec3(0), color, pow(1. - dot(nor, -rd), 4.));
+  color = mix(vec3(0), color, pow(1. - dot(nor, -rd), 2.));
 
   return color;
 
@@ -920,8 +921,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.8;
+      float freCo = 0.5;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -984,12 +985,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
-      color += saturate(dispersionColor) * pow(1. - dot(nor, -rayDirection), 2.);
+      color += saturate(dispersionColor) * pow(1. - dot(nor, -rayDirection), 3.);
 
       // color = pow(color, vec3(1.5));
 #endif
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
