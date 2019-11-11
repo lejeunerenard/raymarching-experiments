@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'dance-of-the-phantoms-render1',
+    name: 'regimented-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
