@@ -636,8 +636,8 @@ vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
 
-const float height = 0.1;
-const float size = 0.15;
+const float height = 0.2;
+const float size = 0.35;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -650,15 +650,25 @@ vec3 map (in vec3 p, in float dT) {
   vec3 wQ = q;
   vec2 c = floor((wQ.xz + vec2(size)*0.5)/vec2(size));
 
-  wQ.y += 0.35 * height * sin(dot(c, vec2(1)) + cosT);
-  wQ.xz = opRepLim(wQ.xz, size, vec2(4.));
+  wQ.xz = opRepLim(wQ.xz, size, vec2(10.));
   q = wQ;
 
   mPos = q;
-
-  float r = 0.25 * size;
+  float r = 0.475 * size;
   vec3 s = vec3(sdBox(q, vec3(r, height, r)), 0, 0);
   d = dMin(d, s);
+
+  float insetR = r * 0.7;
+  float cropInsetR = 1.2 * insetR;
+  // float cropInset = sdCylinder(q, vec3(vec2(0), 1.10 * insetR));
+  float cropInset = sdBox(q, vec3(cropInsetR, height * 2., cropInsetR));
+  d.x = max(d.x, -cropInset);
+
+  q.y += 0.5 * height * sin(PI * cnoise2(vec2(0.342, 1.9234) * c) + dot(c, vec2(1)) + cosT);
+
+  // vec3 inset = vec3(sdCappedCylinder(q, vec2(insetR, height)), 0, 0);
+  vec3 inset = vec3(sdBox(q, vec3(insetR, height, insetR)), 1, 0);
+  d = dMin(d, inset);
 
   d.x *= 0.75;
 
@@ -982,11 +992,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
-      // dispersionColor *= 0.5;
+      // dispersionColor *= 0.125;
 
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
-      // color += saturate(dispersionColor) * pow(1. - dot(nor, -rayDirection), 3.);
+      // color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
