@@ -649,25 +649,28 @@ vec3 map (in vec3 p, in float dT) {
 
   q *= rotationMatrix(vec3(0.3, 0.6, -0.1), 0.25 * PI * sin(cosT + 0.6 * q.y));
 
-  const float bigR = 0.65;
+  const float bigR = 0.70;
   vec3 wQ = q;
-  q = wQ;
+  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + cosT);
+  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(31. * wQ.yzx + cosT );
 
-  mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(bigR)), 0, 0);
-  // s.x -= 0.010 * cellular(2. * q);
+  mPos = wQ;
+  vec3 s = vec3(length(wQ) - bigR, 0, 0);
   d = dMin(d, s);
 
+  wQ = q;
   q += warpScale * 0.1000 * cos( 5. * q.yzx + cosT );
-  q.xzy = twist(q.xyz, 5. * q.y + 0.25 * PI * cos(cosT));
+  q.xzy = twist(q.xyz, 7. * q.y + 0.25 * PI * cos(cosT));
   q += warpScale * 0.0500 * cos(13. * q.yzx + cosT );
   q += warpScale * 0.0250 * cos(21. * q.yzx + cosT );
 
-  float innerR = bigR * (0.7 + 0.1 * cos(cosT));
-  float inner = length(q) - innerR;
+  float innerR = bigR * 0.80;
+  float inner = sdBox(q, vec3(innerR));
   d.x = max(d.x, -inner);
 
-  d.x *= 0.75;
+  d.x *= 0.25;
 
   return d;
 }
