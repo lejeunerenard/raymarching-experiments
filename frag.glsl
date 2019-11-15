@@ -645,32 +645,23 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.5;
+  const float warpScale = 1.0;
 
-  q *= rotationMatrix(vec3(0.3, 0.6, -0.1), 0.25 * PI * sin(cosT + 0.6 * q.y));
+  const float r = 0.80;
 
-  const float bigR = 0.70;
   vec3 wQ = q;
-  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 3. * wQ.y + cosT);
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
+  wQ.xyz = twist(wQ.xzy, 4. * wQ.z);
   wQ += warpScale * 0.0250 * cos(31. * wQ.yzx + cosT );
 
-  mPos = wQ;
-  vec3 s = vec3(length(wQ) - bigR, 0, 0);
+  q = wQ;
+
+  vec3 s = vec3(length(q) - r, 0, 0);
   d = dMin(d, s);
 
-  wQ = q;
-  q += warpScale * 0.1000 * cos( 5. * q.yzx + cosT );
-  q.xzy = twist(q.xyz, 7. * q.y + 0.25 * PI * cos(cosT));
-  q += warpScale * 0.0500 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.0250 * cos(21. * q.yzx + cosT );
-
-  float innerR = bigR * 0.80;
-  float inner = sdBox(q, vec3(innerR));
-  d.x = max(d.x, -inner);
-
-  d.x *= 0.25;
+  d.x *= 0.2;
 
   return d;
 }
@@ -851,7 +842,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.4 * background);
+  vec3 color = vec3(background);
+
+  color = mix(color, vec3(1), smoothstep(0.5, 0.5 + edge, 1. - dot(nor, -rd)));
 
   return color;
 
@@ -999,7 +992,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.5));
 #endif
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
