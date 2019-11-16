@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 165
 #define maxDistance 10.0
 #define fogMaxDistance 20.0
 
@@ -645,23 +645,25 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.0;
+  const float warpScale = 0.0;
 
   const float r = 0.80;
 
   vec3 wQ = q;
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + cosT);
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 4. * wQ.z);
-  wQ += warpScale * 0.0250 * cos(31. * wQ.yzx + cosT );
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z + cosT);
+  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 s = vec3(length(q) - r, 0, 0);
+  // vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 s = vec3(length(q) - r, 0, 0);
+  vec3 s = vec3(sdTorus(q, vec2(r, 0.15)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.2;
+  d.x *= 0.1;
 
   return d;
 }
@@ -844,7 +846,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(background);
 
-  color = mix(color, vec3(1), smoothstep(0.5, 0.5 + edge, 1. - dot(nor, -rd)));
+  const float stopPoint = 0.60;
+  // color = mix(vec3(1), color, smoothstep(stopPoint, stopPoint + edge, 1. - dot(nor, -rd)));
+  color = mix(vec3(1), color, saturate(trap));
 
   return color;
 
@@ -917,6 +921,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       gRd = rayDirection;
 
       // Basic Diffusion
+      t.w = t.z / float(maxSteps);
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       float occ = calcAO(pos, nor);
