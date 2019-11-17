@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 165
+#define maxSteps 96
 #define maxDistance 10.0
 #define fogMaxDistance 20.0
 
@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -645,22 +645,26 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.0;
+  const float warpScale = 0.7;
 
-  const float r = 0.80;
+  const float r = 0.85;
 
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
+  wQ = abs(wQ);
+  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + dot(wQ, vec3(1)));
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z + cosT);
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
+  wQ = abs(wQ);
+  wQ += warpScale * 0.0250 * cos(23. * wQ.yzx);
+  wQ += warpScale * 0.0125 * cos(37. * wQ.yzx + cosT );
 
   q = wQ;
 
   // vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 s = vec3(length(q) - r, 0, 0);
-  vec3 s = vec3(sdTorus(q, vec2(r, 0.15)), 0, 0);
+  vec3 s = vec3(length(q) - r, 0, 0);
+  s.x -= 0.04 * cellular(1.5 * q.yzx);
+  // vec3 s = vec3(sdTorus(q, vec2(r, 0.15)), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.1;
@@ -846,9 +850,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(background);
 
-  const float stopPoint = 0.60;
-  // color = mix(vec3(1), color, smoothstep(stopPoint, stopPoint + edge, 1. - dot(nor, -rd)));
-  color = mix(vec3(1), color, saturate(trap));
+  const float stopPoint = 0.40;
+  const float redStopPoint = 0.300;
+
+  color = mix(color, vec3(1, 0, 0), smoothstep(redStopPoint, redStopPoint + edge, pow(dot(nor, -rd), 2.)));
+  color = mix(color, vec3(1), smoothstep(stopPoint, stopPoint + edge, pow(dot(nor, -rd), 2.)));
 
   return color;
 
@@ -1044,9 +1050,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      // float i = saturate(t.z / (0.91 * float(maxSteps)));
-      // vec3 glowColor = pow(#D93741, vec3(2.2));
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      /* float i = saturate(t.z / (1.0 * float(maxSteps))); */
+      /* vec3 glowColor = vec3(1); */
+      /* const float stopPoint = 0.975; */
+      /* color = mix(color, vec4(glowColor, 1.0), smoothstep(stopPoint, stopPoint + edge, i)); */
 
       return color;
     }
