@@ -55,14 +55,14 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(2, 2, 2)
+    this.cameraRo = vec3.fromValues(0.26, 0.32, 0.26)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
     this.colors2 = [140, 108, 5]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.001
+    this.epsilon = preset.epsilon || 0.0003
 
     // Fractal parameters
     this.offset = (preset.offset)
