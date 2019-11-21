@@ -631,21 +631,24 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.7;
+  const float warpScale = 1.5;
 
   vec3 wQ = q;
-  vec2 c = pMod2(wQ.xz, vec2(size));
+
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(29. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625 * cos(43. * wQ.yzx + cosT );
+
   q = wQ;
 
-  float ind = dot(c, vec2(0.1234, 0.5232));
-  float trans = sin(cosT + ind);
-  q.y -= 0.5 * height * trans;
   mPos = q;
-  const float r = 0.45 * size;
-  vec3 s = vec3(sdBox(q, vec3(r)), 0, ind);
+  float r = 0.45 + 0.25 * snoise3(5. * q);
+  vec3 s = vec3(length(q) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.1;
+  d.x *= 0.05;
 
   return d;
 }
@@ -828,10 +831,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  vec3 dI = vec3(0.012);
-  dI -= 0.015625 * trap;
+  vec3 dI = vec3(-0.411); // vec3(angle1C);
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  // color = vec3(0.1, 0.1, 1);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
