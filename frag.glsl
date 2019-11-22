@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 4.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1101,6 +1101,23 @@ vec3 spiral (in vec2 q, in float t) {
   return color;
 }
 
+float squareTriplet (in vec2 q, in float size, in float t) {
+  vec2 center1 =  (2. - t) * vec2(size, size);
+  vec2 center2 = vec2(0, 0);
+  vec2 center3 = -(2. - t) * vec2(size, size);
+
+  vec2 absQ1 = abs(q - center1);
+  float n = step(0., max(absQ1.x, absQ1.y) - size);
+
+  vec2 absQ2 = abs(q - center2);
+  n = mix(n, 1. - n, step(0., max(absQ2.x, absQ2.y) - size));
+
+  vec2 absQ3 = abs(q - center3);
+  n = mix(n, 1. - n, step(0., max(absQ3.x, absQ3.y) - size));
+
+  return n;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
 
@@ -1108,18 +1125,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 1.;
 
-  const float r = 0.3;
-  const int total = 3; 
-  for (int i = 0; i < total; i++) {
-    q = uv;
-    q *= rotMat2(1. / float(total) * TWO_PI * float(i));
-    q.x -= r * 0.7;
-    float l = length(q);
-    float n = smoothstep(0.0 + edge, 0.0, l - r);
-    vec3 layer = 0.5 + 0.5 * cos(TWO_PI * (0.33 * float(i) + vec3(q, 0) + vec3(0, 0.33, 0.67)));
-    color = mix(color, color * layer, n);
-    // color += n;
-  }
+  float size = 0.1;
+
+  q *= rotMat2(-0.25 * PI);
+
+  q *= 1. - 0.5 * generalT;
+  q.y += 0.5 * sqrt(2.) * size * generalT;
+  vec2 c = pMod2(q, vec2(2. * sqrt(2.) * size));
+
+  q *= rotMat2(0.25 * PI);
+
+  // First pass
+  float n = 0.;
+  n = mix(n, 1. - n, squareTriplet(q, size, generalT));
+
+  color = vec3(n);
 
   return color.rgb;
 }
@@ -1129,7 +1149,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, quint(norT)), 1);
 
   vec4 color = vec4(0);
   float time = norT;
