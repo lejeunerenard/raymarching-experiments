@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 4.0;
+const float totalT = 3.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1127,11 +1127,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float size = 0.1;
 
+  q *= 2.;
+
   q *= rotMat2(-0.25 * PI);
 
-  q *= 1. - 0.5 * generalT;
+  q *= quad(1. - 0.5 * generalT);
+
   q.y += 0.5 * sqrt(2.) * size * generalT;
-  vec2 c = pMod2(q, vec2(2. * sqrt(2.) * size));
+  // vec2 c = pMod2(q, vec2(1. - 0.5 * generalT) * (2. * sqrt(2.) * size));
+  vec2 c = pMod2(q,
+      vec2(
+        (1. - 0.5 * generalT) * (2. * sqrt(2.) * size),
+        2. * sqrt(2.) * size
+      ));
 
   q *= rotMat2(0.25 * PI);
 
@@ -1149,7 +1157,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, quint(norT)), 1);
+  return vec4(two_dimensional(uv, sine(norT)), 1);
 
   vec4 color = vec4(0);
   float time = norT;
