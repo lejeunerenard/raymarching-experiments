@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 3.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1127,27 +1127,50 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float size = 0.1;
 
-  q *= 2.;
-
-  q *= rotMat2(-0.25 * PI);
-
-  q *= quad(1. - 0.5 * generalT);
-
-  q.y += 0.5 * sqrt(2.) * size * generalT;
-  // vec2 c = pMod2(q, vec2(1. - 0.5 * generalT) * (2. * sqrt(2.) * size));
-  vec2 c = pMod2(q,
-      vec2(
-        (1. - 0.5 * generalT) * (2. * sqrt(2.) * size),
-        2. * sqrt(2.) * size
-      ));
-
-  q *= rotMat2(0.25 * PI);
-
   // First pass
   float n = 0.;
-  n = mix(n, 1. - n, squareTriplet(q, size, generalT));
 
+  const float baseRotAngle = 0.125 * PI;
+  const float baseHalfWidth = 0.05;
+
+  q *= 0.8;
+
+  const float loopLength = 1.0003;
+  float secondHalf = step(0.5 * loopLength, generalT);
+
+  // Speed up
+  generalT *= 2.;
+
+  generalT = mod(generalT, loopLength);
+
+  // loop wedges
+  for (int i = 0; i < 8; i++) {
+    float fI = float(i);
+    vec2 startWQ = q;
+    startWQ *= rotMat2(fI * 0.125 * TWO_PI);
+    startWQ.y += 0.008 + baseHalfWidth * tan(PI * 0.5 - baseRotAngle);
+    vec2 wedgeQ = startWQ;
+    float t1Offset = fI * 0.020;
+
+    float spread = 0.2 *
+      (quad(smoothstep(0.05 + t1Offset, 0.4 + t1Offset, generalT)) -
+       sine(smoothstep(0.4 + t1Offset, 0.8 + t1Offset, generalT)));
+    wedgeQ.y += spread;
+    wedgeQ *= rotMat2(PI * smoothstep(0.25 + t1Offset, 0.75 + t1Offset, generalT));
+
+    // triangle
+    float angle = mix(baseRotAngle, -baseRotAngle, smoothstep(0.7 + t1Offset, 0.99, generalT));
+    vec2 angledQ = abs(wedgeQ) * rotMat2(-angle);
+    float tri = step(0., wedgeQ.y) * step(0., -angledQ.x + baseHalfWidth);
+    n = max(n, tri);
+  }
+
+  // Invert
+  n = mix(n, 1. - n, secondHalf);
+
+  // Foreground/background to color
   color = vec3(n);
+  color = mix(#632299, #9F9FFF, n);
 
   return color.rgb;
 }
@@ -1157,7 +1180,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, sine(norT)), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
