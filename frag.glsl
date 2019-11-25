@@ -1130,47 +1130,49 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // First pass
   float n = 0.;
 
-  const float baseRotAngle = 0.125 * PI;
-  const float baseHalfWidth = 0.05;
+  const int numEdgeSquares = 6;
+  const float fNumEdgeSquares = float(numEdgeSquares);
+  const int totalEdgeSquares = 4 * (numEdgeSquares - 2) + 4;
 
-  q *= 0.8;
+  const float timePerSquare = 1. / float(totalEdgeSquares);
 
-  const float loopLength = 1.0003;
-  float secondHalf = step(0.5 * loopLength, generalT);
+  const float r = 0.3;
+  const float edgeR = r / float(numEdgeSquares);
+  const float innerR = r - 2. * edgeR;
 
-  // Speed up
-  generalT *= 2.;
-
-  generalT = mod(generalT, loopLength);
+  q *= mix(1., innerR / r, generalT);
 
   // loop wedges
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < totalEdgeSquares; i++) {
     float fI = float(i);
-    vec2 startWQ = q;
-    startWQ *= rotMat2(fI * 0.125 * TWO_PI);
-    startWQ.y += 0.008 + baseHalfWidth * tan(PI * 0.5 - baseRotAngle);
-    vec2 wedgeQ = startWQ;
-    float t1Offset = fI * 0.020;
 
-    float spread = 0.2 *
-      (quad(smoothstep(0.05 + t1Offset, 0.4 + t1Offset, generalT)) -
-       sine(smoothstep(0.4 + t1Offset, 0.8 + t1Offset, generalT)));
-    wedgeQ.y += spread;
-    wedgeQ *= rotMat2(PI * smoothstep(0.25 + t1Offset, 0.75 + t1Offset, generalT));
+    vec2 wQ = q +
+      step(0., fI) * (1. - step(fNumEdgeSquares, fI))
+      * vec2(-(edgeR + innerR) + 2. * edgeR * fI, -(edgeR + innerR))
 
-    // triangle
-    float angle = mix(baseRotAngle, -baseRotAngle, smoothstep(0.7 + t1Offset, 0.99, generalT));
-    vec2 angledQ = abs(wedgeQ) * rotMat2(-angle);
-    float tri = step(0., wedgeQ.y) * step(0., -angledQ.x + baseHalfWidth);
-    n = max(n, tri);
+      + step(fNumEdgeSquares, fI) * (1. - step(2. * (fNumEdgeSquares - 1.) + 1., fI))
+      * vec2( (edgeR + innerR), -(edgeR + innerR) + 2. * edgeR * (fI - fNumEdgeSquares + 1.))
+
+      + step(2. * fNumEdgeSquares - 1., fI) * (1. - step(3. * (fNumEdgeSquares - 1.) + 1., fI))
+      * vec2( (edgeR + innerR) - 2. * edgeR * (fI - 2. * fNumEdgeSquares + 2.), (edgeR + innerR))
+
+      + step(3. * (fNumEdgeSquares - 1.) + 1., fI)
+      * vec2(-(edgeR + innerR), (edgeR + innerR) - 2. * edgeR * (fI - 3. * (fNumEdgeSquares + 1.) + 6.))
+      ;
+
+    vec2 absQ = abs(wQ);
+    float s = smoothstep(edge, 0., max(absQ.x, absQ.y) - edgeR);
+    s *= 1. - smoothstep(fI * timePerSquare, (fI + 1.) * timePerSquare, generalT);
+    n = max(n, s);
   }
 
-  // Invert
-  n = mix(n, 1. - n, secondHalf);
+  vec2 absQ = abs(q);
+  float s = smoothstep(edge, 0., max(absQ.x, absQ.y) - innerR);
+  n = max(n, s);
 
   // Foreground/background to color
   color = vec3(n);
-  color = mix(#632299, #9F9FFF, n);
+  color = mix(#28289A, vec3(1), n);
 
   return color.rgb;
 }
