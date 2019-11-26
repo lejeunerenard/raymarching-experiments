@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1123,56 +1123,53 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float warpScale = 1.;
+  // Sizing
+  const float size = 0.100;
+  const float thick = 0.0005;
+  const float r = 0.5 * size - 4. * thick;
 
-  float size = 0.1;
+  // Global Timing
+  vec2 c = floor((q + size*0.5)/size);
+  float t = mod(generalT + 0.25 * dot(c, vec2(0.03125)), 1.);
 
-  // First pass
   float n = 0.;
 
-  const int numEdgeSquares = 6;
-  const float fNumEdgeSquares = float(numEdgeSquares);
-  const int totalEdgeSquares = 4 * (numEdgeSquares - 2) + 4;
+  // Dots
+  vec2 dQ = q;
+  dQ.x += 0.5 * size;
 
-  const float timePerSquare = 1. / float(totalEdgeSquares);
+  float dotT = mod(2. * t, 1.); // smoothstep()
+  float secondPhase = floor(2. * t);
 
-  const float r = 0.3;
-  const float edgeR = r / float(numEdgeSquares);
-  const float innerR = r - 2. * edgeR;
+  // Dot pos
+  float angle = (1. - 2. * secondPhase) * PI * dotT;
+  dQ.x -= size * secondPhase; // Shift over one cell
+  dQ += 0.5 * size * vec2(cos(angle), sin(angle));
 
-  q *= mix(1., innerR / r, generalT);
+  vec2 cD = pMod2(dQ, vec2(2. * size, size));
 
-  // loop wedges
-  for (int i = 0; i < totalEdgeSquares; i++) {
-    float fI = float(i);
+  // Offset by one cell in X direction based on y axis cell coord
+  dQ.x += size * floor(mod(cD.y, 2.));
 
-    vec2 wQ = q +
-      step(0., fI) * (1. - step(fNumEdgeSquares, fI))
-      * vec2(-(edgeR + innerR) + 2. * edgeR * fI, -(edgeR + innerR))
+  dQ.x = dQ.x - 2. * size * step(size, dQ.x);
 
-      + step(fNumEdgeSquares, fI) * (1. - step(2. * (fNumEdgeSquares - 1.) + 1., fI))
-      * vec2( (edgeR + innerR), -(edgeR + innerR) + 2. * edgeR * (fI - fNumEdgeSquares + 1.))
+  const float dotR = size * 0.1;
+  float dots = smoothstep(edge, 0., length(dQ) - dotR);
+  n = max(n, dots);
 
-      + step(2. * fNumEdgeSquares - 1., fI) * (1. - step(3. * (fNumEdgeSquares - 1.) + 1., fI))
-      * vec2( (edgeR + innerR) - 2. * edgeR * (fI - 2. * fNumEdgeSquares + 2.), (edgeR + innerR))
+  // Circles
+  vec2 cQ = q;
+  cQ.x += 0.5 * size;
+  vec2 cC = pMod2(cQ, vec2(size));
 
-      + step(3. * (fNumEdgeSquares - 1.) + 1., fI)
-      * vec2(-(edgeR + innerR), (edgeR + innerR) - 2. * edgeR * (fI - 3. * (fNumEdgeSquares + 1.) + 6.))
-      ;
+  float tCircleOffset = mod(dot(cC, vec2(1)), 2.);
+  float circleAlpha = 0.5 - 0.5 * cos(TWO_PI * (t + 0.5 * tCircleOffset) + 0.5 * PI);
 
-    vec2 absQ = abs(wQ);
-    float s = smoothstep(edge, 0., max(absQ.x, absQ.y) - edgeR);
-    s *= 1. - smoothstep(fI * timePerSquare, (fI + 1.) * timePerSquare, generalT);
-    n = max(n, s);
-  }
-
-  vec2 absQ = abs(q);
-  float s = smoothstep(edge, 0., max(absQ.x, absQ.y) - innerR);
-  n = max(n, s);
+  float circles = circleAlpha * smoothstep(0.3 * edge, 0., abs(length(cQ) - r) - thick);
+  n = max(n, circles);
 
   // Foreground/background to color
   color = vec3(n);
-  color = mix(#28289A, vec3(1), n);
 
   return color.rgb;
 }
