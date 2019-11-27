@@ -631,24 +631,24 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 1.5;
+  const float warpScale = 0.75;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625 * cos(43. * wQ.yzx + cosT );
+  wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
+  wQ += warpScale * 0.07500 * cos(11. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 5.5 * wQ.y);
+  wQ += warpScale * 0.05000 * cos(17. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
-  float r = 0.45 + 0.25 * snoise3(5. * q);
+  float r = 0.45;
   vec3 s = vec3(length(q) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.05;
+  d.x *= 0.1;
 
   return d;
 }
@@ -831,8 +831,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  vec3 dI = vec3(-0.411); // vec3(angle1C);
+  vec3 dI = vec3(0.2); // vec3(angle1C);
+  dI += 0.7 * pos;
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+
+  color *= 0.90;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -970,7 +973,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.7;
+      dispersionColor *= 0.6;
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
 
       color += saturate(dispersionColor);
@@ -1125,51 +1128,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Sizing
   const float size = 0.100;
-  const float thick = 0.0005;
-  const float r = 0.5 * size - 4. * thick;
+  const float thick = 0.0020;
 
-  // Global Timing
-  vec2 c = floor((q + size*0.5)/size);
-  float t = mod(generalT + 0.25 * dot(c, vec2(0.03125)), 1.);
+  float t = mod(generalT, 1.);
 
   float n = 0.;
 
-  // Dots
-  vec2 dQ = q;
-  dQ.x += 0.5 * size;
-
-  float dotT = mod(2. * t, 1.); // smoothstep()
-  float secondPhase = floor(2. * t);
-
-  // Dot pos
-  float angle = (1. - 2. * secondPhase) * PI * dotT;
-  dQ.x -= size * secondPhase; // Shift over one cell
-  dQ += 0.5 * size * vec2(cos(angle), sin(angle));
-
-  vec2 cD = pMod2(dQ, vec2(2. * size, size));
+  float c = pMod1(q.y, size);
 
   // Offset by one cell in X direction based on y axis cell coord
-  dQ.x += size * floor(mod(cD.y, 2.));
+  q.x += 0.5 * PI * mod(c, 2.);
 
-  dQ.x = dQ.x - 2. * size * step(size, dQ.x);
-
-  const float dotR = size * 0.1;
-  float dots = smoothstep(edge, 0., length(dQ) - dotR);
-  n = max(n, dots);
-
-  // Circles
-  vec2 cQ = q;
-  cQ.x += 0.5 * size;
-  vec2 cC = pMod2(cQ, vec2(size));
-
-  float tCircleOffset = mod(dot(cC, vec2(1)), 2.);
-  float circleAlpha = 0.5 - 0.5 * cos(TWO_PI * (t + 0.5 * tCircleOffset) + 0.5 * PI);
-
-  float circles = circleAlpha * smoothstep(0.3 * edge, 0., abs(length(cQ) - r) - thick);
-  n = max(n, circles);
+  q.y += size * 0.25 * sin(31. * q.x + (1. + mod(c, 3.)) * TWO_PI * generalT);
+  float wave = smoothstep(edge, 0., abs(q.y) - thick);
+  n = max(n, wave);
 
   // Foreground/background to color
-  color = vec3(n);
+  color = pow(#FCF7D5, vec3(2.2));
+  vec3 lineColor = mix(#8E1EFF, #4110E8, saturate(0.6 * uv.x));
+  color = mix(color, lineColor, n);
 
   return color.rgb;
 }
@@ -1179,7 +1156,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
