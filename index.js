@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'in-the-moment-render1',
+    name: 'divide-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

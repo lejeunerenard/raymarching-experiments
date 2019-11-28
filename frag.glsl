@@ -1079,44 +1079,73 @@ float myFBMWarp (in vec2 q) {
   return myFBMWarp(q, s, p, r);
 }
 
-vec3 spiral (in vec2 q, in float t) {
-  vec3 color = vec3(1);
-
-  float r = 0.175 * (1. - 0.65 * smoothstep(0.3, 1.0, t));
-
-  const int num = 18;
-  const float angleStep = TWO_PI / float(num);
-  for (int i = 0; i < num; i++) {
-    float fI = float(i);
-
-    float dist = 1.2 * saturate(1. - (1.1 * t + 0.05 * mod(fI, 2.) + 0.01 * fI / float(num)));
-
-    vec2 local = q;
-    local *= rotMat2(angleStep * fI + 0.25 * PI * t);
-    local.x -= dist;
-
-    vec3 layer = 0.5 + 0.5 * cos(TWO_PI * (t + 0.3 * vec3(q, 0) + float(i) / float(num) + vec3(0, 0.33, 0.67)));
-    float mask = smoothstep(edge, 0., length(local) - r);
-    color *= mix(vec3(1), layer, mask);
-  }
-  // color *= 0.95;
-
-  return color;
+// IQ's 2D isosceles triangle
+// source: https://www.shadertoy.com/view/MldcD7
+float sdTriangleIsosceles( in vec2 p, in vec2 q ) {
+    p.x = abs(p.x);
+    vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
+    vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
+    float s = -sign( q.y );
+    vec2 d = min( vec2( dot(a,a), s*(p.x*q.y-p.y*q.x) ),
+                  vec2( dot(b,b), s*(p.y-q.y)  ));
+    return -sqrt(d.x)*sign(d.y);
 }
 
-float squareTriplet (in vec2 q, in float size, in float t) {
-  vec2 center1 =  (2. - t) * vec2(size, size);
-  vec2 center2 = vec2(0, 0);
-  vec2 center3 = -(2. - t) * vec2(size, size);
+// Bottom is stationary
+float triangleDuo (in vec2 q, in float side, in float t) {
+  float n = 0.;
 
-  vec2 absQ1 = abs(q - center1);
-  float n = step(0., max(absQ1.x, absQ1.y) - size);
+  q.y *= -1.;
 
-  vec2 absQ2 = abs(q - center2);
-  n = mix(n, 1. - n, step(0., max(absQ2.x, absQ2.y) - size));
+  // Triangle 1
+  float tri1 = sdTriangleIsosceles(q, vec2(side));
+  tri1 = smoothstep(edge, 0., tri1);
+  n = max(n, tri1);
 
-  vec2 absQ3 = abs(q - center3);
-  n = mix(n, 1. - n, step(0., max(absQ3.x, absQ3.y) - size));
+  // Space for Triangle 2
+  vec2 offsetToCorner = vec2(side);
+  q -= offsetToCorner;
+  q *= rotMat2(PI * (0.5 - 1.5 * t));
+  q += offsetToCorner;
+
+  // Nudge (not sure why)
+  q.x -= side * 2.0;
+
+  // Triangle 2
+  float tri2 = sdTriangleIsosceles(q, vec2(side));
+  tri2 = smoothstep(edge, 0., tri2);
+  n = max(n, tri2);
+
+  return n;
+}
+
+float splitSquare (in vec2 q, in vec2 c, in float side, in float size, in float triAngleH, in float endScale, in float t) {
+  float n = 0.;
+
+  // Make centering lopsided
+  q.x += size * t;
+
+  q *= mix(1., endScale, t);
+
+  float tCell = t - 0.050 * length(c);
+  const float cellStart = 0.00;
+  float closePair1 = smoothstep(cellStart + 0.0, cellStart + 0.0 + 0.6, tCell);
+  float closePair2 = smoothstep(cellStart + 0.1, cellStart + 0.1 + 0.7, tCell);
+  float rotPair1   = smoothstep(cellStart + 0.1, cellStart + 0.1 + 0.6, tCell);
+  float rotPair2   = smoothstep(cellStart + 0.2, cellStart + 0.2 + 0.7, tCell);
+  float posPair1   = smoothstep(cellStart + 0.1, cellStart + 0.1 + 0.6, tCell);
+  float posPair2   = smoothstep(cellStart + 0.2, cellStart + 0.2 + 0.7, tCell);
+
+  // Triangle pairs
+  vec2 triPair1 = q;
+  triPair1 -= posPair1 * vec2((endScale * 2. * size - triAngleH), triAngleH);
+  triPair1 *= rotMat2(PI * (-0.5 + 0.25 * rotPair1));
+  n = max(n, triangleDuo(triPair1, side, closePair1));
+
+  vec2 triPair2 = q;
+  triPair2 -= posPair2 * vec2(triAngleH, -triAngleH);
+  triPair2 *= rotMat2(PI * ( 0.5 + 0.25 * rotPair2));
+  n = max(n, triangleDuo(triPair2, side, closePair2));
 
   return n;
 }
@@ -1126,27 +1155,57 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  // Sizing
-  const float size = 0.100;
-  const float thick = 0.0020;
-
+  // Global Timing
   float t = mod(generalT, 1.);
+
+  // Sizing
+  const float size = 0.0625;
+  const float side = size * 0.5;
+  const float triAngleH = sqrt(0.5 * side * side);
 
   float n = 0.;
 
-  float c = pMod1(q.y, size);
+  vec2 preModQ = q;
 
-  // Offset by one cell in X direction based on y axis cell coord
-  q.x += 0.5 * PI * mod(c, 2.);
+  // Scale to match on loop
+  const float endScale = triAngleH / side;
 
-  q.y += size * 0.25 * sin(31. * q.x + (1. + mod(c, 3.)) * TWO_PI * generalT);
-  float wave = smoothstep(edge, 0., abs(q.y) - thick);
-  n = max(n, wave);
+  // Grid space
+  // Make centering lopsided
+  q.x -= size * t;
+  const float extraScale = 0.4; // 0.95;
+  vec2 scaleSet = size * vec2(
+      (2. + (2. + extraScale) * smoothstep(0., 0.7, t)
+         - extraScale * smoothstep(0.7, 1., t)),
+      4.);
+  vec2 c = pMod2(q, scaleSet);
+
+  // Local Timing
+  n = max(n, splitSquare(q, c, side, size, triAngleH, endScale, t));
+  n = max(n, splitSquare(q - vec2( scaleSet.x, 0.), c + vec2( 1, 0), side, size, triAngleH, endScale, t));
+  n = max(n, splitSquare(q - vec2(-scaleSet.x, 0.), c + vec2(-1, 0), side, size, triAngleH, endScale, t));
+  n = max(n, splitSquare(q - vec2( 0, scaleSet.y), c + vec2( 0, 1), side, size, triAngleH, endScale, t));
+  n = max(n, splitSquare(q - vec2( 0,-scaleSet.y), c + vec2( 0,-1), side, size, triAngleH, endScale, t));
 
   // Foreground/background to color
-  color = pow(#FCF7D5, vec3(2.2));
-  vec3 lineColor = mix(#8E1EFF, #4110E8, saturate(0.6 * uv.x));
-  color = mix(color, lineColor, n);
+  color = vec3(n);
+
+  // Boundaries of 'cell'
+  /* color.x = 0.; */
+  /* color.x += step(size, -preModQ.x); */
+  /* color.x += step(3. * size, preModQ.x); */
+
+  // Vertical center
+  // color.x = step(0., q.y);
+  // Horizontal "center"s
+  // color.y = 0.;
+  // color.y += 0.5 * step(2. * size, q.x);
+  // color.y += 0.5 * step(0., q.x);
+
+  // color.y = step(0.25, abs(q.y));
+  /* color = pow(#FCF7D5, vec3(2.2)); */
+  /* vec3 lineColor = mix(#8E1EFF, #4110E8, saturate(0.6 * uv.x)); */
+  /* color = mix(color, lineColor, n); */
 
   return color.rgb;
 }
@@ -1156,7 +1215,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
