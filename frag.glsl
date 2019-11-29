@@ -1091,61 +1091,75 @@ float sdTriangleIsosceles( in vec2 p, in vec2 q ) {
     return -sqrt(d.x)*sign(d.y);
 }
 
-// Bottom is stationary
-float triangleDuo (in vec2 q, in float side, in float t) {
-  float n = 0.;
-
-  q.y *= -1.;
-
-  // Triangle 1
-  float tri1 = sdTriangleIsosceles(q, vec2(side));
-  tri1 = smoothstep(edge, 0., tri1);
-  n = max(n, tri1);
-
-  // Space for Triangle 2
-  vec2 offsetToCorner = vec2(side);
-  q -= offsetToCorner;
-  q *= rotMat2(PI * (0.5 - 1.5 * t));
-  q += offsetToCorner;
-
-  // Nudge (not sure why)
-  q.x -= side * 2.0;
-
-  // Triangle 2
-  float tri2 = sdTriangleIsosceles(q, vec2(side));
-  tri2 = smoothstep(edge, 0., tri2);
-  n = max(n, tri2);
-
-  return n;
+// IQ's 2D Uneven capsule
+// source: https://www.shadertoy.com/view/4lcBWn
+float sdUnevenCapsule( vec2 p, float r1, float r2, float h ) {
+    p.x = abs(p.x);
+    float b = (r1-r2)/h;
+    float a = sqrt(1.0-b*b);
+    float k = dot(p,vec2(-b,a));
+    if( k < 0.0 ) return length(p) - r1;
+    if( k > a*h ) return length(p-vec2(0.0,h)) - r2;
+    return dot(p, vec2(a,b) ) - r1;
 }
 
-float splitSquare (in vec2 q, in vec2 c, in float side, in float size, in float triAngleH, in float endScale, in float t) {
+// IQ's line sdf
+// source: https://www.shadertoy.com/view/lsXGz8
+float sdLine( in vec2 p, in vec2 a, in vec2 b ) {
+    vec2 pa = p-a, ba = b-a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h );
+}
+
+float drumstick (in vec2 q, in float size, in float biteMask) {
   float n = 0.;
 
-  // Make centering lopsided
-  q.x += size * t;
+  q *= 1.90; // Zoom to fit
 
-  q *= mix(1., endScale, t);
+  q.y += 0.35 * size;
 
-  float tCell = t - 0.050 * length(c);
-  const float cellStart = 0.00;
-  float closePair1 = smoothstep(cellStart + 0.0, cellStart + 0.0 + 0.6, tCell);
-  float closePair2 = smoothstep(cellStart + 0.1, cellStart + 0.1 + 0.7, tCell);
-  float rotPair1   = smoothstep(cellStart + 0.1, cellStart + 0.1 + 0.6, tCell);
-  float rotPair2   = smoothstep(cellStart + 0.2, cellStart + 0.2 + 0.7, tCell);
-  float posPair1   = smoothstep(cellStart + 0.1, cellStart + 0.1 + 0.6, tCell);
-  float posPair2   = smoothstep(cellStart + 0.2, cellStart + 0.2 + 0.7, tCell);
+  // Meat
+  float meatScale = 0.5;
+  float meatSmallEnd = meatScale * 0.25 * size;
+  float meatHeight = meatScale * 0.80 * size;
+  float meat = sdUnevenCapsule(q, meatScale * 0.5 * size, meatSmallEnd, meatHeight);
+  meat = smoothstep(edge, 0., meat);
 
-  // Triangle pairs
-  vec2 triPair1 = q;
-  triPair1 -= posPair1 * vec2((endScale * 2. * size - triAngleH), triAngleH);
-  triPair1 *= rotMat2(PI * (-0.5 + 0.25 * rotPair1));
-  n = max(n, triangleDuo(triPair1, side, closePair1));
+  // Meat to bone crop
+  float meatToBoneCrop = q.y - meatHeight + 0.03125 * size * sin(TWO_PI * 97. * q.x);
+  // meatToBoneCrop = smoothstep(edge, 0., meatToBoneCrop);
+  meat = min(meat, smoothstep(edge, 0., meatToBoneCrop));
 
-  vec2 triPair2 = q;
-  triPair2 -= posPair2 * vec2(triAngleH, -triAngleH);
-  triPair2 *= rotMat2(PI * ( 0.5 + 0.25 * rotPair2));
-  n = max(n, triangleDuo(triPair2, side, closePair2));
+  // Meat bite
+  vec2 meatBiteQ = q - vec2(0.215 * size, 0.015625 * size);
+  float bite = length(meatBiteQ) - (0.190 * size + 0.015625 * cnoise2(103. * meatBiteQ));
+  bite = smoothstep(0.125 * edge, 0., bite);
+  meat = min(meat, 1. - biteMask * bite);
+
+  n = max(n, meat);
+
+  // Bone
+  float boneEnd = 0.85 * size;
+  float boneThickness = 0.05 * size;
+  float bone = sdLine(q, vec2(0, meatHeight * 0.5), vec2(0, boneEnd)) - boneThickness;
+  bone = smoothstep(edge, 0., bone);
+  bone = min(bone, smoothstep(edge, 0., - (meatToBoneCrop - 0.075 * size)));
+  n = max(n, bone);
+
+  // Bone nubs
+  float nubBigEnd = boneThickness * 1.25;
+  const float nubAngle = 0.175 * PI;
+  vec2 nub1Q = q - vec2(0, boneEnd);
+  nub1Q *= rotMat2(-nubAngle);
+  float nub1 = sdUnevenCapsule(nub1Q, boneThickness, nubBigEnd, 0.1 * size);
+  nub1 = smoothstep(edge, 0., nub1);
+  n = max(n, nub1);
+
+  vec2 nub2Q = q - vec2(0, boneEnd);
+  nub2Q *= rotMat2(nubAngle);
+  float nub2 = sdUnevenCapsule(nub2Q, boneThickness, nubBigEnd, 0.1 * size);
+  nub2 = smoothstep(edge, 0., nub2);
+  n = max(n, nub2);
 
   return n;
 }
@@ -1159,53 +1173,34 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT, 1.);
 
   // Sizing
-  const float size = 0.0625;
+  const float size = 0.15;
   const float side = size * 0.5;
   const float triAngleH = sqrt(0.5 * side * side);
 
   float n = 0.;
 
-  vec2 preModQ = q;
-
-  // Scale to match on loop
-  const float endScale = triAngleH / side;
-
   // Grid space
-  // Make centering lopsided
-  q.x -= size * t;
-  const float extraScale = 0.4; // 0.95;
-  vec2 scaleSet = size * vec2(
-      (2. + (2. + extraScale) * smoothstep(0., 0.7, t)
-         - extraScale * smoothstep(0.7, 1., t)),
-      4.);
-  vec2 c = pMod2(q, scaleSet);
+  vec2 preModQ = q;
+  vec2 c = pMod2(q, vec2(size));
 
-  // Local Timing
-  n = max(n, splitSquare(q, c, side, size, triAngleH, endScale, t));
-  n = max(n, splitSquare(q - vec2( scaleSet.x, 0.), c + vec2( 1, 0), side, size, triAngleH, endScale, t));
-  n = max(n, splitSquare(q - vec2(-scaleSet.x, 0.), c + vec2(-1, 0), side, size, triAngleH, endScale, t));
-  n = max(n, splitSquare(q - vec2( 0, scaleSet.y), c + vec2( 0, 1), side, size, triAngleH, endScale, t));
-  n = max(n, splitSquare(q - vec2( 0,-scaleSet.y), c + vec2( 0,-1), side, size, triAngleH, endScale, t));
+  // Drumstick
+  // float angle = cosT - 0.5 * length(c) + 0.0 * snoise2(c * 4.2343);
+  float angle = cosT - 0.25 * dot(c, vec2(1.0, 0.5));
+
+  q *= rotMat2(-1.5 * PI + 0.5 * PI * sin(angle));
+
+  float showBite = step(0.6, cnoise2(24.34 * c + 0.434));
+  n = max(n, drumstick(q, size, showBite));
 
   // Foreground/background to color
-  color = vec3(n);
-
-  // Boundaries of 'cell'
-  /* color.x = 0.; */
-  /* color.x += step(size, -preModQ.x); */
-  /* color.x += step(3. * size, preModQ.x); */
-
-  // Vertical center
-  // color.x = step(0., q.y);
-  // Horizontal "center"s
-  // color.y = 0.;
-  // color.y += 0.5 * step(2. * size, q.x);
-  // color.y += 0.5 * step(0., q.x);
-
-  // color.y = step(0.25, abs(q.y));
+  color = vec3(n) + vec3(0.2, 0.13, 0.10);
   /* color = pow(#FCF7D5, vec3(2.2)); */
   /* vec3 lineColor = mix(#8E1EFF, #4110E8, saturate(0.6 * uv.x)); */
   /* color = mix(color, lineColor, n); */
+
+  // DEBUG
+  /* color.x += 0.25 * smoothstep(0., edge, abs(q.x) - 0.5 * size); */
+  /* color.y += 0.25 * smoothstep(0., edge, abs(q.y) - 0.5 * size); */
 
   return color.rgb;
 }
