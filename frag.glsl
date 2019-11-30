@@ -625,27 +625,29 @@ vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
 const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
- vec3 d = vec3(maxDistance, 0, 0);
+  vec3 d = vec3(maxDistance, 0, 0);
 
   vec3 q = p;
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.75;
+  const float warpScale = 0.3;
 
   vec3 wQ = q;
 
   wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + PI * 0.33 * sin(cosT + wQ.y));
+  wQ.yz *= 1. + 0.125 * sin(cosT + wQ.x);
   wQ += warpScale * 0.07500 * cos(11. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 5.5 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y);
   wQ += warpScale * 0.05000 * cos(17. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
   float r = 0.45;
-  vec3 s = vec3(length(q) - r, 0, 0);
+  // vec3 s = vec3(length(q) - r, 0, 0);
+  vec3 s = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.1;
@@ -833,9 +835,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec3 dI = vec3(0.2); // vec3(angle1C);
   dI += 0.7 * pos;
+  dI += 0.2 * nor;
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
 
-  color *= 0.90;
+  color *= 0.80;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -969,9 +972,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // // dispersionColor = textures(rayDirection);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       dispersionColor *= 0.6;
       // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
@@ -1210,7 +1213,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
