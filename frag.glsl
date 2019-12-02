@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -627,28 +627,60 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p.y -= 0.05 * sin(2. * cosT);
   vec3 q = p;
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.3;
+  const float warpScale = 0.2;
+  const float r = 0.40;
 
+  // Waviness
+  const float waviness = 0.25;
+  q += waviness * 0.1000 * cos( 2. * q.yzx + 2. * cosT);
+  /* q.xzy = twist(q.xyz, PI * 0.5 */
+  /*     * sin(TWO_PI * smoothstep(0.3, 0.7, norT + 0.05 * q.y))); */
+  q += waviness * 0.0500 * cos( 7. * q.yzx + 2. * cosT);
+
+  vec3 head = vec3(length(q - vec3(0, 0.95 * r, 0)) - r, 0, 0);
+  d = dMin(d, head);
+
+  float ripples = -(q.y - r) / (2. * r);
+  vec3 beforeWQ = q;
   vec3 wQ = q;
+  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + 2. * cosT);
+  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + 2. * cosT);
+  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + 2. * cosT);
 
-  wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2.5 * wQ.y + PI * 0.33 * sin(cosT + wQ.y));
-  wQ.yz *= 1. + 0.125 * sin(cosT + wQ.x);
-  wQ += warpScale * 0.07500 * cos(14. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y);
-  wQ += warpScale * 0.05000 * cos(27. * wQ.yzx + cosT );
+  q = mix(q, wQ, ripples);
 
-  q = wQ;
+  float angle = atan(q.z, q.x);
 
   mPos = q;
-  float r = 0.45;
-  // vec3 s = vec3(length(q) - r, 0, 0);
-  vec3 s = vec3(dodecahedral(q, 42., r), 0, 0);
-  d = dMin(d, s);
+  float bodyR =
+    (r + 0.05 * ripples)
+      * ((0.997 + 0.012 * pow(ripples, 0.5)) + 0.05 * ripples * cos(16. * angle));
+
+  vec3 body = vec3(sdCappedCylinder(q, vec2(bodyR, r)), 0, 0);
+  d = dMin(d, body);
+
+  // Eyes
+  q = beforeWQ;
+  q.x = abs(q.x);
+
+  float eyeR = 0.10 * r;
+  float eyeD = 2.75 * eyeR;
+  float eyeLength = 0.125 * r;
+  vec3 eye = vec3(sdCapsule(q, vec3(eyeD, eyeLength + r, r), vec3(eyeD, -eyeLength + r, r), eyeR), 1, 0);
+  eye.x *= -1.;
+  d = dSMax(d, eye, eyeR * 0.1);
+
+  // Hall
+  const float hallHeight = 1.4;
+  q = p;
+  vec3 hall = vec3(sdBox(q, vec3(vec2(hallHeight), 9)), 2, 0);
+  hall.x *= -1.;
+  d = dMin(d, hall);
 
   d.x *= 0.2;
 
@@ -833,8 +865,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  const float baseGrey = 0.2;
+  const float baseGrey = 0.35;
   color = mix(vec3(0.05), vec3(baseGrey, baseGrey, baseGrey + 0.05), smoothstep(0.3, 0.3 + edge, dot(nor, -rd)));
+  color = mix(color, vec3(0.20), isMaterialSmooth(m, 0.));
+
+  // Hall
+  color = mix(color, vec3(0.4, 0.4, 0.45), isMaterialSmooth(m, 2.));
 
   vec3 dI = vec3(0.2); // vec3(angle1C);
   dI += 0.7 * pos;
