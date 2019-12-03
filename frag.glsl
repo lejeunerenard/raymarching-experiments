@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 10.0
-#define fogMaxDistance 4.0
+#define fogMaxDistance 4.25
 
 #define slowTime time * 0.2
 // v3
@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -627,60 +627,45 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p.y -= 0.05 * sin(2. * cosT);
+  p.y -= 0.05 * cos(cosT);
   vec3 q = p;
 
   float t = mod(norT, 1.);
 
-  const float warpScale = 0.2;
-  const float r = 0.40;
+  const float warpScale = 0.3;
+  const float r = 0.20;
 
-  // Waviness
-  const float waviness = 0.25;
-  q += waviness * 0.1000 * cos( 2. * q.yzx + 2. * cosT);
-  /* q.xzy = twist(q.xyz, PI * 0.5 */
-  /*     * sin(TWO_PI * smoothstep(0.3, 0.7, norT + 0.05 * q.y))); */
-  q += waviness * 0.0500 * cos( 7. * q.yzx + 2. * cosT);
-
-  vec3 head = vec3(length(q - vec3(0, 0.95 * r, 0)) - r, 0, 0);
-  d = dMin(d, head);
-
-  float ripples = -(q.y - r) / (2. * r);
-  vec3 beforeWQ = q;
   vec3 wQ = q;
   wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + 2. * cosT);
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + 2. * cosT);
   wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + 2. * cosT);
 
-  q = mix(q, wQ, ripples);
+  q = wQ;
 
-  float angle = atan(q.z, q.x);
+  q.xzy = q.xyz;
+
+  const float bigR = 0.70;
+  q = vec3(
+      atan(q.y, q.x),
+      length(q.yx) - bigR,
+      q.z);
+
+  q.x += cosT + 0.5 * cos(cosT + q.x);
+  q.x = mod(q.x, TWO_PI);
+
+  q.yz *= rotMat2(q.x);
 
   mPos = q;
-  float bodyR =
-    (r + 0.05 * ripples)
-      * ((0.997 + 0.012 * pow(ripples, 0.5)) + 0.05 * ripples * cos(16. * angle));
 
-  vec3 body = vec3(sdCappedCylinder(q, vec2(bodyR, r)), 0, 0);
-  d = dMin(d, body);
+  vec3 s = vec3(sdBox(q, vec3(TWO_PI, r, r)), 0, 0);
+  d = dMin(d, s);
 
-  // Eyes
-  q = beforeWQ;
-  q.x = abs(q.x);
-
-  float eyeR = 0.10 * r;
-  float eyeD = 2.75 * eyeR;
-  float eyeLength = 0.125 * r;
-  vec3 eye = vec3(sdCapsule(q, vec3(eyeD, eyeLength + r, r), vec3(eyeD, -eyeLength + r, r), eyeR), 1, 0);
-  eye.x *= -1.;
-  d = dSMax(d, eye, eyeR * 0.1);
-
-  // Hall
-  const float hallHeight = 1.4;
+  // Floor
   q = p;
-  vec3 hall = vec3(sdBox(q, vec3(vec2(hallHeight), 9)), 2, 0);
-  hall.x *= -1.;
-  d = dMin(d, hall);
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 2.5 * r)), 1, 0);
+  // f.x -= 0.0100 * cellular(101. * q);
+  f.x -= 0.0025 * snoise3(101. * q);
+  d = dMin(d, f);
 
   d.x *= 0.2;
 
@@ -867,16 +852,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   const float baseGrey = 0.35;
   color = mix(vec3(0.05), vec3(baseGrey, baseGrey, baseGrey + 0.05), smoothstep(0.3, 0.3 + edge, dot(nor, -rd)));
-  color = mix(color, vec3(0.20), isMaterialSmooth(m, 0.));
-
-  // Hall
-  color = mix(color, vec3(0.4, 0.4, 0.45), isMaterialSmooth(m, 2.));
 
   vec3 dI = vec3(0.2); // vec3(angle1C);
   dI += 0.7 * pos;
   dI += 0.2 * nor;
-  // color = mix(color, 0.8 * (0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) )), smoothstep(0.5, 0.5 + edge, dot(nor, -rd)) * smoothstep(0.7 + edge, 0.7, dot(nor, -rd)));
-  // color = vec3(0.5);
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+
+  color = mix(color, vec3(baseGrey), 0.5);
+
+  // Floor
+  color = mix(color, background, isMaterialSmooth(m, 1.));
 
   // color *= 0.80;
 
@@ -955,7 +940,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
+      float freCo = 0.95;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -1001,10 +986,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      /* vec3 reflectColor = vec3(0); */
-      /* vec3 reflectionRd = reflect(rayDirection, nor); */
-      /* reflectColor += 0.0125 * reflection(pos, reflectionRd); */
-      /* color += reflectColor; */
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += mix(0.025, 0.75, isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -1028,8 +1013,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Fog
       float d = max(0.0, t.x);
-      color = mix(background, color, saturate((fogMaxDistance - d) * (fogMaxDistance - d) / fogMaxDistance));
-      color *= exp(-d * 0.05);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
 
       // color += directLighting * exp(-d * 0.0005);
 
