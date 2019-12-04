@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 10.0
-#define fogMaxDistance 4.25
+#define fogMaxDistance 5.25
 
 #define slowTime time * 0.2
 // v3
@@ -627,47 +627,34 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p.y -= 0.05 * cos(cosT);
   vec3 q = p;
 
-  float t = mod(norT, 1.);
+  float t = mod(cosT + PI, TWO_PI);
 
-  const float warpScale = 0.3;
-  const float r = 0.20;
+  const float warpScale = 1.0;
+  const float r = 0.40;
+
+  q.y -= r * 1.5 * cos(t);
 
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + 2. * cosT);
-  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + 2. * cosT);
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + 2. * cosT);
-
-  q = wQ;
-
-  q.xzy = q.xyz;
-
-  const float bigR = 0.70;
-  q = vec3(
-      atan(q.y, q.x),
-      length(q.yx) - bigR,
-      q.z);
-
-  q.x += cosT + 0.5 * cos(cosT + q.x);
-  q.x = mod(q.x, TWO_PI);
-
-  q.yz *= rotMat2(q.x);
+  wQ += warpScale * 0.2000 * cos( 7. * wQ.yzx + 2. * cosT);
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.1000 * cos(11. * wQ.yzx + 2. * cosT);
+  wQ.x += 0.4 * abs(wQ.x);
+  wQ += warpScale * 0.5000 * cos(17. * wQ.yzx + 2. * cosT);
+  q = mix(q, wQ, 0.5 - 0.5 * cos(t + PI));
 
   mPos = q;
-
-  vec3 s = vec3(sdBox(q, vec3(TWO_PI, r, r)), 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
 
   // Floor
   q = p;
   vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 2.5 * r)), 1, 0);
-  // f.x -= 0.0100 * cellular(101. * q);
   f.x -= 0.0025 * snoise3(101. * q);
   d = dMin(d, f);
 
-  d.x *= 0.2;
+  d.x *= 0.015;
 
   return d;
 }
@@ -854,7 +841,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = mix(vec3(0.05), vec3(baseGrey, baseGrey, baseGrey + 0.05), smoothstep(0.3, 0.3 + edge, dot(nor, -rd)));
 
   vec3 dI = vec3(0.2); // vec3(angle1C);
-  dI += 0.7 * pos;
+  dI += 0.7 * mPos;
   dI += 0.2 * nor;
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
 
