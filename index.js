@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'spastic-render1',
+    name: 'turf-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

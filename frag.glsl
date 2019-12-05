@@ -631,30 +631,24 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(cosT + PI, TWO_PI);
 
-  const float warpScale = 1.0;
-  const float r = 0.40;
-
-  q.y -= r * 1.5 * cos(t);
+  const float warpScale = 0.75;
+  const float r = 0.50;
 
   vec3 wQ = q;
   wQ += warpScale * 0.2000 * cos( 7. * wQ.yzx + 2. * cosT);
-  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.1000 * cos(11. * wQ.yzx + 2. * cosT);
-  wQ.x += 0.4 * abs(wQ.x);
   wQ += warpScale * 0.5000 * cos(17. * wQ.yzx + 2. * cosT);
-  q = mix(q, wQ, 0.5 - 0.5 * cos(t + PI));
+
+  q = wQ;
+  // q = mix(q, wQ, 0.5 - 0.5 * cos(t + PI));
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 s = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, s);
 
-  // Floor
-  q = p;
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 2.5 * r)), 1, 0);
-  f.x -= 0.0025 * snoise3(101. * q);
-  d = dMin(d, f);
-
-  d.x *= 0.015;
+  d.x *= 0.010;
 
   return d;
 }
@@ -837,20 +831,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  const float baseGrey = 0.35;
-  color = mix(vec3(0.05), vec3(baseGrey, baseGrey, baseGrey + 0.05), smoothstep(0.3, 0.3 + edge, dot(nor, -rd)));
-
   vec3 dI = vec3(0.2); // vec3(angle1C);
-  dI += 0.7 * mPos;
-  dI += 0.2 * nor;
+  dI += 0.6 * mPos;
+  dI += 0.1 * nor;
+  dI += 0.2 * pow(dot(nor, -rd), 2.);
+  dI += 0.428;
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-
-  color = mix(color, vec3(baseGrey), 0.5);
-
-  // Floor
-  color = mix(color, background, isMaterialSmooth(m, 1.));
-
-  // color *= 0.80;
+  color += 0.2 * (0.5 + 0.5 * cos( TWO_PI * (nor + vec3(0, 0.33, 0.67)) ));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -935,7 +922,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.8;
+        const float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -984,9 +971,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
-      // // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // dispersionColor = textures(rayDirection);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       dispersionColor *= 0.6;
       dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 9.5);
