@@ -627,28 +627,33 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= rotationMatrix(vec3(0, 0, 1), -0.110 * PI);
   vec3 q = p;
 
   float t = mod(cosT + PI, TWO_PI);
 
-  const float warpScale = 0.75;
+  const float warpScale = 0.65;
   const float r = 0.50;
 
-  vec3 wQ = q;
-  wQ += warpScale * 0.2000 * cos( 7. * wQ.yzx + 2. * cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.1000 * cos(11. * wQ.yzx + 2. * cosT);
-  wQ += warpScale * 0.5000 * cos(17. * wQ.yzx + 2. * cosT);
+  // Grid polar
+  q = vec3(
+      atan(q.z, q.x),
+      length(q.zx) - 1.25 * r,
+      q.y);
 
-  q = wQ;
-  // q = mix(q, wQ, 0.5 - 0.5 * cos(t + PI));
+  const float size = 0.0625 * 2. * r;
+  q.yz *= rotMat2(cosT + q.x + 0.125 * PI * cos(cosT + q.x));
+  q.yz = opRepLim(q.yz, size, vec2(1, 2));
 
   mPos = q;
-  // vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 s = vec3(dodecahedral(q, 42., r), 0, 0);
+  vec3 s = vec3(sdCylinder(q.yxz, vec3(vec2(0), 0.2 * size)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.010;
+  q = p;
+  q.y += 0.125 * r * sin(cosT);
+  vec3 planet = vec3(length(q) - 0.65 * r, 1, 0);
+  planet.x -= 0.0125 * cellular(4. * q);
+  d = dMin(d, planet);
 
   return d;
 }
@@ -829,15 +834,17 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.5);
 
   vec3 dI = vec3(0.2); // vec3(angle1C);
-  dI += 0.6 * mPos;
+  dI += vec3(0.159155, vec2(0.1)) * mPos;
   dI += 0.1 * nor;
   dI += 0.2 * pow(dot(nor, -rd), 2.);
-  dI += 0.428;
+  dI += norT; // angle1C;
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   color += 0.2 * (0.5 + 0.5 * cos( TWO_PI * (nor + vec3(0, 0.33, 0.67)) ));
+
+  color = mix(color, vec3(0.1), isMaterialSmooth(m, 1.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -975,8 +982,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.6;
-      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 9.5);
+      dispersionColor *= isMaterialSmooth(t.y, 0.);
+
+      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
 
       color += saturate(dispersionColor);
 
