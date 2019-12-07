@@ -15,7 +15,7 @@ let app = new App()
 window.app = app
 
 app.width = 1080
-app.height = 1620
+app.height = 1920
 
 // window.time = 0.3
 const still = false
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'exonova-render1',
+    name: 'devils-snare-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

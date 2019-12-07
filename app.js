@@ -13,15 +13,15 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1.0
+const dpr = 1.00
 
 const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_WET = 0.5
-const BLOOM_PASSES = 0
+const BLOOM_WET = 0.75
+const BLOOM_PASSES = 2
 const BLOOM_MIN_BRIGHTNESS = 0.90
 
 // Initialize shell
