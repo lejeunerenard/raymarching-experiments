@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -622,35 +622,73 @@ vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
 
+vec3 posT (in float t, in float size) {
+  t = mod(t + 1., 1.);
+
+  t *= 4.;
+
+  return size * 0.5 * vec3(
+      cos(TWO_PI * 1.5 * t),
+      sin(TWO_PI * 2.0 * t),
+      sin(TWO_PI * t));
+}
+
 const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= rotationMatrix(vec3(0, 0, 1), 0.110 * PI);
   vec3 q = p;
 
-  float t = mod(cosT + PI, TWO_PI);
+  float t = mod(dT, 1.);
 
   const float warpScale = 0.65;
-  const float r = 0.50;
+  const float r = 0.025;
+  const float size = r * 3.0;
 
-  // Grid polar
-  float angle = atan(q.z, q.x);
-  q = vec3(
-      angle,
-      length(q.zx) - 1.25 * r,
-      q.y + 0.2 * sin(angle));
+  vec2 c = pMod2(q.xy, vec2(2.5 * size));
 
-  float size = 0.25 * r * (1.25 + 0.125 * cos(cosT + q.x));
-  q.yz *= rotMat2(cosT + dot(p.zy, cos(q.xz)));
-  q.yz = opRepLim(q.yz, size, vec2(3,2));
+  // q *= globalRot;
 
-  mPos = q;
-  vec3 s = vec3(sdCylinder(q.yxz, vec3(vec2(0), 0.2 * size)), 0, 0);
+  const float deltaT = 2.5 * 0.00625;
+
+  // float blobT = t + dot(c, vec2(0.05));
+  float blobT = t + 0.0125 * length(c);
+
+  // Head
+  vec3 s = vec3(length(q - posT(blobT, size)) - r, 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.1;
+  // Tails
+  float i = 1.;
+  const float tailGlobalScale = 1.00;
+
+  float tailScaleR = r * 0.9;
+  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
+  d = dSMin(d, s, tailGlobalScale * tailScaleR);
+  i++;
+
+  tailScaleR = r * 0.8;
+  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
+  d = dSMin(d, s, tailGlobalScale * tailScaleR);
+  i++;
+
+  tailScaleR = r * 0.7;
+  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
+  d = dSMin(d, s, tailGlobalScale * tailScaleR);
+  i++;
+
+  tailScaleR = r * 0.6;
+  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
+  d = dSMin(d, s, tailGlobalScale * tailScaleR);
+  i++;
+
+  tailScaleR = r * 0.5;
+  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
+  d = dSMin(d, s, tailGlobalScale * tailScaleR);
+  i++;
+
+  d.x *= 0.8;
 
   return d;
 }
@@ -843,6 +881,18 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
+  float n = dot(nor, -rd);
+  float greyStop = 0.6;
+  float highlightStop = 0.9;
+
+  float v = 0.0;
+  v += smoothstep(greyStop, greyStop + edge, n);
+  v += smoothstep(highlightStop, highlightStop + edge, n);
+
+  vec3 base = vec3(1, 0, 1); // mix(vec3(1), vec3(0, 0, 1), 2. * (mPos.y + 0.01));
+  color = mix(vec3(0.0), base, isMaterialSmooth(v, 1.));
+  color = mix(color, vec3(1), isMaterialSmooth(v, 2.));
+
 #ifdef NO_MATERIALS
   color = vec3(0.5);
 #endif
@@ -931,7 +981,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.90;
+        const float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -977,21 +1027,21 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
+      // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 1.5);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
+      /* float d = max(0.0, t.x); */
+      /* color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance)); */
+      /* color *= saturate(exp(-d * 0.05)); */
 
       // color += directLighting * exp(-d * 0.0005);
 
