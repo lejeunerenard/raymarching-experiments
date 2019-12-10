@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 8.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -343,6 +343,30 @@ float fCone(vec3 p, float radius, float height) {
     d = max(d, length(q - vec2(radius, 0.0)));
   }
   return d;
+}
+
+float dot2( vec3 v ) { return dot(v,v); }
+float udQuad( vec3 p, vec3 a, vec3 b, vec3 c, vec3 d )
+{
+  vec3 ba = b - a; vec3 pa = p - a;
+  vec3 cb = c - b; vec3 pb = p - b;
+  vec3 dc = d - c; vec3 pc = p - c;
+  vec3 ad = a - d; vec3 pd = p - d;
+  vec3 nor = cross( ba, ad );
+
+  return sqrt(
+    (sign(dot(cross(ba,nor),pa)) +
+     sign(dot(cross(cb,nor),pb)) +
+     sign(dot(cross(dc,nor),pc)) +
+     sign(dot(cross(ad,nor),pd))<3.0)
+     ?
+     min( min( min(
+     dot2(ba*clamp(dot(ba,pa)/dot2(ba),0.0,1.0)-pa),
+     dot2(cb*clamp(dot(cb,pb)/dot2(cb),0.0,1.0)-pb) ),
+     dot2(dc*clamp(dot(dc,pc)/dot2(dc),0.0,1.0)-pc) ),
+     dot2(ad*clamp(dot(ad,pd)/dot2(ad),0.0,1.0)-pd) )
+     :
+     dot(nor,pa)*dot(nor,pa)/dot2(nor) );
 }
 
 float sdBox( vec3 p, vec3 b ) {
@@ -633,62 +657,69 @@ vec3 posT (in float t, in float size) {
       sin(TWO_PI * t));
 }
 
+float minXYZ (in vec3 q, in float r) {
+  vec3 absQ = abs(q);
+  // Find dist from axes
+  float mXY = max(absQ.x, absQ.y) - r;
+  float mXZ = max(absQ.x, absQ.z) - r;
+  float mYZ = max(absQ.y, absQ.z) - r;
+  return min(mXY, min(mXZ, mYZ));
+}
+
 const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  // Timeline
+  // 1. Explode and align to single square
+  // 2. Rotate from square to show corner of cube
+  float t = mod(dT, 1.);
+  float explodeT = saturate(2. * t);
+  explodeT = sine(explodeT);
+  float cubeT = saturate(2. * t - 1.);
+  cubeT = quint(cubeT);
+
+  p *= rotationMatrix(vec3(1, 0, 0), -PI * 0.25 * (1. - explodeT + cubeT));
+  p *= rotationMatrix(vec3(0, 1, 0), PI * 0.25 * (1. - explodeT + cubeT));
   vec3 q = p;
 
-  float t = mod(dT, 1.);
-
   const float warpScale = 0.65;
-  const float r = 0.025;
-  const float size = r * 3.0;
+  const float r = 0.5;
 
-  vec2 c = pMod2(q.xy, vec2(2.5 * size));
+  vec3 cube = vec3(sdBox(q, vec3(r)), 0, minXYZ(q, r));
 
-  // q *= globalRot;
+  // Quads
+  vec3 allQuads = vec3(maxDistance, 0, 0);
+  float quadDist = 2. * r + r * cos(TWO_PI * explodeT - PI);
+  q = p * rotationMatrix(vec3(1, 0, 0), -0.5 * PI * explodeT);
+  vec3 quadQ = q - vec3(0, quadDist, 0);
+  vec3 absQuadQ = abs(quadQ);
+  float mXZ = max(absQuadQ.x, absQuadQ.z) - r;
+  vec3 quadD = vec3(sdBox(quadQ, vec3(r, edge, r)), 0, mXZ);
+  allQuads = dMin(allQuads, quadD);
 
-  const float deltaT = 2.5 * 0.00625;
+  q = p;
+  quadQ = q - vec3(0, 0, quadDist);
+  absQuadQ = abs(quadQ);
+  float mXY = max(absQuadQ.x, absQuadQ.y) - r;
+  quadD = vec3(sdBox(quadQ, vec3(r, r, edge)), 0, mXY);
+  allQuads = dMin(allQuads, quadD);
 
-  // float blobT = t + dot(c, vec2(0.05));
-  float blobT = t + 0.0125 * length(c);
+  q = p * rotationMatrix(vec3(0, 1, 0), 0.5 * PI * explodeT);
+  quadQ = q - vec3(quadDist, 0, 0);
+  absQuadQ = abs(quadQ);
+  float mYZ = max(absQuadQ.y, absQuadQ.z) - r;
+  quadD = vec3(sdBox(quadQ, vec3(edge, r, r)), 0, mYZ);
+  allQuads = dMin(allQuads, quadD);
 
-  // Head
-  vec3 s = vec3(length(q - posT(blobT, size)) - r, 0, 0);
-  d = dMin(d, s);
-
-  // Tails
-  float i = 1.;
-  const float tailGlobalScale = 1.00;
-
-  float tailScaleR = r * 0.9;
-  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
-  d = dSMin(d, s, tailGlobalScale * tailScaleR);
-  i++;
-
-  tailScaleR = r * 0.8;
-  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
-  d = dSMin(d, s, tailGlobalScale * tailScaleR);
-  i++;
-
-  tailScaleR = r * 0.7;
-  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
-  d = dSMin(d, s, tailGlobalScale * tailScaleR);
-  i++;
-
-  tailScaleR = r * 0.6;
-  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
-  d = dSMin(d, s, tailGlobalScale * tailScaleR);
-  i++;
-
-  tailScaleR = r * 0.5;
-  s = vec3(length(q - posT(blobT - i * deltaT, size)) - tailScaleR, 0, 0);
-  d = dSMin(d, s, tailGlobalScale * tailScaleR);
-  i++;
-
-  d.x *= 0.8;
+  float onlyQuads = 1. - step(0.5, t);
+  allQuads.x += maxDistance * (1. - onlyQuads);
+  cube.x += maxDistance * (onlyQuads);
+  d = dMin(d, allQuads);
+  d = dMin(d, cube);
+  
+  // d.x *= 0.8;
 
   return d;
 }
@@ -871,27 +902,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.0);
 
-  vec3 dI = 0.5 * vec3(dot(nor, -rd));
-  dI += 0.6 * pos;
-  dI += 0.3 * dot(nor, pos);
-  dI += 0.125 * pow(dot(nor, -rd), 2.);
-
-  dI *= 0.4;
-  dI += 0.385;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  float n = dot(nor, -rd);
-  float greyStop = 0.6;
-  float highlightStop = 0.9;
-
-  float v = 0.0;
-  v += smoothstep(greyStop, greyStop + edge, n);
-  v += smoothstep(highlightStop, highlightStop + edge, n);
-
-  vec3 base = vec3(1, 0, 1); // mix(vec3(1), vec3(0, 0, 1), 2. * (mPos.y + 0.01));
-  color = mix(vec3(0.0), base, isMaterialSmooth(v, 1.));
-  color = mix(color, vec3(1), isMaterialSmooth(v, 2.));
+  color = vec3(smoothstep(-edge, 0., trap + 0.005));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -976,7 +987,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.7;
+        const float diffMin = 0.4;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
