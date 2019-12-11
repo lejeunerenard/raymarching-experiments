@@ -672,54 +672,36 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
   // Timeline
-  // 1. Explode and align to single square
-  // 2. Rotate from square to show corner of cube
   float t = mod(dT, 1.);
-  float explodeT = saturate(2. * t);
-  explodeT = sine(explodeT);
-  float cubeT = saturate(2. * t - 1.);
-  cubeT = quint(cubeT);
 
-  p *= rotationMatrix(vec3(1, 0, 0), -PI * 0.25 * (1. - explodeT + cubeT));
-  p *= rotationMatrix(vec3(0, 1, 0), PI * 0.25 * (1. - explodeT + cubeT));
   vec3 q = p;
 
-  const float warpScale = 0.65;
+  const float warpScale = 2.00;
   const float r = 0.5;
 
+  float pauseLength = 0.1;
+  float transLength = 0.2;
+  float pauseRotT = smoothstep(0., transLength, t) - smoothstep(0.5 - pauseLength - transLength, 0.5 - pauseLength, t)
+    + smoothstep(0.5, 0.5 + transLength, t) - smoothstep(1.0 - pauseLength - transLength, 1.0 - pauseLength, t);
+  float num = 6. - 2. * (smoothstep(0., 0.5 - pauseLength, t) - smoothstep(0.5, 1. - pauseLength, t));
+
+  vec3 wQ = q;
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + cosT );
+
+  q = mix(q, wQ, pauseRotT);
+
+  float c = pModPolar(q.xy, num);
+
+  q *= rotationMatrix(vec3(1), pauseRotT * PI * (0.5 + 0.5 * cos(2. * cosT + PI * (1. + 0.123 * c))));
+
   vec3 cube = vec3(sdBox(q, vec3(r)), 0, minXYZ(q, r));
-
-  // Quads
-  vec3 allQuads = vec3(maxDistance, 0, 0);
-  float quadDist = 2. * r + r * cos(TWO_PI * explodeT - PI);
-  q = p * rotationMatrix(vec3(1, 0, 0), -0.5 * PI * explodeT);
-  vec3 quadQ = q - vec3(0, quadDist, 0);
-  vec3 absQuadQ = abs(quadQ);
-  float mXZ = max(absQuadQ.x, absQuadQ.z) - r;
-  vec3 quadD = vec3(sdBox(quadQ, vec3(r, edge, r)), 0, mXZ);
-  allQuads = dMin(allQuads, quadD);
-
-  q = p;
-  quadQ = q - vec3(0, 0, quadDist);
-  absQuadQ = abs(quadQ);
-  float mXY = max(absQuadQ.x, absQuadQ.y) - r;
-  quadD = vec3(sdBox(quadQ, vec3(r, r, edge)), 0, mXY);
-  allQuads = dMin(allQuads, quadD);
-
-  q = p * rotationMatrix(vec3(0, 1, 0), 0.5 * PI * explodeT);
-  quadQ = q - vec3(quadDist, 0, 0);
-  absQuadQ = abs(quadQ);
-  float mYZ = max(absQuadQ.y, absQuadQ.z) - r;
-  quadD = vec3(sdBox(quadQ, vec3(edge, r, r)), 0, mYZ);
-  allQuads = dMin(allQuads, quadD);
-
-  float onlyQuads = 1. - step(0.5, t);
-  allQuads.x += maxDistance * (1. - onlyQuads);
-  cube.x += maxDistance * (onlyQuads);
-  d = dMin(d, allQuads);
   d = dMin(d, cube);
-  
-  // d.x *= 0.8;
+
+  d.x *= 0.1;
 
   return d;
 }
@@ -904,6 +886,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = vec3(smoothstep(-edge, 0., trap + 0.005));
 
+  float glint = 1. - pow(dot(nor, -rd), 1.);
+  vec3 dI = vec3(dot(nor, -rd));
+
 #ifdef NO_MATERIALS
   color = vec3(0.5);
 #endif
@@ -979,20 +964,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.95;
-      float specCo = 0.4;
+      float freCo = 0.9;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.4;
+        const float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.95;
+        const float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1027,7 +1012,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += mix(0.025, 0.75, isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1047,7 +1032,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.5));
 #endif
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       /* float d = max(0.0, t.x); */
