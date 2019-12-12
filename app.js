@@ -44,18 +44,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 1.331,
-        y: 1.883,
-        z: 1.883
+        x: -0.169,
+        y: -0.938,
+        z: 0.377
       },
       d: 1,
-      scale: 1.26,
-      rot2angle: [0.721, 0, 0.652],
+      scale: 1.3,
+      rot2angle: [1.449, 0, 2.208],
       cameraAngles: [-0.854, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2)
+    this.cameraRo = vec3.fromValues(0, 0, 5.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
@@ -189,11 +189,11 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], TWO_PI, this.rot2angle[2]], 10 * 1000)
+      .to([1.356, 0.444, 1.801], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([...this.rot2angle], 0)
+      .to([...this.rot2angle], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
@@ -217,10 +217,16 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([ this.offset[0], 0.968, this.offset[2] ], 20 * 1000)
+      .to([ 0.78, -0.433, 1.441 ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+    let offsetTween2 = new TWEEN.Tween(this.offset)
+    offsetTween2
+      .to([ ...this.offset ], 10 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    offsetTween1.chain(offsetTween2)
+    offsetTween2.chain(offsetTween1)
 
-    // offsetTween1.start(0)
+    offsetTween1.start(0)
   }
 
   setupAudio () {

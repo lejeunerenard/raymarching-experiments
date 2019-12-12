@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -679,29 +679,16 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 2.00;
   const float r = 0.5;
 
-  float pauseLength = 0.1;
-  float transLength = 0.2;
-  float pauseRotT = smoothstep(0., transLength, t) - smoothstep(0.5 - pauseLength - transLength, 0.5 - pauseLength, t)
-    + smoothstep(0.5, 0.5 + transLength, t) - smoothstep(1.0 - pauseLength - transLength, 1.0 - pauseLength, t);
-  float num = 6. - 2. * (smoothstep(0., 0.5 - pauseLength, t) - smoothstep(0.5, 1. - pauseLength, t));
-
-  vec3 wQ = q;
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + cosT );
-
-  q = mix(q, wQ, pauseRotT);
-
-  float c = pModPolar(q.xy, num);
-
-  q *= rotationMatrix(vec3(1), pauseRotT * PI * (0.5 + 0.5 * cos(2. * cosT + PI * (1. + 0.123 * c))));
+  for (int i = 0; i < Iterations; i++) {
+    q = abs(q);
+    q = (vec4(q, 1) * kifsM).xyz;
+    q /= scale;
+  }
 
   vec3 cube = vec3(sdBox(q, vec3(r)), 0, minXYZ(q, r));
   d = dMin(d, cube);
 
-  d.x *= 0.1;
+  // d.x *= 0.1;
 
   return d;
 }
