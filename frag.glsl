@@ -1211,44 +1211,44 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT, 1.);
 
   // Sizing
-  const float size = 0.15;
-  const float side = size * 0.5;
-  const float triAngleH = sqrt(0.5 * side * side);
+  const float r = 0.05;
+  const float size = 2.5 * r;
 
   float n = 0.;
 
   // Grid space
   vec2 preModQ = q;
+  /* float isGrowing = step(0.5, t); */
+  /* float growT = 2. * mod(t, 0.5); */
+  /* float that = step(0.5, growT); */
+  /* float dis = 1. - that; */
+  /* q.x += r * that; */
   vec2 c = pMod2(q, vec2(size));
 
-  // Drumstick
-  // float angle = cosT - 0.5 * length(c) + 0.0 * snoise2(c * 4.2343);
-  float angle = cosT - 0.25 * dot(c, vec2(1.0, 0.5));
+  n = smoothstep(0., edge, sin(cosT + length(q) / r - 0.123 * length(c) + cnoise2(0.0123 * c)));
+  // General 'outer' mask
+  n *= smoothstep(0., -edge, length(q) - 0.9 * r);
 
-  q *= rotMat2(-1.5 * PI + 0.5 * PI * sin(angle));
+  /* float sectorSweepT = 2. * mod(growT, 0.5); */
+  /*  */
+  /* float angle = atan(q.y, q.x); */
+  /* n = smoothstep(0., -edge, length(q) - r); */
+  /* float sectorMask = */
+  /*   isGrowing * step(PI * sectorSweepT, (1. - 2. * that) * angle) */
+  /*   + (1. - isGrowing) * (1. - step(PI * sectorSweepT, (1. - 2. * that) * angle)); */
+  // n *= sectorMask;
 
-  float showBite = step(0.6, cnoise2(24.34 * c + 0.434));
-  n = max(n, drumstick(q, size, showBite));
-
-  // Foreground/background to color
-  color = vec3(n) + vec3(0.2, 0.13, 0.10);
-  /* color = pow(#FCF7D5, vec3(2.2)); */
-  /* vec3 lineColor = mix(#8E1EFF, #4110E8, saturate(0.6 * uv.x)); */
-  /* color = mix(color, lineColor, n); */
-
-  // DEBUG
-  /* color.x += 0.25 * smoothstep(0., edge, abs(q.x) - 0.5 * size); */
-  /* color.y += 0.25 * smoothstep(0., edge, abs(q.y) - 0.5 * size); */
+  color = vec3(n);
 
   return color.rgb;
 }
 
 vec3 two_dimensional (in vec2 uv) {
-  return two_dimensional(uv, modT);
+  return two_dimensional(uv, norT);
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
