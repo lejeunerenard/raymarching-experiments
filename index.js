@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'busy-render1',
+    name: 'strands-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
