@@ -1225,31 +1225,44 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Sizing
   const float r = 0.05;
-  const float size = 2.5 * r;
+  const float size = 2. * r;
 
   float n = 0.;
 
   // Grid space
   vec2 preModQ = q;
-  /* float isGrowing = step(0.5, t); */
-  /* float growT = 2. * mod(t, 0.5); */
-  /* float that = step(0.5, growT); */
-  /* float dis = 1. - that; */
-  /* q.x += r * that; */
+  float growT = 2. * mod(t, 0.5);
+  float that = mod(floor(q.y / r), 2.);
+  float dis = 1. - that;
+  q.x += r * that;
   vec2 c = pMod2(q, vec2(size));
 
-  n = smoothstep(0., edge, sin(cosT + length(q) / r - 0.123 * length(c) + cnoise2(0.0123 * c)));
-  // General 'outer' mask
-  n *= smoothstep(0., -edge, length(q) - 0.9 * r);
+  const float numStages = 4.;
+  float stageIndex = floor(t * numStages); // zero index
+  float isGrowing = 1. - step(2., stageIndex);
+  float timeMask = 1.
+    // Stage 1 hold at 0 until its stage
+    - that * step(0., stageIndex) * (1. - step(1., stageIndex))
+    // Stage 3 hold at 0 until its stage
+    - that * step(2., stageIndex) * (1. - step(3., stageIndex));
+  timeMask = saturate(timeMask);
+  float sectorSweepT = timeMask * numStages * mod(t, 1. / numStages)
+    // Stage 0 hold completed up until not isGrowing
+    + dis * step(1., stageIndex) * (1. - step(2., stageIndex))
+    // Stage 2 hold completed (zeroed) up until isGrowing
+    + dis * step(3., stageIndex) * (1. - step(4., stageIndex));
 
-  /* float sectorSweepT = 2. * mod(growT, 0.5); */
-  /*  */
-  /* float angle = atan(q.y, q.x); */
-  /* n = smoothstep(0., -edge, length(q) - r); */
-  /* float sectorMask = */
-  /*   isGrowing * step(PI * sectorSweepT, (1. - 2. * that) * angle) */
-  /*   + (1. - isGrowing) * (1. - step(PI * sectorSweepT, (1. - 2. * that) * angle)); */
-  // n *= sectorMask;
+  sectorSweepT = saturate(sectorSweepT); // Limit
+  sectorSweepT = quad(sectorSweepT);
+
+  float angle = atan(q.y, q.x);
+  n = smoothstep(0., -edge, length(q) - r);
+  float sectorMask =
+    isGrowing * (1. - step(PI * sectorSweepT, (1. - 2. * that) * angle))
+      // Mask to only half
+      * step(0., (1. - 2. * that) * angle)
+    + (1. - isGrowing) * step(PI * sectorSweepT, (1. - 2. * that) * angle);
+  n *= sectorMask;
 
   color = vec3(n);
 
@@ -1261,7 +1274,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
