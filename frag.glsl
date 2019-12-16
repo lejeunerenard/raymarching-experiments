@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 30.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1221,48 +1221,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
 
   // Global Timing
-  float t = mod(generalT, 1.);
+  float t = mod(generalT + 0.0, 1.);
 
   // Sizing
   const float r = 0.05;
-  const float size = 2. * r;
 
+
+  float c = pModPolar(q, 6.);
   float n = 0.;
 
-  // Grid space
-  vec2 preModQ = q;
-  float growT = 2. * mod(t, 0.5);
-  float that = mod(floor(q.y / r), 2.);
-  float dis = 1. - that;
-  q.x += r * that;
-  vec2 c = pMod2(q, vec2(size));
+  q *= rotMat2(0.521 * PI + TWO_PI * t);
 
-  const float numStages = 4.;
-  float stageIndex = floor(t * numStages); // zero index
-  float isGrowing = 1. - step(2., stageIndex);
-  float timeMask = 1.
-    // Stage 1 hold at 0 until its stage
-    - that * step(0., stageIndex) * (1. - step(1., stageIndex))
-    // Stage 3 hold at 0 until its stage
-    - that * step(2., stageIndex) * (1. - step(3., stageIndex));
-  timeMask = saturate(timeMask);
-  float sectorSweepT = timeMask * numStages * mod(t, 1. / numStages)
-    // Stage 0 hold completed up until not isGrowing
-    + dis * step(1., stageIndex) * (1. - step(2., stageIndex))
-    // Stage 2 hold completed (zeroed) up until isGrowing
-    + dis * step(3., stageIndex) * (1. - step(4., stageIndex));
+  n = 0.2 * cos(4. * TWO_PI * t + 43. * q.x);
 
-  sectorSweepT = saturate(sectorSweepT); // Limit
-  sectorSweepT = quad(sectorSweepT);
-
-  float angle = atan(q.y, q.x);
-  n = smoothstep(0., -edge, length(q) - r);
-  float sectorMask =
-    isGrowing * (1. - step(PI * sectorSweepT, (1. - 2. * that) * angle))
-      // Mask to only half
-      * step(0., (1. - 2. * that) * angle)
-    + (1. - isGrowing) * step(PI * sectorSweepT, (1. - 2. * that) * angle);
-  n *= sectorMask;
+  q.y -= 0.2;
+  n = smoothstep(71. * edge, 0.0, abs(sin(TWO_PI * (n + 19. * q.y))));
 
   color = vec3(n);
 

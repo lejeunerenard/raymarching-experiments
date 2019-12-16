@@ -6,7 +6,7 @@ import App from './app'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 6
+const secondsLong = 30
 const capturing = false
 
 const FOV = 70
@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'waddle-render1',
+    name: 'what-will-we-find-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -100,7 +100,7 @@ if (capturing) {
         if (!still) {
           currentRAF = vrDisplay.requestAnimationFrame(tick)
         }
-      }, 250)
+      }, 500)
     } else {
       window.setTimeout(() => {
         console.log('done sending message')
