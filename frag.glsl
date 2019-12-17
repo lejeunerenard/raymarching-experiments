@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 30.0;
+const float totalT = 10.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -428,7 +428,7 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
-#define Iterations 8
+#define Iterations 10
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
@@ -671,8 +671,6 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= rotationMatrix(vec3(0, 0, 1), 0.2 * PI);
-
   vec3 q = p;
 
   float t = mod(cosT + PI, TWO_PI);
@@ -680,22 +678,17 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 0.65;
   const float r = 0.50;
 
-  // Grid polar
-  float angle = atan(q.z, q.x);
-  q = vec3(
-      angle,
-      length(q.zx) - 1.25 * r,
-      2. * q.y);
-
-  float size = 0.25 * r * (1.25 + 0.125 * cos(cosT + q.x));
-  q.yz *= rotMat2(-q.x + cosT + dot(p.zy, cos(q.xz)));
-  q.yz = opRepLim(q.yz, size, vec2(3,2));
+  for (int i = 0; i < Iterations; i++) {
+    q = abs(q);
+    q = (vec4(q, 1) * kifsM).xyz;
+    q /= scale;
+  }
 
   mPos = q;
-  vec3 s = vec3(sdCylinder(q.yxz, vec3(vec2(0), 0.2 * size)), 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, s);
 
-  d.x *= 0.1;
+  // d.x *= 0.1;
 
   return d;
 }
@@ -884,6 +877,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.1 * mPos;
   dI += 0.01 * nor;
+  dI += 0.1 * pow(dot(nor, -rd), 2.2);
   dI += 0.2;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
@@ -1020,12 +1014,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
-      dispersionColor *= 0.75;
+      // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
+      dispersionColor *= 0.5;
 
       color += saturate(dispersionColor);
 
@@ -1247,7 +1241,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;

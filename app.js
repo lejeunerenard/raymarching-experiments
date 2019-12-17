@@ -44,18 +44,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.169,
-        y: -0.938,
-        z: 0.377
+        x: -0.736,
+        y: 0.499,
+        z: 0.65
       },
       d: 1,
-      scale: 1.3,
-      rot2angle: [1.449, 0, 2.208],
+      scale: 1.65,
+      rot2angle: [1.567, 3.973, 2.276],
       cameraAngles: [-0.854, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.5)
+    this.cameraRo = vec3.fromValues(0, 0, 5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
@@ -199,7 +199,7 @@ export default class App {
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween1)
     // rotTween3.chain(rotTween1)
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -217,14 +217,8 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([ 0.78, -0.433, 1.441 ], 10 * 1000)
+      .to([ this.offset[0], 2.775, this.offset[2] ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let offsetTween2 = new TWEEN.Tween(this.offset)
-    offsetTween2
-      .to([ ...this.offset ], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    offsetTween1.chain(offsetTween2)
-    offsetTween2.chain(offsetTween1)
 
     offsetTween1.start(0)
   }
