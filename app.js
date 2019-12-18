@@ -13,7 +13,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1.0
+const dpr = 1.00
 
 const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
@@ -44,13 +44,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.736,
-        y: 0.499,
-        z: 0.65
+        x: -0.227,
+        y: 0.726,
+        z: 0.449
       },
       d: 1,
-      scale: 1.65,
-      rot2angle: [1.567, 3.973, 2.276],
+      scale: 2.41,
+      rot2angle: [1.554, 3.715, 2.339],
       cameraAngles: [-0.854, 0, 0]
     }
 
@@ -189,17 +189,10 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([1.356, 0.444, 1.801], 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([...this.rot2angle], 10 * 1000)
+      .to([this.rot2angle[0], 4.697, this.rot2angle[2]], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
-    // rotTween3.chain(rotTween1)
-    // rotTween1.start(0)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -220,7 +213,7 @@ export default class App {
       .to([ this.offset[0], 2.775, this.offset[2] ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
   }
 
   setupAudio () {
