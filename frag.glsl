@@ -1213,14 +1213,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Sizing
   const float r = 0.05;
+  const float size = 0.05;
 
-
-  float c = pModPolar(q, 6.);
+  float c = pModPolar(q, 8.);
   float n = 0.;
 
-  q *= rotMat2(0.521 * PI + TWO_PI * t);
+  vec2 c2 = pMod2(q, vec2(size));
 
-  n = 0.2 * cos(4. * TWO_PI * t + 43. * q.x);
+  n = 0.2 * cos(4. * TWO_PI * t + 43. * q.x + 0.34 * length(c2));
 
   q.y -= 0.2;
   n = smoothstep(71. * edge, 0.0, abs(sin(TWO_PI * (n + 19. * q.y))));
@@ -1235,7 +1235,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
