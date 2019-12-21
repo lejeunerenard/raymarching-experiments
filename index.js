@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'war-star-render1',
+    name: 'gentle-glide-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
