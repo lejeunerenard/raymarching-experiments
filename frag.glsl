@@ -7,7 +7,7 @@
 #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 96
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 5.25
 
@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 6.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -657,15 +657,6 @@ vec3 posT (in float t, in float size) {
       sin(TWO_PI * t));
 }
 
-float minXYZ (in vec3 q, in float r) {
-  vec3 absQ = abs(q);
-  // Find dist from axes
-  float mXY = max(absQ.x, absQ.y) - r;
-  float mXZ = max(absQ.x, absQ.z) - r;
-  float mYZ = max(absQ.y, absQ.z) - r;
-  return min(mXY, min(mXZ, mYZ));
-}
-
 const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
@@ -673,22 +664,29 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  float t = mod(cosT + PI, TWO_PI);
+  float t = mod(dT + 1., 1.);
 
   const float warpScale = 0.65;
-  const float r = 0.25;
 
-  for (int i = 0; i < Iterations; i++) {
-    q = abs(q);
-    q = (vec4(q, 1) * kifsM).xyz;
-    q /= scale;
-  }
+  const float size = 0.125;
+  const float r = 0.4 * size;
+
+  vec2 c = floor((q.xz + size*0.5)/size);
+  q.xz = opRepLim(q.xz, size, vec2(5));
+
+  float n1 = snoise2(vec2(0.13, 0.2) * c + t + 0.436);
+  float n2 = snoise2(vec2(0.13, 0.2) * c + 1. - t + 0.436);
+  float n = mix(n1, n2, saturate(saturate(t - 0.8) * 5.0));
+  float h = 5. * r + 0.2 * n;
+
+  q.y += 2. * r;
+  q.y -= h;
 
   mPos = q;
-  vec3 s = vec3(length(q) - r, 0, 0);
+  vec3 s = vec3(sdBox(q, vec3(r, h, r)), 0, 0);
   d = dMin(d, s);
 
-  // d.x *= 0.1;
+  d.x *= 0.10;
 
   return d;
 }
@@ -869,12 +867,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 #pragma glslify: dispersionStep1 = require(./glsl-dispersion, scene=secondRefraction, amount=amount, time=time, norT=norT)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.1);
-
-  color = vec3(smoothstep(-edge, 0., trap + 0.005));
-
-  vec3 dI = vec3(dot(nor, -rd));
-  color = dI;
+  vec3 color = vec3(0.5);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1238,7 +1231,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
