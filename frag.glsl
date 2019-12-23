@@ -4,10 +4,10 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-#define debugMapCalls
+// #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -45,8 +45,8 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
-#define maxDistance 10.0
+#define maxSteps 1024
+#define maxDistance 20.0
 #define fogMaxDistance 5.25
 
 #define slowTime time * 0.2
@@ -668,22 +668,13 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 0.65;
 
-  const float size = 0.125;
-  const float r = 0.4 * size;
+  const float r = 0.3;
 
-  vec2 c = floor((q.xz + size*0.5)/size);
-  q.xz = opRepLim(q.xz, size, vec2(5));
-
-  float n1 = snoise2(vec2(0.13, 0.2) * c + t + 0.436);
-  float n2 = snoise2(vec2(0.13, 0.2) * c + 1. - t + 0.436);
-  float n = mix(n1, n2, saturate(saturate(t - 0.8) * 5.0));
-  float h = 5. * r + 0.2 * n;
-
-  q.y += 2. * r;
-  q.y -= h;
+  float scale = 1. - 0.945 * pow(saturate(q.y), 4.);
+  q.xz *= scale;
 
   mPos = q;
-  vec3 s = vec3(sdBox(q, vec3(r, h, r)), 0, 0);
+  vec3 s = vec3(-sdCylinder(q, vec3(vec2(0), r)), 0, 0);
   d = dMin(d, s);
 
   d.x *= 0.10;
@@ -869,6 +860,14 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
+  float angle = atan(pos.z, pos.x);
+  float r = length(pos.xz);
+  float n = sin(TWO_PI * pos.y + 5. * angle + TWO_PI * max(0., 5. * pos.y) - cosT + 5. * r);
+
+  n = smoothstep(0.8, 0.8 + edge, n);
+
+  color = vec3(n);
+
 #ifdef NO_MATERIALS
   color = vec3(0.5);
 #endif
@@ -1013,7 +1012,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.5));
 #endif
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       /* float d = max(0.0, t.x); */
