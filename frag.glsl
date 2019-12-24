@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -668,16 +668,29 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 0.65;
 
-  const float r = 0.3;
+  float r = 0.127;
 
-  float scale = 1. - 0.945 * pow(saturate(q.y), 4.);
-  q.xz *= scale;
 
-  mPos = q;
-  vec3 s = vec3(-sdCylinder(q, vec3(vec2(0), r)), 0, 0);
-  d = dMin(d, s);
+  const int num = 8;
+  const float fNum = float(num);
 
-  d.x *= 0.10;
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
+    float angle = TWO_PI * fI / fNum + TWO_PI / fNum * t;
+
+    vec3 localQ = q;
+    localQ.xy *= rotMat2(angle);
+
+    localQ.x -= 0.683;
+    vec3 s = vec3(length(localQ) - r, 0, angle);
+    if (s.x < d.x) {
+      localQ.xy *= rotMat2(-angle);
+      mPos = localQ;
+    }
+    d = dMin(d, s);
+  }
+
+  // d.x *= 0.10;
 
   return d;
 }
@@ -860,11 +873,23 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
-  float angle = atan(pos.z, pos.x);
-  float r = length(pos.xz);
-  float n = sin(TWO_PI * pos.y + 5. * angle + TWO_PI * max(0., 5. * pos.y) - cosT + 5. * r);
+  float norAngle = (trap + PI) / TWO_PI;
+  norAngle += 0.25;
+  norAngle = mod(norAngle + 1., 1.);
 
-  n = smoothstep(0.8, 0.8 + edge, n);
+  float localAngle = atan(mPos.z, mPos.x);
+  localAngle += PI;
+
+  float start = PI + TWO_PI * norAngle;
+  float end = TWO_PI * norAngle;
+
+  float n = smoothstep(start + edge, start, localAngle)
+    * smoothstep(end, end + edge, localAngle);
+
+  // n = end / TWO_PI;
+  // n = start / TWO_PI;
+  /* n = localAngle / TWO_PI; */
+  /* n = norAngle; */
 
   color = vec3(n);
 
