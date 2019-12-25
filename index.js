@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'wax-n-wane-render1',
+    name: 'teeterrender1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

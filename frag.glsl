@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -662,35 +662,43 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= rotationMatrix(vec3(0.05, 1, .1), cosT);
+  p *= rotationMatrix(vec3(0, 1, 0), -PI * norT);
+
+  p.y -= 0.1;
+  p.y -= 0.05 * cos(cosT);
+
   vec3 q = p;
 
   float t = mod(dT + 1., 1.);
 
-  const float warpScale = 0.65;
+  const float baseR = 0.70;
+  float r = baseR;
+  float bottom = 0.5;
+  float top = 0.90;
+  q.xz *= 1. + 5. * (
+      pow(bottom * saturate(-q.y) / r, 2.) +
+      pow(top * saturate(q.y) / r, 6.));
 
-  float r = 0.127;
+  float angle = atan(q.z, q.x);
+  r += r * 0.0625 * abs(sin(12. * angle + TWO_PI * 2. * q.y));
 
+  mPos = q;
+  vec3 s = vec3(length(q) - r, 0, 0);
+  d = dMin(d, s);
 
-  const int num = 8;
-  const float fNum = float(num);
+  // Cap
+  q = p;
+  float capH = 0.95 * baseR;
+  float capR = baseR * 0.175;
+  vec3 cap = vec3(sdCappedCylinder(q - vec3(0, capH, 0), vec2(capR)), 1., 0);
+  d = dMin(d, cap);
 
-  for (int i = 0; i < num; i++) {
-    float fI = float(i);
-    float angle = TWO_PI * fI / fNum + TWO_PI / fNum * t;
+  // Cap Ring
+  vec3 ring = vec3(sdTorus(q.xzy - vec3(0, 0, capH + capR), vec2(0.8 * capR, 0.01)), 1, 0);
+  d = dMin(d, ring);
 
-    vec3 localQ = q;
-    localQ.xy *= rotMat2(angle);
-
-    localQ.x -= 0.683;
-    vec3 s = vec3(length(localQ) - r, 0, angle);
-    if (s.x < d.x) {
-      localQ.xy *= rotMat2(-angle);
-      mPos = localQ;
-    }
-    d = dMin(d, s);
-  }
-
-  // d.x *= 0.10;
+  d.x *= 0.10;
 
   return d;
 }
@@ -873,25 +881,17 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
-  float norAngle = (trap + PI) / TWO_PI;
-  norAngle += 0.25;
-  norAngle = mod(norAngle + 1., 1.);
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+  dI += 0.2 * abs(mPos);
+  dI += 0.1 * pow(dNR, 4.);
 
-  float localAngle = atan(mPos.z, mPos.x);
-  localAngle += PI;
+  dI *= 0.3;
+  dI -= 0.134;
 
-  float start = PI + TWO_PI * norAngle;
-  float end = TWO_PI * norAngle;
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  float n = smoothstep(start + edge, start, localAngle)
-    * smoothstep(end, end + edge, localAngle);
-
-  // n = end / TWO_PI;
-  // n = start / TWO_PI;
-  /* n = localAngle / TWO_PI; */
-  /* n = norAngle; */
-
-  color = vec3(n);
+  color = mix(color, vec3(0.1), isMaterialSmooth(m, 1.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -947,13 +947,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      // float bumpsScale = 4.75;
-      // float bumpIntensity = 0.4;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 5.75;
+      float bumpIntensity = 0.15 * isMaterialSmooth(t.y, 0.);
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1029,15 +1029,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
-      // dispersionColor *= 0.5;
+      vec3 dispersionColor = mix(
+          dispersionStep1(nor, rayDirection, n2, n1),
+          dispersion(nor, rayDirection, n2, n1),
+          isMaterialSmooth(t.y, 1.));
 
-      // color += saturate(dispersionColor);
+      dispersionColor *= pow(saturate(dot(nor, -rayDirection)), 2.5);
+      dispersionColor *= 0.5;
+
+      color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       /* float d = max(0.0, t.x); */
