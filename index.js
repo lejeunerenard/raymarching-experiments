@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'teeterrender1',
+    name: 'mason-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

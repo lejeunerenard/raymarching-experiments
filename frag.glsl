@@ -1226,31 +1226,48 @@ float drumstick (in vec2 q, in float size, in float biteMask) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
   // Global Timing
-  float t = mod(generalT + 0.0, 1.);
+  float t = mod(generalT + 0.6, 1.);
 
   // Sizing
-  const float r = 0.05;
   const float size = 0.05;
+  const float r = size * 0.25;
 
-  // float c = pModPolar(q, 5.);
-  float n = 0.;
+  vec2 mPos = vec2(0);
+  vec2 cPrime = floor((q + size * 0.5) / size);
 
-  vec2 c2 = pMod2(q, vec2(size));
+  float lowestDist = 20.;
 
-  q.xy = q.yx;
-  n = 0.2 * cos(4. * TWO_PI * t + 53. * q.x - 0.34 * length(c2));
+  // Find center for 'current' cell
+  q = mod(q + size * 0.5,size) - size * 0.5;
 
-  q.y -= 0.2;
-  n = smoothstep(71. * edge, 0.0, abs(sin(TWO_PI * (n + 23. * q.y))));
+  for (float x = -1.; x < 2.; x++) {
+    for (float y = -1.; y < 2.; y++) {
+      vec2 thisCPrime = cPrime + vec2(x, y);
+      float dThisCPrime = length(thisCPrime);
+      if (dThisCPrime < lowestDist) {
+        vec2 localQ = q - size * vec2(x, y);
 
-  // n = saturate(0.9 - n);
+        float transT = smoothstep(0.2, 0.6, cos(TWO_PI * t - 0.123 * dThisCPrime));
+        localQ *= 1. - 0.75 * transT;
+        localQ *= rotMat2(PI * 0.25 * transT);
 
-  color = vec3(n);
+        vec2 absLocalQ = abs(localQ);
+        float d = max(absLocalQ.x, absLocalQ.y) - r;
+
+        // vec3 cellColor = vec3(1. - smoothstep(0.4 * r - 6. * edge, 0.4 * r, -d));
+        vec3 cellColor = vec3(1. - step(0.2 * r, -d));
+        float mask = step(0., -d);
+
+        lowestDist = mix(lowestDist, dThisCPrime, mask);
+        color = mix(color, cellColor, mask);
+      }
+    }
+  }
 
   return color.rgb;
 }
@@ -1260,7 +1277,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
