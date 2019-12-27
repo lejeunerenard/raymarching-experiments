@@ -1231,6 +1231,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
 
   // Global Timing
+  // generalT = angle1C;
   float t = mod(generalT + 0.6, 1.);
 
   // Sizing
@@ -1243,21 +1244,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float lowestDist = 20.;
 
   // Find center for 'current' cell
-  q = mod(q + size * 0.5,size) - size * 0.5;
+  // q = mod(q + size * 0.5,size) - size * 0.5;
 
   for (float x = -1.; x < 2.; x++) {
     for (float y = -1.; y < 2.; y++) {
       vec2 thisCPrime = cPrime + vec2(x, y);
-      float dThisCPrime = length(thisCPrime);
+      vec2 absThisCPrime = abs(thisCPrime);
+      float dThisCPrime = max(absThisCPrime.x, absThisCPrime.y);
       if (dThisCPrime < lowestDist) {
-        vec2 localQ = q - size * vec2(x, y);
+        float transT = smoothstep(0.0, 0.6, cos(TWO_PI * t - 0.123 * dThisCPrime + 0.5 * cnoise2(0.23423 * thisCPrime)));
+        float localScale = 1. - 0.75 * transT;
 
-        float transT = smoothstep(0.2, 0.6, cos(TWO_PI * t - 0.123 * dThisCPrime));
-        localQ *= 1. - 0.75 * transT;
-        localQ *= rotMat2(PI * 0.25 * transT);
+        vec2 localQ = localScale * q;
+        float localSize = size * localScale;
+        localQ = mod(localQ + localSize * 0.5, localSize) - localSize * 0.5
+          - localSize * vec2(x, y);
+
+        // localQ *= localScale;
+        // localQ *= rotMat2(PI * 0.25 * transT);
 
         vec2 absLocalQ = abs(localQ);
-        float d = max(absLocalQ.x, absLocalQ.y) - r;
+        // float d = max(absLocalQ.x, absLocalQ.y) - r;
+        float d = length(localQ) - r;
 
         // vec3 cellColor = vec3(1. - smoothstep(0.4 * r - 6. * edge, 0.4 * r, -d));
         vec3 cellColor = vec3(1. - step(0.2 * r, -d));
