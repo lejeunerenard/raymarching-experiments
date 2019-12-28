@@ -1244,32 +1244,43 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float lowestDist = 20.;
 
   // Find center for 'current' cell
-  // q = mod(q + size * 0.5,size) - size * 0.5;
+  q = mod(q + size * 0.5,size) - size * 0.5;
 
   for (float x = -1.; x < 2.; x++) {
     for (float y = -1.; y < 2.; y++) {
       vec2 thisCPrime = cPrime + vec2(x, y);
-      vec2 absThisCPrime = abs(thisCPrime);
-      float dThisCPrime = max(absThisCPrime.x, absThisCPrime.y);
+      /* vec2 absThisCPrime = abs(thisCPrime); */
+      /* float dThisCPrime = max(absThisCPrime.x, absThisCPrime.y); */
+      float dThisCPrime = length(thisCPrime);
       if (dThisCPrime < lowestDist) {
-        float transT = smoothstep(0.0, 0.6, cos(TWO_PI * t - 0.123 * dThisCPrime + 0.5 * cnoise2(0.23423 * thisCPrime)));
+        float transT = smoothstep(0.0, 0.6, cos(TWO_PI * t - 0.123 * dThisCPrime));
+
         float localScale = 1. - 0.75 * transT;
 
         vec2 localQ = localScale * q;
-        float localSize = size * localScale;
-        localQ = mod(localQ + localSize * 0.5, localSize) - localSize * 0.5
-          - localSize * vec2(x, y);
+        /* float localSize = size * localScale; */
+        /* localQ = mod(localQ + localSize * 0.5, localSize) - localSize * 0.5 */
+        /*   - localSize * vec2(x, y); */
+
+        // Warp
+        const float warpScale = 0.03125;
+
+        localQ += warpScale * 0.10000 * cos( 5. * localQ.yx + cosT);
+        localQ += warpScale * 0.05000 * cos( 9. * localQ.yx + cosT);
+        localQ += warpScale * 0.02500 * cos(13. * localQ.yx + cosT);
 
         // localQ *= localScale;
         // localQ *= rotMat2(PI * 0.25 * transT);
 
         vec2 absLocalQ = abs(localQ);
-        // float d = max(absLocalQ.x, absLocalQ.y) - r;
-        float d = length(localQ) - r;
+        float d = max(absLocalQ.x, absLocalQ.y) - r;
+        /* float d = length(localQ) - r; */
 
         // vec3 cellColor = vec3(1. - smoothstep(0.4 * r - 6. * edge, 0.4 * r, -d));
-        vec3 cellColor = vec3(1. - step(0.2 * r, -d));
+        vec3 cellColor = vec3(1.);
         float mask = step(0., -d);
+
+        /* mask *= smoothstep(0.5, 0.5 + edge, sin(TWO_PI * 13. * localQ.y)); */
 
         lowestDist = mix(lowestDist, dThisCPrime, mask);
         color = mix(color, cellColor, mask);
