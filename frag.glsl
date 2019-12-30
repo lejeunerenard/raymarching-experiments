@@ -666,17 +666,22 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1., 1.);
 
-  q.y += 0.125 * pow(cos(7. * length(q) + cosT), 9.);
+  const float warpScale = 2.0;
+
+  q += warpScale * 0.1000 * cos( 7. * q.yzx + cosT );
+  q += warpScale * 0.0500 * cos(11. * q.yzx + cosT );
+  q += warpScale * 0.0250 * cos(17. * q.yzx + cosT );
+  q += warpScale * 0.0125 * cos(23. * q.yzx + cosT );
 
   mPos = q;
-  vec3 pl = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  // vec3 pl = vec3(sdBox(q, vec3(10, 0.005, 10)), 0, 0);
-  d = dMin(d, pl);
+  vec3 o = vec3(sdBox(q, vec3(1.75)), 0, 0);
+  d = dMin(d, o);
 
-  // d.x *= 0.10;
+  d.x *= 0.30;
 
   return d;
 }
+
 vec3 map (in vec3 p) {
   return map(p, 0.);
 }
@@ -856,7 +861,14 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
-  color = mix(#8E2EF5, vec3(1), 5. * (mPos.y + 0.125));
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.2 * mPos;
+  dI += 0.1 * pow(dNR, 3.);
+  dI += angle1C;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -992,11 +1004,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // dispersionColor *= 0.5;
+      dispersionColor *= 0.5;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif

@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'restoration-render1',
+    name: 'growls-of-recovery-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
