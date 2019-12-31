@@ -668,16 +668,18 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 2.0;
 
+  q *= rotationMatrix(vec3(0, 0, 1), 1.5 * length(q.xy));
+
   q += warpScale * 0.1000 * cos( 7. * q.yzx + cosT );
   q += warpScale * 0.0500 * cos(11. * q.yzx + cosT );
   q += warpScale * 0.0250 * cos(17. * q.yzx + cosT );
   q += warpScale * 0.0125 * cos(23. * q.yzx + cosT );
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(1.75)), 0, 0);
+  vec3 o = vec3(length(q) - 2.25, 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.30;
+  d.x *= 0.20;
 
   return d;
 }
@@ -866,6 +868,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.2 * mPos;
   dI += 0.1 * pow(dNR, 3.);
+
+  dI *= angle2C;
   dI += angle1C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
