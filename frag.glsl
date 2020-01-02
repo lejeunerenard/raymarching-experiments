@@ -669,43 +669,61 @@ vec3 map (in vec3 p, in float dT) {
   const float r = 1.0;
   const float warpScale = 2.0;
 
-  q *= rotationMatrix(vec3(1), 0.40 * PI * cos(cosT));
-  q *= rotationMatrix(vec3(-1, 0.5, 1), 0.10 * PI * cos(cosT + 0.342));
+  q += warpScale * 0.1000 * cos( 5. * q.yzx + cosT);
+  q += warpScale * 0.0500 * cos(11. * q.yzx + cosT);
+  q += warpScale * 0.0250 * cos(19. * q.yzx + cosT);
+  q += warpScale * 0.0125 * cos(29. * q.yzx + cosT);
+
+  float c = pMod1(q.y, 0.75);
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  o.x -= 0.003 * cellular(1. * q);
+  vec3 o = vec3(sdBox(q, vec3(r, 0.2, r)), c, 0);
+  o.x *= 0.2;
+  d = dMin(d, o);
 
   q = p;
 
-  q.y *= 1.131;
-  float threeR = 0.45 * r;
-  // original threeR = 0.45
-  float threeThick = r * 0.174;
-  q.y -= threeR;
-  float three = sdTorus82(q.xzy, vec2(0.9125 * threeR, threeThick));
-  q.y += 2. * threeR;
-  float bottomRound = sdTorus82(q.xzy, vec2(threeR, threeThick));
-  three = min(three, bottomRound);
+  const float pipeR = 0.325;
+  const float turnR = 0.45;
 
-  // Cut from 8 to 3
-  q.y -= threeR;
-  float cutX = 1.057778 * threeR; // Original 0.476
-  q.x += cutX;
-  float cut = sdBox(q, vec3(threeR));
-  three = max(three, -cut);
+  float xSpread = 1.413;
+  mat3 angleRot = rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
+  // Bends
+  vec3 bend1Q = q - vec3(xSpread * turnR, 0., 0);
+  float crop = sdTorus(bend1Q.xzy, vec2(turnR, pipeR));
+  vec3 halfQ = bend1Q;
+  halfQ *= angleRot;
+  halfQ.x += turnR;
+  float halfCrop = sdBox(halfQ, vec3(turnR, turnR + 2. * pipeR, turnR + 2. * pipeR));
+  crop = max(crop, -halfCrop);
 
-  // Add middle bar
-  q.x -= cutX;
-  q.x += angle1C;
-  q.y -= 0.04 * threeR; // Original 0.018;
-  float middleBar = sdBox(q, vec3(threeR * 0.25, threeThick, threeThick));
-  three = min(three, middleBar);
+  vec3 bend2Q = q + vec3(xSpread * turnR, -0., 0);
+  float crop2 = sdTorus(bend2Q.xzy, vec2(turnR, pipeR));
+  halfQ = bend2Q;
+  halfQ *= angleRot;
+  halfQ.x -= turnR;
+  halfCrop = sdBox(halfQ, vec3(turnR, turnR + 2. * pipeR, turnR + 2. * pipeR));
+  crop2 = max(crop2, -halfCrop);
+  crop = min(crop, crop2);
 
-  o.x = max(o.x, -three);
-  d = dMin(d, o);
+  // Straights
+  const float straightLength = 1.0225 * turnR;
+  vec3 straightQ = q.yxz;
+  straightQ *= rotationMatrix(vec3(0, 0, 1), -0.25 * PI);
+;
+  float straight1 = sdCappedCylinder(straightQ, vec2(pipeR, straightLength));
+  crop = min(crop, straight1);
 
-  // d = dMin(d, vec3(three, 0, 0));
+  straightQ.x += turnR * 2.;
+  float straight2 = sdCappedCylinder(straightQ, vec2(pipeR, straightLength));
+  crop = min(crop, straight2);
+
+  straightQ.x -= turnR * 4.;
+  float straight3 = sdCappedCylinder(straightQ, vec2(pipeR, straightLength));
+  crop = min(crop, straight3);
+
+  // d = dMin(d, vec3(crop, 0, 0));
+  d.x = max(d.x, crop);
 
   // d.x *= 0.20;
 
@@ -895,8 +913,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.2 * mPos;
+  // dI += 0.2 * mPos;
+  dI += 0.2 * pos;
   dI += 0.1 * pow(dNR, 3.);
+
+  dI += 0.66663 * m;
+
+  dI *= -0.042;
+  dI += 0.519 + 0.138 * sin(cosT);
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 

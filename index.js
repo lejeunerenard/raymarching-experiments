@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: '3-render1',
+    name: 'sly-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
