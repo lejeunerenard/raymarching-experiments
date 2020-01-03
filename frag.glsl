@@ -664,68 +664,23 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
+  q = abs(q);
+
   float t = mod(dT + 1., 1.);
 
   const float r = 1.0;
-  const float warpScale = 2.0;
+  const float warpScale = 1.5;
 
-  q += warpScale * 0.1000 * cos( 5. * q.yzx + cosT);
-  q += warpScale * 0.0500 * cos(11. * q.yzx + cosT);
-  q += warpScale * 0.0250 * cos(19. * q.yzx + cosT);
-  q += warpScale * 0.0125 * cos(29. * q.yzx + cosT);
-
-  float c = pMod1(q.y, 0.75);
+  q += warpScale * 0.1000 * cos( 7. * q.yzx + cosT);
+  q += warpScale * 0.0500 * cos(17. * q.yzx + cosT);
+  q += warpScale * 0.0250 * cos(29. * q.yzx + cosT);
+  q += warpScale * 0.0125 * cos(37. * q.yzx + cosT);
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r, 0.2, r)), c, 0);
-  o.x *= 0.2;
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  q = p;
-
-  const float pipeR = 0.325;
-  const float turnR = 0.45;
-
-  float xSpread = 1.413;
-  mat3 angleRot = rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
-  // Bends
-  vec3 bend1Q = q - vec3(xSpread * turnR, 0., 0);
-  float crop = sdTorus(bend1Q.xzy, vec2(turnR, pipeR));
-  vec3 halfQ = bend1Q;
-  halfQ *= angleRot;
-  halfQ.x += turnR;
-  float halfCrop = sdBox(halfQ, vec3(turnR, turnR + 2. * pipeR, turnR + 2. * pipeR));
-  crop = max(crop, -halfCrop);
-
-  vec3 bend2Q = q + vec3(xSpread * turnR, -0., 0);
-  float crop2 = sdTorus(bend2Q.xzy, vec2(turnR, pipeR));
-  halfQ = bend2Q;
-  halfQ *= angleRot;
-  halfQ.x -= turnR;
-  halfCrop = sdBox(halfQ, vec3(turnR, turnR + 2. * pipeR, turnR + 2. * pipeR));
-  crop2 = max(crop2, -halfCrop);
-  crop = min(crop, crop2);
-
-  // Straights
-  const float straightLength = 1.0225 * turnR;
-  vec3 straightQ = q.yxz;
-  straightQ *= rotationMatrix(vec3(0, 0, 1), -0.25 * PI);
-;
-  float straight1 = sdCappedCylinder(straightQ, vec2(pipeR, straightLength));
-  crop = min(crop, straight1);
-
-  straightQ.x += turnR * 2.;
-  float straight2 = sdCappedCylinder(straightQ, vec2(pipeR, straightLength));
-  crop = min(crop, straight2);
-
-  straightQ.x -= turnR * 4.;
-  float straight3 = sdCappedCylinder(straightQ, vec2(pipeR, straightLength));
-  crop = min(crop, straight3);
-
-  // d = dMin(d, vec3(crop, 0, 0));
-  d.x = max(d.x, crop);
-
-  // d.x *= 0.20;
+  d.x *= 0.30;
 
   return d;
 }
@@ -911,21 +866,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // return color;
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
+  vec3 dI = vec3(0);
 
-  // dI += 0.2 * mPos;
-  dI += 0.2 * pos;
-  dI += 0.1 * pow(dNR, 3.);
+  dI += 0.0 * pos;
+  dI += 1.0 * pow(dNR, 5.);
 
-  dI += 0.66663 * m;
-
-  dI *= -0.042;
-  dI += 0.519 + 0.138 * sin(cosT);
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  color *= 0.5;
-  color += 0.1;
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 2, 3) * dI + vec3(0, 0.2, 0.4)));
+  color = pow(color, vec3(0.9));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1048,10 +995,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      /* vec3 reflectColor = vec3(0); */
-      /* vec3 reflectionRd = reflect(rayDirection, nor); */
-      /* reflectColor += 0.2 * reflection(pos, reflectionRd); */
-      /* color += reflectColor; */
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -1059,13 +1006,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, rayDirection, n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.5;
+      // dispersionColor *= 0.5;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
