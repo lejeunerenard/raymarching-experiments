@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'phem-ligan-render1',
+    name: 'scaly-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

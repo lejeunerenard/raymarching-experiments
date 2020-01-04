@@ -1210,8 +1210,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.6, 1.);
 
   // Sizing
-  const float size = 0.05;
-  const float r = size * 0.25;
+  const float size = 0.075;
+  const float r = size * 0.45;
 
   vec2 mPos = vec2(0);
   vec2 cPrime = floor((q + size * 0.5) / size);
@@ -1219,40 +1219,36 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float lowestDist = 20.;
 
   // Find center for 'current' cell
-  q = mod(q + size * 0.5,size) - size * 0.5;
+  // q = mod(q + size * 0.5,size) - size * 0.5;
 
   for (float x = -1.; x < 2.; x++) {
     for (float y = -1.; y < 2.; y++) {
       vec2 thisCPrime = cPrime + vec2(x, y);
       /* vec2 absThisCPrime = abs(thisCPrime); */
       /* float dThisCPrime = max(absThisCPrime.x, absThisCPrime.y); */
-      float dThisCPrime = length(thisCPrime);
+      float dThisCPrime = -thisCPrime.y;
       if (dThisCPrime < lowestDist) {
-        float transT = smoothstep(0.0, 0.6, cos(TWO_PI * t - 0.123 * dThisCPrime));
+        float transT = smoothstep(0.0, 1.0, cos(TWO_PI * t - 0.123 * length(thisCPrime)));
+        transT = quint(transT);
 
-        float localScale = 1. - 0.75 * transT;
+        float localScale = 1.;
 
         vec2 localQ = localScale * q;
-        /* float localSize = size * localScale; */
-        /* localQ = mod(localQ + localSize * 0.5, localSize) - localSize * 0.5 */
-        /*   - localSize * vec2(x, y); */
+        float localSize = size * localScale;
+        localQ = mod(localQ + localSize * 0.5, localSize) - localSize * 0.5
+          - localSize * vec2(x, y);
+
+        localQ.y += 1.0 * r * (1. - transT);
+        localQ.x += 1.0 * r * mod(thisCPrime.y, 2.);
 
         // Warp
         const float warpScale = 0.03125;
 
-        localQ += warpScale * 0.10000 * cos( 5. * localQ.yx + cosT);
-        localQ += warpScale * 0.05000 * cos( 9. * localQ.yx + cosT);
-        localQ += warpScale * 0.02500 * cos(13. * localQ.yx + cosT);
+        float d = length(localQ) - r;
+        vec2 absLocalQ = vec2(1, 0.8) * abs(localQ - vec2(0, r));
+        d = min(d, max(absLocalQ.x, absLocalQ.y) - r);
 
-        // localQ *= localScale;
-        // localQ *= rotMat2(PI * 0.25 * transT);
-
-        vec2 absLocalQ = abs(localQ);
-        float d = max(absLocalQ.x, absLocalQ.y) - r;
-        /* float d = length(localQ) - r; */
-
-        // vec3 cellColor = vec3(1. - smoothstep(0.4 * r - 6. * edge, 0.4 * r, -d));
-        vec3 cellColor = vec3(1.);
+        vec3 cellColor = vec3(step(0.25 * r, -d));
         float mask = step(0., -d);
 
         /* mask *= smoothstep(0.5, 0.5 + edge, sin(TWO_PI * 13. * localQ.y)); */
@@ -1271,7 +1267,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
