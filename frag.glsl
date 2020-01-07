@@ -670,20 +670,14 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 0.7;
 
   // q.xyz *= 1. + 0.1 * sin(dot(q, vec3(8)) - cosT);
-  q.xzy = twist(q.xyz, 1. * q.y + 0.5 * cos(cosT + 2. * q.y));
-
-  q += warpScale * 0.100000 * cos( 3. * q.yzx + cosT );
-  q += warpScale * 0.050000 * cos( 7. * q.yzx + cosT );
-  q += warpScale * 0.025000 * cos(11. * q.yzx + cosT );
-  q += warpScale * 0.012500 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.006250 * cos(17. * q.yzx + cosT );
-  q += warpScale * 0.003125 * cos(19. * q.yzx + cosT );
+  q.xzy = twist(q.xyz, 0.5 * q.y + 0.5 * cos(cosT + 2. * q.y));
+  q.yzx = twist(q.yxz, 0.5 * q.x + 0.5 * cos(cosT + 2. * q.x + 0.333 * PI));
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.350;
+  d.x *= 0.50;
 
   return d;
 }
@@ -872,12 +866,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(0);
 
   dI += 0.0 * pos;
-  dI += 1.0 * pow(dNR, 7.);
+  dI += 1.0 * pow(dNR, 5.);
 
-  dI *= 0.367; // angle2C;
-  dI += -0.122; // angle1C;
+  dI *= angle2C;
+  dI += 0.658; // angle1C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 2, 3) * dI + vec3(0, 0.2, 0.4)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 2, 3) * dI + vec3(0, 0.3, 0.6)));
   color = pow(color, vec3(0.9));
 
   color *= 1.0;
