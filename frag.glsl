@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 12.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -669,15 +669,19 @@ vec3 map (in vec3 p, in float dT) {
   const float r = 1.0;
   const float warpScale = 0.7;
 
+  q.y -= 0.5;
+
   // q.xyz *= 1. + 0.1 * sin(dot(q, vec3(8)) - cosT);
   q.xzy = twist(q.xyz, 0.5 * q.y + 0.5 * cos(cosT + 2. * q.y));
   q.yzx = twist(q.yxz, 0.5 * q.x + 0.5 * cos(cosT + 2. * q.x + 0.333 * PI));
+
+  q.y += abs(cos( 2. * q.x + cos(3. * q.x)));
 
   mPos = q;
   vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.50;
+  d.x *= 0.0625;
 
   return d;
 }
@@ -869,10 +873,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 1.0 * pow(dNR, 5.);
 
   dI *= angle2C;
-  dI += 0.658; // angle1C;
+  dI += 0.705; // angle1C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 2, 3) * dI + vec3(0, 0.3, 0.6)));
-  color = pow(color, vec3(0.9));
+  color = 0.5 + vec3(0.3, 0.5, 0.7) * cos(TWO_PI * (vec3(1, 2, 3) * dI + vec3(0, 0.3, 0.6)));
+  color = pow(color, vec3(0.8));
 
   color *= 1.0;
 
@@ -964,7 +968,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.6;
+        const float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1017,7 +1021,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.5;
+      dispersionColor *= 0.35;
 
       color += saturate(dispersionColor);
 
