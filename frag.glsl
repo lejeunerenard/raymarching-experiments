@@ -671,20 +671,16 @@ vec3 map (in vec3 p, in float dT) {
   const float r = 1.0;
   const float warpScale = 0.7;
 
-  // q.xyz *= 1. + 0.1 * sin(dot(q, vec3(8)) - cosT);
-  /* q.xzy = twist(q.xyz, 0.5 * q.y + 0.5 * cos(cosT + 2. * q.y)); */
-  /* q.yzx = twist(q.yxz, 0.5 * q.x + 0.5 * cos(cosT + 2. * q.x + 0.333 * PI)); */
+  float c = pModPolar(q.yx, 5.);
 
-  // q.y += abs(cos( 2. * q.x + cos(3. * q.x)));
-
-  q.y += 0.4;
+  q.y -= cos(cosT);
   q.y -= min(0.8, max(0., q.y));
 
   mPos = q;
   vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.0625;
+  // d.x *= 0.0625;
 
   return d;
 }
@@ -1015,13 +1011,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      /* vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1); */
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.25;
-
-      color += saturate(dispersionColor);
+      /* dispersionColor *= 0.25; */
+      /*  */
+      /* color += saturate(dispersionColor); */
 
       // color = pow(color, vec3(1.5));
 #endif
