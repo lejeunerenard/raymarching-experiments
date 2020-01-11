@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 2048
 #define maxDistance 20.0
 #define fogMaxDistance 5.25
 
@@ -669,18 +669,22 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1., 1.);
 
   const float r = 1.0;
-  const float warpScale = 0.7;
+  const float warpScale = 1.0;
 
-  float c = pModPolar(q.yx, 5.);
-
-  q.y -= cos(cosT);
-  q.y -= min(0.8, max(0., q.y));
+  q += warpScale * 0.20000 * cos( 5. * q.yzx + cosT );
+  q.xzy = twist(q.xyz, 2. * q.y + sin(cosT));
+  q += warpScale * 0.10000 * cos( 5. * q.yzx + cosT );
+  q += warpScale * 0.05000 * cos( 7. * q.yzx + cosT );
+  q += warpScale * 0.02500 * cos(11. * q.yzx + cosT );
+  q.xzy = twist(q.xzy, 3. * q.z + cosT);
+  q += warpScale * 0.01250 * cos(13. * q.yzx + cosT );
+  q += warpScale * 0.00625 * cos(17. * q.yzx + cosT );
 
   mPos = q;
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  // d.x *= 0.0625;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -871,8 +875,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 1.0 * pow(dNR, 5.);
 
-  dI *= 0.906; // angle2C;
-  dI += -0.619; // angle1C;
+  dI *= 0.3; // angle2C;
+  dI += -0.523; // angle1C;
 
   color = 0.5 + vec3(0.3, 0.5, 0.7) * cos(TWO_PI * (2. * vec3(0.3, 0.5, 0.788) * dI + vec3(0, 0.1, 0.5)));
   // color = pow(color, vec3(0.8));
@@ -1013,11 +1017,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       /* vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1); */
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      /* dispersionColor *= 0.25; */
-      /*  */
-      /* color += saturate(dispersionColor); */
+      dispersionColor *= 0.25;
+
+      color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
