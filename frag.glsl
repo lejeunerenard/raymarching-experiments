@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -1209,64 +1209,88 @@ float drumstick (in vec2 q, in float size, in float biteMask) {
   return n;
 }
 
+float chopSquareChisel (vec2 q, float stage1, float stage2, float stage3, float stage4) {
+  float chop = 1.;
+
+  chop *= 1. - step(1., stage1) * step(0., -q.x) * step(0., -q.y);
+  chop *= 1. - step(1., stage2) * step(0., -q.x) * step(0.,  q.y);
+  chop *= 1. - step(1., stage3) * step(0.,  q.x) * step(0.,  q.y);
+
+  return chop;
+}
+
+float chopSquareSub (vec2 q, float stage1, float stage2, float stage3, float stage4) {
+  float chop = 1.;
+
+  chop *= 1. - step(1., stage1) * step(0.,  q.x) * step(0.,  q.y);
+  chop *= 1. - step(1., stage2) * step(0., -q.x) * step(0.,  q.y);
+  chop *= 1. - step(1., stage3) * step(0., -q.x) * step(0., -q.y);
+
+  return chop;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
   vec2 q = uv;
 
   // Global Timing
-  // generalT = angle1C;
-  float t = mod(generalT + 0.6, 1.);
+  float t = mod(generalT + 0.0, 1.);
+
+  const float numOfStages = 5.;
+  float stage0 = saturate(t * numOfStages);
+  float stage1 = saturate((t - 1. / numOfStages) * numOfStages);
+  float stage2 = saturate((t - 2. / numOfStages) * numOfStages);
+  float stage3 = saturate((t - 3. / numOfStages) * numOfStages);
+  float stage4 = saturate((t - 4. / numOfStages) * numOfStages);
 
   // Sizing
-  const float size = 0.075;
-  const float r = size * 0.45;
+  const float r = 0.10;
 
-  vec2 mPos = vec2(0);
-  vec2 cPrime = floor((q + size * 0.5) / size);
+  // Global Scale
+  q *= mix(1., 0.25, t);
 
-  float lowestDist = 20.;
+  // Offset so shared vertex of starting 4 squares is center
+  q += r - r * t * vec2(0.5, 1.5);
 
-  // Find center for 'current' cell
-  // q = mod(q + size * 0.5,size) - size * 0.5;
+  // Subject
+  vec2 subQ = q;
+  vec2 absSubQ = abs(subQ);
+  float n = step(0., -(max(absSubQ.x, absSubQ.y) - r));
+  n *= chopSquareSub(subQ, stage1, stage2, stage3, stage4);
 
-  for (float x = -1.; x < 2.; x++) {
-    for (float y = -1.; y < 2.; y++) {
-      vec2 thisCPrime = cPrime + vec2(x, y);
-      /* vec2 absThisCPrime = abs(thisCPrime); */
-      /* float dThisCPrime = max(absThisCPrime.x, absThisCPrime.y); */
-      float dThisCPrime = -thisCPrime.y;
-      if (dThisCPrime < lowestDist) {
-        float transT = smoothstep(0.0, 1.0, cos(TWO_PI * t - 0.123 * length(thisCPrime)));
-        transT = quint(transT);
+  // Chisel
+  vec2 chiselQPos = vec2(2. * r);
+  chiselQPos = mix(chiselQPos, vec2(r), expo(stage1));
+  chiselQPos = mix(chiselQPos, vec2(0, r), expo(stage2));
+  chiselQPos = mix(chiselQPos, vec2(0), expo(stage3));
+  chiselQPos = mix(chiselQPos, 10. * vec2(-1, 1), expo(stage4));
 
-        float localScale = 1.;
+  vec2 chiselQ = q - chiselQPos;
+  float angle = -0.5 * PI * (quad(stage2) + quad(stage3));
+  chiselQ *= rotMat2(angle);
+  vec2 absChiselQ = abs(chiselQ);
 
-        vec2 localQ = localScale * q;
-        float localSize = size * localScale;
-        localQ = mod(localQ + localSize * 0.5, localSize) - localSize * 0.5
-          - localSize * vec2(x, y);
+  float chisel = step(0., -(max(absChiselQ.x, absChiselQ.y) - r));
+  chisel *= chopSquareChisel(chiselQ, stage1, stage2, stage3, stage4);
+  n = mix(n, 1. - n, chisel);
 
-        localQ.y += 1.0 * r * (1. - transT);
-        localQ.x += 1.0 * r * mod(thisCPrime.y, 2.);
+  // 'Fly away's
+  vec2 flyAwayQPos = vec2(0, 2. * r);
+  flyAwayQPos = mix(flyAwayQPos, vec2(-2, 2), quad(stage0));
+  vec2 flyAwayQ = q - flyAwayQPos;
+  vec2 absFlyAwayQ = abs(flyAwayQ);
+  float flyAway = step(0., -(max(absFlyAwayQ.x, absFlyAwayQ.y) - r));
+  n = mix(n, 1. - n, flyAway);
 
-        // Warp
-        const float warpScale = 0.03125;
+  flyAwayQPos = vec2(2. * r, 0);
+  flyAwayQPos = mix(flyAwayQPos, vec2(2, -2), quad(stage0));
+  flyAwayQ = q - flyAwayQPos;
+  absFlyAwayQ = abs(flyAwayQ);
+  flyAway = step(0., -(max(absFlyAwayQ.x, absFlyAwayQ.y) - r));
+  n = mix(n, 1. - n, flyAway);
 
-        float d = length(localQ) - r;
-        vec2 absLocalQ = vec2(1, 0.8) * abs(localQ - vec2(0, r));
-        d = min(d, max(absLocalQ.x, absLocalQ.y) - r);
-
-        vec3 cellColor = vec3(step(0.25 * r, -d));
-        float mask = step(0., -d);
-
-        /* mask *= smoothstep(0.5, 0.5 + edge, sin(TWO_PI * 13. * localQ.y)); */
-
-        lowestDist = mix(lowestDist, dThisCPrime, mask);
-        color = mix(color, cellColor, mask);
-      }
-    }
-  }
+  color = vec3(n);
 
   return color.rgb;
 }
@@ -1276,7 +1300,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
