@@ -428,6 +428,20 @@ float fCorner (vec2 p) {
   return length(max(p, vec2(0))) + vmax(min(p, vec2(0)));
 }
 
+// IQ's line sdf
+// source: https://www.shadertoy.com/view/lsXGz8
+float sdLine( in vec2 p, in vec2 a, in vec2 b ) {
+    vec2 pa = p-a, ba = b-a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h );
+}
+
+float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
+    vec3 pa = p-a, ba = b-a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h );
+}
+
 #define Iterations 13
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
@@ -662,29 +676,62 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  const float l = 1.75;
+  const float r = 0.0325;
+  const float amplitude = 2.5 * r;
 
+  /* p *= globalRot; */
+
+  p.x += 0.5 * l;
   vec3 q = p;
 
   float t = mod(dT + 1., 1.);
 
-  const float r = 1.0;
   const float warpScale = 1.0;
 
-  q += warpScale * 0.20000 * cos( 5. * q.yzx + cosT );
-  q.xzy = twist(q.xyz, 2. * q.y + sin(cosT));
-  q += warpScale * 0.10000 * cos( 5. * q.yzx + cosT );
-  q += warpScale * 0.05000 * cos( 7. * q.yzx + cosT );
-  q += warpScale * 0.02500 * cos(11. * q.yzx + cosT );
-  q.xzy = twist(q.xzy, 3. * q.z + cosT);
-  q += warpScale * 0.01250 * cos(13. * q.yzx + cosT );
-  q += warpScale * 0.00625 * cos(17. * q.yzx + cosT );
+  float x = TWO_PI * q.x + cosT;
 
-  mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  const float phaseOffset = 0.25 * PI;
+
+  q = p;
+  q.y += amplitude * sin(x);
+  vec3 o = vec3(sdLine(q, vec3(0), vec3(l, 0, 0)) - r, 0, 0);
+  if (o.x < d.x) {
+    mPos = q;
+  }
   d = dMin(d, o);
 
-  d.x *= 0.03125;
+  q = p;
+  q.z += amplitude * sin(x + 2. * phaseOffset);
+  o = vec3(sdLine(q, vec3(0), vec3(l, 0, 0)) - r, 0, 0);
+  if (o.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, o);
+
+  q = p;
+  q.zy *= rotMat2(PI * 0.25);
+  q.y += amplitude * sin(x + 1. * phaseOffset);
+  o = vec3(sdLine(q, vec3(0), vec3(l, 0, 0)) - r, 0, 0);
+  if (o.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, o);
+
+  q = p;
+  q.zy *= rotMat2(PI * -0.25);
+  q.y += amplitude * sin(x + 3. * phaseOffset);
+  o = vec3(sdLine(q, vec3(0), vec3(l, 0, 0)) - r, 0, 0);
+  if (o.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, o);
+
+  // d.x -= 0.002344 * cellular(4. * mPos);
+  // d.x -= 0.004688 * cellular(4. * mPos);
+  /* d.x -= 0.0125 * cellular(4. * mPos); */
+
+  d.x *= 0.7;
 
   return d;
 }
@@ -875,10 +922,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 1.0 * pow(dNR, 5.);
 
-  dI *= 0.3; // angle2C;
-  dI += -0.523; // angle1C;
+  dI *= 0.987; // angle2C;
+  dI += 0.083; // angle1C;
 
-  color = 0.5 + vec3(0.3, 0.5, 0.7) * cos(TWO_PI * (2. * vec3(0.3, 0.5, 0.788) * dI + vec3(0, 0.1, 0.5)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.3, 0.5, 0.788) * dI + vec3(0, 0.1, 0.5)));
+  // color = 0.5 + vec3(0.3, 0.5, 0.7) * cos(TWO_PI * (2. * vec3(0.3, 0.5, 0.788) * dI + vec3(0, 0.1, 0.5)));
   // color = pow(color, vec3(0.8));
 
   color *= 1.0;
@@ -937,13 +985,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      /* float bumpsScale = 5.75; */
-      /* float bumpIntensity = 0.15 * isMaterialSmooth(t.y, 0.); */
-      /* nor += bumpIntensity * vec3( */
-      /*     cnoise3(bumpsScale * 490.0 * mPos), */
-      /*     cnoise3(bumpsScale * 670.0 * mPos + 234.634), */
-      /*     cnoise3(bumpsScale * 310.0 * mPos + 23.4634)); */
-      /* nor = normalize(nor); */
+      float bumpsScale = 5.75;
+      float bumpIntensity = 0.15 * isMaterialSmooth(t.y, 0.);
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1148,14 +1196,6 @@ float sdUnevenCapsule( vec2 p, float r1, float r2, float h ) {
     return dot(p, vec2(a,b) ) - r1;
 }
 
-// IQ's line sdf
-// source: https://www.shadertoy.com/view/lsXGz8
-float sdLine( in vec2 p, in vec2 a, in vec2 b ) {
-    vec2 pa = p-a, ba = b-a;
-    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-    return length( pa - ba*h );
-}
-
 float drumstick (in vec2 q, in float size, in float biteMask) {
   float n = 0.;
 
@@ -1300,7 +1340,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
