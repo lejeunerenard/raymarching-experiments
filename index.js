@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'intertwine-render1',
+    name: 'rue-times-arrow-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
