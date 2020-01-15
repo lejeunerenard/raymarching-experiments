@@ -442,7 +442,7 @@ float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
     return length( pa - ba*h );
 }
 
-#define Iterations 13
+#define Iterations 2
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
@@ -676,39 +676,40 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  const float r = 0.75;
-
-  vec2 axis = vec2(1, -1);
-  axis *= rotMat2(0.155);
-
-  p.xy += -0.019 * axis;
-
   vec3 q = p;
 
   float t = mod(dT + 1., 1.);
 
-  float warpI = 4. * dot(q.xy, axis);
-  float warpMask = smoothstep( -2.272 + 5.0, -2.272, warpI);
-  warpMask = pow(warpMask, 1.85);
-  float warpScale = mix(1.0, 3., warpMask);
+  const float warpScale = 1.;
+
+  const float r = 0.60;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.100000 * cos( 5. * wQ.yzx + cosT );
-  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT );
-  wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(31. * wQ.yzx + cosT );
-  wQ += warpScale * 0.003125 * cos(43. * wQ.yzx + cosT );
+  for (int i = 0; i < Iterations; i++) {
+    wQ = abs(wQ);
 
-  // q = mix(q, wQ, smoothstep( 0.1, -0.5, warpI));
-  q = mix(q, wQ, warpMask);
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+  }
+  wQ /= scale;
+
+  /* wQ += warpScale * 0.100000 * cos( 7. * wQ.yzx + cosT ); */
+  /* wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT ); */
+  /* wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT ); */
+  /* wQ += warpScale * 0.012500 * cos(19. * wQ.yzx + cosT ); */
+  /* wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT ); */
+  /* wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT ); */
+
+  q = wQ;
 
   mPos = q;
-  vec3 o = vec3(length(q) - r, 0, warpI);
+  // vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  o.x -= 0.025 * cellular(2. * q.yzx);
   d = dMin(d, o);
 
-  // d.x *= 0.7;
+  d.x *= 0.7;
 
   return d;
 }
@@ -892,18 +893,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  float n = 0.5 + 0.5 * sin(0.329 * 1312.34589 * (0.213 * trap + 0.735 * length(mPos)) + cnoise3(42.3934 * pos));
+  float n = 0.5 + 0.5 * sin(612.34589 * (0.735 * length(mPos)));
+
+  n = 0.40 * (1. - smoothstep(0.100, 0.100 + edge, n)) + 1.0 * smoothstep(0.667, 0.667 + edge, n);
 
   color = vec3(n);
-
-  // float highlightsI = 93.243 * trap + 0.13 * cnoise3(9. * pos);
-  float highlightsI = 5.243 * trap + 3.243 * length(pos) + 2.13 * cnoise3(6. * pos);
-  vec3 highlights = 0.5 + 0.5 * cos(TWO_PI * (highlightsI + vec3(0, 0.33, 0.67)));
-
-  float highlightMask =
-    smoothstep(4.25, 6.5, highlightsI); // * smoothstep(5.25, 5., highlightsI) +
-    // smoothstep(7.25, 7.5, highlightsI) * smoothstep(8.25, 8., highlightsI);
-  color = mix(color, highlights, saturate(highlightMask));
 
   return color;
 
@@ -1065,7 +1059,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.5));
 #endif
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       /* float d = max(0.0, t.x); */

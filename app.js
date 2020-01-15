@@ -44,13 +44,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.227,
-        y: 0.726,
+        x: 0.339,
+        y: 1.111,
         z: 0.449
       },
       d: 1,
-      scale: 2.41,
-      rot2angle: [1.554, 3.715, 2.339],
+      scale: 1,
+      rot2angle: [0.329, 0.213, 0.735],
       cameraAngles: [-0.821, 0, 0]
     }
 
@@ -189,8 +189,14 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], 4.697, this.rot2angle[2]], 20 * 1000)
+      .to([1.529, -0.813, 0.735], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .to([...this.rot2angle], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    rotTween1.chain(rotTween2)
 
     rotTween1.start(0)
 
