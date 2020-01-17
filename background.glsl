@@ -7,17 +7,17 @@ vec3 getBackground (in vec2 uv) {
 
   vec3 color = vec3(0); // mix(vec3(1), vec3(0.6), saturate(length(uv)));
 
-  const float size = 0.1;
-  coord = uv;
+  const vec2 size = vec2(0.1, 0.0075);
+  coord = uv * rotMat2Back(0.2 * PI);
   vec2 c = floor((coord + size*0.5)/size);
   coord = mod(coord + size*0.5,size) - size*0.5;
 
   vec2 absCoord = abs(coord);
-  float n = abs(min(absCoord.x, absCoord.y)) - size * 0.00625;
+  float n = abs(absCoord.y) - size.x * 0.00625;
 
   n = 1. - step(0., n);
 
-  n *= 1. - step(0., max(absCoord.x, absCoord.y) - size * 0.2);
+  n *= 1. - step(0., max(absCoord.x, absCoord.y) - size.x * 0.48);
 
   color = vec3(n);
 

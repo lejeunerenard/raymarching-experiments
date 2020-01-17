@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 10.0;
+const float totalT = 8.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -695,17 +695,18 @@ vec3 map (in vec3 p, in float dT) {
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
   wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
 
-  q = wQ;
+  q = mix(q, wQ, 0.5 + 0.25 * cos(dot(wQ, vec3(1)) + cosT));
 
   // float mI = step(0.3, abs(dot(p, vec3(-1, 1, 0))));
-  float mI = step(0.3, abs(dot(q, vec3(-1, 1, 0))));
+  float mI = step(0.65, abs(sin(TWO_PI * 0.5 * dot(wQ, vec3(-1, 1, 0)))));
 
   mPos = q;
-  vec3 o = vec3(length(q) - r, mI, 0);
-  /* vec3 o = vec3(sdBox(q, vec3(r)), 0, 0); */
+  /* vec3 o = vec3(length(q) - r, mI, 0); */
+  vec3 o = vec3(sdBox(q, vec3(r)), mI, 0);
+  o.x -= 0.025 * cellular(q);
   d = dMin(d, o);
 
-  d.x *= 0.2;
+  d.x *= 0.25;
 
   return d;
 }
@@ -903,8 +904,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 1.0 * pow(dNR, 5.);
 
-  dI *= 2.226; // angle2C;
-  dI += 0.004; // angle1C;
+  dI *= 1.737; // angle2C;
+  dI += -3.098; // angle1C;
 
   vec3 metallic = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.3, 0.5, 0.788) * dI + vec3(0, 0.1, 0.5)));
 
@@ -1046,7 +1047,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.25;
+      dispersionColor *= 0.35;
 
       color += isShiny * saturate(dispersionColor);
 
