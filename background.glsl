@@ -19,6 +19,8 @@ vec3 getBackground (in vec2 uv) {
 
   n *= 1. - step(0., max(absCoord.x, absCoord.y) - size.x * 0.48);
 
+  n = 0.;
+
   color = vec3(n);
 
   return color;

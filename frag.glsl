@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -676,34 +676,28 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= globalRot;
+
   vec3 q = p;
 
   float t = mod(dT + 1., 1.);
 
-  const float warpScale = 2.;
+  const float warpScale = 0.5;
 
-  const float r = 0.70;
+  const float r = 1.00;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.100000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cos(cosT));
-  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.x);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
+  float twistT = 1. - smoothstep(0.2, 0.8, 2. * abs(norT - 0.5));
 
-  q = mix(q, wQ, 0.5 + 0.25 * cos(dot(wQ, vec3(1)) + cosT));
+  wQ.xzy = twist(wQ.xyz, twistT * (2. * wQ.y + cos(cosT)));
+  wQ.xyz = twist(wQ.xzy, twistT * 2. * wQ.x);
 
-  // float mI = step(0.3, abs(dot(p, vec3(-1, 1, 0))));
-  float mI = step(0.65, abs(sin(TWO_PI * 0.5 * dot(wQ, vec3(-1, 1, 0)))));
+  q = wQ;
+  // q = mix(q, wQ, twistT);
 
   mPos = q;
-  /* vec3 o = vec3(length(q) - r, mI, 0); */
-  vec3 o = vec3(sdBox(q, vec3(r)), mI, 0);
-  o.x -= 0.025 * cellular(q);
+  vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.25;
@@ -890,9 +884,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  float n = 0.5 + 0.5 * sin(312.34589 * length(pos));
+  // vec3 absMPos = abs(mPos);
+  // float n = 0.5 + 0.5 * sin(102.34589 * min(absMPos.z, min(absMPos.x, absMPos.y)));
+  // float n = 0.5 + 0.5 * sin(102.34589 * min(absMPos.z, min(absMPos.x, absMPos.y)));
 
-  n = step(0.5, n);
+  float n = 0.5 + 0.5 * sin(TWO_PI * 34.115297 * mPos.y);
+
+  const float cut = 0.90;
+  n = smoothstep(cut, cut + edge, n);
+
+  n *= step(0.0, cnoise3(34. * mPos));
 
   color = vec3(n);
 
