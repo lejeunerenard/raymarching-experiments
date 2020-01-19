@@ -684,23 +684,26 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 0.5;
 
-  const float r = 1.00;
+  const float r = 1.20;
 
   vec3 wQ = q;
 
   float twistT = 1. - smoothstep(0.2, 0.8, 2. * abs(norT - 0.5));
 
-  wQ.xzy = twist(wQ.xyz, twistT * (2. * wQ.y + cos(cosT)));
-  wQ.xyz = twist(wQ.xzy, twistT * 2. * wQ.x);
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + cos(cosT));
+  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
+  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.x + cos(cosT + 0.32323 * PI));
+  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(29. * wQ.yzx + cosT );
 
   q = wQ;
   // q = mix(q, wQ, twistT);
 
   mPos = q;
-  vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.25;
+  d.x *= 0.5;
 
   return d;
 }
@@ -888,12 +891,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // float n = 0.5 + 0.5 * sin(102.34589 * min(absMPos.z, min(absMPos.x, absMPos.y)));
   // float n = 0.5 + 0.5 * sin(102.34589 * min(absMPos.z, min(absMPos.x, absMPos.y)));
 
-  float n = 0.5 + 0.5 * sin(TWO_PI * 34.115297 * mPos.y);
+  float n = 0.5 + 0.5 * sin(TWO_PI * 34.115297 * dot(mPos, vec3(0.1, 0.8, 0.1)));
 
   const float cut = 0.90;
   n = smoothstep(cut, cut + edge, n);
 
-  n *= step(0.0, cnoise3(34. * mPos));
+  n *= step(0.0, cnoise3(vec3(34., 69., 34.) * mPos));
 
   color = vec3(n);
 
