@@ -676,31 +676,27 @@ const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
-
   vec3 q = p;
 
   float t = mod(dT + 1., 1.);
 
-  const float warpScale = 0.5;
+  const float warpScale = 0.65;
 
-  const float r = 1.20;
+  const float r = 0.9;
 
   vec3 wQ = q;
 
-  float twistT = 1. - smoothstep(0.2, 0.8, 2. * abs(norT - 0.5));
-
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + cos(cosT));
+  wQ += warpScale * 0.2000 * cos( 2.123 * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1.9 * wQ.y + cos(cosT) - 0.25 * PI);
   wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.x + cos(cosT + 0.32323 * PI));
+  // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.x + cos(cosT + 0.32323 * PI));
   wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250 * cos(29. * wQ.yzx + cosT );
 
   q = wQ;
-  // q = mix(q, wQ, twistT);
 
   mPos = q;
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.5;
@@ -887,18 +883,20 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  // vec3 absMPos = abs(mPos);
-  // float n = 0.5 + 0.5 * sin(102.34589 * min(absMPos.z, min(absMPos.x, absMPos.y)));
-  // float n = 0.5 + 0.5 * sin(102.34589 * min(absMPos.z, min(absMPos.x, absMPos.y)));
+  // float nI = dot(mPos, vec3(0.8, 0.1, 0.8));
+  float nI = 7.44 * atan(mPos.z, mPos.x) / PI;
+  float angleRep = 14.115297 * nI;
+  float angleC = floor(angleRep);
+  float n = 0.5 + 0.5 * sin(TWO_PI * angleRep);
 
-  float n = 0.5 + 0.5 * sin(TWO_PI * 34.115297 * dot(mPos, vec3(0.1, 0.8, 0.1)));
-
-  const float cut = 0.90;
+  const float cut = 0.97;
   n = smoothstep(cut, cut + edge, n);
 
-  n *= step(0.0, cnoise3(vec3(34., 69., 34.) * mPos));
+  n *= step(-0.3, cnoise3(angleC * vec3(49.123, 0., 49.8123) + vec3(2., 3., 2.) * mPos));
 
-  color = vec3(n);
+  n = 1. - n;
+
+  color = saturate(vec3(n) + 0.15);
 
   /* return color; */
 
@@ -1058,8 +1056,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = pow(color, vec3(1.5));
 #endif
 
-      color = mix(color, diffuseColor, 1. - isShiny);
-
       // Fog
       /* float d = max(0.0, t.x); */
       /* color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance)); */
@@ -1074,6 +1070,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifdef NO_MATERIALS
       color = diffuseColor;
 #endif
+
+      color = diffuseColor;
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
