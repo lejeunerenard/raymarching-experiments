@@ -1259,60 +1259,33 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  const float numOfStages = 5.;
-  float stage0 = saturate(t * numOfStages);
-  float stage1 = saturate((t - 1. / numOfStages) * numOfStages);
-  float stage2 = saturate((t - 2. / numOfStages) * numOfStages);
-  float stage3 = saturate((t - 3. / numOfStages) * numOfStages);
-  float stage4 = saturate((t - 4. / numOfStages) * numOfStages);
-
   // Sizing
   const float r = 0.10;
+  const vec2 size = vec2(0.1 * PI, 0.1);
 
   // Global Scale
-  q *= mix(1., 0.25, t);
+  // q *= 1.;
 
-  // Offset so shared vertex of starting 4 squares is center
-  q += r - r * t * vec2(0.5, 1.5);
+  // Grid
+  vec2 pol = vec2(
+      atan(q.y, q.x),
+      length(q));
 
-  // Subject
-  vec2 subQ = q;
-  vec2 absSubQ = abs(subQ);
-  float n = step(0., -(max(absSubQ.x, absSubQ.y) - r));
-  n *= chopSquareSub(subQ, stage1, stage2, stage3, stage4);
+  pol.y -= norT * 2. * size.y;
 
-  // Chisel
-  vec2 chiselQPos = vec2(2. * r);
-  chiselQPos = mix(chiselQPos, vec2(r), expo(stage1));
-  chiselQPos = mix(chiselQPos, vec2(0, r), expo(stage2));
-  chiselQPos = mix(chiselQPos, vec2(0), expo(stage3));
-  chiselQPos = mix(chiselQPos, 10. * vec2(-1, 1), expo(stage4));
+  vec2 c = pMod2(pol, size);
 
-  vec2 chiselQ = q - chiselQPos;
-  float angle = -0.5 * PI * (quad(stage2) + quad(stage3));
-  chiselQ *= rotMat2(angle);
-  vec2 absChiselQ = abs(chiselQ);
+  float cellOdd = mod(dot(c, vec2(1)), 2.);
+  vec2 axis = vec2(1);
+  axis *= rotMat2(0.50 * PI * cellOdd);
 
-  float chisel = step(0., -(max(absChiselQ.x, absChiselQ.y) - r));
-  chisel *= chopSquareChisel(chiselQ, stage1, stage2, stage3, stage4);
-  n = mix(n, 1. - n, chisel);
-
-  // 'Fly away's
-  vec2 flyAwayQPos = vec2(0, 2. * r);
-  flyAwayQPos = mix(flyAwayQPos, vec2(-2, 2), quad(stage0));
-  vec2 flyAwayQ = q - flyAwayQPos;
-  vec2 absFlyAwayQ = abs(flyAwayQ);
-  float flyAway = step(0., -(max(absFlyAwayQ.x, absFlyAwayQ.y) - r));
-  n = mix(n, 1. - n, flyAway);
-
-  flyAwayQPos = vec2(2. * r, 0);
-  flyAwayQPos = mix(flyAwayQPos, vec2(2, -2), quad(stage0));
-  flyAwayQ = q - flyAwayQPos;
-  absFlyAwayQ = abs(flyAwayQ);
-  flyAway = step(0., -(max(absFlyAwayQ.x, absFlyAwayQ.y) - r));
-  n = mix(n, 1. - n, flyAway);
+  float nI = dot(pol, axis);
+  float n = sin(TWO_PI * 7. * nI);
+  n = step(0., n);
 
   color = vec3(n);
+
+  color = mix(#FF87C1, #DAFFC7, n);
 
   return color.rgb;
 }
@@ -1322,7 +1295,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
