@@ -682,24 +682,31 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 0.65;
 
-  const float r = 0.9;
+  const float r = 1.7;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.2000 * cos( 2.123 * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.9 * wQ.y + cos(cosT) - 0.25 * PI);
-  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
-  // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.x + cos(cosT + 0.32323 * PI));
-  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(29. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.2000 * cos( 2.123 * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1.2 * (wQ.y + 0.4 * cos(TWO_PI * wQ.y)));
+
+  wQ += 0.1400 * cnoise3(2. * wQ.yzx);
+
+  wQ *= rotationMatrix(vec3(0.2, 1., 0.8), cosT);
+  // wQ.x = abs(wQ.x);
+  wQ.y = abs(wQ.y);
+
+  // wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
 
   q = wQ;
 
+  float mI = smoothstep(edge, 0., sin(dot(q, vec3(10))));
+
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), mI, 0);
+  o.x -= 0.004 * cellular(3. * q);
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  // d.x *= 0.5;
 
   return d;
 }
@@ -883,22 +890,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  // float nI = dot(mPos, vec3(0.8, 0.1, 0.8));
-  float nI = 7.44 * atan(mPos.z, mPos.x) / PI;
+  float nI = dot(mPos, vec3(1));
+  // float nI = 7.44 * atan(mPos.z, mPos.x) / PI;
   float angleRep = 14.115297 * nI;
   float angleC = floor(angleRep);
   float n = 0.5 + 0.5 * sin(TWO_PI * angleRep);
 
-  const float cut = 0.97;
+  const float cut = 0.5;
   n = smoothstep(cut, cut + edge, n);
 
-  n *= step(-0.3, cnoise3(angleC * vec3(49.123, 0., 49.8123) + vec3(2., 3., 2.) * mPos));
-
-  n = 1. - n;
-
   color = saturate(vec3(n) + 0.15);
-
-  /* return color; */
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(0);
@@ -906,8 +907,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 1.0 * pow(dNR, 5.);
 
-  dI *= 1.737; // angle2C;
-  dI += -3.098; // angle1C;
+  dI *= 1.008; // angle2C;
+  dI += -1.242; // angle1C;
 
   vec3 metallic = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.3, 0.5, 0.788) * dI + vec3(0, 0.1, 0.5)));
 
@@ -1071,7 +1072,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = diffuseColor;
 #endif
 
-      color = diffuseColor;
+      /* color = diffuseColor; */
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
@@ -1295,7 +1296,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
