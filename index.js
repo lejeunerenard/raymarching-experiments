@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'cognitive-distortion-render1',
+    name: 'evo-rescue-render2',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
