@@ -682,25 +682,25 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 1.00;
 
-  const float r = 1.4;
+  const float r = 2.0;
 
   vec3 wQ = q;
 
   wQ += warpScale * 0.2000 * cos( 2.123 * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y);
   wQ *= rotationMatrix(vec3(0.2, 1., 0.8), cosT);
-  wQ += warpScale * 0.1000 * cos( 4.123 * wQ.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos( 8.123 * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(13.123 * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(17.123 * wQ.yzx + cosT );
-
-  // wQ.y = abs(wQ.y);
+  wQ += warpScale * 0.100000 * cos( 4.123 * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos( 8.123 * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(13.123 * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(17.123 * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(23.123 * wQ.yzx + cosT );
 
   q = wQ;
 
+  float mI = smoothstep(0., edge, sin(TWO_PI * dot(q, vec3(1))));
   mPos = q;
-  // vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(length(q) - r, mI, 0);
+
   // o.x -= 0.004 * cellular(3. * q);
   d = dMin(d, o);
 
@@ -888,11 +888,20 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
-  float n = dot(nor, -rd);
-  n += 0.025 * smoothstep(edge, 0., sin(TWO_PI * 32. * dot(pos, vec3(0, 1, 0))));
-  n += 0.7 * snoise3(732.17391 * mPos);
+  float n = 0.; // dot(nor, -rd);
+  n += 1.0 * smoothstep(edge, 0., sin(TWO_PI * 22. * dot(pos, vec3(0, 1, 0))));
+  // n += 0.7 * snoise3(732.17391 * mPos);
 
   color = vec3(n);
+
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+  dI += 0.5 * pow(dNR, 3.);
+  dI += 0.1 * pos;
+
+  vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
+  color = mix(color, shiny, isMaterialSmooth(m, 1.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1026,13 +1035,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      /* vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1); */
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       /* vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1); */
-      /*  */
-      /* dispersionColor *= 0.35; */
-      /*  */
-      /* color += isShiny * saturate(dispersionColor); */
+
+      dispersionColor *= 0.35;
+
+      color += isShiny * saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif

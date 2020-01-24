@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'evo-rescue-render2',
+    name: 'the-looming-fear-of-hope-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
