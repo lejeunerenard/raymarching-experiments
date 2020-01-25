@@ -1250,32 +1250,43 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
 
   // Sizing
-  const float r = 0.10;
-  const vec2 size = vec2(0.1 * PI, 0.1);
+  const float size = 0.0125;
 
   // Global Scale
   // q *= 1.;
 
   // Grid
-  vec2 pol = vec2(
-      atan(q.y, q.x),
-      length(q));
+  float c = pMod1(q.x, size);
 
-  pol.y -= norT * 2. * size.y;
+  const float thickness = 0.05 * size;
+  float xD = abs(q.x);
+  float n = 1. - step(0., xD - thickness);
 
-  vec2 c = pMod2(pol, size);
+  // Vertical Scrolling
+  float ySize = 0.2 + 0.1 * (1. - 2. * mod(c, 2.)) * mod(c, 5.);
+  float speed = 2. * ySize * (8. - (1. - mod(c, 3.)) * mod(c, 7.));
+  q.y += generalT * speed;
 
-  float cellOdd = mod(dot(c, vec2(1)), 2.);
-  vec2 axis = vec2(1);
-  axis *= rotMat2(0.50 * PI * cellOdd);
+  // Cropping
+  float yLength = ySize * (0.35 - 0.075 * (1. - 2. * mod(c, 2.)) * mod(c, 5.));
+  float yC = pMod1(q.y, ySize);
+  n *= 1. - step(0., abs(q.y) - yLength);
 
-  float nI = dot(pol, axis);
-  float n = sin(TWO_PI * 7. * nI);
-  n = step(0., n);
 
-  color = vec3(n);
+  // Middle square
+  q = uv;
+  vec2 absQ = abs(q);
 
-  color = mix(#FF87C1, #DAFFC7, n);
+  float sqrD = max(absQ.x, absQ.y) - 0.2;
+  float sqr = step(0., sqrD);
+
+  color = n * mix(vec3(1,1,1), vec3(0.2, 0.5, 1), pow(xD / thickness, 1.0));
+
+  n = 1. - step(thickness, abs(sqrD));
+  // n *= step(0., sqrD + thickness); // step(thickness, sqrD);
+  color *= sqr;
+
+  color += n * mix(vec3(1,1,1), vec3(0.2, 0.5, 1), pow(abs(sqrD) / thickness, 1.0));
 
   return color.rgb;
 }
@@ -1285,7 +1296,7 @@ vec3 two_dimensional (in vec2 uv) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec4 color = vec4(0);
   float time = norT;
