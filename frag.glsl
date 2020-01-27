@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 96
+#define maxSteps 512
 #define maxDistance 20.0
-#define fogMaxDistance 5.25
+#define fogMaxDistance 16.
 
 #define slowTime time * 0.2
 // v3
@@ -671,6 +671,21 @@ vec3 posT (in float t, in float size) {
       sin(TWO_PI * t));
 }
 
+float pModPolarOffset (inout vec2 p, in float repetitions, in float angleOffset) {
+  float angle = 2.*PI/repetitions;
+  float a = atan(p.y, p.x) + angle/2.;
+  float r = length(p);
+  float c = floor((a + angleOffset)/angle);
+  a = mod(a,angle) - angle/2.;
+  a += angleOffset;
+  a = mod(a, TWO_PI);
+  p = vec2(cos(a), sin(a))*r;
+  // For an odd number of repetitions, fix cell index of the cell in -x direction
+  // (cell index would be e.g. -5 and 5 in the two halves of the cell):
+  if (abs(c) >= (repetitions/2.)) c = abs(c);
+  return c;
+}
+
 const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
@@ -682,20 +697,53 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 1.00;
 
-  const float baseR = 0.75;
+  const float baseR = 0.5;
 
+  // Domain warp
   vec3 wQ = q;
-
   q = wQ;
 
-  mPos = q;
-  float r = max(baseR, baseR + 2. * sign(q.y) * abs(pow(q.y, 1.5)));
-  vec3 o = vec3(-sdCylinder(q, vec3(vec2(0), r)), 0, 0);
+  // Rotation Mod
+  const float repetitions = 5.;
+  const float angleOffset = TWO_PI/repetitions;
 
-  // o.x -= 0.004 * cellular(3. * q);
+  float r = baseR;
+  float posR = r * 2.;
+
+  float c = pModPolarOffset(q.xy, repetitions, 0.);
+
+  q.x -= posR;
+
+  q *= rotationMatrix(vec3(0.3, 1., 0.7), 0.25 * PI * sin(cosT + c * 0.123 * PI));
+
+  mPos = q;
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  // d = dMin(d, o);
+
+  // TODO Try recursive polar repetitions.
+  // q = p;
+  c = pModPolarOffset(q.xy, repetitions, 0.);
+
+  q.x -= posR;
+
+  // q *= rotationMatrix(vec3(0.3, 1., 0.7), 0.25 * PI * sin(cosT + c * 0.123 * PI));
+
+  mPos = q;
+  o = vec3(sdBox(q, vec3(r)), 0, 0);
+  // d = dMin(d, o);
+
+  // q = p;
+  c = pModPolarOffset(q.xy, repetitions, 0.);
+
+  q.x -= posR;
+
+  q *= rotationMatrix(vec3(0.3, 1., 0.7), 0.25 * PI * sin(cosT + c * 0.123 * PI));
+
+  mPos = q;
+  o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.4;
+  d.x *= 0.05;
 
   return d;
 }
@@ -881,31 +929,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // return vec3(0.5);
 
-  float angle = atan(pos.z, pos.x);
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+  dI += 0.2 * mPos;
+  dI += 0.1 * pow(dNR, 3.);
 
-  vec2 pol = vec2(
-      angle,
-      length(pos.xz) - 0.75);
+  dI *= 0.446;
+  dI += 0.584;
 
-  pol.y = mix(pol.y, pos.y, 1. - smoothstep(0., 0.2, pow(pol.y, 0.7)));
-
-  const vec2 size = vec2(TWO_PI * 0.03125, 0.9);
-  vec2 c = floor((pol + 0.5 * size) / size);
-  c.x = mod(c.x, 32.); // Lucky guess
-  pol.y += 3.0 * sin(c.x * 1325.235) + (1. - 2. * mod((1. + mod(c.x, 4.)) * (1. + mod(c.x + 2., 3.)), 2.)) * norT * 2. * size.y;
-  pMod2(pol, size);
-
-  float n = 1.;
-  vec2 absPol = abs(pol);
-  const float edgeScale = 0.9;
-  n *= 1. - smoothstep(0., edge, absPol.x - edgeScale * 0.35 * size.x);
-  n *= 1. - smoothstep(0., edge, absPol.y - edgeScale * 0.480 * size.y);
-
-  n = saturate(n);
-
-  color = vec3(n);
-
-  color = mix(color, vec3(0), pow(saturate(-0.444 * pos.y), 0.85));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -957,7 +989,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 color = vec3(0.0);
 
       // Material Types
-      float isShiny = isMaterialSmooth(t.y, 1.);
+      // float isShiny = isMaterialSmooth(t.y, 1.);
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
@@ -982,20 +1014,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.5;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.5;
+        const float diffMin = 0.75;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.5;
+        const float shadowMin = 0.75;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1028,10 +1060,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.2 * reflection(pos, reflectionRd);
-      // color += isShiny * reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -1041,20 +1073,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      /* vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1); */
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // dispersionColor *= 0.35;
+      dispersionColor *= 0.75;
 
-      // color += isShiny * saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // color = pow(color, vec3(1.5));
 #endif
-      color = diffuseColor;
+      // color = diffuseColor;
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
 
       // color += directLighting * exp(-d * 0.0005);
 
