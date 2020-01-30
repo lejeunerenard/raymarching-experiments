@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -660,6 +660,11 @@ vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
 
+// Create multiple copies of an object - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
+vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
+  return p-s*clamp(floor(p/s + 0.5),-lim,lim);
+}
+
 vec3 posT (in float t, in float size) {
   t = mod(t + 1., 1.);
 
@@ -669,21 +674,6 @@ vec3 posT (in float t, in float size) {
       cos(TWO_PI * 1.5 * t),
       sin(TWO_PI * 2.0 * t),
       sin(TWO_PI * t));
-}
-
-float pModPolarOffset (inout vec2 p, in float repetitions, in float angleOffset) {
-  float angle = 2.*PI/repetitions;
-  float a = atan(p.y, p.x) + angle/2.;
-  float r = length(p);
-  float c = floor((a + angleOffset)/angle);
-  a = mod(a,angle) - angle/2.;
-  a += angleOffset;
-  a = mod(a, TWO_PI);
-  p = vec2(cos(a), sin(a))*r;
-  // For an odd number of repetitions, fix cell index of the cell in -x direction
-  // (cell index would be e.g. -5 and 5 in the two halves of the cell):
-  if (abs(c) >= (repetitions/2.)) c = abs(c);
-  return c;
 }
 
 const float height = 0.2;
@@ -698,44 +688,25 @@ vec3 map (in vec3 p, in float dT) {
   const float warpScale = 1.00;
 
   const float r = 0.125;
-  const float bigR = r * 4.5;
 
-  const float layerSize = 0.5 * r * 6.0;
+  const float size = r * 3.;
+  vec3 wQ = q;
 
-  // Rise up
-  const float numOfLayers = 4.;
-  q.y -= 2. * layerSize * numOfLayers * norT;
+  vec2 c = floor((wQ.xy + size*0.5)/size);
+  wQ.xy = opRepLim(wQ.xy, size, vec2(3, 6));
 
-  // Layers
-  float lay = pMod1(q.y, layerSize);
+  q = wQ;
 
-  // Rotation
-  q.xz *= rotMat2(cosT + 0.142857 * mod(lay, numOfLayers) * PI);
-
-  // Ring Mod
-  float reps = 6. + 0.5 * numOfLayers * mod(lay, numOfLayers);
-  reps = floor(reps);
-  float c = pModPolar(q.xz, reps);
-
-  q.x -= bigR;
-
-  q *= rotationMatrix(vec3(1), cosT + 0.142857 * mod(lay, numOfLayers) * PI);
+  const float stop = 0.65;
+  q *= rotationMatrix(vec3(1), 0.25 * PI * smoothstep(-stop, stop, sin(-0.35 * length(c) + cosT)));
 
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  o.x += maxDistance * mod(lay, 2.);
   if (o.x < d.x) {
     mPos = q;
   }
   d = dMin(d, o);
 
-  o = vec3(length(q) - r, 0, 0);
-  o.x += maxDistance * (1. - mod(lay, 2.));
-  if (o.x < d.x) {
-    mPos = q;
-  }
-  d = dMin(d, o);
-
-  d.x *= 0.125;
+  d.x *= 0.5;
 
   return d;
 }
@@ -922,7 +893,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float n = 0.;
 
-  n = cos(TWO_PI * 10.5 * dot(abs(mPos), vec3(1)));
+  n = cos(TWO_PI * 20.0 * dot(abs(pos), vec3(1)));
   n = smoothstep(edge, 0., n);
 
   color = vec3(1.1 * n);

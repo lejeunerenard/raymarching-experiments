@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'motion-blur-render1',
+    name: 'temporal-cues-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
