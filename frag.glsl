@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -687,26 +687,22 @@ vec3 map (in vec3 p, in float dT) {
 
   const float warpScale = 1.00;
 
-  const float r = 0.125;
+  const float r = 1.00;
 
-  const float size = r * 3.;
   vec3 wQ = q;
-
-  vec2 c = floor((wQ.xy + size*0.5)/size);
-  wQ.xy = opRepLim(wQ.xy, size, vec2(3, 6));
+  
+  wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(27. * wQ.yzx + cosT );
 
   q = wQ;
 
-  const float stop = 0.65;
-  q *= rotationMatrix(vec3(1), 0.25 * PI * smoothstep(-stop, stop, sin(-0.35 * length(c) + cosT)));
-
+  mPos = q;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  if (o.x < d.x) {
-    mPos = q;
-  }
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  d.x *= 0.75;
 
   return d;
 }
@@ -786,7 +782,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 const float n1 = 1.0;
-const float n2 = 1.50;
+const float n2 = 0.87;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -893,10 +889,20 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float n = 0.;
 
-  n = cos(TWO_PI * 20.0 * dot(abs(pos), vec3(1)));
+  n = cos(TWO_PI * 23.0 * dot(abs(pos), vec3(1)));
   n = smoothstep(edge, 0., n);
 
-  color = vec3(1.1 * n);
+  color = vec3(n);
+
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+  dI += 0.1 * pos;
+  dI += 0.2 * pow(dNR, 3.);
+
+  vec3 shiny = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  float shinyMask = smoothstep(0., edge, sin(13. * dot(mPos, vec3(1))));
+  gM = shinyMask;
+  color = mix(color, shiny, shinyMask);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -947,9 +953,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     if (t.x>0. && backgroundMask > 0.) {
       vec3 color = vec3(0.0);
 
-      // Material Types
-      float isShiny = isMaterialSmooth(gM, 1.);
-
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
       /* float bumpsScale = 5.75; */
@@ -968,6 +971,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Basic Diffusion
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
+
+      // Material Types
+      float isShiny = isMaterialSmooth(gM, 1.);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1030,13 +1036,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.75;
+      // dispersionColor *= 0.75;
 
-      color += isShiny * saturate(dispersionColor);
+      // color += isShiny * saturate(dispersionColor);
+
+      dispersionColor = pow(dispersionColor, vec3(0.6));
+
+      color = mix(color, dispersionColor, isShiny);
 
       // color = pow(color, vec3(1.5));
 #endif

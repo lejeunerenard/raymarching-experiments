@@ -25,7 +25,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'temporal-cues-render1',
+    name: 'deny-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
@@ -132,7 +132,7 @@ if (capturing) {
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
 
   let angleCF = gui.addFolder('Angle Coefficients')
-  angleCF.add(app, 'angle1C', -Math.PI, Math.PI).step(0.001).listen()
+  angleCF.add(app, 'angle1C', -10, 10).step(0.001).listen()
   angleCF.add(app, 'angle2C', -Math.PI, Math.PI).step(0.001).listen()
   angleCF.add(app, 'angle3C', -Math.PI, Math.PI).step(0.001).listen()
 
