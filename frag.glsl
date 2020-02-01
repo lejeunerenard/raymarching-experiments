@@ -692,6 +692,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 wQ = q;
   
   wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 0.125 * PI * cos(cosT + 3. * wQ.y));
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
   wQ += warpScale * 0.01250 * cos(27. * wQ.yzx + cosT );
@@ -699,7 +700,8 @@ vec3 map (in vec3 p, in float dT) {
   q = wQ;
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
+  o.x += 0.00625 * cellular(3. * q);
   d = dMin(d, o);
 
   d.x *= 0.75;
@@ -781,8 +783,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 // #pragma glslify: debugColor = require(./debug-color-clip)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
-const float n1 = 1.0;
-const float n2 = 0.87;
+const float n1 = 0.973;
+const float n2 = 0.976;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -885,24 +887,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(0.4 * background);
 
-  float n = 0.;
-
-  n = cos(TWO_PI * 23.0 * dot(abs(pos), vec3(1)));
-  n = smoothstep(edge, 0., n);
-
-  color = vec3(n);
+  float shinyMask = 1.; // smoothstep(0., edge, sin(13. * dot(mPos, vec3(1))));
+  gM = shinyMask;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
+
   dI += 0.1 * pos;
   dI += 0.2 * pow(dNR, 3.);
 
-  vec3 shiny = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  float shinyMask = smoothstep(0., edge, sin(13. * dot(mPos, vec3(1))));
-  gM = shinyMask;
-  color = mix(color, shiny, shinyMask);
+  vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color += 0.1 * shiny;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -987,12 +984,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.75;
+        const float diffMin = 1.00;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.75;
+        const float shadowMin = 0.85;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1004,7 +1001,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec; // * (1. - fre);
 
         // Ambient
-        lin += 0.20 * amb * diffuseColor;
+        lin += 0.00 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
@@ -1027,7 +1024,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      reflectColor += 0.3 * reflection(pos, reflectionRd);
       color += isShiny * reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1040,13 +1037,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // dispersionColor *= 0.75;
+      dispersionColor *= 0.75;
 
-      // color += isShiny * saturate(dispersionColor);
+      color += isShiny * saturate(dispersionColor);
 
-      dispersionColor = pow(dispersionColor, vec3(0.6));
-
-      color = mix(color, dispersionColor, isShiny);
+      // dispersionColor = pow(dispersionColor, vec3(0.6));
 
       // color = pow(color, vec3(1.5));
 #endif

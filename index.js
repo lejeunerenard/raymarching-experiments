@@ -3,6 +3,7 @@ import ShaderVREffect from 'shader-vr-effect'
 import ShaderVROrbitControls from 'shader-vr-orbit-controls'
 
 import App from './app'
+import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
@@ -22,10 +23,14 @@ const still = false
 
 let capturer = {}
 if (capturing) {
+  let massagedName = name.replace(/ /g, '-')
+  massagedName = name.replace(/'/g, '')
+  massagedName = massagedName.toLowerCase()
+
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: 'deny-render1',
+    name: massagedName + '-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
