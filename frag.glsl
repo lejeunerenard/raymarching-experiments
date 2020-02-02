@@ -699,12 +699,23 @@ vec3 map (in vec3 p, in float dT) {
 
   q = wQ;
 
-  mPos = q;
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdTorus(q, vec2(r, 0.25 * r)), 0, 0);
   o.x += 0.00625 * cellular(3. * q);
+  if (o.x < d.x) {
+    mPos = q;
+  }
   d = dMin(d, o);
 
-  d.x *= 0.75;
+  q = wQ;
+  q.z += 4. * 0.25 * r;
+  o = vec3(sdTorus(q, vec2(r, 0.25 * r)), 0, 0);
+  o.x += 0.00625 * cellular(3. * q);
+  if (o.x < d.x) {
+    mPos = q;
+  }
+  d = dMin(d, o);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -899,7 +910,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 3.);
 
   vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color += 0.1 * shiny;
+  // color += 0.1 * shiny;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
