@@ -685,7 +685,7 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1., 1.);
 
-  const float warpScale = 1.00;
+  const float warpScale = 0.75;
 
   const float r = 1.00;
 
@@ -699,17 +699,8 @@ vec3 map (in vec3 p, in float dT) {
 
   q = wQ;
 
-  vec3 o = vec3(sdTorus(q, vec2(r, 0.25 * r)), 0, 0);
-  o.x += 0.00625 * cellular(3. * q);
-  if (o.x < d.x) {
-    mPos = q;
-  }
-  d = dMin(d, o);
-
-  q = wQ;
-  q.z += 4. * 0.25 * r;
-  o = vec3(sdTorus(q, vec2(r, 0.25 * r)), 0, 0);
-  o.x += 0.00625 * cellular(3. * q);
+  vec3 o = vec3(sdBox(q, vec3(r, r, 0.25 * r)), 0, 0);
+  o.x += 0.0125 * cellular(3. * q);
   if (o.x < d.x) {
     mPos = q;
   }
@@ -794,8 +785,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 // #pragma glslify: debugColor = require(./debug-color-clip)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
-const float n1 = 0.973;
-const float n2 = 0.976;
+float n1 = 0.898;
+float n2 = 0.559;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -909,8 +900,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * pos;
   dI += 0.2 * pow(dNR, 3.);
 
+  // dI *= angle1C;
+  // dI += angle2C;
+
   vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  // color += 0.1 * shiny;
+  color += 0.1 * shiny;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);

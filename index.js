@@ -24,7 +24,7 @@ const still = false
 let capturer = {}
 if (capturing) {
   let massagedName = name.replace(/ /g, '-')
-  massagedName = name.replace(/'/g, '')
+  massagedName = massagedName.replace(/'/g, '')
   massagedName = massagedName.toLowerCase()
 
   capturer = new CCapture({
