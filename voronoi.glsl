@@ -76,7 +76,10 @@ vec3 voronoi(in vec3 x, in float time) {
     vec3 r = b - f + offset;
     float d = metric(r);
 
-    if (d < res.x) {
+    vec3 localId = p + b;
+    vec3 absLocalId = abs(localId);
+
+    if (d < res.x && max(absLocalId.x, max(absLocalId.y, absLocalId.z)) - 3. < 0.) {
       id = dot( p + b, vec3(1.0, 57.0, 113.0) );
       res = vec2(d, res.x);
     } else if ( d < res.y ) {

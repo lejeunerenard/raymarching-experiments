@@ -623,7 +623,7 @@ vec3 travel (in float t) {
 }
 // Source: https://www.shadertoy.com/view/MdcXzn
 const float X_REPEAT_DIST = 0.90;
-const float Z_REPEAT_DIST = 1.05;
+const float Z_REPEAT_DIST = 1.80;
 vec3 DF_repeatHex(vec3 p)
 {
     //Repetition
@@ -685,28 +685,32 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1., 1.);
 
-  const float warpScale = 0.75;
+  const float warpScale = 0.09375;
 
-  const float r = 1.00;
+  float r = 0.583;
 
   vec3 wQ = q;
-  
-  wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 0.125 * PI * cos(cosT + 3. * wQ.y));
-  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(27. * wQ.yzx + cosT );
+
+  wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
+  // wQ.xzy = twist(wQ.xyz, 0.0625 * PI * cos(cosT + 2. * wQ.y));
+  wQ += warpScale * 0.05000 * cos(19. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 o = vec3(sdBox(q, vec3(r, r, 0.25 * r)), 0, 0);
-  o.x += 0.0125 * cellular(3. * q);
+  vec3 vor = voronoi(q, norT);
+  float vorD = vor.x - r;
+  vorD -= 0.005 * cellular(2. * q);
+  // float crop = (vor.z / 113.0) - angle2C;
+  // vorD = max(vorD, crop);
+
+  vec3 o = vec3(vorD, 0, 0);
+  // o.x += 0.0125 * cellular(3. * q);
   if (o.x < d.x) {
     mPos = q;
   }
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  // d.x *= 0.5;
 
   return d;
 }
@@ -785,8 +789,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 // #pragma glslify: debugColor = require(./debug-color-clip)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
-float n1 = 0.898;
-float n2 = 0.559;
+float n1 = 1.;
+float n2 = 4.203; // angle2C;
 const float amount = 0.1;
 
 vec3 textures (in vec3 rd) {
@@ -897,14 +901,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.1 * pos;
+  dI += 1.322 * pos;
   dI += 0.2 * pow(dNR, 3.);
 
   // dI *= angle1C;
   // dI += angle2C;
 
   vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color += 0.1 * shiny;
+  color += 0.441 * shiny;
+
+  // color = shiny;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1038,11 +1044,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.75;
+      dispersionColor *= 0.50;
 
       color += isShiny * saturate(dispersionColor);
 
