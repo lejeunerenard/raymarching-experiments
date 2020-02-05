@@ -58,7 +58,7 @@ vec2 voronoi(in vec2 x) {
 }
 
 float metric (in vec3 r) {
-  return dot(r, r);
+  return length(r);
 }
 
 vec3 voronoi(in vec3 x, in float time) {
@@ -72,7 +72,7 @@ vec3 voronoi(in vec3 x, in float time) {
   for (int i=-1; i<=1; i++)
   {
     vec3 b = vec3(i, j, k);
-    vec3 offset = hash(p + b);
+    vec3 offset = hash(p + b + 5.34);
     vec3 r = b - f + offset;
     float d = metric(r);
 

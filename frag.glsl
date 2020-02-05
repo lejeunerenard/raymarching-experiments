@@ -683,6 +683,8 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
+  q *= rotationMatrix(vec3(0, 1, 0), 0.03125 * PI * (2. + sin(cosT)));
+
   float t = mod(dT + 1., 1.);
 
   const float warpScale = 0.09375;
@@ -699,7 +701,7 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 vor = voronoi(q, norT);
   float vorD = vor.x - r;
-  vorD -= 0.005 * cellular(2. * q);
+  // vorD -= 0.005 * cellular(2. * q);
   // float crop = (vor.z / 113.0) - angle2C;
   // vorD = max(vorD, crop);
 
@@ -895,22 +897,10 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4 * background);
 
-  float shinyMask = 1.; // smoothstep(0., edge, sin(13. * dot(mPos, vec3(1))));
-  gM = shinyMask;
+  float n = dot(pos.xy, vec2(10));
+  n = smoothstep(0., edge, sin(TWO_PI * n));
 
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 1.322 * pos;
-  dI += 0.2 * pow(dNR, 3.);
-
-  // dI *= angle1C;
-  // dI += angle2C;
-
-  vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color += 0.441 * shiny;
-
-  // color = shiny;
+  color = vec3(n);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1046,11 +1036,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.50;
+      // dispersionColor *= 0.50;
 
-      color += isShiny * saturate(dispersionColor);
+      // color += isShiny * saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
