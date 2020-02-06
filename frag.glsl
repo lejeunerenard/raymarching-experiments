@@ -683,36 +683,43 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q *= rotationMatrix(vec3(0, 1, 0), 0.03125 * PI * (2. + sin(cosT)));
+  q *= rotationMatrix(vec3(1, 0, 0), -1.0 * PI * norT);
 
   float t = mod(dT + 1., 1.);
 
-  const float warpScale = 0.09375;
+  const float warpScale = 0.25;
+
+  q.yz = abs(q.yz);
+  // pModPolar(q.yz, 2.);
 
   float r = 0.583;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 7. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, 0.0625 * PI * cos(cosT + 2. * wQ.y));
-  wQ += warpScale * 0.05000 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.10000 * cos( 5. * q.yzx + cosT );
+  wQ += warpScale * 0.05000 * cos(11. * q.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(17. * q.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(23. * q.yzx + cosT );
 
   q = wQ;
 
-  vec3 vor = voronoi(q, norT);
-  float vorD = vor.x - r;
-  // vorD -= 0.005 * cellular(2. * q);
-  // float crop = (vor.z / 113.0) - angle2C;
-  // vorD = max(vorD, crop);
+  // vec3 nModQ = q;
+  // nModQ.y *= -1.0;
 
-  vec3 o = vec3(vorD, 0, 0);
-  // o.x += 0.0125 * cellular(3. * q);
+  // float a = atan(q.y, q.z);
+
+  vec3 nQ = q;
+  // vec3 nQ = mix(q, nModQ, a / ( PI * 0.5 ));
+  float v = cellular(5. * nQ);
+  // v += 0.25 * cellular(10. * nQ);
+  vec3 o = vec3(length(q) - r, 0, 0);
+  o.x += 0.025 * v;
   if (o.x < d.x) {
     mPos = q;
   }
   d = dMin(d, o);
 
-  // d.x *= 0.5;
+  d.x *= 0.25;
 
   return d;
 }
@@ -792,8 +799,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 4.203; // angle2C;
-const float amount = 0.1;
+float n2 = 0.79; // angle3C;
+const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -803,9 +810,9 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.0;
 
-  vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2);
-  float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.0, 0.80, n);
+  // vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2);
+  // float n = ncnoise3(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.0, 0.80, n);
 
   /* vec3 spaceScaling = vec3(0.8); */
   /* float n = vfbmWarp(spaceScaling * rd + startPoint); */
@@ -815,12 +822,12 @@ vec3 textures (in vec3 rd) {
   /* float n = vfbm4(spaceScaling * rd + startPoint); */
   /* n = smoothstep(0.125, 0.85, n); */
 
-  /* float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time)); */
+  // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
-  /* float n = cnoise3(3.5 * rd); */
-  /* n = smoothstep(-0.1, 0.9, n); */
+  // float n = cnoise3(3.5 * rd);
+  // n = smoothstep(-0.1, 0.9, n);
 
-  // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
+  float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
   color = vec3(n * spread);
 
@@ -897,10 +904,17 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4 * background);
 
-  float n = dot(pos.xy, vec2(10));
-  n = smoothstep(0., edge, sin(TWO_PI * n));
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
 
-  color = vec3(n);
+  dI += 0.1 * mPos;
+  dI += 0.2 * pow(dNR, 3.);
+
+  dI *= angle1C;
+  dI += angle2C;
+
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  color *= 0.2;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1034,13 +1048,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // dispersionColor *= 0.50;
+      dispersionColor *= 0.50;
 
-      // color += isShiny * saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
