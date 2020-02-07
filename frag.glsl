@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -683,43 +683,54 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 q = p;
 
-  q *= rotationMatrix(vec3(1, 0, 0), -1.0 * PI * norT);
-
   float t = mod(dT + 1., 1.);
+  const float stages = 4.;
+  const float invStages = 1. / stages;
+  float stage = floor(t * stages);
+  float phase1 = saturate((t - 0. * invStages) * stages );
+  float phase2 = saturate((t - 1. * invStages) * stages );
+  float phase3 = saturate((t - 2. * invStages) * stages );
+  float phase4 = saturate((t - 3. * invStages) * stages );
+  float generalMidPhase = 1. - (abs(mod(t, invStages) - 0.5 * invStages) * 2. * stages);
 
   const float warpScale = 0.25;
 
-  q.yz = abs(q.yz);
-  // pModPolar(q.yz, 2.);
-
   float r = 0.583;
 
+  q *= rotationMatrix(vec3(1), TWO_PI * circ(phase1));
+  q *= rotationMatrix(vec3(-1, 1, 0), TWO_PI * circ(phase2));
+  q *= rotationMatrix(vec3(1, 0, 1), TWO_PI * circ(phase3));
+  q *= rotationMatrix(vec3( 0,-1, 1), TWO_PI * circ(phase4));
+
+  q *= 1. - 0.1 * generalMidPhase;
+
+  float stripeSpeed = 3.596;
+  float m = sin(TWO_PI * stripeSpeed * dot(q.xy, vec2(0, 1)));
+  m = smoothstep(edge, 0., m);
+
   vec3 wQ = q;
-
-  wQ += warpScale * 0.10000 * cos( 5. * q.yzx + cosT );
-  wQ += warpScale * 0.05000 * cos(11. * q.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(17. * q.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(23. * q.yzx + cosT );
-
   q = wQ;
 
-  // vec3 nModQ = q;
-  // nModQ.y *= -1.0;
+  float objD = maxDistance;
+  float box = sdBox(q, vec3(r));
+  objD = mix(objD, box, isMaterialSmooth(stage, 0.));
 
-  // float a = atan(q.y, q.z);
+  float doughnut = sdTorus(q, vec2(r, 0.5 * r));
+  objD = mix(objD, doughnut, isMaterialSmooth(stage, 1.));
 
-  vec3 nQ = q;
-  // vec3 nQ = mix(q, nModQ, a / ( PI * 0.5 ));
-  float v = cellular(5. * nQ);
-  // v += 0.25 * cellular(10. * nQ);
-  vec3 o = vec3(length(q) - r, 0, 0);
-  o.x += 0.025 * v;
+  float sphere = length(q) - r;
+  objD = mix(objD, sphere, isMaterialSmooth(stage, 2.));
+
+  float dodec = dodecahedral(q, 48., r);
+  objD = mix(objD, dodec, isMaterialSmooth(stage, 3.));
+
+  vec3 o = vec3(objD, 0, m);
   if (o.x < d.x) {
     mPos = q;
   }
   d = dMin(d, o);
 
-  d.x *= 0.25;
+  // d.x *= 0.25;
 
   return d;
 }
@@ -904,17 +915,7 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4 * background);
 
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 0.1 * mPos;
-  dI += 0.2 * pow(dNR, 3.);
-
-  dI *= angle1C;
-  dI += angle2C;
-
-  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  color *= 0.2;
+  color = vec3(trap);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -991,7 +992,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.0;
       float specCo = 0.2;
 
       float specAll = 0.0;
@@ -1048,19 +1049,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.50;
+      // dispersionColor *= 0.50;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
       // color = pow(color, vec3(1.5));
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);

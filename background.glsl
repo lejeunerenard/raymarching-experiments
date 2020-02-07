@@ -9,6 +9,11 @@ vec3 getBackground (in vec2 uv) {
   // vec3 color = mix(vec3(0.5), vec3(0.7), saturate(length(uv)));
   vec3 color = mix(vec3(0.), vec3(0.2), saturate(length(uv)));
 
+  float n = sin(TWO_PI * 8. * dot(fragCoord.xy, vec2(0, 1)));
+  n = smoothstep(edge, 0., n);
+
+  color = vec3(n);
+
   return color;
 }
 vec3 background = vec3(0.);
