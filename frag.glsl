@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -450,6 +450,8 @@ float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
 #pragma glslify: mengersphere = require(./menger-sphere, intrad=1., scale=scale, kifsM=kifsM)
 
 #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=5, kifsM=kifsM, trapCalc=trapCalc)
+#pragma glslify: dodecahedronFold = require(./folds/dodecahedron-fold, Iterations=1, kifsM=kifsM)
+
 // 
 #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
@@ -680,51 +682,29 @@ const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
+  float minD = 0.;
+
+  p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT + 1., 1.);
-  const float stages = 4.;
-  const float invStages = 1. / stages;
-  float stage = floor(t * stages);
-  float phase1 = saturate((t - 0. * invStages) * stages );
-  float phase2 = saturate((t - 1. * invStages) * stages );
-  float phase3 = saturate((t - 2. * invStages) * stages );
-  float phase4 = saturate((t - 3. * invStages) * stages );
-  float generalMidPhase = 1. - (abs(mod(t, invStages) - 0.5 * invStages) * 2. * stages);
 
   const float warpScale = 0.25;
 
-  float r = 0.583;
-
-  q *= rotationMatrix(vec3(1), TWO_PI * circ(phase1));
-  q *= rotationMatrix(vec3(-1, 1, 0), TWO_PI * circ(phase2));
-  q *= rotationMatrix(vec3(1, 0, 1), TWO_PI * circ(phase3));
-  q *= rotationMatrix(vec3( 0,-1, 1), TWO_PI * circ(phase4));
-
-  q *= 1. - 0.1 * generalMidPhase;
-
-  float stripeSpeed = 3.596;
-  float m = sin(TWO_PI * stripeSpeed * dot(q.xy, vec2(0, 1)));
-  m = smoothstep(edge, 0., m);
+  float r = angle1C;
 
   vec3 wQ = q;
+
+  wQ += warpScale * 0.1000 * cos( 5. * q.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos(11. * q.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(19. * q.yzx + cosT );
+
   q = wQ;
 
-  float objD = maxDistance;
-  float box = sdBox(q, vec3(r));
-  objD = mix(objD, box, isMaterialSmooth(stage, 0.));
+  q = dodecahedronFold(q, minD);
 
-  float doughnut = sdTorus(q, vec2(r, 0.5 * r));
-  objD = mix(objD, doughnut, isMaterialSmooth(stage, 1.));
-
-  float sphere = length(q) - r;
-  objD = mix(objD, sphere, isMaterialSmooth(stage, 2.));
-
-  float dodec = dodecahedral(q, 48., r);
-  objD = mix(objD, dodec, isMaterialSmooth(stage, 3.));
-
-  vec3 o = vec3(objD, 0, m);
+  vec3 o = vec3(sdBox(q, vec3(0.105, 0.105, 0.887)), 0, 0);
   if (o.x < d.x) {
     mPos = q;
   }
@@ -810,7 +790,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 0.79; // angle3C;
+float n2 = 0.86;
 const float amount = 0.05;
 
 vec3 textures (in vec3 rd) {
@@ -915,7 +895,16 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4 * background);
 
-  color = vec3(trap);
+  color = vec3(0.2);
+
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.1 * pos;
+  dI += 0.2 * pow(dNR, 3.);
+
+  vec3 shiny = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0., 0.33, 0.67)) );
+  color += 0.1 * shiny;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -992,8 +981,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.2;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
@@ -1049,19 +1038,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // dispersionColor *= 0.50;
+      dispersionColor *= 0.50;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
       // color = pow(color, vec3(1.5));
 #endif
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);

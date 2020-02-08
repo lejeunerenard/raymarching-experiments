@@ -20,7 +20,7 @@ const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 0
+const BLOOM_PASSES = 2
 const BLOOM_WET = 1.0
 const BLOOM_MIN_BRIGHTNESS = 0.99
 
@@ -44,13 +44,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.339,
-        y: 1.111,
-        z: 0.449
+        x: 0,
+        y: 0,
+        z: 0
       },
       d: 1,
       scale: 1,
-      rot2angle: [0.329, 0.213, 0.735],
+      rot2angle: [0.442, 5.933, 0.26],
       cameraAngles: [0.85, 0, 0]
     }
 
