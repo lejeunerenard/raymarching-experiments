@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -684,33 +684,46 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
-
   vec3 q = p;
 
-  float t = mod(dT + 1., 1.);
+  float t = mod(dT + 1.5, 1.);
 
-  const float warpScale = 0.25;
+  const float warpScale = 1.00;
 
-  float r = angle1C;
+  float r = 0.6;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 5. * q.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos(11. * q.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(19. * q.yzx + cosT );
+  wQ += warpScale * 0.100000 * cos( 7. * q.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos(17. * q.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(29. * q.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(37. * q.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(43. * q.yzx + cosT );
+  wQ += warpScale * 0.003125 * cos(49. * q.yzx + cosT );
 
-  q = wQ;
+  q = mix(q, wQ, sine(saturate(3.5 * abs(t - 0.5) - 0.3 - 0.20 * dot(q.xy, vec2(1)))));
 
-  q = dodecahedronFold(q, minD);
+  // float stripeSpeed = 5.962;
+  float stripeSpeed = 4. * 3.6;
+  float m = sin(TWO_PI * stripeSpeed * dot(q.xy, vec2(0, 1)));
+  m = smoothstep(edge, 0., m);
 
-  vec3 o = vec3(sdBox(q, vec3(0.105, 0.105, 0.887)), 0, 0);
+  float invM = 0.;
+  // float invM = sin(TWO_PI * stripeSpeed * dot(q.xy, vec2(1, 0)));
+  // invM = smoothstep(edge, 0., invM);
+
+  q *= rotationMatrix(vec3(1, 1, 0), 0.25 * PI);
+  q *= rotationMatrix(vec3(0, 1, 0), 0.25 * PI);
+
+  m = mix(m, 1. - m, invM);
+
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, m);
   if (o.x < d.x) {
     mPos = q;
   }
   d = dMin(d, o);
 
-  // d.x *= 0.25;
+  d.x *= 0.5;
 
   return d;
 }
@@ -895,16 +908,7 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4 * background);
 
-  color = vec3(0.2);
-
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 0.1 * pos;
-  dI += 0.2 * pow(dNR, 3.);
-
-  vec3 shiny = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0., 0.33, 0.67)) );
-  color += 0.1 * shiny;
+  color = vec3(trap);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1038,19 +1042,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.50;
+      // dispersionColor *= 0.50;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
       // color = pow(color, vec3(1.5));
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
