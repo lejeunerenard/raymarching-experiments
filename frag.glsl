@@ -1251,23 +1251,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
 
   // Sizing
-  const float r = 0.5;
-  const float warpScale = 1.;
+  const float r = 1.0;
+  const float warpScale = 0.5;
 
   // Global Scale
-  // q *= 1.;
+  // q *= 1. + 0.125 * sin(TWO_PI * dot(q, vec2(4)));
 
   // Warping
   float yIndex = (-q.y + r) / (2. * r);
-  float yScale = 4. * yIndex;
+  float yScale = 2. * yIndex;
   const float xScale = 2.;
-  float gScale = 1. + 2. * yIndex;
-  q.y += warpScale * 0.1000 * snoise2(gScale * vec2(2.81 + yScale, 0.1) * q + generalT);
-  q.y += warpScale * 0.0500 * snoise2(gScale * vec2(3.23 + yScale, 0.1) * q + generalT);
-  q.y += warpScale * 0.0250 * snoise2(gScale * vec2(7.23 + yScale, 0.2) * q + generalT);
+  float gScale = 1. + 2.0 * yIndex;
+  q.y += warpScale * 0.1000 * snoise2(gScale * 3. * vec2(1, 0.5) * q + generalT);
+  q.y += warpScale * 0.0500 * snoise2(gScale * 6. * vec2(1, 0.5) * q + generalT);
+  q.y += warpScale * 0.0250 * snoise2(gScale * 9. * vec2(1, 0.5) * q + generalT);
+  q.y += 0.0625 * sin(TWO_PI * dot(q, vec2(7, 1)));
 
-  float n = sin(10. * TWO_PI * q.y + cosT);
-  n = smoothstep(edge, 0., n);
+  float n = sin(29. * TWO_PI * q.y + cosT);
+  n += 0.2 * snoise2(235.23 * q);
+  n = step(0.75, -n);
 
   // Cropping
   vec2 absQ = abs(q);
@@ -1306,16 +1308,16 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, 0.), 1);
 
   vec3 color = vec3(0.5);
 
-  const int slices = 15;
+  const int slices = 10;
   for (int i = 0; i < slices; i++) {
     float fI = float(i) / float(slices);
     vec3 dI = vec3(fI);
     dI += 0.4 * uv.x;
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (fI + vec3(0, 0.33, 0.67)));
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
@@ -1328,16 +1330,16 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color *= layerColor;
 
     vec3 layerColorA = softLight2(color, layerColor);
+    vec3 layerColorB = color * layerColor;
+    layerColor = layerColorA + layerColorB;
+    layerColor *= 0.85;
+
     // layerColor = overlay(color, layerColor);
     // layerColor = screenBlend(color, layerColor);
-    vec3 layerColorB = color + layerColor;
-    layerColor = layerColorA + layerColorB;
-    layerColor *= 0.42;
-    // layerColor = layerColorA;
-    color = mix(color, layerColor, 0.4);
+    color = mix(color, layerColor, 0.3);
   }
 
-  color = pow(color, vec3(0.75));
+  // color = pow(color, vec3(1.0));
 
   return vec4(color, 1.);
 
