@@ -687,31 +687,31 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.5, 1.);
+  const float transitionTime = 2.0;
+  float mixT = saturate((modT - transitionTime) / (totalT - transitionTime));
 
-  const float warpScale = 1.00;
+  const float warpScale = 0.80;
 
-  float r = 0.6;
+  float r = 1.8;
 
   vec3 wQ = q;
 
   wQ += warpScale * 0.10000 * cos( 3. * q.yzx + cosT );
   wQ.x += 0.1;
-  wQ.xzy = twist(wQ.xyz, 5. * wQ.y + 0.4 * PI * cos(wQ.y + cosT));
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.4 * PI * cos(wQ.y + cosT));
   wQ += warpScale * 0.05000 * cos( 7. * q.yzx + cosT );
-  wQ.yxz = twist(wQ.yzx, 2. * wQ.z);
+  // wQ.yxz = twist(wQ.yzx, 2. * wQ.z);
   wQ += warpScale * 0.02500 * cos(13. * q.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(27. * q.yzx + cosT );
-  wQ += warpScale * 0.00625 * cos(31. * q.yzx + cosT );
 
-  q = wQ;
+  r += 0.0625 * noise(9. * wQ);
 
-  vec3 o = vec3(icosahedral(q, 62., r), 0, 0);
-  if (o.x < d.x) {
-    mPos = q;
-  }
+  // q = wQ;
+
+  mPos = q;
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  d.x *= 0.75;
 
   return d;
 }
