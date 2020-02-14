@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -453,7 +453,7 @@ float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
 #pragma glslify: dodecahedronFold = require(./folds/dodecahedron-fold, Iterations=1, kifsM=kifsM)
 
 // 
-#pragma glslify: fold = require(./folds)
+// #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
 #pragma glslify: twist = require(./twist)
 
@@ -501,6 +501,16 @@ vec3 dMax (vec3 d1, vec3 d2) {
 
 vec2 dMax (vec2 d1, vec2 d2) {
   return (d1.x > d2.x) ? d1 : d2;
+}
+
+// HG_SDF
+float smin(float a, float b, float k){
+    float f = clamp(0.5 + 0.5 * ((a - b) / k), 0., 1.);
+    return (1. - f) * a + f  * b - f * (1. - f) * k;
+}
+
+float smax(float a, float b, float k) {
+    return -smin(-a, -b, k);
 }
 
 mat3 globalRot;
@@ -678,36 +688,165 @@ vec3 posT (in float t, in float size) {
       sin(TWO_PI * t));
 }
 
+void pR (inout vec2 p, float a) {
+  p = cos(a) * p + sin(a) * vec2(p.y, -p.x);
+}
+
+float littleThing (in vec3 p, vec2 uv) {
+  const float r = 0.5;
+  float thick = 1.;
+  float th = thick * 0.16;
+
+  pR(p.xz, -uv.x);
+
+  float len = mix(PI / 1.2, PI / 2., pow(uv.y/2.9, 2.));
+  len = max(len, 0.);
+  pR(p.yz, PI / 2. - len);
+  float d = sdBox(p, vec3(0.125 * r, 1.0 * r, 0.125 * r));
+
+  // d = smax(d, p.y, thick);
+  d = smax(d, abs(length(p) - uv.y) - thick * th, th);
+  return d;
+}
+
+vec2 round (in vec2 x) {
+  return floor(x) + step(0.5, fract(x));
+}
+
+// Geodesic tiling by tdhooper
+// source: // https://www.shadertoy.com/view/llGXWc
+vec3 facePlane;
+vec3 uPlane;
+vec3 vPlane;
+
+int Type=5;
+vec3 nc;
+vec3 pab;
+vec3 pbc;
+vec3 pca;
+
+void init() {
+    float cospin=cos(PI/float(Type)), scospin=sqrt(0.75-cospin*cospin);
+    nc=vec3(-0.5,-cospin,scospin);
+    pbc=vec3(scospin,0.,0.5);
+    pca=vec3(0.,scospin,cospin);
+    pbc=normalize(pbc); pca=normalize(pca);
+	pab=vec3(0,0,1);
+    
+    facePlane = pca;
+    uPlane = cross(vec3(1,0,0), facePlane);
+    vPlane = vec3(1,0,0);
+}
+
+void fold(inout vec3 p) {
+	for(int i=0;i<5 /*Type*/;i++){
+		p.xy = abs(p.xy);
+		p -= 2. * min(0., dot(p,nc)) * nc;
+	}
+}
+
+
+// --------------------------------------------------------
+// Triangle tiling
+// Adapted from mattz https://www.shadertoy.com/view/4d2GzV
+//
+// Finds the closest triangle center on a 2D plane 
+// --------------------------------------------------------
+
+const float sqrt3 = 1.7320508075688772;
+const float i3 = 0.5773502691896258;
+
+const mat2 cart2tri = mat2(1, 0, i3, 2. * i3);
+const mat2 tri2cart = mat2(1, 0, -.5, .5 * sqrt3);
+
+vec2 closestTri(vec2 p) {
+    p = cart2tri * p;
+    vec2 pf = fract(p);
+    vec2 v = vec2(1./3., 2./3.);
+    vec2 tri = mix(v, v.yx, step(pf.y, pf.x));
+    tri += floor(p);
+    tri = tri2cart * tri;
+    return tri;
+}
+
+
+// --------------------------------------------------------
+// Geodesic tiling
+//
+// Finds the closest triangle center on the surface of a
+// sphere:
+// 
+// 1. Intersect position with the face plane
+// 2. Convert that into 2D uv coordinates
+// 3. Find the closest triangle center (tile the plane)
+// 4. Convert back into 3D coordinates
+// 5. Project onto a unit sphere (normalize)
+//
+// You can use any tiling method, such as one that returns
+// hex centers or adjacent cells, so you can create more
+// interesting geometry later.
+// --------------------------------------------------------
+
+// Intersection point of vector and plane
+vec3 intersection(vec3 n, vec3 planeNormal, float planeOffset) {
+    float denominator = dot(planeNormal, n);
+    float t = (dot(vec3(0), planeNormal) + planeOffset) / -denominator;
+    return n * t;
+}
+
+// 3D position -> 2D (uv) coordinates on the icosahedron face
+vec2 icosahedronFaceCoordinates(vec3 p) {
+    vec3 i = intersection(normalize(p), facePlane, -1.);
+    return vec2(dot(i, uPlane), dot(i, vPlane));
+}
+
+// 2D (uv) coordinates -> 3D point on a unit sphere
+vec3 faceToSphere(vec2 facePoint) {
+	return normalize(facePlane + (uPlane * facePoint.x) + (vPlane * facePoint.y));
+}
+
+// Edge length of an icosahedron with an inscribed sphere of radius of 1
+const float edgeLength = 1. / ((sqrt(3.) / 12.) * (3. + sqrt(5.)));
+// Inner radius of the icosahedron's face
+const float faceRadius = (1./6.) * sqrt(3.) * edgeLength;
+
+// Closest geodesic point (triangle center) on unit sphere's surface
+vec3 geodesicTri(vec3 p, float subdivisions) {
+  // faceRadius is used as a scale multiplier so that our triangles
+  // always stop at the edge of the face
+  float uvScale = subdivisions / faceRadius / 2.;
+
+  vec2 uv = icosahedronFaceCoordinates(p);
+  vec2 tri = closestTri(uv * uvScale);
+  return faceToSphere(tri / uvScale);
+}
+
 const float height = 0.2;
 const float size = 0.1;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  // p *= globalRot;
+
   vec3 q = p;
 
-  float t = mod(dT + 1.5, 1.);
-  const float transitionTime = 2.0;
-  float mixT = saturate((modT - transitionTime) / (totalT - transitionTime));
+  float t = mod(dT + 1.0, 1.);
 
   const float warpScale = 0.80;
 
-  float r = 1.8;
+  // Fold space into an icosahedron,
+  // disable this to get a better idea of what
+  // geodesicTri is doing
+  fold(q);
 
-  vec3 wQ = q;
+  float subdivisions = 2.;
+  vec3 point = geodesicTri(q, subdivisions);
 
-  wQ += warpScale * 0.10000 * cos( 3. * q.yzx + cosT );
-  wQ.x += 0.1;
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.4 * PI * cos(wQ.y + cosT));
-  wQ += warpScale * 0.05000 * cos( 7. * q.yzx + cosT );
-  // wQ.yxz = twist(wQ.yzx, 2. * wQ.z);
-  wQ += warpScale * 0.02500 * cos(13. * q.yzx + cosT );
-
-  r += 0.0625 * noise(9. * wQ);
-
-  // q = wQ;
-
-  mPos = q;
+  float r = 0.195 / subdivisions;
+  // vec3 o = vec3(length(q - point) - r, 0, 0);
+  q -= point;
+  q *= rotationMatrix(vec3(1), cosT + dot(point.yx, vec2(1)));
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
@@ -894,18 +1033,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.4 * background);
+  vec3 color = vec3(0.25);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.1 * pos;
-  dI += 0.2 * pow(dNR, 4.);
+  dI += 0.05 * pos;
+  dI += 0.2 * pow(dNR, 2.);
 
-  dI *= 0.348;
-  dI += 1.585;
-
-  color = 0.5 + 0.3 * cos( TWO_PI * (dI + vec3(0, 0.55, 0.22)) );
+  color += 0.30 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -982,7 +1118,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
+      float freCo = 1.0;
       float specCo = 0.2;
 
       float specAll = 0.0;
@@ -995,7 +1131,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.85;
+        const float shadowMin = 1.00;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1030,7 +1166,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * reflection(pos, reflectionRd);
+      reflectColor += 0.5 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1355,6 +1491,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 void main() {
+    init();
     vec3 ro = cameraRo + cOffset;
 
     vec2 uv = fragCoord.xy;
