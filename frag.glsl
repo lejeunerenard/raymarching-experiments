@@ -840,17 +840,27 @@ vec3 map (in vec3 p, in float dT) {
   // geodesicTri is doing
   fold(q);
 
-  float subdivisions = 2.;
+  float subdivisions = 5.;
   vec3 point = geodesicTri(q, subdivisions);
 
   float r = 0.195 / subdivisions;
   // vec3 o = vec3(length(q - point) - r, 0, 0);
   q -= point;
-  q *= rotationMatrix(vec3(1), cosT + dot(point.yx, vec2(1)));
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  const float bobR = 0.2;
+  float offset = bobR * (0.5 + 0.5 * sin(cosT + dot(point.xy, vec2(0, 1)) * 6.));
+  q.z -= offset;
+
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, offset);
   d = dMin(d, o);
 
-  d.x *= 0.75;
+  // Core
+  q = p;
+  const float icoR = 0.86;
+  vec3 i = vec3(icosahedral(q, 42., icoR - bobR), 1, 0);
+  // i.x -= 0.004 * cellular(3. * q);
+  d = dMin(d, i);
+
+  d.x *= 0.125;
 
   return d;
 }
@@ -1033,15 +1043,21 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.25);
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.05 * pos;
-  dI += 0.2 * pow(dNR, 2.);
+  dI += 0.10 * pos;
+  dI += 0.2 * pow(dNR, 4.);
 
-  color += 0.30 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  dI *= 0.300; // angle2C;
+  dI += 2.87; // angle1C;
+
+  vec3 shiny = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.5))));
+  color = mix(vec3(0), shiny, saturate(trap * 6.0));
+
+  color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1166,7 +1182,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.5 * reflection(pos, reflectionRd);
+      reflectColor += 0.3 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1175,11 +1191,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.50;
+      dispersionColor *= 0.50 * t.w;
 
       color += saturate(dispersionColor);
 
