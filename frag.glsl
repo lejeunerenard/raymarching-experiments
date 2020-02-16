@@ -833,32 +833,33 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
+  const float r = 0.4;
   const float warpScale = 0.80;
 
-  // Fold space into an icosahedron,
-  // disable this to get a better idea of what
-  // geodesicTri is doing
-  fold(q);
+  vec3 wQ = q;
 
-  float subdivisions = 5.;
-  vec3 point = geodesicTri(q, subdivisions);
+  wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
 
-  float r = 0.195 / subdivisions;
-  // vec3 o = vec3(length(q - point) - r, 0, 0);
-  q -= point;
-  const float bobR = 0.2;
-  float offset = bobR * (0.5 + 0.5 * sin(cosT + dot(point.xy, vec2(0, 1)) * 6.));
-  q.z -= offset;
+  // Crop
+  vec3 cropQ = wQ;
+  const float cropSize = r * 0.1;
+  pMod1(cropQ.x, cropSize);
+  float crop = sdBox(cropQ, vec3(cropSize * 0.4, 2, 2));
+  crop -= 0.005 * cellular(3. * cropQ);
 
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, offset);
+  wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y);
+
+  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + cosT );
+
+  q = wQ;
+
+  mPos = q;
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
-
-  // Core
-  q = p;
-  const float icoR = 0.86;
-  vec3 i = vec3(icosahedral(q, 42., icoR - bobR), 1, 0);
-  // i.x -= 0.004 * cellular(3. * q);
-  d = dMin(d, i);
+  d.x = max(d.x, -crop);
 
   d.x *= 0.125;
 
@@ -1045,19 +1046,21 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
+  // Local material override
+  m = smoothstep(0., edge, length(mPos) - 0.391);
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
   dI += 0.10 * pos;
   dI += 0.2 * pow(dNR, 4.);
 
-  dI *= 0.300; // angle2C;
-  dI += 2.87; // angle1C;
+  dI *= 1.696; // angle2C;
+  dI += 0.; // angle1C;
 
-  vec3 shiny = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.5))));
-  color = mix(vec3(0), shiny, saturate(trap * 6.0));
+  color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.5))));
 
-  color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0.9), saturate(m));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1182,7 +1185,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * reflection(pos, reflectionRd);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1191,11 +1194,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.50 * t.w;
+      dispersionColor *= 0.5;
 
       color += saturate(dispersionColor);
 
