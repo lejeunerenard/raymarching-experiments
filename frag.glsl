@@ -840,24 +840,23 @@ vec3 map (in vec3 p, in float dT) {
 
   wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 3.0 * wQ.y - 0.25 * PI);
 
   // Crop
   vec3 cropQ = wQ;
   const float cropSize = r * 0.1;
   pMod1(cropQ.x, cropSize);
-  float crop = sdBox(cropQ, vec3(cropSize * 0.4, 2, 2));
+  float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
   crop -= 0.005 * cellular(3. * cropQ);
 
-  wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y);
-
-  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
   wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
   wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
   d.x = max(d.x, -crop);
 
@@ -1046,8 +1045,13 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
+  // return vec3(0.5);
+
   // Local material override
-  m = smoothstep(0., edge, length(mPos) - 0.391);
+  vec3 absMPos = abs(mPos);
+  float mD = max(absMPos.x, max(absMPos.y, absMPos.z)) - 0.391;
+  m = smoothstep(0., edge, mD);
+  gM = m;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1056,11 +1060,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 4.);
 
   dI *= 1.696; // angle2C;
-  dI += 0.; // angle1C;
+  dI += angle1C;
 
-  color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.5))));
+  color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.4, 0.5))));
 
-  color = mix(color, vec3(0.9), saturate(m));
+  color = mix(color, vec3(0), saturate(m));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1185,7 +1189,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      reflectColor += 0.2 * isMaterialSmooth(gM, 0.) * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
