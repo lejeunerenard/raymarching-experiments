@@ -823,6 +823,7 @@ vec3 geodesicTri(vec3 p, float subdivisions) {
 
 const float height = 0.2;
 const float size = 0.1;
+const float gR = 0.2;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -833,19 +834,28 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.4;
-  const float warpScale = 0.80;
+  const float r = gR;
+  const float warpScale = 0.6;
 
   vec3 wQ = q;
+
 
   wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3.0 * wQ.y - 0.25 * PI);
+  // wQ.xzy = twist(wQ.xyz, 3.0 * wQ.y - 0.25 * PI);
+
+  // Convert to polar
+  wQ = vec3(
+      atan(wQ.y, wQ.x),
+      length(wQ.xy) - 1.9 * r,
+      wQ.z);
+  wQ.yz *= rotMat2(0.5 * wQ.x + 0.125 * PI * sin(wQ.x + cosT));
+
 
   // Crop
   vec3 cropQ = wQ;
-  const float cropSize = r * 0.1;
+  const float cropSize = PI * 0.025; // r * 0.4;
   pMod1(cropQ.x, cropSize);
   float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
   crop -= 0.005 * cellular(3. * cropQ);
@@ -856,11 +866,11 @@ vec3 map (in vec3 p, in float dT) {
   q = wQ;
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(PI, r, r)), 0, 0);
   d = dMin(d, o);
   d.x = max(d.x, -crop);
 
-  d.x *= 0.125;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1048,8 +1058,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // return vec3(0.5);
 
   // Local material override
-  vec3 absMPos = abs(mPos);
-  float mD = max(absMPos.x, max(absMPos.y, absMPos.z)) - 0.391;
+  vec2 absMPos = abs(mPos.yz);
+  float mD = max(absMPos.x, absMPos.y) - (gR - 0.010);
   m = smoothstep(0., edge, mD);
   gM = m;
 
@@ -1202,7 +1212,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.5;
+      dispersionColor *= 0.5 * isMaterialSmooth(gM, 0.);
 
       color += saturate(dispersionColor);
 
