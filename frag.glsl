@@ -835,30 +835,28 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1.0, 1.);
 
   const float r = gR;
-  const float warpScale = 0.6;
+  const float warpScale = 1.0;
 
   vec3 wQ = q;
-
 
   wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, 3.0 * wQ.y - 0.25 * PI);
+  wQ.yzx = twist(wQ.yxz, 1.0 * wQ.x);
 
   // Convert to polar
   wQ = vec3(
       atan(wQ.y, wQ.x),
       length(wQ.xy) - 1.9 * r,
       wQ.z);
-  wQ.yz *= rotMat2(0.5 * wQ.x + 0.125 * PI * sin(wQ.x + cosT));
-
+  wQ.yz *= rotMat2(1.5 * wQ.x + 0.125 * PI * sin(wQ.x + cosT));
 
   // Crop
   vec3 cropQ = wQ;
-  const float cropSize = PI * 0.025; // r * 0.4;
+  const float cropSize = PI * 0.0125; // r * 0.4;
   pMod1(cropQ.x, cropSize);
   float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
-  crop -= 0.005 * cellular(3. * cropQ);
+  crop -= 0.005 * cellular(7. * cropQ);
 
   wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
   wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + cosT );
@@ -1069,10 +1067,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 0.2 * pow(dNR, 4.);
 
-  dI *= 1.696; // angle2C;
-  dI += angle1C;
+  dI *= 1.016;
+  dI += -1.026;
 
-  color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.4, 0.5))));
+  color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
   color = mix(color, vec3(0), saturate(m));
 
