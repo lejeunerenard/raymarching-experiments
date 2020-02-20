@@ -823,19 +823,20 @@ vec3 geodesicTri(vec3 p, float subdivisions) {
 
 const float height = 0.2;
 const float size = 0.1;
-const float gR = 0.2;
+// const float gR = 0.2;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
   // p *= globalRot;
+  p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI);
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = gR;
-  const float warpScale = 1.0;
+  float r = 0.3;
+  const float warpScale = 0.0;
 
   vec3 wQ = q;
 
@@ -843,30 +844,39 @@ vec3 map (in vec3 p, in float dT) {
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
   wQ.yzx = twist(wQ.yxz, 1.0 * wQ.x);
+  wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
 
   // Convert to polar
   wQ = vec3(
       atan(wQ.y, wQ.x),
       length(wQ.xy) - 1.9 * r,
       wQ.z);
-  wQ.yz *= rotMat2(1.5 * wQ.x + 0.125 * PI * sin(wQ.x + cosT));
+  wQ.yz *= rotMat2(0.5 * wQ.x + 0.125 * PI * sin(wQ.x + cosT));
 
-  // Crop
-  vec3 cropQ = wQ;
-  const float cropSize = PI * 0.0125; // r * 0.4;
-  pMod1(cropQ.x, cropSize);
-  float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
-  crop -= 0.005 * cellular(7. * cropQ);
+  // // Crop
+  // vec3 cropQ = wQ;
+  // const float cropSize = PI * 0.0125; // r * 0.4;
+  // pMod1(cropQ.x, cropSize);
+  // float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
+  // crop -= 0.005 * cellular(7. * cropQ);
 
   wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
   wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + cosT );
+
+  float r1 = cnoise3(2. * vec3(2, 10, 10) * vec3(sin(wQ.x + cosT), wQ.y, wQ.z));
+  // float r2 = cnoise3(vec3(2, 10, 10) * vec3(sin(-wQ.x + cosT), wQ.y, wQ.z));
+  r = 0.3 + 0.05 * r1;
+
+  // const float rEdge = 0.05;
+  // float rMix = 0.5 + 0.5 * sin(wQ.x + 0.5 * PI); // (rEdge + sin(wQ.x + PI)) / (2. * rEdge);
+  // r = 0.3 + 0.05 * mix(r1, r2, rMix);
 
   q = wQ;
 
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(PI, r, r)), 0, 0);
   d = dMin(d, o);
-  d.x = max(d.x, -crop);
+  // d.x = max(d.x, -crop);
 
   d.x *= 0.1;
 
@@ -1055,11 +1065,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // return vec3(0.5);
 
-  // Local material override
-  vec2 absMPos = abs(mPos.yz);
-  float mD = max(absMPos.x, absMPos.y) - (gR - 0.010);
-  m = smoothstep(0., edge, mD);
-  gM = m;
+  // // Local material override
+  // vec2 absMPos = abs(mPos.yz);
+  // float mD = max(absMPos.x, absMPos.y) - (gR - 0.010);
+  // m = smoothstep(0., edge, mD);
+  // gM = m;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1067,8 +1077,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 0.2 * pow(dNR, 4.);
 
-  dI *= 1.016;
-  dI += -1.026;
+  dI *= 0.388;
+  dI += -0.058;
 
   color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
@@ -1143,7 +1153,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isShiny = isMaterialSmooth(gM, 1.);
+      // float isShiny = isMaterialSmooth(gM, 1.);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1197,7 +1207,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * isMaterialSmooth(gM, 0.) * reflection(pos, reflectionRd);
+      reflectColor += 0.2 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1210,7 +1220,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.5 * isMaterialSmooth(gM, 0.);
+      dispersionColor *= 0.5;
 
       color += saturate(dispersionColor);
 
