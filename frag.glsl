@@ -843,8 +843,8 @@ vec3 map (in vec3 p, in float dT) {
   wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
-  wQ.yzx = twist(wQ.yxz, 1.0 * wQ.x);
-  wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
+  wQ.yzx = twist(wQ.yxz, 2.0 * wQ.x);
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.125 * PI * sin(cosT));
 
   // Convert to polar
   wQ = vec3(
@@ -853,19 +853,20 @@ vec3 map (in vec3 p, in float dT) {
       wQ.z);
   wQ.yz *= rotMat2(0.5 * wQ.x + 0.125 * PI * sin(wQ.x + cosT));
 
-  // // Crop
-  // vec3 cropQ = wQ;
-  // const float cropSize = PI * 0.0125; // r * 0.4;
-  // pMod1(cropQ.x, cropSize);
-  // float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
+  // Crop
+  vec3 cropQ = wQ;
+  cropQ.x += PI * 0.1 * norT;
+  const float cropSize = PI * 0.0125; // r * 0.4;
+  pMod1(cropQ.x, cropSize);
+  float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
   // crop -= 0.005 * cellular(7. * cropQ);
 
   wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
   wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + cosT );
 
-  float r1 = cnoise3(2. * vec3(2, 10, 10) * vec3(sin(wQ.x + cosT), wQ.y, wQ.z));
+  // float r1 = cnoise3(2. * vec3(2, 10, 10) * vec3(sin(wQ.x + cosT), wQ.y, wQ.z));
   // float r2 = cnoise3(vec3(2, 10, 10) * vec3(sin(-wQ.x + cosT), wQ.y, wQ.z));
-  r = 0.3 + 0.05 * r1;
+  // r = 0.3 + 0.05 * r1;
 
   // const float rEdge = 0.05;
   // float rMix = 0.5 + 0.5 * sin(wQ.x + 0.5 * PI); // (rEdge + sin(wQ.x + PI)) / (2. * rEdge);
@@ -876,7 +877,7 @@ vec3 map (in vec3 p, in float dT) {
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(PI, r, r)), 0, 0);
   d = dMin(d, o);
-  // d.x = max(d.x, -crop);
+  d.x = max(d.x, -crop);
 
   d.x *= 0.1;
 
@@ -1077,8 +1078,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 0.2 * pow(dNR, 4.);
 
-  dI *= 0.388;
-  dI += -0.058;
+  dI *= 0.564; // angle2C; // 0.388;
+  dI += 0.794; // angle1C; // -0.058;
 
   color = 0.90 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
@@ -1216,11 +1217,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.5;
+      dispersionColor *= 0.25;
 
       color += saturate(dispersionColor);
 
