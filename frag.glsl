@@ -835,58 +835,19 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.25;
+  const float r = 0.35;
   const float warpScale = 0.125;
 
   vec3 wQ = q;
-
-  wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
-  // wQ.yzx = twist(wQ.yxz, 2.0 * wQ.x);
-  // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.125 * PI * sin(cosT));
-
-  // Convert to polar
-  wQ = vec3(
-      atan(wQ.y, wQ.x),
-      length(wQ.xy) - 1.9 * r,
-      wQ.z);
-  float angle = wQ.x;
-  wQ.x -= TWO_PI * norT;
-  wQ.yz *= rotMat2(0.5 * wQ.x);
-
-  // // Crop
-  // vec3 cropQ = wQ;
-  // cropQ.x += PI * 0.1 * norT;
-  // const float cropSize = PI * 0.0125; // r * 0.4;
-  // pMod1(cropQ.x, cropSize);
-  // float crop = sdBox(cropQ, vec3(cropSize * 0.25, 2, 2));
-  // // crop -= 0.005 * cellular(7. * cropQ);
-
-  float joint = (abs(angle) - PI + 0.1) / 0.1;
-  wQ += saturate(1. - joint) * warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
-  wQ += saturate(1. - joint) * warpScale * 0.00625 * cos(29. * wQ.yzx + cosT );
-
+  wQ.xzy = twist(wQ.xyz, 0.25 * PI * sin(wQ.y + cosT));
   q = wQ;
 
   mPos = q;
 
-  const float boxLength = 4. * TWO_PI;
-  const float boxWidth = r;
-  const float boxThickness = 0.25 * r;
-  vec3 o = vec3(sdBox(q, vec3(boxLength, boxWidth, boxThickness)), 0, 0);
-
-  // o.x += 0.005 * cellular(3. * q);
-
-  // const float cutWidth = boxWidth * 0.7;
-  // const float cutThickness = 1.00 * boxThickness;
-  // float cut = sdBox(q - vec3(0, 0, sign(q.z) * boxThickness), vec3(boxLength, cutWidth, cutThickness));
-  // o.x = max(o.x, -cut);
-
+  vec3 o = vec3(icosahedral(q, 52., 0.5), 0, 0);
   d = dMin(d, o);
-  // d.x = max(d.x, -crop);
 
-  d.x *= 0.1;
+  // d.x *= 0.1;
 
   return d;
 }
@@ -1069,15 +1030,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-
-  // return vec3(0.5);
-
-  // // Local material override
-  // vec2 absMPos = abs(mPos.yz);
-  // float mD = max(absMPos.x, absMPos.y) - (gR - 0.010);
-  // m = smoothstep(0., edge, mD);
-  // gM = m;
+  vec3 color = vec3(background);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1089,8 +1043,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.794; // angle1C; // -0.058;
 
   color = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-
-  // color = mix(color, vec3(0), saturate(m));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1168,7 +1120,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.2;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
@@ -1215,7 +1167,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      reflectColor += 0.5 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       /* vec3 refractColor = vec3(0); */
@@ -1228,7 +1180,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      dispersionColor *= 0.30;
+      dispersionColor *= 1. - pow(dot(nor, -rayDirection), 3.);
 
       color += saturate(dispersionColor);
 
