@@ -836,15 +836,28 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1.0, 1.);
 
   const float r = 0.35;
-  const float warpScale = 0.125;
+  const float warpScale = 0.0;
 
   vec3 wQ = q;
+
+  wQ += warpScale * 0.100000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
+
   wQ.xzy = twist(wQ.xyz, 0.25 * PI * sin(wQ.y + cosT));
+
+  wQ += 0.1 * pow(dot(q, vec3(1)), 4.);
+  vec3 color = 0.5 + 0.5 * cos(TWO_PI * (wQ + vec3(0, 0.33, 0.67)));
+  color = vec3(76./255.0, 82./255., 198. / 255.);
+  foldNd(wQ, colors2);
+
   q = wQ;
 
   mPos = q;
 
   vec3 o = vec3(icosahedral(q, 52., 0.5), 0, 0);
+  o.x -= 0.005 * cellular(3. * q);
   d = dMin(d, o);
 
   // d.x *= 0.1;
