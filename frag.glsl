@@ -835,29 +835,25 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.65;
+  const float r = 0.80;
   const float warpScale = 0.5;
 
   vec3 wQ = q;
 
   wQ += warpScale * 0.100000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 0.5 * PI * sin(wQ.y + cosT));
-  wQ += warpScale * 0.050000 * snoise3(vec3(3., 13, 13) * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 0.5 * PI * sin(wQ.y) + cosT);
+  wQ += warpScale * 0.050000 * snoise3(1.2 * vec3(3., 13, 13) * wQ.yzx);
   wQ += warpScale * 0.050000 * cos(13. * wQ.yzx + cosT );
   wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 0.25 * PI * sin(wQ.z + cosT));
-  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(37. * wQ.yzx + cosT );
-  wQ += warpScale * 0.003125 * cos(43. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.1;
+  d.x *= 0.4;
 
   return d;
 }
@@ -948,24 +944,24 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.0;
 
-  // vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2);
-  // float n = ncnoise3(spaceScaling * rd + startPoint);
-  // n = smoothstep(0.0, 0.80, n);
+  vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2);
+  float n = ncnoise3(spaceScaling * rd + startPoint);
+  n = smoothstep(0.0, 0.80, n);
 
-  /* vec3 spaceScaling = vec3(0.8); */
-  /* float n = vfbmWarp(spaceScaling * rd + startPoint); */
-  /* n = smoothstep(0.525, 0.80, n); */
+  // vec3 spaceScaling = vec3(0.8);
+  // float n = vfbmWarp(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.525, 0.80, n);
 
-  /* vec3 spaceScaling = vec3(9.8); */
-  /* float n = vfbm4(spaceScaling * rd + startPoint); */
-  /* n = smoothstep(0.125, 0.85, n); */
+  // vec3 spaceScaling = vec3(9.8);
+  // float n = vfbm4(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.125, 0.85, n);
 
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
   // float n = cnoise3(3.5 * rd);
   // n = smoothstep(-0.1, 0.9, n);
 
-  float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
+  // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
   color = vec3(n * spread);
 
@@ -1048,8 +1044,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.10 * pos;
   dI += 0.5 * pow(1. - dNR, 4.);
 
-  dI *= 3.2; // angle2C; // 1.000;
-  dI += 7.346; // angle1C; // -0.058;
+  dI *= 1.213; // angle2C; // 1.000;
+  dI += 3.832; // angle1C; // -0.058;
 
   color = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
   color *= 1. - pow(dNR, 0.5);
@@ -1192,12 +1188,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = pow(1. - pow(dot(nor, -rayDirection), 1.00), 2.);
+      // color = vec3(dispersionI);
+
       dispersionColor *= dispersionI;
 
       dispersionColor = pow(dispersionColor, vec3(0.75));
 
       color += saturate(dispersionColor);
-      // color = vec3(dispersionI);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
