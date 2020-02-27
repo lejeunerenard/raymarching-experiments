@@ -8,6 +8,7 @@ vec3 getBackground (in vec2 uv) {
   // vec3 color = mix(vec3(1), vec3(0.8), saturate(length(uv)));
   // vec3 color = mix(vec3(0.5), vec3(0.7), saturate(length(uv)));
   vec3 color = mix(vec3(0.0), vec3(0.2), saturate(length(uv)));
+  color = vec3(1);
 
   return color;
 }

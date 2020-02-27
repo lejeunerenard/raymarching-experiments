@@ -835,25 +835,25 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.80;
-  const float warpScale = 0.5;
+  const float r = 0.45;
+  const float warpScale = 1.5;
 
   vec3 wQ = q;
 
   wQ += warpScale * 0.100000 * cos( 7. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 0.5 * PI * sin(wQ.y) + cosT);
-  wQ += warpScale * 0.050000 * snoise3(1.2 * vec3(3., 13, 13) * wQ.yzx);
   wQ += warpScale * 0.050000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
+  // vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  o.x -= 0.010 * cellular(4. * q);
   d = dMin(d, o);
 
-  d.x *= 0.4;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1039,17 +1039,42 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(background);
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(0);
+  float n = dNR;
+  // float n = cnoise3(pos + time);
 
-  dI += 0.10 * pos;
-  dI += 0.5 * pow(1. - dNR, 4.);
+  vec2 uv = fragCoord.xy;
 
-  dI *= 1.213; // angle2C; // 1.000;
-  dI += 3.832; // angle1C; // -0.058;
+  vec2 cell1 = uv;
+  float size = 0.00625;
+  vec2 c1c = pMod2(cell1, vec2(size));
 
-  color = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-  color *= 1. - pow(dNR, 0.5);
-  color *= pow(length(pos.xy), 3.);
+  vec2 absCell1 = abs(cell1);
+  float crossR = size * 0.25;
+  float isCross = min(absCell1.x, absCell1.y) - crossR;
+  isCross = step(0., isCross);
+
+  float crop = max(absCell1.x, absCell1.y) - size * 0.3;
+  crop = step(0., crop);
+  isCross += crop;
+
+  // Skip 1 layer
+  float skip = 1. - step(0.5, mod(dot(c1c, vec2(1)), 3.));
+  isCross += skip * step(0.50, n);
+
+  // Skip 2 layer
+  skip = 1. - step(0.5, mod(dot(c1c, vec2(1)), 2.));
+  isCross += skip * step(0.75, n);
+
+  // Skip 3 layer
+  isCross += step(0.975, n);
+
+  color *= saturate(isCross);
+
+  // 'Edge'
+  float isEdge = 1. - dNR;
+  isEdge = pow(isEdge, 2.);
+  isEdge = step(0.698, isEdge);
+  color = mix(color, vec3(0), isEdge);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1183,24 +1208,22 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = pow(1. - pow(dot(nor, -rayDirection), 1.00), 2.);
-      // color = vec3(dispersionI);
+      // float dispersionI = pow(1. - pow(dot(nor, -rayDirection), 1.00), 2.);
+      // dispersionColor *= dispersionI;
 
-      dispersionColor *= dispersionI;
+      // dispersionColor = pow(dispersionColor, vec3(0.75));
 
-      dispersionColor = pow(dispersionColor, vec3(0.75));
-
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
       // color = pow(color, vec3(1.5));
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
