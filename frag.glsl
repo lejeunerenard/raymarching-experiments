@@ -1400,8 +1400,40 @@ float chopSquareSub (vec2 q, float stage1, float stage2, float stage3, float sta
   return chop;
 }
 
+vec3 getRingColor (in float angle) {
+  return 0.5 + 0.5 * cos(TWO_PI * (angle + vec3(0, 0.2, 0.4)));
+}
+
+vec3 getRing (in float dir, in vec2 q, in vec3 color, in float innerR, in float outerR) {
+  float ringWidth = outerR - innerR;
+
+  // Color
+  float l = length(q);
+  float angle = atan(q.y, q.x);
+  angle /= PI;
+  angle += 1.;
+  angle *= 0.5;
+  angle += dir * 35. * (0.5 + 0.5 * sin(0.5 * cosT - PI * 0.5));
+  angle += dir * PI * 0.5;
+
+  // Offset for edges
+  float ringCenterR = innerR + 0.5 * ringWidth;
+  float edgeStart = 0.9 * 0.5 * ringWidth;
+  float isEdge = smoothstep(edgeStart, edgeStart + edge, abs(l - ringCenterR));
+
+  // Offset by a third rotation
+  angle += 0.218 * isEdge;
+
+  vec3 ringColor = getRingColor(angle);
+
+  // Ring Mask
+  float isRing = smoothstep(edge, 0., l - outerR);
+  isRing *= smoothstep(0., edge, l - innerR);
+  return mix(color, ringColor, isRing);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(background);
 
   vec2 q = uv;
 
@@ -1409,31 +1441,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
 
   // Sizing
-  const float r = 1.0;
+  const float innerR = 0.1;
+  const float outerR = innerR + 0.10;
   const float warpScale = 0.5;
 
-  // Global Scale
-  // q *= 1. + 0.125 * sin(TWO_PI * dot(q, vec2(4)));
+  // Reference dots
+  const float referenceR = 0.3 * innerR;
+  const vec3 referenceColor = vec3(0.15);
+  vec2 ring1Q = q - vec2(0, 0.225);
+  float l1 = length(ring1Q);
+  color = mix(color, referenceColor, smoothstep(edge, 0., l1 - referenceR));
 
-  // Warping
-  float yIndex = (-q.y + r) / (2. * r);
-  float yScale = 2. * yIndex;
-  const float xScale = 2.;
-  float gScale = 1. + 2.0 * yIndex;
-  q.y += warpScale * 0.1000 * snoise2(gScale * 3. * vec2(1, 0.5) * q + generalT);
-  q.y += warpScale * 0.0500 * snoise2(gScale * 6. * vec2(1, 0.5) * q + generalT);
-  q.y += warpScale * 0.0250 * snoise2(gScale * 9. * vec2(1, 0.5) * q + generalT);
-  q.y += 0.0625 * sin(TWO_PI * dot(q, vec2(7, 1)));
+  vec2 ring2Q = q + vec2(0, 0.225);
+  float l2 = length(ring2Q);
+  color = mix(color, referenceColor, smoothstep(edge, 0., l2 - referenceR));
 
-  float n = sin(29. * TWO_PI * q.y + cosT);
-  n += 0.2 * snoise2(235.23 * q);
-  n = step(0.75, -n);
-
-  // Cropping
-  vec2 absQ = abs(q);
-  n *= 1. - step(0., max(absQ.x, absQ.y) - r);
-
-  color = vec3(n);
+  color = getRing( 1., ring1Q, color, innerR, outerR);
+  color = getRing(-1., ring2Q, color, innerR, outerR);
 
   return color.rgb;
 }
@@ -1466,7 +1490,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, 0.), 1);
+  return vec4(two_dimensional(uv, 0.), 1);
 
   // vec3 color = vec3(0.5);
 
