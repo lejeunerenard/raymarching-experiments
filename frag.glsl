@@ -1401,7 +1401,7 @@ float chopSquareSub (vec2 q, float stage1, float stage2, float stage3, float sta
 }
 
 vec3 getRingColor (in float angle) {
-  return 0.5 + 0.5 * cos(TWO_PI * (angle + vec3(0, 0.2, 0.4)));
+  return 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * angle + vec3(-0.5, 0.3, 0.6)));
 }
 
 vec3 getRing (in float dir, in vec2 q, in vec3 color, in float ringWidth, in float offset) {
@@ -1410,7 +1410,7 @@ vec3 getRing (in float dir, in vec2 q, in vec3 color, in float ringWidth, in flo
   pol.x /= PI;
   pol.x += 1.;
   pol.x *= 0.5;
-  pol.x += dir * 25. * (0.5 + 0.5 * sin(0.5 * cosT - PI * 0.5));
+  pol.x += dir * 15. * (0.5 + 0.5 * sin(0.5 * cosT - PI * 0.5));
   pol.x += dir * PI * 0.5;
   pol.x += -0.123 * offset;
 
@@ -1441,10 +1441,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Reference dots
   vec2 ring1Q = q;
-  float size = 0.125;
+  ring1Q *= rotMat2(0.25 * PI);
+  float size = 0.075;
   ring1Q.y += 0.5 * size;
   float c = pMod1(ring1Q.y, size);
-  color = getRing( 1. - 2. * step(0., -c), ring1Q, color, 0.1, c);
+  color = getRing( 1. - 2. * mod(c, 2.), ring1Q, color, size * 0.8, c);
 
   return color.rgb;
 }
