@@ -835,7 +835,7 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.30;
+  const float r = 0.60;
   const float warpScale = 1.0;
   const float size = 0.4 * r;
 
@@ -844,6 +844,7 @@ vec3 map (in vec3 p, in float dT) {
   wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT);
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT);
+  wQ *= rotationMatrix(vec3(1, 2, -3), 2.03 * wQ.z + 0.25 * PI * cos(cosT));
   wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT);
 
   float c = pMod1(wQ.x, size);
@@ -861,116 +862,10 @@ vec3 map (in vec3 p, in float dT) {
 
   o = vec3(sdBox(q - (r * spread) * vec3( 0, 0, 0), vec3(r)), 0, 0);
   o.x = max(o.x,-crop);
+  // o.x -= 0.005 * cellular(2.1 * q);
   d = dMin(d, o);
 
-  o = vec3(sdBox(q - (r * spread) * vec3( 2, 0, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2, 0, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0, 0, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0, 0,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2, 0, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2, 0, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2, 0,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2, 0,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0, 2, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2, 2, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2, 2, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0, 2, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0, 2,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2, 2, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2, 2, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2, 2,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2, 2,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0,-2, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2,-2, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2,-2, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0,-2, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 0,-2,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2,-2, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2,-2, 2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3( 2,-2,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  o = vec3(sdBox(q - (r * spread) * vec3(-2,-2,-2), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  d = dMin(d, o);
-
-  float sphereCrop = length(q) - r * 2.85;
-  d.x = max(d.x, sphereCrop);
-
-  d.x *= 0.7;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1161,11 +1056,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pos;
   dI += 0.2 * pow(dNR, 2.);
 
-  dI *= 0.346; // angle1C; // -0.031;
-  dI += 1.009; // angle2C; // 1.543;
+  dI *= angle1C; // -0.031;
+  dI += angle2C; // 1.543;
 
   vec3 growthColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
-  growthColor *= 0.8;
+  growthColor *= 0.9;
   color = mix(color, growthColor, isMaterialSmooth(m, 0.));
 
 #ifdef NO_MATERIALS
@@ -1219,13 +1114,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      /* float bumpsScale = 5.75; */
-      /* float bumpIntensity = 0.15 * isMaterialSmooth(t.y, 0.); */
-      /* nor += bumpIntensity * vec3( */
-      /*     cnoise3(bumpsScale * 490.0 * mPos), */
-      /*     cnoise3(bumpsScale * 670.0 * mPos + 234.634), */
-      /*     cnoise3(bumpsScale * 310.0 * mPos + 23.4634)); */
-      /* nor = normalize(nor); */
+      float bumpsScale = 5.75;
+      float bumpIntensity = 0.15 * isMaterialSmooth(t.y, 0.);
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
