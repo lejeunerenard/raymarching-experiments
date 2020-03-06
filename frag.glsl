@@ -452,7 +452,7 @@ float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
 #pragma glslify: octahedronFold = require(./folds/octahedron-fold, Iterations=5, kifsM=kifsM, trapCalc=trapCalc)
 #pragma glslify: dodecahedronFold = require(./folds/dodecahedron-fold, Iterations=1, kifsM=kifsM)
 
-// 
+//
 // #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
 #pragma glslify: twist = require(./twist)
@@ -732,7 +732,7 @@ void init() {
     pca=vec3(0.,scospin,cospin);
     pbc=normalize(pbc); pca=normalize(pca);
 	pab=vec3(0,0,1);
-    
+
     facePlane = pca;
     uPlane = cross(vec3(1,0,0), facePlane);
     vPlane = vec3(1,0,0);
@@ -750,7 +750,7 @@ void fold(inout vec3 p) {
 // Triangle tiling
 // Adapted from mattz https://www.shadertoy.com/view/4d2GzV
 //
-// Finds the closest triangle center on a 2D plane 
+// Finds the closest triangle center on a 2D plane
 // --------------------------------------------------------
 
 const float sqrt3 = 1.7320508075688772;
@@ -775,7 +775,7 @@ vec2 closestTri(vec2 p) {
 //
 // Finds the closest triangle center on the surface of a
 // sphere:
-// 
+//
 // 1. Intersect position with the face plane
 // 2. Convert that into 2D uv coordinates
 // 3. Find the closest triangle center (tile the plane)
@@ -835,37 +835,131 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.60;
+  float r = 0.273;
   const float warpScale = 1.0;
-  const float size = 0.4 * r;
 
   vec3 wQ = q;
-
-  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT);
-  wQ *= rotationMatrix(vec3(1, 2, -3), 2.03 * wQ.z + 0.25 * PI * cos(cosT));
-  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT);
-
-  float c = pMod1(wQ.x, size);
-
-  float crop = sdBox(wQ, vec3(size * 0.3, vec2(15. * r)));
-
   q = wQ;
+
   mPos = q;
-
-  q = p;
-
   vec3 o = vec3(maxDistance, 0, 0);
 
-  const float spread = 1.20;
+  float scale = 0.5;
+  vec3 phaseOffset = vec3(0, 0.33, 0.67);
+  float shiftCo = 0.35;
+  float i = 0.;
+  float nudge = 0.466667;
+  float smoothScale = 0.1;
 
-  o = vec3(sdBox(q - (r * spread) * vec3( 0, 0, 0), vec3(r)), 0, 0);
-  o.x = max(o.x,-crop);
-  // o.x -= 0.005 * cellular(2.1 * q);
-  d = dMin(d, o);
+  o = vec3(length(q - r * scale * vec3( 0, 0, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
 
-  d.x *= 0.25;
+  o = vec3(length(q - r * scale * vec3( 1, 0, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1, 0, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0, 0, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0, 0,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1, 0, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1, 0, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1, 0,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1, 0,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0, 1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1, 1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1, 1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0, 1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0, 1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1, 1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1, 1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1, 1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1, 1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0,-1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1,-1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1,-1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0,-1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 0,-1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1,-1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1,-1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3( 1,-1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  o = vec3(length(q - r * scale * vec3(-1,-1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge)) - r, 0, 0);
+  d = dSMin(d, o, r * smoothScale);
+  i += 1.;
+
+  // d.x *= 0.25;
 
   return d;
 }
@@ -1053,15 +1147,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
+  dI += 0.3 * snoise3(pos);
   dI += 0.2 * pos;
   dI += 0.2 * pow(dNR, 2.);
 
-  dI *= angle1C; // -0.031;
-  dI += angle2C; // 1.543;
+  dI *= 0.591;
+  dI += 1.874;
 
   vec3 growthColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
-  growthColor *= 0.9;
-  color = mix(color, growthColor, isMaterialSmooth(m, 0.));
+  // growthColor *= 0.9;
+  color = growthColor;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1138,7 +1233,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
+      float freCo = 0.6;
       float specCo = 0.0;
 
       float specAll = 0.0;
@@ -1146,12 +1241,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.90;
+        const float diffMin = 0.50;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 1.00;
+        const float shadowMin = 0.90;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1195,9 +1290,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       /* color += refractColor; */
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 0.35; // pow(1. - pow(dot(nor, -rayDirection), 1.00), 2.);
       dispersionColor *= dispersionI;
