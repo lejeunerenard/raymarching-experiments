@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 12.0;
 float modT = mod(time, totalT);
 float norT = modT / totalT;
 float cosT = TWO_PI / totalT * modT;
@@ -823,8 +823,13 @@ vec3 geodesicTri(vec3 p, float subdivisions) {
 
 float bubbleD (in vec3 q, in float r, float i) {
   q *= rotationMatrix(vec3(1), 0.123423 * i * PI + cosT);
-  return sdBox(q, vec3(r));
+  return length(q) - (r * (0.95 + 0.05 * mod(i, 4.)));
+  // return sdBox(q, vec3(r));
   // return icosahedral(q, 12., r);
+}
+
+vec3 period (in float i) {
+  return (1. + mod(i, 3.)) * vec3(1, 2.0, 3.0);
 }
 
 const float height = 0.2;
@@ -851,81 +856,81 @@ vec3 map (in vec3 p, in float dT) {
   vec3 o = vec3(maxDistance, 0, 0);
 
   float scale = 0.5;
-  vec3 phaseOffset = PI * vec3(0, 0.3, 0.47);
+  vec3 phaseOffset = PI * vec3(0, 1.3, 2.47);
   float shiftCo = 0.45;
   float i = 0.;
-  float nudge = 0.346;
+  float nudge = 0.146 * PI;
   float smoothScale = 0.1;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 0, 0, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 0, 0, 0) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 1, 0, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 1, 0, 0) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3(-1, 0, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3(-1, 0, 0) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 0, 0, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 0, 0, 1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 0, 0,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 0, 0,-1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 1, 0, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 1, 0, 1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3(-1, 0, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3(-1, 0, 1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 1, 0,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 1, 0,-1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3(-1, 0,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3(-1, 0,-1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 0, 1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 0, 1, 0) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 1, 1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3( 1, 1, 0) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3(-1, 1, 0) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  o = vec3(bubbleD(q - r * scale * vec3(-1, 1, 0) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   d = dSMin(d, o, r * smoothScale);
   i += 1.;
 
-  o = vec3(bubbleD(q - r * scale * vec3( 0, 1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
-  d = dSMin(d, o, r * smoothScale);
-  i += 1.;
-
-  o = vec3(bubbleD(q - r * scale * vec3( 0, 1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
-  d = dSMin(d, o, r * smoothScale);
-  i += 1.;
-
-  // o = vec3(bubbleD(q - r * scale * vec3( 1, 1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  // o = vec3(bubbleD(q - r * scale * vec3( 0, 1, 1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   // d = dSMin(d, o, r * smoothScale);
   // i += 1.;
 
-  // o = vec3(bubbleD(q - r * scale * vec3(-1, 1, 1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  // o = vec3(bubbleD(q - r * scale * vec3( 0, 1,-1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   // d = dSMin(d, o, r * smoothScale);
   // i += 1.;
 
-  // o = vec3(bubbleD(q - r * scale * vec3( 1, 1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  // o = vec3(bubbleD(q - r * scale * vec3( 1, 1, 1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   // d = dSMin(d, o, r * smoothScale);
   // i += 1.;
 
-  // o = vec3(bubbleD(q - r * scale * vec3(-1, 1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  // o = vec3(bubbleD(q - r * scale * vec3(-1, 1, 1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  // d = dSMin(d, o, r * smoothScale);
+  // i += 1.;
+
+  // o = vec3(bubbleD(q - r * scale * vec3( 1, 1,-1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
+  // d = dSMin(d, o, r * smoothScale);
+  // i += 1.;
+
+  // o = vec3(bubbleD(q - r * scale * vec3(-1, 1,-1) + shiftCo * sin(period(i) * cosT + phaseOffset + i * nudge), r, i), 0, 0);
   // d = dSMin(d, o, r * smoothScale);
   // i += 1.;
 
@@ -964,6 +969,8 @@ vec3 map (in vec3 p, in float dT) {
   // o = vec3(bubbleD(q - r * scale * vec3(-1,-1,-1) + shiftCo * sin(cosT + phaseOffset + i * nudge), r, i), 0, 0);
   // d = dSMin(d, o, r * smoothScale);
   // i += 1.;
+
+  d.x -= 0.010 * cellular(5. * q);
 
   // d.x *= 0.25;
 
@@ -1157,8 +1164,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pos;
   dI += 0.2 * pow(dNR, 2.);
 
-  dI *= 0.407;
-  dI += 0.715;
+  dI *= 0.257; // angle1C; // 0.407;
+  dI += 3.772; // angle2C; // 0.715;
 
   vec3 growthColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3, 0.5)));
   growthColor *= 0.9;
@@ -1298,14 +1305,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.35; // pow(1. - pow(dot(nor, -rayDirection), 1.00), 2.);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.35; // pow(1. - pow(dot(nor, -rayDirection), 1.00), 2.);
+      dispersionColor *= dispersionI;
 
       // dispersionColor = pow(dispersionColor, vec3(0.75));
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
