@@ -19,7 +19,7 @@ const TWO_PI = 2 * Math.PI
 const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_PASSES = 2
 const BLOOM_WET = 1.0
 const BLOOM_MIN_BRIGHTNESS = 0.95
@@ -55,7 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(2, 2, 2)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
