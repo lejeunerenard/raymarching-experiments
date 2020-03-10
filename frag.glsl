@@ -539,6 +539,7 @@ float sdCappedCylinder( vec3 p, vec2 h )
 bool isMaterial( float m, float goal ) {
   return m < goal + 1. && m > goal - .1;
 }
+
 float isMaterialSmooth( float m, float goal ) {
   const float eps = .1;
   return 1. - smoothstep(0., eps, abs(m - goal));
@@ -591,7 +592,6 @@ vec3 nsin (in vec3 t) {
   return 0.5 + 0.5 * sin(TWO_PI * t);
 }
 
-
 // Logistic function
 float sigmoid ( in float x ) {
   const float L = 1.0;
@@ -601,10 +601,6 @@ float sigmoid ( in float x ) {
   x *= 8.0; // Scale so x [0, 1]
 
   return L / ( 1.0 + exp(-k * (x - x0)) );
-}
-
-vec3 theColor (vec2 uv) {
-  return mix(#10FFFF, #03E8A8, uv.y);
 }
 
 #define jTrap 14
@@ -628,11 +624,6 @@ float julia (in vec3 p, in vec4 c) {
   return 0.25 * sqrt(mz2 / dz2) * log(mz2);
 }
 
-vec3 travel (in float t) {
-  const float scale = 1.0;
-  t *= scale;
-  return vec3(mod(t, scale) - scale * 0.5, 0, 0);
-}
 // Source: https://www.shadertoy.com/view/MdcXzn
 const float X_REPEAT_DIST = 0.90;
 const float Z_REPEAT_DIST = 1.80;
@@ -659,14 +650,6 @@ mat3 rotOrtho (in float t) {
   return rotationMatrix(rotAxis, 1.5 * PI * (0.5 + 0.5 * cos(t)));
 }
 
-float getLayer (in float t) {
-  float l = 0.;
-  l += step(0.3, t);
-  l += step(0.6, t);
-
-  return l;
-}
-
 // Create multiple copies of an object - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
@@ -675,161 +658,6 @@ vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
 // Create multiple copies of an object - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
-}
-
-vec3 posT (in float t, in float size) {
-  t = mod(t + 1., 1.);
-
-  t *= 4.;
-
-  return size * 0.5 * vec3(
-      cos(TWO_PI * 1.5 * t),
-      sin(TWO_PI * 2.0 * t),
-      sin(TWO_PI * t));
-}
-
-void pR (inout vec2 p, float a) {
-  p = cos(a) * p + sin(a) * vec2(p.y, -p.x);
-}
-
-float littleThing (in vec3 p, vec2 uv) {
-  const float r = 0.5;
-  float thick = 1.;
-  float th = thick * 0.16;
-
-  pR(p.xz, -uv.x);
-
-  float len = mix(PI / 1.2, PI / 2., pow(uv.y/2.9, 2.));
-  len = max(len, 0.);
-  pR(p.yz, PI / 2. - len);
-  float d = sdBox(p, vec3(0.125 * r, 1.0 * r, 0.125 * r));
-
-  // d = smax(d, p.y, thick);
-  d = smax(d, abs(length(p) - uv.y) - thick * th, th);
-  return d;
-}
-
-vec2 round (in vec2 x) {
-  return floor(x) + step(0.5, fract(x));
-}
-
-// Geodesic tiling by tdhooper
-// source: // https://www.shadertoy.com/view/llGXWc
-vec3 facePlane;
-vec3 uPlane;
-vec3 vPlane;
-
-int Type=5;
-vec3 nc;
-vec3 pab;
-vec3 pbc;
-vec3 pca;
-
-void init() {
-    float cospin=cos(PI/float(Type)), scospin=sqrt(0.75-cospin*cospin);
-    nc=vec3(-0.5,-cospin,scospin);
-    pbc=vec3(scospin,0.,0.5);
-    pca=vec3(0.,scospin,cospin);
-    pbc=normalize(pbc); pca=normalize(pca);
-	pab=vec3(0,0,1);
-
-    facePlane = pca;
-    uPlane = cross(vec3(1,0,0), facePlane);
-    vPlane = vec3(1,0,0);
-}
-
-void fold(inout vec3 p) {
-	for(int i=0;i<5 /*Type*/;i++){
-		p.xy = abs(p.xy);
-		p -= 2. * min(0., dot(p,nc)) * nc;
-	}
-}
-
-
-// --------------------------------------------------------
-// Triangle tiling
-// Adapted from mattz https://www.shadertoy.com/view/4d2GzV
-//
-// Finds the closest triangle center on a 2D plane
-// --------------------------------------------------------
-
-const float sqrt3 = 1.7320508075688772;
-const float i3 = 0.5773502691896258;
-
-const mat2 cart2tri = mat2(1, 0, i3, 2. * i3);
-const mat2 tri2cart = mat2(1, 0, -.5, .5 * sqrt3);
-
-vec2 closestTri(vec2 p) {
-    p = cart2tri * p;
-    vec2 pf = fract(p);
-    vec2 v = vec2(1./3., 2./3.);
-    vec2 tri = mix(v, v.yx, step(pf.y, pf.x));
-    tri += floor(p);
-    tri = tri2cart * tri;
-    return tri;
-}
-
-
-// --------------------------------------------------------
-// Geodesic tiling
-//
-// Finds the closest triangle center on the surface of a
-// sphere:
-//
-// 1. Intersect position with the face plane
-// 2. Convert that into 2D uv coordinates
-// 3. Find the closest triangle center (tile the plane)
-// 4. Convert back into 3D coordinates
-// 5. Project onto a unit sphere (normalize)
-//
-// You can use any tiling method, such as one that returns
-// hex centers or adjacent cells, so you can create more
-// interesting geometry later.
-// --------------------------------------------------------
-
-// Intersection point of vector and plane
-vec3 intersection(vec3 n, vec3 planeNormal, float planeOffset) {
-    float denominator = dot(planeNormal, n);
-    float t = (dot(vec3(0), planeNormal) + planeOffset) / -denominator;
-    return n * t;
-}
-
-// 3D position -> 2D (uv) coordinates on the icosahedron face
-vec2 icosahedronFaceCoordinates(vec3 p) {
-    vec3 i = intersection(normalize(p), facePlane, -1.);
-    return vec2(dot(i, uPlane), dot(i, vPlane));
-}
-
-// 2D (uv) coordinates -> 3D point on a unit sphere
-vec3 faceToSphere(vec2 facePoint) {
-	return normalize(facePlane + (uPlane * facePoint.x) + (vPlane * facePoint.y));
-}
-
-// Edge length of an icosahedron with an inscribed sphere of radius of 1
-const float edgeLength = 1. / ((sqrt(3.) / 12.) * (3. + sqrt(5.)));
-// Inner radius of the icosahedron's face
-const float faceRadius = (1./6.) * sqrt(3.) * edgeLength;
-
-// Closest geodesic point (triangle center) on unit sphere's surface
-vec3 geodesicTri(vec3 p, float subdivisions) {
-  // faceRadius is used as a scale multiplier so that our triangles
-  // always stop at the edge of the face
-  float uvScale = subdivisions / faceRadius / 2.;
-
-  vec2 uv = icosahedronFaceCoordinates(p);
-  vec2 tri = closestTri(uv * uvScale);
-  return faceToSphere(tri / uvScale);
-}
-
-float bubbleD (in vec3 q, in float r, float i) {
-  q *= rotationMatrix(vec3(1), 0.123423 * i * PI + cosT);
-  return length(q) - (r * (0.95 + 0.05 * mod(i, 4.)));
-  // return sdBox(q, vec3(r));
-  // return icosahedral(q, 12., r);
-}
-
-vec3 period (in float i) {
-  return (1. + mod(i, 3.)) * vec3(1, 2.0, 3.0);
 }
 
 const float height = 0.2;
@@ -843,24 +671,61 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  float r = 3.273;
+  const float r = 0.6;
   const float warpScale = 0.35;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.100000 * cos( 5. * q.yzx + cosT );
-  wQ += warpScale * 0.075000 * cos(11. * q.yzx + cosT + 0.250 * PI);
-  wQ += warpScale * 0.056250 * cos(17. * q.yzx + cosT + 0.000 * PI);
-  wQ += warpScale * 0.042188 * cos(27. * q.yzx + cosT +-0.735 * PI);
-  wQ += warpScale * 0.031641 * cos(39. * q.yzx + cosT + 0.135 * PI);
-  wQ += warpScale * 0.023731 * cos(43. * q.yzx + cosT +-0.891 * PI);
-  wQ += warpScale * 0.017798 * cos(57. * q.yzx + cosT +-0.523 * PI);
+  wQ = vec3(
+      atan(wQ.y, wQ.x),
+      length(wQ.xy),
+      wQ.z);
+  wQ.y -= r;
+  wQ.x /= TWO_PI;
+  const float twists = 0.5;
+  float twistT = 2. * norT;
+  wQ.yz *= rotMat2(TWO_PI * (twists * wQ.x + twistT));
 
-  q = wQ;
+  float side = sign(wQ.y);
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r, r, 0.1)), 0, 0);
+  float mThick = 0.2 * r;
+  float mWidth = r * 0.5;
+  vec3 o = vec3(sdBox(wQ, vec3(2, mThick, mWidth)), 0, side);
   d = dMin(d, o);
+
+  // This isn't working correctly because it seems to offset the angle incorrectly for the ball and it gets off by 90º at some points
+  if (side < 0.) {
+    wQ.x += 1.0;
+  }
+  wQ.x /= 2.;
+
+  float repeat = 4.;
+  const float enableBallRepeat = 1.;
+  float ballOffset = enableBallRepeat * (norT / repeat) * -5.;
+  wQ.x += ballOffset;
+
+  float cell = enableBallRepeat * floor((wQ.x + 0.5 / repeat) * repeat);
+
+  vec3 bQ = vec3(0);
+
+  float ballR = r * 0.20;
+  bQ.y += ballR * 1. + mThick;
+  bQ.x += 2. * ( cell / repeat - ballOffset );
+
+  bQ.yz *= rotMat2(-(TWO_PI * (twists * wQ.x + twistT)));
+  bQ.y += r;
+  bQ.x *= TWO_PI;
+  bQ = vec3(
+      bQ.y * cos(bQ.x),
+      bQ.y * sin(bQ.x),
+      bQ.z);
+
+  q = p;
+
+  mPos = q;
+  vec3 s = vec3(length(q - bQ) - ballR, 1, 0);
+  d = dMin(d, s);
 
   // d.x *= 0.25;
 
@@ -1045,18 +910,11 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.9);
+  vec3 color = vec3(trap);
 
-  float n = 0.;
+  color = isMaterialSmooth(m, 1.) == 1. ? vec3(1, 0, 1) : color;
 
-  const float size = 0.1;
-  float r = size * 0.2;
-  vec2 modMPos = mPos.xy;
-  vec2 c = pMod2(modMPos, vec2(size));
-  float circ = length(modMPos) - r;
-  n += smoothstep(edge, 0., circ);
-
-  color = vec3(n);
+  return color;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1179,10 +1037,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.5 * reflection(pos, reflectionRd);
-      color += reflectColor * isMaterialSmooth(t.y, 1.);
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.5 * reflection(pos, reflectionRd);
+      // color += reflectColor * isMaterialSmooth(t.y, 1.);
 
       /* vec3 refractColor = vec3(0); */
       /* vec3 refractionRd = refract(rayDirection, nor, 1.5); */
@@ -1205,7 +1063,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // color = pow(color, vec3(1.5));
 #endif
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
@@ -1521,7 +1379,6 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 void main() {
-    init();
     vec3 ro = cameraRo + cOffset;
 
     vec2 uv = fragCoord.xy;
