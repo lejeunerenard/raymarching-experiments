@@ -682,7 +682,7 @@ vec3 map (in vec3 p, in float dT) {
       wQ.z);
   wQ.y -= r;
   wQ.x /= TWO_PI;
-  const float twists = 0.5;
+  const float twists = 1.5;
   float twistT = 2. * norT;
   wQ.yz *= rotMat2(TWO_PI * (twists * wQ.x + twistT));
 
@@ -692,40 +692,8 @@ vec3 map (in vec3 p, in float dT) {
   float mThick = 0.2 * r;
   float mWidth = r * 0.5;
   vec3 o = vec3(sdBox(wQ, vec3(2, mThick, mWidth)), 0, side);
+  o.x -= 0.05 * cellular(2. * q);
   d = dMin(d, o);
-
-  // This isn't working correctly because it seems to offset the angle incorrectly for the ball and it gets off by 90º at some points
-  if (side < 0.) {
-    wQ.x += 1.0;
-  }
-  wQ.x /= 2.;
-
-  float repeat = 4.;
-  const float enableBallRepeat = 1.;
-  float ballOffset = enableBallRepeat * (norT / repeat) * -5.;
-  wQ.x += ballOffset;
-
-  float cell = enableBallRepeat * floor((wQ.x + 0.5 / repeat) * repeat);
-
-  vec3 bQ = vec3(0);
-
-  float ballR = r * 0.20;
-  bQ.y += ballR * 1. + mThick;
-  bQ.x += 2. * ( cell / repeat - ballOffset );
-
-  bQ.yz *= rotMat2(-(TWO_PI * (twists * wQ.x + twistT)));
-  bQ.y += r;
-  bQ.x *= TWO_PI;
-  bQ = vec3(
-      bQ.y * cos(bQ.x),
-      bQ.y * sin(bQ.x),
-      bQ.z);
-
-  q = p;
-
-  mPos = q;
-  vec3 s = vec3(length(q - bQ) - ballR, 1, 0);
-  d = dMin(d, s);
 
   // d.x *= 0.25;
 
@@ -910,9 +878,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(trap);
+  float fade = 2. * (pos.z + 0.1);
+  vec3 color = vec3(fade);
 
-  color = isMaterialSmooth(m, 1.) == 1. ? vec3(1, 0, 1) : color;
+  color = isMaterialSmooth(m, 1.) == 1. ? 2. * fade * vec3(1, 0, 1) : color;
 
   return color;
 
@@ -1063,7 +1032,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // color = pow(color, vec3(1.5));
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
