@@ -671,29 +671,28 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.6;
+  const float size = 0.100;
+  const float r = size * 0.5;
   const float warpScale = 0.35;
 
+  vec3 c = floor((q + size * 0.5) / size);
+  float scaleT = norT + 0.1 * dot(c, vec3(0.025, 0, 0));
+  float scaleAmount = (smoothstep(0.1, 0.4, scaleT) - smoothstep(0.6, 0.9, scaleT));
+  float scale = 1. - 0.5 * scaleAmount;
+
   vec3 wQ = q;
-
-  wQ = vec3(
-      atan(wQ.y, wQ.x),
-      length(wQ.xy),
-      wQ.z);
-  wQ.y -= r;
-  wQ.x /= TWO_PI;
-  const float twists = 1.5;
-  float twistT = 2. * norT;
-  wQ.yz *= rotMat2(TWO_PI * (twists * wQ.x + twistT));
-
-  float side = sign(wQ.y);
+  wQ *= scale;
+  wQ = opRepLim(wQ, size, vec3(3));
+  q = wQ;
 
   mPos = q;
-  float mThick = 0.2 * r;
-  float mWidth = r * 0.5;
-  vec3 o = vec3(sdBox(wQ, vec3(2, mThick, mWidth)), 0, side);
-  o.x -= 0.05 * cellular(2. * q);
+  vec3 o = vec3(sdBox(q, vec3(r * scale)), 0, scaleAmount);
   d = dMin(d, o);
+
+  // // Shatter
+  // float shat = 0.05 * cellular(2. * p);
+  // float shatR = 0.30 * r;
+  // d = dMax(d, vec3(shat - shatR, 1, 0));
 
   // d.x *= 0.25;
 
@@ -878,10 +877,10 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  float fade = 2. * (pos.z + 0.1);
+  float fade = 1.0 * (pos.z + 0.364);
   vec3 color = vec3(fade);
 
-  color = isMaterialSmooth(m, 1.) == 1. ? 2. * fade * vec3(1, 0, 1) : color;
+  color = mix(color, vec3(1), trap);
 
   return color;
 
@@ -937,7 +936,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
       float bumpsScale = 5.75;
-      float bumpIntensity = 0.15 * isMaterialSmooth(t.y, 0.);
+      float bumpIntensity = 0.15;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
           cnoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -960,8 +959,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.3;
+      float freCo = 0.5;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
