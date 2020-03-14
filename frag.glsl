@@ -667,72 +667,29 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // Adjust to focus below the stem
-  p.z -= 0.959; // angle1C;
-
-  p.yz *= rotMat2(-0.5 * p.z * smoothstep(0.468, 0.468 + 0.104, -p.z));
-
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
 
   const float r = 0.2;
   const float lSize = 0.2;
-  const float warpScale = 0.0;
+  const float warpScale = 0.;
 
   vec3 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 5. * wQ.yzx + cosT);
-  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT);
-  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT);
-
-  p = wQ;
-
-  wQ.xy *= 1. + 1. * saturate(1. * wQ.z) + 4. * step(0., -wQ.z) * pow(-wQ.z, 4.);
-
-  float l = length(wQ.xy);
-
-  wQ = vec3(
-      atan(wQ.y, wQ.x),
-      l,
-      wQ.z);
-
-  float lC = pMod1(wQ.y, lSize);
-  wQ.z += 0.15 * lC;
-  float numRep = 1. + lC; // 3. + mod(lC, 3.);
-
-  wQ.x += lC * 0.714286 * PI;
-  wQ.x += 0.1 * PI * sin(cosT + lC * 0.714 * PI);
-
-  float aSize = TWO_PI / numRep;
-  float aC = pMod1(wQ.x, aSize);
-
-  // Arc petals
-  wQ.z -= 0.2 * cos(1.5 * wQ.x / (0.5 * aSize)) - 0.2;
+  wQ.xy *= rotMat2(1.875 * sin(cosT + wQ.z));
+  wQ.z += norT;
 
   q = wQ;
 
+  vec3 absQ = abs(q);
+  float boxTunnel = max(absQ.x, absQ.y);
+
   mPos = q;
-  float thickness = lSize * 0.05;
-  float rounding = 0.35 * lSize;
-  vec3 o = vec3(sdBox(q, vec3(0.4 * aSize, thickness, 0.5)) - rounding, 0, 0);
-  float crop = sdBox(vec3(q.x, lC, q.z), vec3(2. * TWO_PI, 8.5, 1.));
-  o.x = max(o.x, crop);
-
-  crop = sdBox(vec3(q.x, lC, q.z), vec3(2. * TWO_PI, 0.5, 1.));
-  o.x = max(o.x, -crop);
-
+  vec3 o = vec3(r - boxTunnel, 0, 0);
   d = dMin(d, o);
 
-
-  // Stem
-  q = p;
-  float stemLength = 2.3;
-  vec3 s = vec3(sdCappedCylinder(q.xzy + vec3(0, 1.00 * stemLength, 0), vec2(0.1, stemLength)), 1, 0);
-  s.x -= 0.020 * cellular(6. * q);
-  d = dMin(d, s);
-
-  d.x *= 0.100;
+  d.x *= 0.500;
 
   return d;
 }
@@ -915,17 +872,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  float fade = 2.5 * (pos.y + 0.2);
-  vec3 color = vec3(fade);
-  color = vec3(0.25);
+  vec3 color = vec3(0);
 
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
+  float n = pos.z;
+  n -= norT;
 
-  dI += 0.10 * pos;
-  dI += 0.05 * pow(dNR, 3.);
+  n = sin(TWO_PI * 8. * n);
+  n = smoothstep(edge, 0., n);
 
-  color += 0.7 * (0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) ));
+  color = vec3(n);
 
   return color;
 
@@ -1063,18 +1018,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = t.y == 0. ? 0.70 : 0.5;
-      dispersionColor *= dispersionI;
+      // float dispersionI = t.y == 0. ? 0.70 : 0.5;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
       // color = pow(color, vec3(1.5));
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
