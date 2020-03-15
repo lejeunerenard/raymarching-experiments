@@ -671,25 +671,44 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float r = 0.2;
-  const float lSize = 0.2;
+  const float r = 0.125;
+  const float bigR = 4. * r;
   const float warpScale = 0.;
 
   vec3 wQ = q;
 
-  wQ.xy *= rotMat2(1.875 * sin(cosT + wQ.z));
-  wQ.z += norT;
+  wQ = vec3(
+      atan(wQ.y, wQ.x),
+      length(wQ.xy),
+      wQ.z);
+
+  wQ.y -= bigR;
+  wQ.x /= TWO_PI;
+  float angle = wQ.x;
+  float mobiusTurn = TWO_PI * 0.75 * angle;
+  wQ.yz *= rotMat2(mobiusTurn + cosT);
+
+  float jointSpread = angle2C;
+  float quarterPeriodLength = 0.5;
+  float joint = (abs(angle) - quarterPeriodLength + jointSpread) / jointSpread;
 
   q = wQ;
 
-  vec3 absQ = abs(q);
-  float boxTunnel = max(absQ.x, absQ.y);
-
   mPos = q;
-  vec3 o = vec3(r - boxTunnel, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(2. * TWO_PI, r, r)), 0, 0);
+
+  // o.x -= 0.020 * cellular(vec3(18, vec2(9)) * vec3(q.x, max(q.y, q.z), min(q.y, q.z)) * q);
+  float cellN1 = cellular(vec3(2. * q.x, vec2(5.) * q.yz));
+
+  vec3 cN2Q = vec3(q.x < 0. ? q.x + 1. : q.x, q.yz);
+  cN2Q.yz *= rotMat2(-mobiusTurn);
+  float cellN2 = cellular(vec3(2, vec2(5)) * cN2Q);
+
+  o.x -= angle1C * mix(cellN1, cellN2, saturate(joint));
+
   d = dMin(d, o);
 
-  d.x *= 0.500;
+  d.x *= 0.125;
 
   return d;
 }
@@ -872,15 +891,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-
-  float n = pos.z;
-  n -= norT;
-
-  n = sin(TWO_PI * 8. * n);
-  n = smoothstep(edge, 0., n);
-
-  color = vec3(n);
+  vec3 color = vec3(1);
 
   return color;
 
@@ -922,8 +933,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(-1.0, 0.5,  0.5), #FFFFFF, 1.0);
-    lights[1] = light(vec3(-1.0, 1.0,  1.0), #FFFFFF, 1.0);
+    lights[0] = light(vec3(-1.0, 0.5,  0.5), #FFCCCC, 1.0);
+    lights[1] = light(vec3(-1.0, 1.0,  1.0), #CCFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
     float backgroundMask = 1.;
@@ -960,7 +971,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.5;
+      float specCo = 0.75;
 
       float specAll = 0.0;
 
@@ -972,7 +983,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.90;
+        const float shadowMin = 0.80;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -984,7 +995,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec; // * (1. - fre);
 
         // Ambient
-        lin += 0.00 * amb * diffuseColor;
+        lin += 0.10 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
@@ -1020,7 +1031,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = t.y == 0. ? 0.70 : 0.5;
+      // float dispersionI = 0.01;
       // dispersionColor *= dispersionI;
 
       // color += saturate(dispersionColor);
@@ -1029,7 +1040,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // color = pow(color, vec3(1.5));
 #endif
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
