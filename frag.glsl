@@ -669,40 +669,28 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p.y -= 0.20 + 0.05 * sin(cosT);
   vec3 q = p;
-
-  vec3 rollQ = q;
-  rollQ.yz *= rotMat2(-cosT);
-
-  float angle = atan(rollQ.y, rollQ.z);
-  r = 0.321 + 0.003 * cos(8. * angle + sin(angle));
-  coreR = r * 0.318;
-
-  // float l = length(rollQ.yz);
-  // width += 0.00005 * sin(23. * TWO_PI * l + sin(TWO_PI * 1.2 * l));
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 0.;
+  const float warpScale = 1.;
 
   vec3 wQ = q;
+
+  float l = length(wQ.xz);
+  wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 4.0 / (1. + 0.25 * l) * l));
+
+  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(27. * wQ.yzx + cosT );
+
   q = wQ;
 
-  mPos = rollQ;
-  vec3 o = vec3(sdCappedCylinder(q.yxz, vec2(r, width)), 0, 0);
-  // Inner Core Crop
-  float core = sdCappedCylinder(q.yxz, vec2(coreR, width + 0.1));
-  o.x = max(o.x, -core);
+  vec3 o = vec3(sdBox(q, vec3(5, 0.1, 5)), 0, 0);
   d = dMin(d, o);
 
-  // Paper Sheets
-  const float sheetHeight = 1.75;
-  const float sheetThickness = 0.001;
-  vec3 s = vec3(sdBox(q - vec3(0, -sheetHeight * 1.0, r), vec3(width, sheetHeight, sheetThickness)), 0, 0);
-  d = dMin(d, s);
-
-  d.x *= 0.5;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -885,22 +873,18 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.005);
+  vec3 color = vec3(0);
 
-  float angle = atan(mPos.y, mPos.z);
-  float l = length(mPos.yz);
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
 
-  // Fake ridges in the paper
-  color -= 0.05 * (1. - step(r - 0.01, l)) * abs(sin(TWO_PI * cnoise2(132. * vec2(l, 0.01 * angle))));
+  dI += 0.1 * pos;
+  dI += 0.2 * pow(dNR, 6.);
 
-  vec3 paperCore = #BDA286;
-  // Fake the spiral seam in the paper core w/ a shadow line
-  float paperCoreEdgeMask = step(width - 0.001, abs(mPos.x));
-  paperCore *= 0.8 + 0.2 * step(-0.9995, paperCoreEdgeMask + sin(8.008 - 2.082 * TWO_PI * mPos.x + angle));
+  dI *= 0.366;
+  dI += 2.87;
 
-  float coreLength = length(mPos.yz);
-  color = coreLength < coreR + 0.01 ? paperCore : color;
-
+  color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
   return color;
 
 #ifdef NO_MATERIALS
@@ -978,7 +962,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.1;
+      float freCo = 1.0;
       float specCo = 0.1;
 
       float specAll = 0.0;
@@ -991,7 +975,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.7;
+        const float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1024,10 +1008,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.5 * reflection(pos, reflectionRd);
-      // color += reflectColor * isMaterialSmooth(t.y, 1.);
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.5 * reflection(pos, reflectionRd);
+      color += reflectColor * isMaterialSmooth(t.y, 1.);
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1037,12 +1021,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.01;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.4;
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
       // dispersionColor = pow(dispersionColor, vec3(0.6));
 
