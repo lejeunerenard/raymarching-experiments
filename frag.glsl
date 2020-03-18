@@ -673,21 +673,21 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 1.;
+  const float warpScale = 1.25;
 
   vec3 wQ = q;
 
   float l = length(wQ.xz);
-  wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 4.0 / (1. + 0.25 * l) * l));
+  wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 4.0 / (1. + 0.25 * l) * l - 2. * wQ.y));
 
-  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
   wQ += warpScale * 0.0125 * cos(27. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 o = vec3(sdBox(q, vec3(5, 0.1, 5)), 0, 0);
+  vec3 o = vec3(length(q) - 0.3, 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.03125;
@@ -881,8 +881,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * pos;
   dI += 0.2 * pow(dNR, 6.);
 
-  dI *= 0.366;
-  dI += 2.87;
+  dI *= 0.273;
+  dI += 1.693;
 
   color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
   return color;
