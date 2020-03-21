@@ -660,6 +660,10 @@ vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
 
+vec2 triangle (in vec2 t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
 vec3 triangle (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
@@ -686,29 +690,47 @@ vec3 map (in vec3 p, in float dT) {
   wQ.x /= TWO_PI;
   float angle = wQ.x;
 
+  const float twists = 0.5;
+  wQ.yz *= rotMat2(twists * TWO_PI * wQ.x);
+
   wQ.x += 4.0 / (1. + 0.25 * l) * l / TWO_PI;
 
-  // wQ.yz *= rotMat2(wQ.x);
+  // wQ.x -= norT;
 
-  // wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 4.0 / (1. + 0.25 * l) * l - 2. * wQ.y));
-  // wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 2. * wQ.y));
+  float jointSpread = angle2C;
+  float quarterPeriodLength = 0.5;
+  float joint = (abs(angle) - quarterPeriodLength + jointSpread) / jointSpread;
 
-  const float warpScale = 1.00; // - saturate(joint);
+  float warpScale = 1.00; //  - saturate(joint);
 
   wQ.x *= 4.;
-  wQ += warpScale * 0.10000 * triangle( 5. * wQ.yzx + norT );
-  wQ += warpScale * 0.05000 * triangle( 7. * wQ.yzx + norT );
-  wQ += warpScale * 0.02500 * triangle(11. * wQ.yzx + norT );
-  wQ += warpScale * 0.01250 * triangle(13. * wQ.yzx + norT );
-  wQ += warpScale * 0.00625 * triangle(17. * wQ.yzx + norT );
+  vec3 seamQ = wQ;
 
-  q = wQ;
+  wQ.x -= norT;
+
+  wQ += warpScale * 0.10000 * triangle( 5. * wQ.yzx);
+  wQ += warpScale * 0.05000 * triangle( 7. * wQ.yzx);
+  wQ += warpScale * 0.02500 * triangle(11. * wQ.yzx);
+  wQ += warpScale * 0.01250 * triangle(13. * wQ.yzx);
+  wQ += warpScale * 0.00625 * triangle(17. * wQ.yzx);
+
+  float seam = mod(2. * angle + 0.5, 1.);
+  seamQ.yz *= rotMat2(-twists * TWO_PI * angle + angle1C);
+  seamQ.x -= norT;
+  // seamQ.x = mod(0.5 * seamQ.x + 0.5, 1.);
+  seamQ += warpScale * 0.10000 * triangle( 5. * seamQ.yzx);
+  seamQ += warpScale * 0.05000 * triangle( 7. * seamQ.yzx);
+  seamQ += warpScale * 0.02500 * triangle(11. * seamQ.yzx);
+  seamQ += warpScale * 0.01250 * triangle(13. * seamQ.yzx);
+  seamQ += warpScale * 0.00625 * triangle(17. * seamQ.yzx);
+
+  q = mix(wQ, seamQ, saturate(joint));
 
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(2. * TWO_PI, vec2(0.25 * r))), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.03125;
+  d.x *= 0.0625;
 
   return d;
 }
@@ -891,8 +913,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.3);
-  color += 0.5 * length(mPos.yz) / r;
+  vec3 color = vec3(0.0);
+  color += 0.85 * length(mPos.yz) / (0.25 * r);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -945,8 +967,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(-1.0, 0.5,  0.5), #FFD0D0, 1.0);
-    lights[1] = light(vec3(-1.0, 1.0,  1.0), #D0FFFF, 1.0);
+    lights[0] = light(vec3(-1.0, 0.5,  0.5), #FFBBBB, 1.0);
+    lights[1] = light(vec3(-1.0, 1.0,  1.0), #BBFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
     float backgroundMask = 1.;
@@ -995,7 +1017,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.50;
+        const float shadowMin = 0.65;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
