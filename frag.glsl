@@ -668,7 +668,7 @@ vec3 triangle (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
 
-float r = 0.5;
+float r = 1.00;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -677,57 +677,22 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
+  const float warpScale = 1.5;
+
   vec3 wQ = q;
 
-  wQ = vec3(
-      atan(wQ.y, wQ.x),
-      length(wQ.xy),
-      wQ.z);
+  wQ.y *= 0.575;
+  wQ += warpScale * 0.10000 * triangle( 2. * wQ.yzx + norT + cnoise3(wQ));
+  wQ.xzy = twist(wQ.xyz, 0.125 * PI * sin(cosT + 4. * wQ.y + length(wQ.xz)));
+  wQ += warpScale * 0.05000 * triangle( 9. * wQ.yzx + norT);
+  wQ += warpScale * 0.02500 * triangle(17. * wQ.yzx + norT);
+  wQ += warpScale * 0.01250 * triangle(23. * wQ.yzx + norT);
+  wQ += warpScale * 0.00625 * triangle(29. * wQ.yzx + norT);
 
-  wQ.y -= r;
-
-  float l = length(wQ.yz);
-  wQ.x /= TWO_PI;
-  float angle = wQ.x;
-
-  const float twists = 0.5;
-  wQ.yz *= rotMat2(twists * TWO_PI * wQ.x);
-
-  wQ.x += 4.0 / (1. + 0.25 * l) * l / TWO_PI;
-
-  // wQ.x -= norT;
-
-  float jointSpread = angle2C;
-  float quarterPeriodLength = 0.5;
-  float joint = (abs(angle) - quarterPeriodLength + jointSpread) / jointSpread;
-
-  float warpScale = 1.00; //  - saturate(joint);
-
-  wQ.x *= 4.;
-  vec3 seamQ = wQ;
-
-  wQ.x -= norT;
-
-  wQ += warpScale * 0.10000 * triangle( 5. * wQ.yzx);
-  wQ += warpScale * 0.05000 * triangle( 7. * wQ.yzx);
-  wQ += warpScale * 0.02500 * triangle(11. * wQ.yzx);
-  wQ += warpScale * 0.01250 * triangle(13. * wQ.yzx);
-  wQ += warpScale * 0.00625 * triangle(17. * wQ.yzx);
-
-  float seam = mod(2. * angle + 0.5, 1.);
-  seamQ.yz *= rotMat2(-twists * TWO_PI * angle + angle1C);
-  seamQ.x -= norT;
-  // seamQ.x = mod(0.5 * seamQ.x + 0.5, 1.);
-  seamQ += warpScale * 0.10000 * triangle( 5. * seamQ.yzx);
-  seamQ += warpScale * 0.05000 * triangle( 7. * seamQ.yzx);
-  seamQ += warpScale * 0.02500 * triangle(11. * seamQ.yzx);
-  seamQ += warpScale * 0.01250 * triangle(13. * seamQ.yzx);
-  seamQ += warpScale * 0.00625 * triangle(17. * seamQ.yzx);
-
-  q = mix(wQ, seamQ, saturate(joint));
+  q = wQ;
 
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(2. * TWO_PI, vec2(0.25 * r))), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.0625;
@@ -914,8 +879,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.0);
-  color += 0.85 * length(mPos.yz) / (0.25 * r);
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -923,8 +886,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * pos;
   dI += 0.2 * pow(dNR, 6.);
 
-  dI *= 0.273;
-  dI += 1.693;
+  dI *= 0.113; // angle1C;
+  dI += 1.917; // angle2C;
 
   color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
   return color;
@@ -980,13 +943,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 5.75;
-      float bumpIntensity = 0.25;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 5.75;
+      // float bumpIntensity = 0.25;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
