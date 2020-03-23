@@ -668,7 +668,7 @@ vec3 triangle (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
 
-float r = 1.00;
+float r = 0.65;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -677,16 +677,16 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 1.5;
+  const float warpScale = 1.0;
 
   vec3 wQ = q;
 
-  wQ.y *= 0.575;
-  wQ += warpScale * 0.10000 * triangle( 2. * wQ.yzx + norT + cnoise3(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.125 * PI * sin(cosT + 4. * wQ.y + length(wQ.xz)));
-  wQ += warpScale * 0.05000 * triangle( 9. * wQ.yzx + norT);
+  wQ += warpScale * 0.10000 * triangle( 3. * wQ.yzx + norT + cnoise3(wQ));
+  wQ.xzy = twist(wQ.xyz, 0.125 * PI * sin(cosT + 4. * wQ.y + 4. * length(wQ.xz)));
+  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT);
   wQ += warpScale * 0.02500 * triangle(17. * wQ.yzx + norT);
-  wQ += warpScale * 0.01250 * triangle(23. * wQ.yzx + norT);
+  wQ.xzy = twist(wQ.xyz, 0.25 * PI * sin(cosT + 4. * wQ.y + 4. * length(wQ.xz)));
+  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT);
   wQ += warpScale * 0.00625 * triangle(29. * wQ.yzx + norT);
 
   q = wQ;
@@ -695,7 +695,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.0625;
+  d.x *= 0.125;
 
   return d;
 }
@@ -883,13 +883,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.1 * pos;
-  dI += 0.2 * pow(dNR, 6.);
+  dI += 0.2 * pos;
+  dI += 0.2 * pow(dNR, 3.);
 
-  dI *= 0.113; // angle1C;
-  dI += 1.917; // angle2C;
+  dI *= angle1C;
+  dI += angle2C;
 
-  color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
   return color;
 
 #ifdef NO_MATERIALS
