@@ -677,25 +677,24 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 1.0;
-
   vec3 wQ = q;
 
-  wQ += warpScale * 0.10000 * triangle( 3. * wQ.yzx + norT + cnoise3(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.125 * PI * sin(cosT + 4. * wQ.y + 4. * length(wQ.xz)));
-  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT);
-  wQ += warpScale * 0.02500 * triangle(17. * wQ.yzx + norT);
-  wQ.xzy = twist(wQ.xyz, 0.25 * PI * sin(cosT + 4. * wQ.y + 4. * length(wQ.xz)));
-  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT);
-  wQ += warpScale * 0.00625 * triangle(29. * wQ.yzx + norT);
+  float l = length(wQ.xz);
+  float warpScale = pow(saturate(1.25 - 0.25 * l), 5.);
+
+  wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 4.0 / (1. + 0.25 * l) * l));
+
+  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(27. * wQ.yzx + cosT );
 
   q = wQ;
 
-  mPos = q;
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(7, 0.1, 7)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.125;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -878,7 +877,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.0);
+  vec3 color = vec3(1.2);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -889,7 +888,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
+  vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
+  float highlightI = 1. - pow(dNR, angle3C);
+  color = mix(color, highlight, highlightI);
+  // color = vec3(highlightI);
+
   return color;
 
 #ifdef NO_MATERIALS
@@ -980,7 +984,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.65;
+        const float shadowMin = 0.70;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1015,7 +1019,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.75 * reflection(pos, reflectionRd);
+      reflectColor += 0.5 * reflection(pos, reflectionRd);
       color += reflectColor * isMaterialSmooth(t.y, 1.);
 
       // vec3 refractColor = vec3(0);
