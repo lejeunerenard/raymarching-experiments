@@ -369,6 +369,10 @@ float udQuad( vec3 p, vec3 a, vec3 b, vec3 c, vec3 d )
      dot(nor,pa)*dot(nor,pa)/dot2(nor) );
 }
 
+float sdBox( vec2 p, vec2 b ) {
+  vec2 d = abs(p) - b;
+  return min(max(d.x,d.y),0.0) + length(max(d,0.0));
+}
 float sdBox( vec3 p, vec3 b ) {
   vec3 d = abs(p) - b;
   return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
@@ -668,10 +672,55 @@ vec3 triangle (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
 
-float r = 0.65;
+float r = 0.325;
+float panel (in vec3 q) {
+  float d = maxDistance;
+  // -- Crop --
+  // Grid
+  vec3 cQ = q;
+  float size = r * 0.4;
+  vec2 c = pMod2(cQ.xz, vec2(size));
+  vec2 absC = abs(c);
+  float crop = sdBox(cQ.xz, vec2(size * 0.3));
+  crop = (max(absC.x, absC.y) > 1.) ? crop : maxDistance;
+
+  // Circle
+  cQ = q;
+
+  float circleH = size * 0.256;
+  pModPolar(cQ.xz, 8.);
+  // pMod1(cQ.x, circleLSize);
+
+  float circle = sdBox(cQ.xz - vec2(3. * circleH, 0), vec2(circleH, size * 0.193));
+  crop = min(crop, circle);
+
+  // Circle 2
+  cQ = q;
+  circleH = size * 0.256;
+  pModPolar(cQ.xz, 12.);
+  // pMod1(cQ.x, circleLSize);
+
+  circle = sdBox(cQ.xz - vec2(5.30 * circleH, 0), vec2(circleH, size * 0.193));
+  crop = min(crop, circle);
+
+  // -- Panel --
+  float o = sdBox(q.xz, vec2(r));
+  o = max(o, -crop);
+  d = min(d, o);
+
+  float thickness = 0.05;
+  vec3 absQ = abs(q);
+  float maxL = max(absQ.x, max(absQ.y, absQ.z)) - r * (1.5 + 0.4 * sin(cosT));
+  d = max(d, abs(maxL) - thickness);
+
+  return d;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
+
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -679,22 +728,29 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 wQ = q;
 
-  float l = length(wQ.xz);
-  float warpScale = pow(saturate(1.25 - 0.25 * l), 5.);
+  const float warpScale = 0.2;
 
-  wQ.xzy = twist(wQ, 0.6666 * PI * sin(cosT - 4.0 / (1. + 0.25 * l) * l));
-
-  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(27. * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT);
 
   q = wQ;
 
-  vec3 o = vec3(sdBox(q, vec3(7, 0.1, 7)), 0, 0);
+  // -- Panel --
+  vec3 o = vec3(panel(q), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.03125;
+  q = wQ;
+  if (abs(q.x) > abs(q.y) && abs(q.x) > abs(q.z))  q = q.yxz;
+  o = vec3(panel(q), 0, 0);
+  d = dMin(d, o);
+
+  q = wQ;
+  if (abs(q.z) > abs(q.y) && abs(q.z) > abs(q.x))  q = q.yzx;
+  o = vec3(panel(q), 0, 0);
+  d = dMin(d, o);
+
+  d.x *= 0.7;
 
   return d;
 }
@@ -877,21 +933,23 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.2);
+  vec3 color = vec3(0.4);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pos;
+  dI += 0.2 * cnoise3(pos);
   dI += 0.2 * pow(dNR, 3.);
 
-  dI *= angle1C;
-  dI += angle2C;
+  // dI *= angle1C;
+  // dI += angle2C;
 
-  vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 
-  float highlightI = 1. - pow(dNR, angle3C);
-  color = mix(color, highlight, highlightI);
+  // float highlightI = 1. - pow(dNR, angle3C);
+  // color = mix(color, highlight, highlightI);
+  color += highlight;
   // color = vec3(highlightI);
 
   return color;
@@ -979,12 +1037,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.85;
+        const float diffMin = 1.00;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.70;
+        const float shadowMin = 0.80;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
