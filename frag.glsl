@@ -689,7 +689,6 @@ float panel (in vec3 q) {
 
   float circleH = size * 0.256;
   pModPolar(cQ.xz, 8.);
-  // pMod1(cQ.x, circleLSize);
 
   float circle = sdBox(cQ.xz - vec2(3. * circleH, 0), vec2(circleH, size * 0.193));
   crop = min(crop, circle);
@@ -698,7 +697,6 @@ float panel (in vec3 q) {
   cQ = q;
   circleH = size * 0.256;
   pModPolar(cQ.xz, 12.);
-  // pMod1(cQ.x, circleLSize);
 
   circle = sdBox(cQ.xz - vec2(5.30 * circleH, 0), vec2(circleH, size * 0.193));
   crop = min(crop, circle);
@@ -710,8 +708,8 @@ float panel (in vec3 q) {
 
   float thickness = 0.05;
   vec3 absQ = abs(q);
-  float maxL = max(absQ.x, max(absQ.y, absQ.z)) - r * (1.5 + 0.4 * sin(cosT));
-  d = max(d, abs(maxL) - thickness);
+  float thickL = dot(absQ, vec3(0.75)) - 2.0 * r;
+  d = max(d, abs(thickL) - thickness);
 
   return d;
 }
@@ -721,6 +719,7 @@ vec3 map (in vec3 p, in float dT) {
   float minD = 0.;
 
   p *= globalRot;
+  p *= rotationMatrix(vec3(1), cosT);
 
   vec3 q = p;
 
@@ -729,10 +728,6 @@ vec3 map (in vec3 p, in float dT) {
   vec3 wQ = q;
 
   const float warpScale = 0.2;
-
-  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT);
 
   q = wQ;
 
@@ -933,7 +928,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.4);
+  vec3 color = vec3(0.7);
+
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1086,14 +1083,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.05;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.20;
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 #endif
       // color = diffuseColor;
 
