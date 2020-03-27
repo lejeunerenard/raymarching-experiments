@@ -60,9 +60,9 @@ vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
 const float totalT = 6.0;
-float modT = mod(time, totalT);
-float norT = modT / totalT;
-float cosT = TWO_PI / totalT * modT;
+float modT = 0.;
+float norT = 0.;
+float cosT = 0.;
 const float edge = 0.0025;
 const float thickness = 0.05;
 
@@ -672,44 +672,55 @@ vec3 triangle (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
 
-float r = 0.325;
+float lengthP(in vec3 q, in float p) {
+  return pow(dot(pow(q, vec3(p)), vec3(1)), 1.0 / p);
+}
+
+float lengthP(in vec4 q, in float p) {
+  return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
+}
+
+float r = 0.5;
 float panel (in vec3 q) {
   float d = maxDistance;
   // -- Crop --
   // Grid
-  vec3 cQ = q;
-  float size = r * 0.4;
-  vec2 c = pMod2(cQ.xz, vec2(size));
-  vec2 absC = abs(c);
-  float crop = sdBox(cQ.xz, vec2(size * 0.3));
-  crop = (max(absC.x, absC.y) > 1.) ? crop : maxDistance;
+  // vec3 cQ = q;
+  // float size = r * 0.4;
+  // vec2 c = pMod2(cQ.xz, vec2(size));
+  // vec2 absC = abs(c);
+  // float crop = sdBox(cQ.xz, vec2(size * 0.3));
+  // crop = (max(absC.x, absC.y) > 1.) ? crop : maxDistance;
 
   // Circle
-  cQ = q;
+  // cQ = q;
 
-  float circleH = size * 0.256;
-  pModPolar(cQ.xz, 8.);
+  // float circleH = size * 0.256;
+  // pModPolar(cQ.xz, 8.);
 
-  float circle = sdBox(cQ.xz - vec2(3. * circleH, 0), vec2(circleH, size * 0.193));
-  crop = min(crop, circle);
+  // float circle = sdBox(cQ.xz - vec2(3. * circleH, 0), vec2(circleH, size * 0.193));
+  // crop = min(crop, circle);
 
-  // Circle 2
-  cQ = q;
-  circleH = size * 0.256;
-  pModPolar(cQ.xz, 12.);
+  // // Circle 2
+  // cQ = q;
+  // circleH = size * 0.256;
+  // pModPolar(cQ.xz, 12.);
 
-  circle = sdBox(cQ.xz - vec2(5.30 * circleH, 0), vec2(circleH, size * 0.193));
-  crop = min(crop, circle);
+  // circle = sdBox(cQ.xz - vec2(5.30 * circleH, 0), vec2(circleH, size * 0.193));
+  // crop = min(crop, circle);
 
   // -- Panel --
   float o = sdBox(q.xz, vec2(r));
-  o = max(o, -crop);
+  // o = max(o, -crop);
   d = min(d, o);
 
   float thickness = 0.05;
   vec3 absQ = abs(q);
-  float thickL = dot(absQ, vec3(0.75)) - 2.0 * r;
+  // float thickL = dot(absQ, vec3(0.75)) - 2.0 * r;
+  float thickL = lengthP(q, 0.65) - 2. * r;
   d = max(d, abs(thickL) - thickness);
+
+  d *= 0.0625;
 
   return d;
 }
@@ -727,7 +738,12 @@ vec3 map (in vec3 p, in float dT) {
 
   vec3 wQ = q;
 
-  const float warpScale = 0.2;
+  const float warpScale = 1.0;
+
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.050000 * cos( 9. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
 
   q = wQ;
 
@@ -744,6 +760,8 @@ vec3 map (in vec3 p, in float dT) {
   if (abs(q.z) > abs(q.y) && abs(q.z) > abs(q.x))  q = q.yzx;
   o = vec3(panel(q), 0, 0);
   d = dMin(d, o);
+
+  d.x -= 0.0020 * cellular(2. * q);
 
   d.x *= 0.7;
 
@@ -1326,13 +1344,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Sizing
   const float warpScale = 0.5;
 
-  // Reference dots
-  vec2 ring1Q = q;
-  ring1Q *= rotMat2(0.25 * PI);
-  float size = 0.075;
-  ring1Q.y += 0.5 * size;
-  float c = pMod1(ring1Q.y, size);
-  color = getRing( 1. - 2. * mod(c, 2.), ring1Q, color, size * 0.8, c);
+  // metric tests
+  vec2 absQ = abs(q);
+
+  // float l = length(q) - 0.2;
+  const float p = 0.5;
+  float l = pow(dot(pow(q, vec2(p)), vec2(1)), 1.0/p) - 0.2;
+  // float l = dot(absQ, vec2(0.5)) - 0.2;
+
+  color = vec3(step(0., l));
 
   return color.rgb;
 }
@@ -1408,6 +1428,11 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 }
 
 void main() {
+  // Update timing
+  modT = mod(time, totalT);
+  norT = modT / totalT;
+  cosT = TWO_PI / totalT * modT;
+
     vec3 ro = cameraRo + cOffset;
 
     vec2 uv = fragCoord.xy;
