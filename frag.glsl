@@ -680,7 +680,7 @@ float lengthP(in vec4 q, in float p) {
   return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
 }
 
-float r = 0.5;
+float r = 0.35;
 float panel (in vec3 q) {
   float d = maxDistance;
   // -- Crop --
@@ -716,8 +716,12 @@ float panel (in vec3 q) {
 
   float thickness = 0.05;
   vec3 absQ = abs(q);
-  // float thickL = dot(absQ, vec3(0.75)) - 2.0 * r;
-  float thickL = lengthP(q, 0.65) - 2. * r;
+  const float rCoe = 1.0;
+  float thickL1 = max(absQ.x, max(absQ.y, absQ.z)) - rCoe * r;
+  float thickL2 = min(absQ.x, min(absQ.y, absQ.z)) - rCoe * r;
+  // float thickL2 = lengthP(q, 0.75) - 2. * r;
+  float thickL = thickL1 + thickL2;
+  thickL *= 0.5;
   d = max(d, abs(thickL) - thickness);
 
   d *= 0.0625;
@@ -761,7 +765,7 @@ vec3 map (in vec3 p, in float dT) {
   o = vec3(panel(q), 0, 0);
   d = dMin(d, o);
 
-  d.x -= 0.0020 * cellular(2. * q);
+  // d.x -= 0.0020 * cellular(2. * q);
 
   d.x *= 0.7;
 
@@ -946,9 +950,9 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.7);
+  vec3 color = vec3(0.4);
 
-  return color;
+  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -964,7 +968,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // float highlightI = 1. - pow(dNR, angle3C);
   // color = mix(color, highlight, highlightI);
-  color += highlight;
+  color += 0.8 * highlight;
   // color = vec3(highlightI);
 
   return color;
@@ -1101,9 +1105,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 0.20;
       dispersionColor *= dispersionI;
