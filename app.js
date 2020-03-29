@@ -15,13 +15,13 @@ import { vec3, mat4 } from 'gl-matrix'
 
 const dpr = 1.0
 
-const TWO_PI = 2 * Math.PI
-const PHI = (1 + Math.sqrt(5)) / 2
+// const TWO_PI = 2 * Math.PI
+// const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 2
-const BLOOM_WET = 1.0
+const BLOOM_PASSES = 0
+const BLOOM_WET = 0.0
 const BLOOM_MIN_BRIGHTNESS = 0.98
 
 // Initialize shell
@@ -49,7 +49,7 @@ export default class App {
         z: 0
       },
       d: 1,
-      scale: 1,
+      scale: 0.49,
       rot2angle: [0.442, 5.933, 0.26],
       cameraAngles: [0.227, -0.569, 0.193]
     }
@@ -72,9 +72,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.175
-    this.angle2C = 0.131
-    this.angle3C = 0.185
+    this.angle1C = 0.398
+    this.angle2C = 0.587
+    this.angle3C = 20.115
 
     // this.setupAnimation(preset)
 

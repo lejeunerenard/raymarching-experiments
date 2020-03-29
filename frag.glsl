@@ -680,16 +680,16 @@ float lengthP(in vec4 q, in float p) {
   return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
 }
 
-float r = 0.35;
+float r = scale;
 float panel (in vec3 q) {
   float d = maxDistance;
   // -- Crop --
   // Grid
-  // vec3 cQ = q;
-  // float size = r * 0.4;
-  // vec2 c = pMod2(cQ.xz, vec2(size));
-  // vec2 absC = abs(c);
-  // float crop = sdBox(cQ.xz, vec2(size * 0.3));
+  vec3 cQ = q;
+  float size = r * 0.398;
+  vec2 c = pMod2(cQ.xz, vec2(size));
+  vec2 absC = abs(c);
+  float crop = sdBox(cQ.xz, vec2(size * 0.587));
   // crop = (max(absC.x, absC.y) > 1.) ? crop : maxDistance;
 
   // Circle
@@ -711,18 +711,20 @@ float panel (in vec3 q) {
 
   // -- Panel --
   float o = sdBox(q.xz, vec2(r));
-  // o = max(o, -crop);
+  o = max(o, -crop);
   d = min(d, o);
 
-  float thickness = 0.05;
+  float thickness = 0.025;
   vec3 absQ = abs(q);
-  const float rCoe = 1.0;
-  float thickL1 = max(absQ.x, max(absQ.y, absQ.z)) - rCoe * r;
-  float thickL2 = min(absQ.x, min(absQ.y, absQ.z)) - rCoe * r;
-  // float thickL2 = lengthP(q, 0.75) - 2. * r;
-  float thickL = thickL1 + thickL2;
-  thickL *= 0.5;
+  const float rCoe = 2.0;
+  float thickL1 = dot(absQ, vec3(0.75)); // - rCoe * r;
+  // float thickL2 = min(absQ.x, min(absQ.y, absQ.z)) - rCoe * r;
+  // float thickL2 = lengthP(q, 0.75) - rCoe * r;
+  float thickL = thickL1; // (thickL1 + thickL2) * 0.5;
+  float totalCrop = thickL - rCoe * r;
+  pMod1(thickL, 20.115 * thickness);
   d = max(d, abs(thickL) - thickness);
+  d = max(d, totalCrop);
 
   d *= 0.0625;
 
@@ -952,7 +954,10 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.4);
 
-  // return color;
+  float l = length(pos);
+  // float l = 0.5 * (pos.y + r) / r;
+
+  return vec3(l); // mix(background, vec3(1), l);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1048,8 +1053,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1061,7 +1066,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.80;
+        const float shadowMin = 0.85;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1107,12 +1112,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // dispersionColor = textures(rayDirection);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.20;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 0.20;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 #endif
       // color = diffuseColor;
 
