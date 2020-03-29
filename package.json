@@ -25,7 +25,6 @@
     "lerp": "^1.0.3",
     "octavian": "^2.2.0",
     "raf": "^3.3.0",
-    "soundcloud-badge": "^1.1.0",
     "tween.js": "^16.6.0",
     "webvr-polyfill": "^0.9.24"
   },
