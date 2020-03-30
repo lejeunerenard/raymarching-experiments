@@ -20,8 +20,8 @@ const dpr = 1.0
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 0
-const BLOOM_WET = 0.0
+const BLOOM_PASSES = 2
+const BLOOM_WET = 1.0
 const BLOOM_MIN_BRIGHTNESS = 0.98
 
 // Initialize shell
@@ -55,7 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 1.6, 1.96)
+    this.cameraRo = vec3.fromValues(-0.96, 3.6, -0.23)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]

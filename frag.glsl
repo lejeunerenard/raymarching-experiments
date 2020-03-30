@@ -680,7 +680,7 @@ float lengthP(in vec4 q, in float p) {
   return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
 }
 
-float r = scale;
+float r = 0.3;
 float panel (in vec3 q) {
   float d = maxDistance;
   // -- Crop --
@@ -731,45 +731,98 @@ float panel (in vec3 q) {
   return d;
 }
 
+// Inverse stereographic projection of p,
+// p4 lies onto the unit 3-sphere centered at 0.
+// - mla https://www.shadertoy.com/view/lsGyzm
+vec4 inverseStereographic(vec3 p, out float k) {
+    k = 2.0/(1.0+dot(p,p));
+    return vec4(k*p,k-1.0);
+}
+
+// tdhooper's adjustment to make inverse stereographic project to be lipschitz
+// continuous.
+// source: https://www.shadertoy.com/view/wsfGDS
+//
+// Distances get warped by the stereographic projection, this applies
+// some hacky adjustments which makes them lipschitz continuous.
+
+// The numbers have been hand picked by comparing our 4D torus SDF to
+// a usual 3D torus of the same size, see DEBUG.
+
+// vec3 d
+//   SDF to fix, this should be applied after the last step of
+//   modelling on the torus.
+
+// vec3 k
+//   stereographic scale factor
+
+float fixDistance(float d, float k) {
+    float sn = sign(d);
+    d = abs(d);
+    d = d / k * 1.82;
+    d += 1.;
+    d = pow(d, .5);
+    d -= 1.;
+    d *= 5./3.;
+    d *= sn;
+    return d;
+}
+
+float fTorus(vec4 p4) {
+
+    // Torus distance
+    // We want the inside and outside to look the same, so use the
+    // inverted outside for the inside.
+    float d1 = length(p4.xy) / length(p4.zw) - 1.;
+    float d2 = length(p4.zw) / length(p4.xy) - 1.;
+    float d = d1 < 0. ? -d1 : d2;
+
+    // Because of the projection, distances aren't lipschitz continuous,
+    // so scale down the distance at the most warped point - the inside
+    // edge of the torus such that it is 1:1 with the domain.
+    d /= PI;
+
+    return d;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
-  p *= rotationMatrix(vec3(1), cosT);
+  // p *= globalRot;
+  // p *= rotationMatrix(vec3(1), cosT);
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
 
+  const float warpScale = 1.0;
   vec3 wQ = q;
 
-  const float warpScale = 1.0;
-
-  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.050000 * cos( 9. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
-
   q = wQ;
 
-  // -- Panel --
-  vec3 o = vec3(panel(q), 0, 0);
-  d = dMin(d, o);
+  // Box
+  float k;
+  vec4 q4 = inverseStereographic(p, k);
 
-  q = wQ;
-  if (abs(q.x) > abs(q.y) && abs(q.x) > abs(q.z))  q = q.yxz;
-  o = vec3(panel(q), 0, 0);
-  d = dMin(d, o);
+  q4.xw *= rotMat2(cosT);
+  q4.zy *= rotMat2(cosT + 0.5 * PI);
 
-  q = wQ;
-  if (abs(q.z) > abs(q.y) && abs(q.z) > abs(q.x))  q = q.yzx;
-  o = vec3(panel(q), 0, 0);
-  d = dMin(d, o);
+  float frame = fTorus(q4);
+  frame = abs(frame);
+  frame -= 0.1;
+  frame = fixDistance(frame, k);
 
-  // d.x -= 0.0020 * cellular(2. * q);
+  float crop = sdBox(q, vec3(1.9));
+  // float crop = length(q) - 1.9;
 
-  d.x *= 0.7;
+  vec3 b = vec3(frame, 0, 0);
+  // float crop = min(min(absQ.x, absQ.y), absQ.z) - cropR;
+  // b.x = max(b.x, -crop);
+  b = dSMax (b, vec3(crop, 0, 0), 0.2);
+  d = dMin(d, b);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -952,12 +1005,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.4);
-
-  float l = length(pos);
-  // float l = 0.5 * (pos.y + r) / r;
-
-  return vec3(l); // mix(background, vec3(1), l);
+  vec3 color = vec3(0.2);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -973,7 +1021,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // float highlightI = 1. - pow(dNR, angle3C);
   // color = mix(color, highlight, highlightI);
-  color += 0.8 * highlight;
+  color += 0.9 * highlight;
   // color = vec3(highlightI);
 
   return color;
@@ -1053,20 +1101,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 1.00;
+        const float diffMin = 0.80;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.85;
+        const float shadowMin = 0.75;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1110,14 +1158,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // dispersionColor = textures(rayDirection);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.20;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.50;
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 #endif
       // color = diffuseColor;
 
