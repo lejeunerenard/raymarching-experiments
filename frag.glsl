@@ -805,22 +805,30 @@ vec3 map (in vec3 p, in float dT) {
   float k;
   vec4 q4 = inverseStereographic(p, k);
 
+  // Experimental rotation
+  q4.xzw *= rotationMatrix(vec3(1), cosT);
   q4.xw *= rotMat2(cosT);
   q4.zy *= rotMat2(cosT + 0.5 * PI);
+
+  // // Original rotation
+  // q4.xw *= rotMat2(cosT);
+  // q4.zy *= rotMat2(cosT + 0.5 * PI);
 
   float frame = fTorus(q4);
   frame = abs(frame);
   frame -= 0.1;
   frame = fixDistance(frame, k);
 
-  float crop = sdBox(q, vec3(1.9));
-  // float crop = length(q) - 1.9;
+  // float crop = sdBox(q, vec3(1.9));
+  float crop = length(q) - 1.9;
 
   vec3 b = vec3(frame, 0, 0);
   // float crop = min(min(absQ.x, absQ.y), absQ.z) - cropR;
   // b.x = max(b.x, -crop);
   b = dSMax (b, vec3(crop, 0, 0), 0.2);
   d = dMin(d, b);
+
+  d.x -= 0.0025 * cellular(1. * q.yzx);
 
   d.x *= 0.5;
 
