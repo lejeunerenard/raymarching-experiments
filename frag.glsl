@@ -672,6 +672,10 @@ vec3 triangle (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
 
+float lengthP(in vec2 q, in float p) {
+  return pow(dot(pow(q, vec2(p)), vec2(1)), 1.0 / p);
+}
+
 float lengthP(in vec3 q, in float p) {
   return pow(dot(pow(q, vec3(p)), vec3(1)), 1.0 / p);
 }
@@ -768,13 +772,35 @@ float fixDistance(float d, float k) {
     return d;
 }
 
+float lengthMin(in vec2 p) {
+  vec2 absP = abs(p);
+  return min(absP.x, absP.y);
+}
+
+float lengthMax(in vec2 p) {
+  vec2 absP = abs(p);
+  return max(absP.x, absP.y);
+}
+
+float lengthDot(in vec2 p) {
+  vec2 absP = abs(p);
+  return dot(absP, vec2(0.6));
+}
+
+
+float lengthCustom (in vec2 p, in float power) {
+  pModPolar(p, 5.);
+  return lengthP(p, power);
+}
+
 float fTorus(vec4 p4) {
 
     // Torus distance
     // We want the inside and outside to look the same, so use the
     // inverted outside for the inside.
-    float d1 = length(p4.xy) / length(p4.zw) - 1.;
-    float d2 = length(p4.zw) / length(p4.xy) - 1.;
+    const float pPow = 0.75;
+    float d1 = lengthCustom(p4.xy, pPow) / lengthCustom(p4.zw, pPow) - 1.;
+    float d2 = lengthCustom(p4.zw, pPow) / lengthCustom(p4.xy, pPow) - 1.;
     float d = d1 < 0. ? -d1 : d2;
 
     // Because of the projection, distances aren't lipschitz continuous,
@@ -805,14 +831,14 @@ vec3 map (in vec3 p, in float dT) {
   float k;
   vec4 q4 = inverseStereographic(p, k);
 
-  // Experimental rotation
-  q4.xzw *= rotationMatrix(vec3(1), cosT);
-  q4.xw *= rotMat2(cosT);
-  q4.zy *= rotMat2(cosT + 0.5 * PI);
-
-  // // Original rotation
+  // // Experimental rotation
+  // q4.xzw *= rotationMatrix(vec3(1), cosT);
   // q4.xw *= rotMat2(cosT);
   // q4.zy *= rotMat2(cosT + 0.5 * PI);
+
+  // Original rotation
+  q4.xw *= rotMat2(cosT);
+  q4.zy *= rotMat2(cosT + 0.5 * PI);
 
   float frame = fTorus(q4);
   frame = abs(frame);
@@ -828,9 +854,9 @@ vec3 map (in vec3 p, in float dT) {
   b = dSMax (b, vec3(crop, 0, 0), 0.2);
   d = dMin(d, b);
 
-  d.x -= 0.0025 * cellular(1. * q.yzx);
+  // d.x -= 0.0025 * cellular(1. * q.yzx);
 
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1029,7 +1055,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // float highlightI = 1. - pow(dNR, angle3C);
   // color = mix(color, highlight, highlightI);
-  color += 0.9 * highlight;
+  color += 0.85 * highlight;
   // color = vec3(highlightI);
 
   return color;
@@ -1162,7 +1188,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.05 * textures(refractionRd);
+      // refractColor += 0.15 * textures(refractionRd);
       // color += refractColor;
 
 #ifndef NO_MATERIALS
