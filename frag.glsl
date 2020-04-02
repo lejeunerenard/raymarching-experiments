@@ -789,8 +789,7 @@ float lengthDot(in vec2 p) {
 
 
 float lengthCustom (in vec2 p, in float power) {
-  pModPolar(p, 5.);
-  return lengthP(p, power);
+  return length(p);
 }
 
 float fTorus(vec4 p4) {
@@ -822,23 +821,25 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 1.0;
-  vec3 wQ = q;
+  const float warpScale = 0.5;
 
+  // Warp
+  vec3 wQ = q;
+  wQ += warpScale * 0.1000 * cos( 2. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0500 * snoise3(2. * wQ.yzx);
+  wQ += warpScale * 0.0500 * cos( 5. * wQ.yzx + cosT);
   q = wQ;
 
   // Box
   float k;
-  vec4 q4 = inverseStereographic(p, k);
-
-  // // Experimental rotation
-  // q4.xzw *= rotationMatrix(vec3(1), cosT);
-  // q4.xw *= rotMat2(cosT);
-  // q4.zy *= rotMat2(cosT + 0.5 * PI);
+  vec4 q4 = inverseStereographic(q, k);
 
   // Original rotation
   q4.xw *= rotMat2(cosT);
   q4.zy *= rotMat2(cosT + 0.5 * PI);
+
+  // Twist
+  q4.xz *= rotMat2(0.8 * q4.y);
 
   float frame = fTorus(q4);
   frame = abs(frame);
@@ -851,12 +852,12 @@ vec3 map (in vec3 p, in float dT) {
   vec3 b = vec3(frame, 0, 0);
   // float crop = min(min(absQ.x, absQ.y), absQ.z) - cropR;
   // b.x = max(b.x, -crop);
-  b = dSMax (b, vec3(crop, 0, 0), 0.2);
+  b = dSMax (b, vec3(crop, 0, 0), 0.1);
   d = dMin(d, b);
 
   // d.x -= 0.0025 * cellular(1. * q.yzx);
 
-  d.x *= 0.125;
+  d.x *= 0.0625;
 
   return d;
 }
@@ -1048,8 +1049,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * cnoise3(pos);
   dI += 0.2 * pow(dNR, 3.);
 
-  // dI *= angle1C;
-  // dI += angle2C;
+  dI *= 0.274; // angle1C;
+  dI += 1.952; // angle2C;
 
   vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 
