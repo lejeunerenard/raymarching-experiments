@@ -73,6 +73,7 @@ const float thickness = 0.05;
 #pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
 #pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
+#pragma glslify: snoise4 = require(glsl-noise/simplex/4d)
 //#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
@@ -825,9 +826,8 @@ vec3 map (in vec3 p, in float dT) {
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 2. * wQ.yzx + cosT);
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
   // wQ += warpScale * 0.0500 * snoise3(2. * wQ.yzx);
-  wQ += warpScale * 0.0500 * cos( 5. * wQ.yzx + cosT);
   q = wQ;
 
   // Box
@@ -840,14 +840,19 @@ vec3 map (in vec3 p, in float dT) {
 
   // Twist
   q4.xz *= rotMat2(0.8 * q4.y);
+  q4.yw *= rotMat2(1.1 * q4.x);
+
+  // q4 +=warpScale * 0.01000 * snoise3(2. * q4.yzw);
 
   float frame = fTorus(q4);
   frame = abs(frame);
   frame -= 0.1;
+  frame -= 0.0125 * snoise3(vec3(3, 1, 3) * q4.xyz);
   frame = fixDistance(frame, k);
 
   // float crop = sdBox(q, vec3(1.9));
-  float crop = length(q) - 1.9;
+  // float crop = length(q) - 1.9;
+  float crop = icosahedral(q, 42., 1.6);
 
   vec3 b = vec3(frame, 0, 0);
   // float crop = min(min(absQ.x, absQ.y), absQ.z) - cropR;
@@ -1050,7 +1055,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 3.);
 
   dI *= 0.274; // angle1C;
-  dI += 1.952; // angle2C;
+  dI += 2.031; // angle2C;
 
   vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 
@@ -1196,7 +1201,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.50;
+      float dispersionI = 0.250;
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
