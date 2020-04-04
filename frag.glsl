@@ -685,57 +685,6 @@ float lengthP(in vec4 q, in float p) {
   return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
 }
 
-float r = 0.3;
-float panel (in vec3 q) {
-  float d = maxDistance;
-  // -- Crop --
-  // Grid
-  vec3 cQ = q;
-  float size = r * 0.398;
-  vec2 c = pMod2(cQ.xz, vec2(size));
-  vec2 absC = abs(c);
-  float crop = sdBox(cQ.xz, vec2(size * 0.587));
-  // crop = (max(absC.x, absC.y) > 1.) ? crop : maxDistance;
-
-  // Circle
-  // cQ = q;
-
-  // float circleH = size * 0.256;
-  // pModPolar(cQ.xz, 8.);
-
-  // float circle = sdBox(cQ.xz - vec2(3. * circleH, 0), vec2(circleH, size * 0.193));
-  // crop = min(crop, circle);
-
-  // // Circle 2
-  // cQ = q;
-  // circleH = size * 0.256;
-  // pModPolar(cQ.xz, 12.);
-
-  // circle = sdBox(cQ.xz - vec2(5.30 * circleH, 0), vec2(circleH, size * 0.193));
-  // crop = min(crop, circle);
-
-  // -- Panel --
-  float o = sdBox(q.xz, vec2(r));
-  o = max(o, -crop);
-  d = min(d, o);
-
-  float thickness = 0.025;
-  vec3 absQ = abs(q);
-  const float rCoe = 2.0;
-  float thickL1 = dot(absQ, vec3(0.75)); // - rCoe * r;
-  // float thickL2 = min(absQ.x, min(absQ.y, absQ.z)) - rCoe * r;
-  // float thickL2 = lengthP(q, 0.75) - rCoe * r;
-  float thickL = thickL1; // (thickL1 + thickL2) * 0.5;
-  float totalCrop = thickL - rCoe * r;
-  pMod1(thickL, 20.115 * thickness);
-  d = max(d, abs(thickL) - thickness);
-  d = max(d, totalCrop);
-
-  d *= 0.0625;
-
-  return d;
-}
-
 // Inverse stereographic projection of p,
 // p4 lies onto the unit 3-sphere centered at 0.
 // - mla https://www.shadertoy.com/view/lsGyzm
@@ -811,12 +760,12 @@ float fTorus(vec4 p4) {
     return d;
 }
 
+float r = 0.5;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
-  // p *= rotationMatrix(vec3(1), cosT);
+  p *= -globalRot;
 
   vec3 q = p;
 
@@ -827,42 +776,17 @@ vec3 map (in vec3 p, in float dT) {
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  // wQ += warpScale * 0.0500 * snoise3(2. * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 1.6 * wQ.y);
+  wQ += warpScale * 0.0250 * cos( 7. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT);
   q = wQ;
 
-  // Box
-  float k;
-  vec4 q4 = inverseStereographic(q, k);
-
-  // Original rotation
-  q4.xw *= rotMat2(cosT);
-  q4.zy *= rotMat2(cosT + 0.5 * PI);
-
-  // Twist
-  q4.xz *= rotMat2(0.8 * q4.y);
-  q4.yw *= rotMat2(1.1 * q4.x);
-
-  // q4 +=warpScale * 0.01000 * snoise3(2. * q4.yzw);
-
-  float frame = fTorus(q4);
-  frame = abs(frame);
-  frame -= 0.1;
-  frame -= 0.0125 * snoise3(vec3(3, 1, 3) * q4.xyz);
-  frame = fixDistance(frame, k);
-
-  // float crop = sdBox(q, vec3(1.9));
-  // float crop = length(q) - 1.9;
-  float crop = icosahedral(q, 42., 1.6);
-
-  vec3 b = vec3(frame, 0, 0);
-  // float crop = min(min(absQ.x, absQ.y), absQ.z) - cropR;
-  // b.x = max(b.x, -crop);
-  b = dSMax (b, vec3(crop, 0, 0), 0.1);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
-  // d.x -= 0.0025 * cellular(1. * q.yzx);
+  d.x -= 0.005 * cellular(2. * q.yzx);
 
-  d.x *= 0.0625;
+  d.x *= 0.7;
 
   return d;
 }
@@ -1051,11 +975,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pos;
-  dI += 0.2 * cnoise3(pos);
+  dI += 0.2 * cnoise3(2.4 * pos);
   dI += 0.2 * pow(dNR, 3.);
 
-  dI *= 0.274; // angle1C;
-  dI += 2.031; // angle2C;
+  dI *= -0.558; // angle1C;
+  dI += 0.481; // angle2C;
 
   vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 

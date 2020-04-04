@@ -55,7 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-0.96, 3.6, -0.23)
+    this.cameraRo = vec3.fromValues(0, 0, 1.25)
     vec3.scale(this.cameraRo, this.cameraRo, 1.4)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
