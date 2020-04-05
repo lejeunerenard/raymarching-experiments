@@ -771,22 +771,28 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 0.5;
+  const float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
   wQ.xzy = twist(wQ.xyz, 1.6 * wQ.y);
-  wQ += warpScale * 0.0250 * cos( 7. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0250000000 * cos( 7. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125000000 * cos(17. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 3.6 * wQ.y);
+  wQ += warpScale * 0.0062500000 * cos(29. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0031250000 * cos(37. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 9.6 * wQ.y);
+  wQ += warpScale * 0.0015630000 * cos(43. * wQ.yzx + cosT);
+  wQ += warpScale * 7.815e-4     * cos(57. * wQ.yzx + cosT);
   q = wQ;
 
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
   d.x -= 0.005 * cellular(2. * q.yzx);
 
-  d.x *= 0.7;
+  d.x *= 0.125;
 
   return d;
 }
@@ -978,8 +984,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * cnoise3(2.4 * pos);
   dI += 0.2 * pow(dNR, 3.);
 
-  dI *= -0.558; // angle1C;
-  dI += 0.481; // angle2C;
+  dI *= -0.646; // angle1C;
+  dI += 11.328; // angle2C;
 
   vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 
