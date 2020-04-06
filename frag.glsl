@@ -760,7 +760,7 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-float r = 0.5;
+float r = 0.35;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -775,22 +775,28 @@ vec3 map (in vec3 p, in float dT) {
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 1.6 * wQ.y);
-  wQ += warpScale * 0.0250000000 * cos( 7. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0125000000 * cos(17. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 3.6 * wQ.y);
-  wQ += warpScale * 0.0062500000 * cos(29. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0031250000 * cos(37. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 9.6 * wQ.y);
-  wQ += warpScale * 0.0015630000 * cos(43. * wQ.yzx + cosT);
-  wQ += warpScale * 7.815e-4     * cos(57. * wQ.yzx + cosT);
+  // Elongate
+  const float L = 0.895;
+
+  wQ.y += 0.075 * L * sin(cosT); // Crystal bobbing
+
+  wQ.y += L * 0.5;
+  wQ.y -= min(L, max(0., wQ.y));
   q = wQ;
 
   vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
-  d.x -= 0.005 * cellular(2. * q.yzx);
+  d.x -= 0.005 * cellular(vec3(0.01, vec2(2.)) * q.yzx);
+  d.x += 0.635 * vfbm4(q);
+
+  // Stand
+  q = p;
+  float standThickness = 0.075; // angle1C;
+  vec3 base = vec3(sdCappedCylinder(q - vec3(0,  (0.5 * L + r) + standThickness, 0), vec2(r * 1.0, standThickness)), 1, 0);
+  d = dMin(d, base);
+  base = vec3(sdCappedCylinder(q - vec3(0,  (0.5 * L + r) + 3. * standThickness, 0), vec2(r * 1.5, standThickness)), 1, 0);
+  d = dMin(d, base);
 
   d.x *= 0.125;
 
@@ -984,15 +990,18 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * cnoise3(2.4 * pos);
   dI += 0.2 * pow(dNR, 3.);
 
-  dI *= -0.646; // angle1C;
-  dI += 11.328; // angle2C;
+  dI *= 1.081; // angle1C;
+  dI += 0.363; // angle2C;
 
   vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 
   // float highlightI = 1. - pow(dNR, angle3C);
   // color = mix(color, highlight, highlightI);
-  color += 0.85 * highlight;
+  color += 0.65 * highlight;
   // color = vec3(highlightI);
+
+  // Stand color
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
 
   return color;
 
@@ -1071,8 +1080,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 0.9;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
@@ -1119,8 +1128,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.5 * reflection(pos, reflectionRd);
-      color += reflectColor * isMaterialSmooth(t.y, 1.);
+      reflectColor += 0.3 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1131,8 +1140,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.250;
-      dispersionColor *= dispersionI;
+      float dispersionI = 0.634;
+      dispersionColor *= dispersionI * isMaterialSmooth(t.y, 0.);
 
       color += saturate(dispersionColor);
 #endif
