@@ -760,7 +760,7 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-float r = 0.35;
+float r = 0.45;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -775,30 +775,16 @@ vec3 map (in vec3 p, in float dT) {
 
   // Warp
   vec3 wQ = q;
-  // Elongate
-  const float L = 0.895;
-
-  wQ.y += 0.075 * L * sin(cosT); // Crystal bobbing
-
-  wQ.y += L * 0.5;
-  wQ.y -= min(L, max(0., wQ.y));
+  wQ.y = abs(wQ.y);
+  float c = pModPolar(wQ.xz, 8.);
   q = wQ;
 
-  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  vec3 preRot = q;
+  q *= rotationMatrix(vec3(1), PI * -0.411);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
-  d.x -= 0.005 * cellular(vec3(0.01, vec2(2.)) * q.yzx);
-  d.x += 0.635 * vfbm4(q);
-
-  // Stand
-  q = p;
-  float standThickness = 0.075; // angle1C;
-  vec3 base = vec3(sdCappedCylinder(q - vec3(0,  (0.5 * L + r) + standThickness, 0), vec2(r * 1.0, standThickness)), 1, 0);
-  d = dMin(d, base);
-  base = vec3(sdCappedCylinder(q - vec3(0,  (0.5 * L + r) + 3. * standThickness, 0), vec2(r * 1.5, standThickness)), 1, 0);
-  d = dMin(d, base);
-
-  d.x *= 0.125;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -990,18 +976,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * cnoise3(2.4 * pos);
   dI += 0.2 * pow(dNR, 3.);
 
-  dI *= 1.081; // angle1C;
-  dI += 0.363; // angle2C;
+  dI *= angle1C;
+  dI += angle2C;
 
-  vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
+  vec3 highlight = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.4)));
 
-  // float highlightI = 1. - pow(dNR, angle3C);
-  // color = mix(color, highlight, highlightI);
-  color += 0.65 * highlight;
-  // color = vec3(highlightI);
-
-  // Stand color
-  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
+  color += 0.827 * highlight;
 
   return color;
 
@@ -1088,12 +1068,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.80;
+        const float diffMin = 0.50;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.75;
+        const float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
