@@ -767,27 +767,31 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= -globalRot;
 
-  p.y *= 0.80;
+  p.y *= 0.70;
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 1.0;
+  const float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx );
+  wQ += warpScale * 0.050000 * cos(17. * wQ.yzx + vec3(cosT, 0, 0) );
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 3. * length(wQ.xy));
   wQ *= rotationMatrix(vec3(1), dot(wQ, vec3(2)));
-  wQ += warpScale * 0.0500 * cos(17. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(23. * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(23. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(37. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(43. * wQ.yzx + cosT );
   q = wQ;
 
+  r -= 0.00625 * cnoise3(q);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.125;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -1109,7 +1113,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.234;
+      float dispersionI = 0.334;
       dispersionColor *= dispersionI * isMaterialSmooth(t.y, 0.);
 
       color += saturate(dispersionColor);
@@ -1132,10 +1136,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #endif
 
       // Post processing coloring
-      float gradI = snoise3(131. * vec3(pos));
+      float gradI = angle3C; // snoise3(131. * vec3(pos));
       float cuttOff = angle2C * (2. * color.x - angle1C);
       gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
-      // color = mix(#803D6F,#FFC7F1, gradI);
       color = mix(vec3(0.25),vec3(0.85), gradI);
 
       #ifdef debugMapCalls
