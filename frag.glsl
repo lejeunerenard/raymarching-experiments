@@ -760,38 +760,37 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-float r = 0.55;
+float r = 1.20;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
   // p *= -globalRot;
 
-  p.y *= 0.70;
-
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 2.0;
+  const float warpScale = 0.75;
 
   // Warp
   vec3 wQ = q;
-  // wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx );
-  // wQ += warpScale * 0.050000 * cos(17. * wQ.yzx + vec3(cosT, 0, 0) );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + sin(cosT + 3. * length(wQ.xy)));
-  wQ *= rotationMatrix(vec3(1), dot(wQ, vec3(2)));
-  // wQ += warpScale * 0.025000 * cos(23. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.012500 * cos(37. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.006250 * cos(43. * wQ.yzx + cosT );
+  float pDI = dot(p, vec3(1));
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT + pDI);
+  wQ *= rotationMatrix(vec3(1), cos(cosT + pDI + (1. - dot(normalize(p), normalize(vec3(1))))));
+  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT + pDI);
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.025000 * cos(17. * wQ.yzx + cosT + pDI);
+  wQ += warpScale * 0.012500 * cos(23. * wQ.yzx + cosT + pDI);
+  wQ += warpScale * 0.006250 * cos(29. * wQ.yzx + cosT + pDI);
   q = wQ;
 
   // r -= 0.00625 * cnoise3(q);
 
   // vec3 b = vec3(length(q) - r, 0, 0);
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  b.x -= 0.020 * cellular(3. * q.yzx);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // b.x -= 0.020 * cellular(3. * q.yzx);
   d = dMin(d, b);
 
   d.x *= 0.03125;
@@ -977,7 +976,19 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.25);
+
+  float dNR = dot(nor, -rd);
+
+  vec3 dI = vec3(dNR);
+
+  dI += 0.2 * pos;
+  dI += 0.1 * pow(dNR, 6.);
+
+  dI *= angle1C;
+  dI += angle2C;
+
+  color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
   return color;
 
@@ -1056,7 +1067,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
+      float freCo = 1.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1064,12 +1075,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        const float diffMin = 0.25;
+        const float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.85;
+        const float shadowMin = 0.90;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1138,11 +1149,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = diffuseColor;
 #endif
 
-      // Post processing coloring
-      float gradI = angle3C; // snoise3(131. * vec3(pos));
-      float cuttOff = angle2C * (2. * color.x - angle1C);
-      gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
-      color = mix(vec3(0.85),background, gradI);
+      // // Post processing coloring
+      // float gradI = angle3C; // snoise3(131. * vec3(pos));
+      // float cuttOff = angle2C * (2. * color.x - angle1C);
+      // gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
+      // color = mix(vec3(0.85),background, gradI);
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));

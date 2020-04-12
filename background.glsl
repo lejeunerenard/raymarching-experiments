@@ -13,7 +13,7 @@ vec3 getBackground (in vec2 uv) {
   // n = smoothstep(0., edge, sin(TWO_PI * n));
   // vec3 color = vec3(n);
 
-  vec3 color = vec3(0.25); // vec3(0.25);
+  vec3 color = vec3(0);
 
   return color;
 }
