@@ -20,9 +20,9 @@ const dpr = 1.0
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 2
+const BLOOM_PASSES = 4
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.98
+const BLOOM_MIN_BRIGHTNESS = 0.96
 
 // Initialize shell
 export default class App {
@@ -55,7 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.5, 1.5, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     vec3.scale(this.cameraRo, this.cameraRo, 1.4)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
@@ -73,11 +73,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.554
+    this.angle1C = 0.500
     this.angle2C = 2.558
     this.angle3C = 0.356
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -156,20 +156,28 @@ export default class App {
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
       .delay(0 * 1000)
-      .to({ x: self.cameraRo[0], y: -0.9, z: self.cameraRo[2] }, 4 * 1000)
+      .to({ x: -0.05, y: self.cameraRo[1], z: self.cameraRo[2] }, 1.5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     let cameraPosTween2 = new TWEEN.Tween(ob)
     cameraPosTween2
       .delay(0 * 1000)
-      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 2 * 1000)
+      .to({ x: 0.05, y: self.cameraRo[1], z: self.cameraRo[2] }, 3 * 1000)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .onUpdate(updatePos)
+
+    let cameraPosTween3 = new TWEEN.Tween(ob)
+    cameraPosTween3
+      .delay(0 * 1000)
+      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 1.5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween)
-    // cameraPosTween.start(0)
+    cameraPosTween2.chain(cameraPosTween3)
+    cameraPosTween3.chain(cameraPosTween)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -199,7 +207,7 @@ export default class App {
 
     rotTween1.chain(rotTween2)
 
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
