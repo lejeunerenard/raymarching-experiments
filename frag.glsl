@@ -760,7 +760,7 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-float r = 1.20;
+float r = 0.850;
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -771,13 +771,14 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
 
-  const float warpScale = 0.75;
+  const float warpScale = 1.5;
 
   // Warp
   vec3 wQ = q;
   float pDI = dot(p, vec3(1));
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT + pDI);
   wQ *= rotationMatrix(vec3(1), 0.125 * cos(cosT + pDI + (1. - dot(normalize(p), normalize(vec3(1))))));
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT + pDI);
   // wQ.xzy = twist(wQ.xyz, wQ.y);
   wQ += warpScale * 0.025000 * cos(17. * wQ.yzx + cosT + pDI);
@@ -787,10 +788,7 @@ vec3 map (in vec3 p, in float dT) {
 
   // r -= 0.00625 * cnoise3(q);
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-
-  vec3 b = vec3(sdBox(q, vec3(10., 10., 0.2)), 0, 0);
-  b.x -= 0.020 * cellular(1. * q.yzx);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -1131,10 +1129,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.50;
-      dispersionColor *= dispersionI * isShiny;
+      float dNR = dot(nor, -rayDirection);
+      float dispersionI = pow(1. - dNR, 3.);
+      // dispersionColor *= dispersionI * isShiny;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
+      color = mix(background, saturate(dispersionColor), dispersionI);
 #endif
       // color = diffuseColor;
 

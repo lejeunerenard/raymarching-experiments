@@ -20,7 +20,7 @@ const dpr = 1.0
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 4
+const BLOOM_PASSES = 0
 const BLOOM_WET = 1.0
 const BLOOM_MIN_BRIGHTNESS = 0.96
 
