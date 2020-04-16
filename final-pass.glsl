@@ -90,5 +90,6 @@ void main() {
   // gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 
   // 'Film' Noise
-  gl_FragColor.rgb += 0.030 * (cnoise2(560. * uv + sin(uv + time) + 000.0 * vec2(time, 0.0)) + cnoise2(800. * uv + 253.5 * vec2(0., time)));
+  const float filmNoiseScale = 1.0;
+  gl_FragColor.rgb += 0.030 * (cnoise2(filmNoiseScale * 560. * uv + sin(uv + time)) + cnoise2(filmNoiseScale * 800. * uv + 253.5 * vec2(0., time)));
 }

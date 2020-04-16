@@ -760,7 +760,30 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-float r = 1.65;
+const float repetitions = 10.;
+vec4 pieSpace (in vec3 p, in float relativeC) {
+  float angle = relativeC * TWO_PI / repetitions;
+  p.xz *= rotMat2(angle);
+  float c = pModPolar(p.xz, repetitions);
+  p.xz *= rotMat2(-angle);
+  return vec4(p, c);
+}
+
+float r = 0.20;
+vec3 pieSlice (in vec3 p, in float c) {
+  vec3 d = vec3(maxDistance, 0, 0);
+
+  float subBigR = 1.0 * r;
+  p.xy *= rotMat2(cosT + TWO_PI * c / repetitions);
+  vec3 b = vec3(length(p + vec3(0, subBigR, 0)) - r, 0, c);
+  d = dMin(d, b);
+
+  b = vec3(length(p - vec3(0, subBigR, 0)) - r, 0, c);
+  d = dMin(d, b);
+
+  return d;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -770,43 +793,45 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-
   const float warpScale = 1.5;
+
+  float bigR = r * 2.125;
 
   // Warp
   vec3 wQ = q;
-
-  // To Polar
-  wQ = vec3(
-      atan(wQ.y, wQ.x),
-      length(wQ.xy),
-      wQ.z);
-
-  wQ.x /= TWO_PI;
-
-  vec3 cropQ = wQ;
-
-  float pDI = dot(p, vec3(1));
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT + pDI);
-  wQ *= rotationMatrix(vec3(1), 0.125 * cos(cosT + pDI + (1. - dot(normalize(p), normalize(vec3(1))))));
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT + pDI);
-  // wQ.xzy = twist(wQ.xyz, wQ.y);
-  wQ += warpScale * 0.025000 * cos(17. * wQ.yzx + cosT + pDI);
-  wQ += warpScale * 0.012500 * cos(23. * wQ.yzx + cosT + pDI);
-  wQ += warpScale * 0.006250 * cos(29. * wQ.yzx + cosT + pDI);
   q = wQ;
 
-  // r -= 0.00625 * cnoise3(q);
+  // Polar index from hg_sdf
+  const float angle = TWO_PI/repetitions;
+  float a = atan(q.z, q.x) + angle/2.;
+  float c = floor(a/angle);
+  // For an odd number of repetitions, fix cell index of the cell in -x direction
+  // (cell index would be e.g. -5 and 5 in the two halves of the cell):
+  if (abs(c) >= (repetitions/2.)) c = abs(c);
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec4 thisQ = pieSpace(q, 0.);
+  vec3 b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c);
   d = dMin(d, b);
 
-  vec3 crop = vec3(sdBox(cropQ, vec3(0.495, r, 2. * r)), 0, 0);
-  // d = dMin(d, crop);
-  d = dSMax(d, crop, 0.25);
+  // One away
+  thisQ = pieSpace(q, -1.);
+  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c - 1.);
+  d = dMin(d, b);
 
-  d.x *= 0.25;
+  thisQ = pieSpace(q,  1.);
+  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c + 1.);
+  d = dMin(d, b);
+
+  // Two away
+  thisQ = pieSpace(q, -2.);
+  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c - 2.);
+  d = dMin(d, b);
+
+  thisQ = pieSpace(q,  2.);
+  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c + 2.);
+  d = dMin(d, b);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -989,7 +1014,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.25);
 
   return color;
 
@@ -1081,7 +1106,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 1.;
+        const float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1134,8 +1159,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= dispersionI * isShiny;
 
-      // color += saturate(dispersionColor);
-      color = mix(background, saturate(dispersionColor), dispersionI);
+      color += saturate(dispersionColor);
 #endif
       // color = diffuseColor;
 

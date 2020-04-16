@@ -22,7 +22,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 0
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.96
+const BLOOM_MIN_BRIGHTNESS = 1.00
 
 // Initialize shell
 export default class App {
@@ -55,8 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2)
-    vec3.scale(this.cameraRo, this.cameraRo, 1.4)
+    this.cameraRo = vec3.fromValues(0.001, 2.5, 0)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
@@ -77,7 +76,7 @@ export default class App {
     this.angle2C = 2.558
     this.angle3C = 0.356
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -370,7 +369,6 @@ export default class App {
 
     this.shader.uniforms.epsilon = this.epsilon
 
-    // this.cameraRo = vec3.fromValues(0.01 * Math.sin(Math.PI * t / 1000 / 5), 0.05 * Math.sin(Math.PI * t / 1000 / 2), 1.7)
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])
