@@ -760,7 +760,7 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-const float repetitions = 10.;
+const float repetitions = 12.;
 vec4 pieSpace (in vec3 p, in float relativeC) {
   float angle = relativeC * TWO_PI / repetitions;
   p.xz *= rotMat2(angle);
@@ -769,16 +769,20 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.20;
+float r = 0.30;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  float subBigR = 1.0 * r;
-  p.xy *= rotMat2(cosT + TWO_PI * c / repetitions);
-  vec3 b = vec3(length(p + vec3(0, subBigR, 0)) - r, 0, c);
-  d = dMin(d, b);
+  c = mod(c, repetitions);
 
-  b = vec3(length(p - vec3(0, subBigR, 0)) - r, 0, c);
+  vec3 boxSize = vec3(0.0625 * r, r, 0.25 * r);
+  float subBigR = 1.0 * r;
+
+  p.xy *= rotMat2(cosT - 0.5 * TWO_PI * c / repetitions);
+
+  p.x -= 0.125 * sin(TWO_PI * p.y);
+
+  vec3 b = vec3(sdBox(p, boxSize), 0, c);
   d = dMin(d, b);
 
   return d;
@@ -795,7 +799,7 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 1.5;
 
-  float bigR = r * 2.125;
+  float bigR = r * 1.25;
 
   // Warp
   vec3 wQ = q;
@@ -831,7 +835,7 @@ vec3 map (in vec3 p, in float dT) {
   b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c + 2.);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1139,10 +1143,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.6 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.6 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1155,7 +1159,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       float dNR = dot(nor, -rayDirection);
       float dispersionI = pow(1. - dNR, 2.);
-      // dispersionI = smoothstep(0.2, 1.0, dispersionI);
+      // // dispersionI = smoothstep(0.2, 1.0, dispersionI);
 
       // dispersionColor *= dispersionI * isShiny;
 
