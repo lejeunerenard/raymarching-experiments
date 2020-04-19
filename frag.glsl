@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.30;
+float r = 0.10;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -778,18 +778,32 @@ vec3 pieSlice (in vec3 p, in float c) {
   vec3 boxSize = vec3(0.0625 * r, r, 0.25 * r);
   float subBigR = 1.0 * r;
 
-  p.xy *= rotMat2(2. * cosT - 2.0 * TWO_PI * c / repetitions);
+  float rotOffset = - 0.5 * TWO_PI * c / repetitions;
+  p.xy *= rotMat2(-2. * cosT + rotOffset);
 
   const float warpScale = 1.;
 
-  // p += warpScale * 0.1000 * cos( 4. * p.yzx + cosT );
-  // p += warpScale * 0.0500 * cos( 7. * p.yzx + cosT );
-  // p += warpScale * 0.0250 * cos(13. * p.yzx + cosT );
-  // p += warpScale * 0.0125 * cos(17. * p.yzx + cosT );
+  vec3 wQ = p;
 
-  // p.x -= 0.125 * sin(TWO_PI * p.y);
+  float angle = 0.;
+  const float offsetPosMag = 0.2;
+  wQ.xy *= rotMat2(angle);
+  wQ.x += offsetPosMag;
+  vec3 b = vec3(length(wQ) - r, 0, c);
+  d = dMin(d, b);
 
-  vec3 b = vec3(sdBox(p, boxSize), 0, c);
+  wQ = p;
+  angle += 0.333 * TWO_PI;
+  wQ.xy *= rotMat2(angle);
+  wQ.x += offsetPosMag;
+  b = vec3(length(wQ) - r, 0, c);
+  d = dMin(d, b);
+
+  wQ = p;
+  angle += 0.333 * TWO_PI;
+  wQ.xy *= rotMat2(angle);
+  wQ.x += offsetPosMag;
+  b = vec3(length(wQ) - r, 0, c);
   d = dMin(d, b);
 
   return d;
@@ -806,7 +820,7 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 0.75;
 
-  float bigR = r * 1.25;
+  float bigR = r * 3.136;
 
   // Warp
   vec3 wQ = q;
@@ -847,7 +861,9 @@ vec3 map (in vec3 p, in float dT) {
   b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c + 2.);
   d = dMin(d, b);
 
-  d.x *= 0.25;
+  // d.x -= 0.0125 * cellular(2. * q);
+
+  // d.x *= 0.25;
 
   return d;
 }
@@ -1030,7 +1046,21 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.75);
+  vec3 color = vec3(0.95);
+
+  return color;
+
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.2 * pos;
+  dI += 0.1 * pow(dNR, 3.);
+
+  dI *= angle1C;
+  dI += angle2C;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color *= 0.4;
 
   return color;
 
@@ -1109,7 +1139,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.2;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1122,7 +1152,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.9;
+        const float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1157,7 +1187,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd);
+      reflectColor += 0.075 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1169,10 +1199,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.4;
+      // float dispersionI = 0.03125;
       // dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+//       color += saturate(dispersionColor);
 #endif
       // color = diffuseColor;
 
