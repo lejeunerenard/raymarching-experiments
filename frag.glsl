@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.10;
+float r = 0.76;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -818,52 +818,22 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 0.75;
-
-  float bigR = r * 3.136;
+  const float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q;
-  // wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT );
-
+  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT );
   q = wQ;
 
-  // Polar index from hg_sdf
-  const float angle = TWO_PI/repetitions;
-  float a = atan(q.z, q.x) + angle/2.;
-  float c = floor(a/angle);
-  // For an odd number of repetitions, fix cell index of the cell in -x direction
-  // (cell index would be e.g. -5 and 5 in the two halves of the cell):
-  if (abs(c) >= (repetitions/2.)) c = abs(c);
-
-  vec4 thisQ = pieSpace(q, 0.);
-  vec3 b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c);
-  d = dMin(d, b);
-
-  // One away
-  thisQ = pieSpace(q, -1.);
-  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c - 1.);
-  d = dMin(d, b);
-
-  thisQ = pieSpace(q,  1.);
-  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c + 1.);
-  d = dMin(d, b);
-
-  // Two away
-  thisQ = pieSpace(q, -2.);
-  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c - 2.);
-  d = dMin(d, b);
-
-  thisQ = pieSpace(q,  2.);
-  b = pieSlice(thisQ.xyz - vec3(bigR, 0, 0), c + 2.);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // d.x -= 0.0125 * cellular(2. * q);
 
-  // d.x *= 0.25;
+  d.x *= 0.5;
 
   return d;
 }
@@ -943,13 +913,14 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 1.25;
-const float amount = 0.0125;
+float n2 = 1.5;
+const float amount = 0.0625;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
-  float spread = 1.; // saturate(1.0 - 1.0 * dot(-rd, gNor));
+  float dNR = dot(-rd, gNor);
+  float spread = saturate(1.0 - 1.0 * pow(dNR, 3.));
   // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.0;
@@ -968,7 +939,7 @@ vec3 textures (in vec3 rd) {
 
   // float n = smoothstep(0.9, 1.0, sin(TWO_PI * (dot(vec2(8), rd.xz) + 2.0 * cnoise3(1.5 * rd)) + time));
 
-  // float n = cnoise3(3.5 * rd);
+  // float n = cnoise3(8.5 * rd);
   // n = smoothstep(-0.1, 0.9, n);
 
   // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
@@ -1046,7 +1017,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.95);
+  vec3 color = vec3(0);
 
   return color;
 
@@ -1139,7 +1110,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.2;
+      float freCo = 0.2;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1196,13 +1167,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.03125;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.5;
+      dispersionColor *= dispersionI;
 
-//       color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
+      // color = textures(rayDirection);
+
+      // color = mix(background, dispersionColor, smoothstep(0., 0.2, length(dispersionColor)));
 #endif
       // color = diffuseColor;
 

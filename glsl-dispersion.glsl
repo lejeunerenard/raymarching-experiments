@@ -6,14 +6,14 @@
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
 #define HUE 1
-#define HUE_NUM 12
+#define HUE_NUM 8
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
-// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
@@ -103,17 +103,14 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     float dI = 0.5 * cnoise3(2.0 * nor);
 
     vec3 sceneResult = scene(iorRefract, ior);
-    // vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0);
-    float mixI = dI + cnoise3(1.0 * nor);
+    vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0);
+    // float mixI = dI + cnoise3(1.0 * nor);
 
     vec3 thisColor = vec3(0);
 
-    vec3 cosOffset = vec3(0, 0.1, 0.4);
-    vec3 axis = vec3(1, 1, 1);
-    axis *= rotationMatrix(vec3(0.2, -0.7, 0.4), 4.34 * PI + mixI);
-    axis *= 0.296;
-    axis += 1.373;
-    thisColor = 0.5 + 0.5 * cos(TWO_PI * (axis + cosOffset));
+    vec3 cosOffset = vec3(0, 0.33, 0.67);
+
+    thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
     thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
     thisColor *= 0.6;
     thisColor *= sceneResult;
