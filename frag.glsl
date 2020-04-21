@@ -823,9 +823,14 @@ vec3 map (in vec3 p, in float dT) {
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT );
+
+  // wQ -= 0.015625 * snoise3(3.0 * q);
+  wQ *= rotationMatrix(vec3(1), dot(wQ, vec3(1)));
+
+  // wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT );
   q = wQ;
 
   vec3 b = vec3(length(q) - r, 0, 0);
@@ -925,7 +930,7 @@ vec3 textures (in vec3 rd) {
 
   float startPoint = 0.0;
 
-  vec3 spaceScaling = 0.2 * vec3(0.734, 1.14, 0.2);
+  vec3 spaceScaling = 0.4 * vec3(0.734, 1.14, 0.2);
   float n = ncnoise3(spaceScaling * rd + startPoint);
   n = smoothstep(0.0, 0.80, n);
 
@@ -1170,7 +1175,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.5;
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
