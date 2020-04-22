@@ -818,12 +818,14 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 2.0;
+  const float warpScale = 1.0;
+
+  q.y *= 0.5;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + cosT + 0.25 * PI * sin(wQ.y + cosT));
   wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
 
   // wQ -= 0.015625 * snoise3(3.0 * q);
@@ -918,14 +920,14 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 1.5;
-const float amount = 0.0625;
+float n2 = 0.78;
+const float amount = 0.25;
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float dNR = dot(-rd, gNor);
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 3.));
+  float spread = saturate(1.0 - 1.0 * pow(dNR, 8.));
   // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   float startPoint = 0.0;
@@ -1115,7 +1117,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
+      float freCo = 1.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
