@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 12.0;
 float modT = 0.;
 float norT = 0.;
 float cosT = 0.;
@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.76;
+float r = 1.2;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -820,25 +820,27 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 1.0;
 
-  q.y *= 0.5;
+  q.y *= 0.45;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx);
-  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + cosT + 0.25 * PI * sin(wQ.y + cosT));
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
+  wQ += warpScale * 0.100000 * cos( 4. * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
 
-  // wQ -= 0.015625 * snoise3(3.0 * q);
-  wQ *= rotationMatrix(vec3(1), dot(wQ, vec3(1)));
+  // wQ *= rotationMatrix(vec3(1), dot(wQ, vec3(0.25)));
 
-  // wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0125 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
+  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
+
   q = wQ;
 
   vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  // d.x -= 0.0125 * cellular(2. * q);
+  d.x -= 0.0115 * cellular(2. * q);
 
   d.x *= 0.5;
 
@@ -920,7 +922,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 0.78;
+float n2 = angle1C;
 const float amount = 0.25;
 
 vec3 textures (in vec3 rd) {
@@ -1026,16 +1028,14 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  return color;
-
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pos;
   dI += 0.1 * pow(dNR, 3.);
 
-  dI *= angle1C;
-  dI += angle2C;
+  dI *= angle2C;
+  dI += angle3C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   color *= 0.4;
@@ -1118,7 +1118,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 1.0;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1127,7 +1127,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         vec3 lightPos = lights[i].position; // * globalLRot;
         float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         const float shadowMin = 0.8;
