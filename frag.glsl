@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 12.0;
+const float totalT = 6.0;
 float modT = 0.;
 float norT = 0.;
 float cosT = 0.;
@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 1.2;
+float r = angle2C;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -819,30 +819,37 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 1.0;
-
-  q.y *= 0.45;
+  float bigR = r * 2.574;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.100000 * cos( 4. * wQ.yzx);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
 
-  // wQ *= rotationMatrix(vec3(1), dot(wQ, vec3(0.25)));
+  wQ = vec3(
+      atan(wQ.y, wQ.x),
+      length(wQ.xy),
+      wQ.z);
 
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
+  wQ.x /= PI;
+  wQ.y -= bigR;
+
+  wQ.yz += warpScale * 0.10000 * cos( 7. * wQ.zy + cosT);
+  wQ.yz += warpScale * 0.05000 * cos(17. * wQ.zy + cosT);
+  wQ.yz += warpScale * 0.02500 * cos(29. * wQ.zy + cosT);
+  wQ.yz += warpScale * 0.01250 * cos(37. * wQ.zy + cosT);
+  wQ.yz += warpScale * 0.00625 * cos(47. * wQ.zy + cosT);
+
+  wQ.yz *= rotMat2(1.0 * PI * wQ.x);
 
   q = wQ;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  mPos = q;
+  vec3 b = vec3(sdCylinder(q.yxz, vec3(vec2(0), r)), 0, wQ.x);
+  // vec3 b = vec3(sdBox(q.yxz, vec3(r, 1., r)), 0, wQ.x);
   d = dMin(d, b);
 
-  d.x -= 0.0115 * cellular(2. * q);
+  // d.x -= 0.0115 * cellular(2. * q);
 
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -922,7 +929,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = angle1C;
+float n2 = 1.25;
 const float amount = 0.25;
 
 vec3 textures (in vec3 rd) {
@@ -1027,18 +1034,16 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  // return vec3(smoothstep(0., edge, sin(5. * TWO_PI * trap)));
 
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
+  float n = 0.;
 
-  dI += 0.2 * pos;
-  dI += 0.1 * pow(dNR, 3.);
+  float angle = atan(mPos.y, mPos.z);
+  // angle -= 0.5 * PI * mPos.x;
+  angle -= cosT;
+  n = smoothstep(0., edge, sin(12. * angle));
 
-  dI *= angle2C;
-  dI += angle3C;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color *= 0.4;
+  color = vec3(n);
 
   return color;
 
@@ -1080,8 +1085,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(-1.0, 0.5,  0.5), #FFBBBB, 1.0);
-    lights[1] = light(vec3(-1.0, 1.0,  1.0), #BBFFFF, 1.0);
+    lights[0] = light(vec3(0., 0.001, 1.0), #FFCCCC, 1.0);
+    lights[1] = light(vec3(0.5, 0.0,  1.0), #CCFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
     float backgroundMask = 1.;
@@ -1118,19 +1123,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.6;
+      float specCo = 0.75;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.9;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.8;
+        const float shadowMin = 0.65;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1142,7 +1147,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec; // * (1. - fre);
 
         // Ambient
-        lin += 0.00 * amb * diffuseColor;
+        lin += 0.05 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
@@ -1165,7 +1170,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.075 * reflection(pos, reflectionRd);
+      reflectColor += 0.0125 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1174,13 +1179,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = textures(rayDirection);
 
       // color = mix(background, dispersionColor, smoothstep(0., 0.2, length(dispersionColor)));
@@ -1204,7 +1209,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // // Post processing coloring
       // float gradI = angle3C; // snoise3(131. * vec3(pos));
-      // float cuttOff = angle2C * (2. * color.x - angle1C);
+      // float cuttOff = angle2C * (2. * color.x - 0.4);
       // gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
       // color = mix(vec3(0.85),background, gradI);
 
