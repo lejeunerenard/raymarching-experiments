@@ -113,7 +113,7 @@ if (capturing) {
         xmlHTTP.open('GET', 'http://localhost:7321/', false)
         xmlHTTP.send(null)
         console.log('response text', xmlHTTP.responseText)
-      }, 500)
+      }, 250)
     }
   }
 

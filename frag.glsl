@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 10.
 
@@ -813,7 +813,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= -globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -824,32 +824,47 @@ vec3 map (in vec3 p, in float dT) {
   // Warp
   vec3 wQ = q;
 
-  wQ = vec3(
-      atan(wQ.y, wQ.x),
-      length(wQ.xy),
-      wQ.z);
+  // Push model down
+  wQ.y += 0.496;
 
-  wQ.x /= PI;
-  wQ.y -= bigR;
+  float ringSize = 0.21;
+  float l = length(wQ.xz);
+  float lC = floor( (l + 0.5 * ringSize) / ringSize );
+  float num = 5. + 3. * lC;
+  float size = TWO_PI / num;
+  float coreSkip = 1.;
 
-  wQ.yz += warpScale * 0.10000 * cos( 7. * wQ.zy + cosT);
-  wQ.yz += warpScale * 0.05000 * cos(17. * wQ.zy + cosT);
-  wQ.yz += warpScale * 0.02500 * cos(29. * wQ.zy + cosT);
-  wQ.yz += warpScale * 0.01250 * cos(37. * wQ.zy + cosT);
-  wQ.yz += warpScale * 0.00625 * cos(47. * wQ.zy + cosT);
+  wQ.xz *= rotMat2(0.04 * cos(cosT + 0.752 * PI * lC));
+  float c = pModPolar(wQ.xz, num);
 
-  wQ.yz *= rotMat2(1.0 * PI * wQ.x);
+  // Polar 2d mod
+  wQ.xz = vec2(
+      atan(wQ.z, wQ.x),
+      l);
+  vec2 p2C = pMod2(wQ.xz, vec2(size, ringSize));
 
   q = wQ;
 
-  mPos = q;
-  vec3 b = vec3(sdCylinder(q.yxz, vec3(vec2(0), r)), 0, wQ.x);
-  // vec3 b = vec3(sdBox(q.yxz, vec3(r, 1., r)), 0, wQ.x);
+  float ringSizeFactor = 0.350;
+
+  float yAdjust = 1. - 0.15 * pow(lC - coreSkip, 1.125);
+  yAdjust += 0.125 * snoise2(vec2(39.92713, 0.123) * vec2(c, lC));
+
+  q.y -= yAdjust * 0.8; // Set bottoms about at 0
+
+  // Movement
+  q.y -= 0.04 * cos(cosT + 0.752 * PI * c);
+
+  float angleTightness = 0.449;
+  vec3 b = vec3(sdBox(q, vec3(angleTightness * size, yAdjust, ringSize * ringSizeFactor)));
+
+  // Crop center out
+  b.x = max(b.x, -(l + 0.5 * ringSize) + coreSkip * ringSize);
+  b.x = max(b.x, (l + 0.5 * ringSize) - (coreSkip + 5.) * ringSize);
+
   d = dMin(d, b);
 
-  // d.x -= 0.0115 * cellular(2. * q);
-
-  d.x *= 0.125;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -1033,8 +1048,8 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-  // return vec3(smoothstep(0., edge, sin(5. * TWO_PI * trap)));
+  vec3 color = vec3(1);
+  return color;
 
   float n = 0.;
 
@@ -1170,7 +1185,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.0125 * reflection(pos, reflectionRd);
+      reflectColor += 0.046875 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1179,6 +1194,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
+
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
@@ -1186,9 +1202,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor *= dispersionI;
 
       // color += saturate(dispersionColor);
-      // color = textures(rayDirection);
 
-      // color = mix(background, dispersionColor, smoothstep(0., 0.2, length(dispersionColor)));
 #endif
       // color = diffuseColor;
 
@@ -1207,11 +1221,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = diffuseColor;
 #endif
 
-      // // Post processing coloring
-      // float gradI = angle3C; // snoise3(131. * vec3(pos));
-      // float cuttOff = angle2C * (2. * color.x - 0.4);
+      // Post processing coloring
+      float gradI = 0.13;
+      float cuttOff = 1.887 * (2. * color.x - 0.86);
+      gradI = cuttOff;
+      gradI += -0.5 * uv.y;
       // gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
-      // color = mix(vec3(0.85),background, gradI);
+      color = mix(#FB94FF,0.5 * #6C71CC, saturate(gradI));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
