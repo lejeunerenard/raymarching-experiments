@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = angle2C;
+float r = 0.8;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -819,52 +819,24 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 1.0;
-  float bigR = r * 2.574;
 
   // Warp
   vec3 wQ = q;
 
-  // Push model down
-  wQ.y += 0.496;
-
-  float ringSize = 0.21;
-  float l = length(wQ.xz);
-  float lC = floor( (l + 0.5 * ringSize) / ringSize );
-  float num = 5. + 3. * lC;
-  float size = TWO_PI / num;
-  float coreSkip = 1.;
-
-  wQ.xz *= rotMat2(0.04 * cos(cosT + 0.752 * PI * lC));
-  float c = pModPolar(wQ.xz, num);
-
-  // Polar 2d mod
-  wQ.xz = vec2(
-      atan(wQ.z, wQ.x),
-      l);
-  vec2 p2C = pMod2(wQ.xz, vec2(size, ringSize));
+  wQ += warpScale * 0.100000 * cos( 5. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT);
+  wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.012500 * cos(27. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.006250 * cos(37. * wQ.yzx + cosT);
 
   q = wQ;
 
-  float ringSizeFactor = 0.350;
-
-  float yAdjust = 1. - 0.15 * pow(lC - coreSkip, 1.125);
-  yAdjust += 0.125 * snoise2(vec2(39.92713, 0.123) * vec2(c, lC));
-
-  q.y -= yAdjust * 0.8; // Set bottoms about at 0
-
-  // Movement
-  q.y -= 0.04 * cos(cosT + 0.752 * PI * c);
-
-  float angleTightness = 0.449;
-  vec3 b = vec3(sdBox(q, vec3(angleTightness * size, yAdjust, ringSize * ringSizeFactor)));
-
-  // Crop center out
-  b.x = max(b.x, -(l + 0.5 * ringSize) + coreSkip * ringSize);
-  b.x = max(b.x, (l + 0.5 * ringSize) - (coreSkip + 5.) * ringSize);
-
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.03125;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1049,16 +1021,14 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1);
-  return color;
 
-  float n = 0.;
+  float dNR = dot(nor, -rd);
 
-  float angle = atan(mPos.y, mPos.z);
-  // angle -= 0.5 * PI * mPos.x;
-  angle -= cosT;
-  n = smoothstep(0., edge, sin(12. * angle));
+  vec3 dI = vec3(dNR);
 
-  color = vec3(n);
+  dI *= 0.5;
+
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
 
   return color;
 
@@ -1195,13 +1165,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
       // color = diffuseColor;
@@ -1221,13 +1191,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = diffuseColor;
 #endif
 
-      // Post processing coloring
-      float gradI = 0.13;
-      float cuttOff = 1.887 * (2. * color.x - 0.86);
-      gradI = cuttOff;
-      gradI += -0.5 * uv.y;
-      // gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
-      color = mix(#FB94FF,0.5 * #6C71CC, saturate(gradI));
+      // // Post processing coloring
+      // float gradI = 0.13;
+      // float cuttOff = 1.887 * (2. * color.x - 0.86);
+      // gradI = cuttOff;
+      // gradI += -0.5 * uv.y;
+      // // gradI = smoothstep(cuttOff, cuttOff + edge, gradI);
+      // color = mix(#FB94FF,0.5 * #6C71CC, saturate(gradI));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));

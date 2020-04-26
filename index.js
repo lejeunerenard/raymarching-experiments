@@ -30,7 +30,7 @@ if (capturing) {
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: massagedName + '-render2',
+    name: massagedName + '-render1',
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
