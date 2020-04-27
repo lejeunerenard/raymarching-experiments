@@ -818,22 +818,24 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 1.0;
+  const float warpScale = 0.3;
 
   // Warp
   vec3 wQ = q;
 
-  wQ += warpScale * 0.100000 * cos( 5. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT);
-  wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT);
-  // wQ += warpScale * 0.012500 * cos(27. * wQ.yzx + cosT);
-  // wQ += warpScale * 0.006250 * cos(37. * wQ.yzx + cosT);
+  wQ += warpScale * 0.333333 * cos( 5. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ *= 1. + 0.0625 * cos(cosT - length(wQ));
+  wQ += warpScale * 0.111111 * cos(17. * wQ.yzx + cosT);
+  wQ *= rotationMatrix(wQ * vec3(0.5), dot(wQ, vec3(1)));
+  wQ += warpScale * 0.037037 * cos(27. * wQ.yzx + cosT);
+  wQ += warpScale * 0.012346 * cos(39. * wQ.yzx + cosT);
 
   q = wQ;
 
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  float localR = r + 0.0075 * cellular(3. * q);
+  vec3 b = vec3(dodecahedral(q, 52., localR), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.1;
@@ -1027,6 +1029,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dNR);
 
   dI *= 0.5;
+  dI -= 0.125 + 0.125 * cos(cosT + 3. * length(pos));
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
 
