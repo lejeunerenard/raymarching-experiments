@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -818,29 +818,30 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 1.0;
+  const float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q;
 
-  float cycle = 12. * wQ.z / PI;
-  float warpC = smoothstep( -0.75, 0.75, sin( TWO_PI * cycle ) );
-  float cycleC = floor(cycle);
-  float frequency = 0.4 + 0.23 * mod(cycleC, 3.0) + 0.726 * mod(cycleC, 2.) + 0.124 * mod(cycleC, 5.0);
-  float phase = 0.2 * mod(cycleC, 3.0) + 2.333 * mod(cycleC, 2.) + 1.142857 * mod(cycleC, 5.0);
-  phase *= 7.0;
-  phase += cosT;
-  wQ += warpC * 0.1000 * cos(frequency * TWO_PI * wQ.x + 7. * phase);
-  wQ += warpC * 0.0250 * cos(3. * frequency * TWO_PI * wQ.x + 4.0 * phase);
+  wQ += warpScale * 0.100000 * cos( 5. * wQ.yzx + cosT);
+  wQ += warpScale * 0.025000 * cos( 8. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.012500 * cos(13. * wQ.yzx + cosT);
+  wQ += warpScale * 0.006250 * cos(21. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.001563 * cos(37. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 7.815e-4 * cos(49. * wQ.yzx + cosT);
 
   q = wQ;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  float localR = r + 0.0075 * cellular(3. * q);
-  vec3 b = vec3(sdBox(q, vec3(40.0, 0.1, 40.0)), 0, warpC);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x -= 0.005 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.02;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1114,19 +1115,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.75;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 0.45;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.65;
+        const float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1161,7 +1162,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.046875 * reflection(pos, reflectionRd);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
