@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.8;
+float r = 1.0;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -809,6 +809,29 @@ vec3 pieSlice (in vec3 p, in float c) {
   return d;
 }
 
+vec3 geodeHalf (in vec3 q, in float reverse) {
+    float bigR = r - 0.13 * cellular(0.5 * q);
+    vec3 b = vec3(length(q) - bigR, 0, 0);
+
+    vec3 absoluteQ = q;
+
+    reverse = 1. - 2. * reverse;
+
+    // q.x *= 1. - 2. * reverse;
+
+    // Inner sphere
+    float innerR = r * 0.75;
+    innerR += 0.154 * cellular(2. * q);
+    vec3 inner = vec3(-(length(q) - innerR), 2, 0);
+    b = dMax(b, inner);
+
+    // Half geode
+    vec3 crop = vec3(reverse * (q.x + 0.10 * cellular(0.5 * absoluteQ)), 1, 0 );
+    b = dMax(b, crop);
+
+    return b;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -819,26 +842,40 @@ vec3 map (in vec3 p, in float dT) {
 
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 2.0;
+  float mirroredT = 1. - 2. * abs(norT - 0.5);
+  float crackT = smoothstep(0.05, 0.15, mirroredT);
+  crackT = circ(crackT);
+  float crackTwistT = smoothstep(0.05, 0.10, mirroredT);
+  crackTwistT  = circ(crackTwistT);
+
+  float hingeT = smoothstep(0.2, 0.8, mirroredT);
+  // Shift view
+  q.x += 0.4 * cubicIn(hingeT);
+  hingeT = expo(hingeT);
 
   // Warp
   vec3 wQ = q;
-
-  wQ += warpScale * 0.100000 * cos( 5. * wQ.yzx + cosT);
-  wQ += warpScale * 0.025000 * cos( 8. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.012500 * cos(13. * wQ.yzx + cosT);
-  wQ += warpScale * 0.006250 * cos(21. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.001563 * cos(37. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 7.815e-4 * cos(49. * wQ.yzx + cosT);
-
+  
   q = wQ;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  b.x -= 0.005 * cellular(3. * q);
+  vec3 b = geodeHalf(q, 0.);
+  mPos = q;
+  d = dMin(d, b);
+
+  vec3 halfOffset = vec3(0.);
+  halfOffset += vec3(0.2) * crackT;
+
+  float hingeR = 1.0;
+  q.z += hingeR;
+  q *= rotationMatrix(vec3(0., 1, 0.4), -0.45 * PI * hingeT);
+  q.z -= hingeR;
+  q -= halfOffset;
+
+  q *= rotationMatrix(vec3(1, 0, 0), -0.23 * PI * crackTwistT);
+  b = geodeHalf(q, 1.);
+  if (b.x < d.x) {
+    mPos = q;
+  }
   d = dMin(d, b);
 
   d.x *= 0.25;
@@ -1025,17 +1062,22 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.1 + 0.2 * iqFBM(115. * mPos));
+
+  color += 0.7 * isMaterialSmooth(m, 1.);
 
   float dNR = dot(nor, -rd);
-
   vec3 dI = vec3(dNR);
 
+  dI += 0.2 * pos;
+  dI += 0.3 * pow(dNR, 3.);
+
   dI *= angle1C;
-  dI -= 0.125 + 0.125 * cos(cosT - 3. * length(pos));
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  vec3 shiny = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0., 0.33, 0.67) ) );
+
+  color = mix(color, shiny, isMaterialSmooth(m, 2.));
 
   return color;
 
@@ -1090,13 +1132,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      // float bumpsScale = 5.75;
-      // float bumpIntensity = 0.25;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 5.75;
+      float bumpIntensity = 0.25 * isMaterialSmooth(t.y, 1.);
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1114,7 +1156,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.0 * ( 1. - isMaterialSmooth(t.y, 1.) );
       float specCo = 0.5;
 
       float specAll = 0.0;
@@ -1162,7 +1204,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      reflectColor += 0.1 * (1. - isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1172,10 +1214,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0;
+      float dispersionI = isMaterialSmooth(t.y, 2.);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
