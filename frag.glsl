@@ -1465,15 +1465,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Sizing
   const float warpScale = 0.5;
 
-  // metric tests
-  vec2 absQ = abs(q);
+  float n = 0.;
 
-  // float l = length(q) - 0.2;
-  const float p = 0.5;
-  float l = pow(dot(pow(q, vec2(p)), vec2(1)), 1.0/p) - 0.2;
-  // float l = dot(absQ, vec2(0.5)) - 0.2;
+  // Lines
+  vec2 wQ = q;
 
-  color = vec3(step(0., l));
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + cosT );
+  wQ *= rotMat2(2. * length(wQ.yx));
+  wQ += warpScale * 0.05000 * cos(11. * wQ.yx + cosT );
+  wQ += warpScale * 0.02500 * cos(19. * wQ.yx + cosT );
+  wQ += warpScale * 0.01250 * cos(27. * wQ.yx + cosT );
+  wQ += warpScale * 0.00625 * cos(39. * wQ.yx + cosT );
+
+  n = sin(143. * dot(wQ, vec2(1., 1.)));
+  const float stopI = 0.8;
+  n = smoothstep(stopI, stopI + edge, n);
+
+  float c = pModPolar(q, 6.);
+  const float maskR = 0.4;
+  float mask = smoothstep(edge, 0., q.x - maskR);
+  n *= mask;
+  color = vec3(n);
 
   return color.rgb;
 }
@@ -1506,7 +1518,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, 0.), 1);
+  return vec4(two_dimensional(uv, 0.), 1);
 
   // vec3 color = vec3(0.5);
 
