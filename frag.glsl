@@ -809,29 +809,6 @@ vec3 pieSlice (in vec3 p, in float c) {
   return d;
 }
 
-vec3 geodeHalf (in vec3 q, in float reverse) {
-    float bigR = r - 0.13 * cellular(0.5 * q);
-    vec3 b = vec3(length(q) - bigR, 0, 0);
-
-    vec3 absoluteQ = q;
-
-    reverse = 1. - 2. * reverse;
-
-    // q.x *= 1. - 2. * reverse;
-
-    // Inner sphere
-    float innerR = r * 0.75;
-    innerR += 0.154 * cellular(2. * q);
-    vec3 inner = vec3(-(length(q) - innerR), 2, 0);
-    b = dMax(b, inner);
-
-    // Half geode
-    vec3 crop = vec3(reverse * (q.x + 0.10 * cellular(0.5 * absoluteQ)), 1, 0 );
-    b = dMax(b, crop);
-
-    return b;
-}
-
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -841,44 +818,23 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 2.0;
-  float mirroredT = 1. - 2. * abs(norT - 0.5);
-  float crackT = smoothstep(0.05, 0.15, mirroredT);
-  crackT = circ(crackT);
-  float crackTwistT = smoothstep(0.05, 0.10, mirroredT);
-  crackTwistT  = circ(crackTwistT);
-
-  float hingeT = smoothstep(0.2, 0.8, mirroredT);
-  // Shift view
-  q.x += 0.4 * cubicIn(hingeT);
-  hingeT = expo(hingeT);
+  const float warpScale = 1.5;
 
   // Warp
   vec3 wQ = q;
-  
+
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos( 5. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.025000 * cos( 7. * wQ.yzx + cosT );
+
   q = wQ;
 
-  vec3 b = geodeHalf(q, 0.);
+  vec3 b = vec3(length(q) - r, 0, 0);
   mPos = q;
   d = dMin(d, b);
 
-  vec3 halfOffset = vec3(0.);
-  halfOffset += vec3(0.2) * crackT;
-
-  float hingeR = 1.0;
-  q.z += hingeR;
-  q *= rotationMatrix(vec3(0., 1, 0.4), -0.45 * PI * hingeT);
-  q.z -= hingeR;
-  q -= halfOffset;
-
-  q *= rotationMatrix(vec3(1, 0, 0), -0.23 * PI * crackTwistT);
-  b = geodeHalf(q, 1.);
-  if (b.x < d.x) {
-    mPos = q;
-  }
-  d = dMin(d, b);
-
-  d.x *= 0.25;
+  d.x *= 0.5;
 
   return d;
 }
@@ -965,14 +921,15 @@ vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
   float dNR = dot(-rd, gNor);
+
   float spread = saturate(1.0 - 1.0 * pow(dNR, 8.));
-  // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
+  // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
-  float startPoint = 0.0;
+  // float startPoint = 0.0;
 
-  vec3 spaceScaling = 0.4 * vec3(0.734, 1.14, 0.2);
-  float n = ncnoise3(spaceScaling * rd + startPoint);
-  n = smoothstep(0.0, 0.80, n);
+  // vec3 spaceScaling = 0.4 * vec3(0.734, 1.14, 0.2);
+  // float n = ncnoise3(spaceScaling * rd + startPoint);
+  // n = smoothstep(0.0, 0.80, n);
 
   // vec3 spaceScaling = vec3(0.8);
   // float n = vfbmWarp(spaceScaling * rd + startPoint);
@@ -989,7 +946,18 @@ vec3 textures (in vec3 rd) {
 
   // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
-  color = vec3(n * spread);
+  vec3 dI = vec3(dNR);
+  dI += 0.2 * snoise3(rd);
+
+  dI += pow(dNR, 3.);
+  dI *= 0.44;
+  dI += 0.382;
+
+  // dI += rd.x;
+
+  color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.2, 0.3) ) );
+
+  color *= spread;
 
   return clamp(color, 0., 1.);
 }
@@ -1062,22 +1030,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.1 + 0.2 * iqFBM(115. * mPos));
-
-  color += 0.7 * isMaterialSmooth(m, 1.);
-
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 0.2 * pos;
-  dI += 0.3 * pow(dNR, 3.);
-
-  dI *= angle1C;
-  dI += angle2C;
-
-  vec3 shiny = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0., 0.33, 0.67) ) );
-
-  color = mix(color, shiny, isMaterialSmooth(m, 2.));
+  vec3 color = vec3(background);
 
   return color;
 
@@ -1156,8 +1109,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0 * ( 1. - isMaterialSmooth(t.y, 1.) );
-      float specCo = 0.5;
+      float freCo = 1.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
@@ -1204,7 +1157,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * (1. - isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1217,7 +1170,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = isMaterialSmooth(t.y, 2.);
+      float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -1518,7 +1471,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, 0.), 1);
+  // return vec4(two_dimensional(uv, 0.), 1);
 
   // vec3 color = vec3(0.5);
 
