@@ -813,28 +813,29 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
-
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 1.5;
+  const float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q;
 
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.050000 * cos( 5. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.050000 * cos( 5. * wQ.yzx + cosT );
   wQ += warpScale * 0.025000 * cos( 7. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.x);
+  wQ += warpScale * 0.012500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(19. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(tetrahedron(q, r), 0, 0);
   mPos = q;
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -950,8 +951,8 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(rd);
 
   dI += pow(dNR, 3.);
-  dI *= 0.44;
-  dI += 0.382;
+  dI *= angle1C;
+  dI += angle2C; // length(gPos.y) + norT;
 
   // dI += rd.x;
 
@@ -1030,7 +1031,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0.6 * background);
 
   return color;
 
