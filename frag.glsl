@@ -813,29 +813,35 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p.xz *= rotMat2(-cosT);
+
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 2.0;
+  float bigR = 0.75;
+  float rotSpread = -0.285 * PI;
 
   // Warp
   vec3 wQ = q;
+  // Rotate space
+  wQ.xz *= rotMat2(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.050000 * cos( 5. * wQ.yzx + cosT );
-  wQ += warpScale * 0.025000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.x);
-  wQ += warpScale * 0.012500 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(19. * wQ.yzx + cosT );
+  float num = floor(4. * 3.577);
+  float c = pModPolar(wQ.xz, num);
+  // wQ.x -= bigR;
+  // q = wQ;
 
-  q = wQ;
+  float cRot = c * TWO_PI / num;
 
-  vec3 b = vec3(tetrahedron(q, r), 0, 0);
+  vec3 endA = vec3(vec2(bigR, 0) * rotMat2(rotSpread + cRot), 1).xzy;
+  vec3 endB = vec3(vec2(bigR, 0) * rotMat2(-rotSpread + cRot), -1).xzy;
+
+  vec3 b = vec3(sdCapsule(q, endA, endB, 0.061), 0, 0);
   mPos = q;
   d = dMin(d, b);
 
-  d.x *= 0.125;
+  d.x *= 0.03125;
 
   return d;
 }
@@ -1033,6 +1039,19 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.6 * background);
 
+  float dNR = dot(nor, -rd);
+
+  return vec3(pow(dNR, 9.));
+
+  vec3 dI = vec3(dNR);
+
+  dI += 0.2 * pos;
+  dI += 0.1 * pow(dNR, 3.);
+
+  // dI *= 0.85;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
   return color;
 
 #ifdef NO_MATERIALS
@@ -1168,8 +1187,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 1.;
       dispersionColor *= dispersionI;
