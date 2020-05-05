@@ -809,39 +809,88 @@ vec3 pieSlice (in vec3 p, in float c) {
   return d;
 }
 
+vec3 squishedSphere (in vec3 q) {
+  float cornerTightness = angle2C;
+  const float cornerPower = 9.00;
+
+  float scaleFactor = 1.;
+  if (q.y > 0.) {
+    q.y *= 1. + cornerPower * pow(q.y, cornerTightness);
+    scaleFactor *= 1. + cornerPower * pow(q.y, cornerTightness);
+  }
+  if (q.x > 0.) {
+    q.x *= 1. + cornerPower * pow(q.x, cornerTightness);
+    scaleFactor *= 1. + cornerPower * pow(q.x, cornerTightness);
+  }
+
+  mPos = q;
+  return vec3((length(q) - r) / scaleFactor, 0, 0);
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p.xz *= rotMat2(-cosT);
+  // p.xz *= rotMat2(-cosT);
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 2.0;
+  const float warpScale = 0.1875;
   float bigR = 0.75;
   float rotSpread = -0.285 * PI;
 
+  float squishSpread = angle1C;
+  float wiggleMag = 0.012;
+
   // Warp
   vec3 wQ = q;
-  // Rotate space
-  wQ.xz *= rotMat2(wQ.y);
+  wQ += warpScale * 0.1000 * cos( 5. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0500 * cos(13. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0250 * cos(23. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.04 * cellular(1.0 * wQ.yzx);
 
-  float num = floor(4. * 3.577);
-  float c = pModPolar(wQ.xz, num);
-  // wQ.x -= bigR;
-  // q = wQ;
+  wQ.xy += 0.5 * squishSpread;
+  q = wQ;
 
-  float cRot = c * TWO_PI / num;
-
-  vec3 endA = vec3(vec2(bigR, 0) * rotMat2(rotSpread + cRot), 1).xzy;
-  vec3 endB = vec3(vec2(bigR, 0) * rotMat2(-rotSpread + cRot), -1).xzy;
-
-  vec3 b = vec3(sdCapsule(q, endA, endB, 0.061), 0, 0);
   mPos = q;
+  q += wiggleMag * vec3(
+      cos(cosT + 0.000),
+      cos(cosT + 0.142),
+      cos(cosT + 0.420)
+      );
+  vec3 b = squishedSphere(q);
   d = dMin(d, b);
 
-  d.x *= 0.03125;
+  q.x *= -1.;
+  q.x += squishSpread;
+  q += wiggleMag * vec3(
+      cos(cosT + 0.000 + 0.2134),
+      cos(cosT + 0.142 + 0.2134),
+      cos(cosT + 0.420 + 0.2134)
+      );
+  b = squishedSphere(q);
+  d = dMin(d, b);
+
+  q = wQ;
+  q.y *= -1.;
+  q.y += squishSpread;
+  // q.x += 0.245;
+  q += wiggleMag * vec3(
+      cos(cosT + 0.000 + 0.8732),
+      cos(cosT + 0.142 + 0.8732),
+      cos(cosT + 0.420 + 0.8732)
+      );
+  b = squishedSphere(q);
+  d = dMin(d, b);
+
+  q = wQ;
+  q.xy *= -1.;
+  q.xy += squishSpread;
+  b = squishedSphere(q);
+  d = dMin(d, b);
+
+  // d.x *= 0.03125;
 
   return d;
 }
@@ -1040,17 +1089,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0.6 * background);
 
   float dNR = dot(nor, -rd);
-
-  return vec3(pow(dNR, 9.));
-
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pos;
   dI += 0.1 * pow(dNR, 3.);
 
-  // dI *= 0.85;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color = mix(#FFA742, #FF5074, smoothstep(0., 0.33, dI.x));
+  color = mix(color, #D43CE8, smoothstep(0.33, 0.67, dI.x));
+  color = mix(color, #8142FF, smoothstep(0.67, 1.00, dI.x));
 
   return color;
 
@@ -1129,7 +1175,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1137,12 +1183,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.45;
+        float diffMin = 1.00;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.5;
+        const float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1187,10 +1233,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+     // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.;
+      float dispersionI = 0.30;
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
