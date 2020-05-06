@@ -1484,27 +1484,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Sizing
   const float warpScale = 0.5;
 
-  float n = 0.;
+  float n = sin(angle2C * 10. * TWO_PI * dot(q, vec2(1)) + cosT);
+  n = smoothstep(0., edge, n);
 
-  // Lines
-  vec2 wQ = q;
+  float i = length(q);
+  float r = 0.4;
+  float mask = smoothstep(edge, 0., i - r);
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + cosT );
-  wQ *= rotMat2(2. * length(wQ.yx));
-  wQ += warpScale * 0.05000 * cos(11. * wQ.yx + cosT );
-  wQ += warpScale * 0.02500 * cos(19. * wQ.yx + cosT );
-  wQ += warpScale * 0.01250 * cos(27. * wQ.yx + cosT );
-  wQ += warpScale * 0.00625 * cos(39. * wQ.yx + cosT );
+  vec3 dI = vec3(3. * i);
+  // dI *= 0.25;
+  vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  n = sin(143. * dot(wQ, vec2(1., 1.)));
-  const float stopI = 0.8;
-  n = smoothstep(stopI, stopI + edge, n);
+  color = shiny * mask;
 
-  float c = pModPolar(q, 6.);
-  const float maskR = 0.4;
-  float mask = smoothstep(edge, 0., q.x - maskR);
-  n *= mask;
-  color = vec3(n);
+  color = mix(vec3(n), color, angle1C);
 
   return color.rgb;
 }
@@ -1537,7 +1530,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, 0.), 1);
+  return vec4(two_dimensional(uv, 0.), 1);
 
   // vec3 color = vec3(0.5);
 
