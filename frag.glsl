@@ -1449,6 +1449,32 @@ vec3 getRing (in float dir, in vec2 q, in vec3 color, in float ringWidth, in flo
   return mix(color, ringColor, isRing);
 }
 
+float triangleMotion(in vec2 q, in float r, in float t) {
+  float n = 0.;
+
+  const float bigR = 0.3;
+
+  vec2 offsetPos = vec2(bigR, 0);
+  offsetPos = mix(offsetPos, bigR * vec2(cos(2.0 * PI / 3.0), sin(2.0 * PI / 3.0)), saturate(t*3.0));
+  offsetPos = mix(offsetPos, bigR * vec2(cos(2.0 * PI * 2. / 3.0), sin(2.0 * PI * 2. / 3.0)), saturate(t*3.0 - 1.0));
+  offsetPos = mix(offsetPos, bigR * vec2(1., 0.), saturate(t*3.0 - 2.0));
+
+  n = length(q - offsetPos) - r;
+  n = smoothstep(edge, 0., n);
+
+  return n;
+}
+
+float swirlMask (in vec2 q, in float nOffset) {
+  float a = atan(q.y, q.x);
+  vec2 pol = vec2(a / TWO_PI + 0.5, length(q));
+
+  vec2 scaleN = 0.8 * scale * vec2(49, 10);
+  float n1 = fbmWarp(scaleN * pol + nOffset);
+  float n2 = fbmWarp(scaleN * vec2(1. - pol.x, pol.y) + nOffset);
+  return mix(n1, n2, saturate((pol.x - 0.8) / 0.2));
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
@@ -1459,21 +1485,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Sizing
   const float warpScale = 0.5;
+  const float r = 0.04;
 
-  float n = sin(angle2C * 10. * TWO_PI * dot(q, vec2(1)) + cosT);
-  n = smoothstep(0., edge, n);
+  float n = 0.;
+  float l = length(q);
+  const float numLayers = 9.0;
+  for (float i = 0.; i < numLayers; i++) {
+    q = uv;
+    q *= rotMat2(2. * l + i * angle1C);
 
-  float i = length(q);
-  float r = 0.4;
-  float mask = smoothstep(edge, 0., i - r);
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.2 * q.y + i / numLayers + vec3(0, 0.33, 0.67) ));
+    color += layerColor * swirlMask(q, i * angle2C);
+  }
+  
 
-  vec3 dI = vec3(3. * i);
-  // dI *= 0.25;
-  vec3 shiny = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // Circle Core
+  q = uv;
+  float a = atan(q.y, q.x);
+  float coreR = 0.025; // + 0.035 * cos(1. * atan(a + PI * sin(5. * a))) + 0.04 * cnoise2(11. * q);
+  float core = length(q) - coreR;
+  core = smoothstep(0., edge, core);
+  color *= core;
 
-  color = shiny * mask;
-
-  color = mix(vec3(n), color, angle1C);
+  // color = vec3(n);
+  // color = vec3(pol.x);
 
   return color.rgb;
 }
@@ -1506,7 +1541,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, 0.), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0.5);
 

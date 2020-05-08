@@ -49,7 +49,7 @@ export default class App {
         z: 0
       },
       d: 1,
-      scale: 0.49,
+      scale: -0.01,
       rot2angle: [0.442, 5.933, 0.26],
       cameraAngles: [0.227, -0.569, 0.193]
     }
@@ -72,8 +72,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.0
-    this.angle2C = 2.000
+    this.angle1C = 0.16
+    this.angle2C = 1.587
     this.angle3C = 2.55
 
     // this.setupAnimation(preset)
