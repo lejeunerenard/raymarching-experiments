@@ -1488,27 +1488,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float r = 0.04;
 
   float n = 0.;
-  float l = length(q);
-  const float numLayers = 9.0;
-  for (float i = 0.; i < numLayers; i++) {
-    q = uv;
-    q *= rotMat2(2. * l + i * angle1C);
+  float d = dot(q, vec2(1));
 
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (0.2 * q.y + i / numLayers + vec3(0, 0.33, 0.67) ));
-    color += layerColor * swirlMask(q, i * angle2C);
-  }
-  
+  float scale = 0.03125 * sin(d * TWO_PI + cosT);
+  q += scale;
 
-  // Circle Core
+  n = dot(q, vec2(angle1C * 100.));
+  n = sin(TWO_PI * n);
+  n = smoothstep(0., edge, n);
+
   q = uv;
-  float a = atan(q.y, q.x);
-  float coreR = 0.025; // + 0.035 * cos(1. * atan(a + PI * sin(5. * a))) + 0.04 * cnoise2(11. * q);
-  float core = length(q) - coreR;
-  core = smoothstep(0., edge, core);
-  color *= core;
+  const float maskR = 0.4;
+  float mask = length(q) - maskR;
+  mask = smoothstep(edge, 0., mask);
 
-  // color = vec3(n);
-  // color = vec3(pol.x);
+  n *= mask;
+
+  color = vec3(n);
 
   return color.rgb;
 }
