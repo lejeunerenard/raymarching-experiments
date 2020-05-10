@@ -15,7 +15,7 @@ import { vec3, mat4 } from 'gl-matrix'
 
 const dpr = 1.0
 
-// const TWO_PI = 2 * Math.PI
+const TWO_PI = 2 * Math.PI
 // const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
@@ -55,7 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-1.79, 0.93, 2.26)
+    this.cameraRo = vec3.fromValues(-2.81, 1.52, -1.55)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
@@ -72,11 +72,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.16
+    this.angle1C = 0
     this.angle2C = 1.587
     this.angle3C = 2.55
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -176,7 +176,7 @@ export default class App {
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween3)
     cameraPosTween3.chain(cameraPosTween)
-    cameraPosTween.start(0)
+    // cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -228,6 +228,14 @@ export default class App {
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     // offsetTween1.start(0)
+
+    // Angle1C Tween
+    let angle1CTween1 = new TWEEN.Tween(this)
+    angle1CTween1
+      .to({ angle1C: TWO_PI * 2 }, 15 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    angle1CTween1.start(0)
   }
 
   setupAudio () {
