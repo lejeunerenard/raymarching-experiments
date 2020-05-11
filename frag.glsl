@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 15.0;
+const float totalT = 6.0;
 float modT = 0.;
 float norT = 0.;
 float cosT = 0.;
@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 1.0;
+float r = 1.1;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -831,25 +831,28 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
+  p *= -globalRot;
 
   vec3 q = p;
 
   // dT = angle1C;
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 0.1875;
+  const float warpScale = 0.375;
 
   // Warp
   vec3 wQ = q;
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
+  wQ += warpScale * 0.05000 * cos(13. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y - 2. * length(wQ));
+  wQ += warpScale * 0.02500 * cos(23. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(29. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625 * cos(37. * wQ.yzx + cosT );
 
-  float c = pModPolar(wQ.xz, 6.);
-  wQ.y *= 1. - 0.25 * pow(saturate(-wQ.y), 2.);
-  wQ.z = abs(wQ.z);
-  wQ *= rotationMatrix(vec3(0.4,1,0.4), angle1C);
   q = wQ;
 
   mPos = q;
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // d.x *= correctionScale;
@@ -1048,11 +1051,13 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.2);
+  vec3 color = #FF4CD7;
+
+  float dNR = dot(nor, -rd);
+  color = mix(color, #E645C3, dNR);
 
   return color;
 
-  float dNR = dot(nor, -rd);
   color = mix(#CFFCCA, #84AEB0, dNR);
   color = mix(background, vec3(1), pos.y + 0.5);
   return color;
@@ -1203,7 +1208,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.90;
+      float dispersionI = 0.60;
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
