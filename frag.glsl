@@ -1471,6 +1471,78 @@ float swirlMask (in vec2 q, in float nOffset) {
   return mix(n1, n2, saturate((pol.x - 0.8) / 0.2));
 }
 
+vec2 eclipseQ (in vec2 abR, in float t) {
+  return abR * vec2(cos(t), sin(t));
+}
+
+// IQ's ellipse 2D sdf
+// source: https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
+float sdEllipse( in vec2 p, in vec2 ab )
+{
+    p = abs(p); if( p.x > p.y ) {p=p.yx;ab=ab.yx;}
+    float l = ab.y*ab.y - ab.x*ab.x;
+    float m = ab.x*p.x/l;      float m2 = m*m; 
+    float n = ab.y*p.y/l;      float n2 = n*n; 
+    float c = (m2+n2-1.0)/3.0; float c3 = c*c*c;
+    float q = c3 + m2*n2*2.0;
+    float d = c3 + m2*n2;
+    float g = m + m*n2;
+    float co;
+    if( d<0.0 )
+    {
+        float h = acos(q/c3)/3.0;
+        float s = cos(h);
+        float t = sin(h)*sqrt(3.0);
+        float rx = sqrt( -c*(s + t + 2.0) + m2 );
+        float ry = sqrt( -c*(s - t + 2.0) + m2 );
+        co = (ry+sign(l)*rx+abs(g)/(rx*ry)- m)/2.0;
+    }
+    else
+    {
+        float h = 2.0*m*n*sqrt( d );
+        float s = sign(q+h)*pow(abs(q+h), 1.0/3.0);
+        float u = sign(q-h)*pow(abs(q-h), 1.0/3.0);
+        float rx = -s - u - c*4.0 + 2.0*m2;
+        float ry = (s - u)*sqrt(3.0);
+        float rm = sqrt( rx*rx + ry*ry );
+        co = (ry/sqrt(rm-rx)+2.0*g/rm-m)/2.0;
+    }
+    vec2 r = ab * vec2(co, sqrt(1.0-co*co));
+    return length(r-p) * sign(p.y-r.y);
+}
+
+float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t) {
+  float n = 1.;
+
+  // Ring
+  float ring = sdEllipse(q, abR);
+  ring = abs(ring);
+  ring = smoothstep(0.50 * edge, 0., ring);
+  n *= 1. - saturate(d) * ring;
+
+  // Star
+  vec2 eclQ = eclipseQ(abR, t);
+  float star = length(q - eclQ) - starR;
+  star = smoothstep(edge, 0., star);
+  n *= 1. - star;
+
+  return n;
+}
+
+float starSpeed (in float i, in float numStars) {
+  // return 1.;
+  // return 1. / numStars;
+  return 4. / numStars;
+}
+
+float starPhase (in float i, in float numStars) {
+  return TWO_PI / numStars; // / (i + 2.);
+}
+
+float numStarsCalc (in float i) {
+  return (i + 1.) * 8.;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
@@ -1480,28 +1552,97 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
 
   // Sizing
-  const float warpScale = 0.5;
-  const float r = 0.04;
+  // const float warpScale = 0.5;
 
-  float n = 0.;
-  float d = dot(q, vec2(1));
+  float n = 1.;
 
-  float scale = 0.03125 * sin(d * TWO_PI + cosT);
-  q += scale;
+  float r = 0.1 * scale;
+  float bigR = 0.0; // Defined for later
+  float bigRBase = 0.0125;
+  float bigRInc = 0.03;
 
-  n = dot(q, vec2(angle1C * 100.));
-  n = sin(TWO_PI * n);
-  n = smoothstep(0., edge, n);
+  vec2 abRoot = vec2(3, 1);
+  vec2 abR = bigR * abRoot;
+  float i = 0.;
+  float speed = 1.;
+  float phase = 0.;
+  float noiseTune = 1000. * angle3C; // 912.423;
+  float noiseTuneAmp = PI * angle2C;
+  float numStars = 0.;
 
+  bigR = bigRBase + i * bigRInc;
+  abR = bigR * abRoot;
+  q *= rotMat2(i * angle1C * PI);
+  numStars = numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 8.; j++) {
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+  i += 1.;
   q = uv;
-  const float maskR = 0.4;
-  float mask = length(q) - maskR;
-  mask = smoothstep(edge, 0., mask);
 
-  n *= mask;
+  bigR = bigRBase + i * bigRInc;
+  abR = bigR * abRoot;
+  q *= rotMat2(i * angle1C * PI);
+  numStars = numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 16.; j++) {
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+  i += 1.;
+  q = uv;
 
-  color = vec3(n);
+  bigR = bigRBase + i * bigRInc;
+  abR = bigR * abRoot;
+  q *= rotMat2(i * angle1C * PI);
+  numStars = numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 32.; j++) {
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+  i += 1.;
+  q = uv;
 
+  bigR = bigRBase + i * bigRInc;
+  abR = bigR * abRoot;
+  q *= rotMat2(i * angle1C * PI);
+  numStars = numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 40.; j++) {
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+  i += 1.;
+  q = uv;
+
+  bigR = bigRBase + i * bigRInc;
+  abR = bigR * abRoot;
+  q *= rotMat2(i * angle1C * PI);
+  numStars = 50.; // numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 50.; j++) {
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+  i += 1.;
+  q = uv;
+
+  bigR = bigRBase + i * bigRInc;
+  abR = bigR * abRoot;
+  q *= rotMat2(i * angle1C * PI);
+  numStars = 50.; // numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 50.; j++) {
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+  i += 1.;
+  q = uv;
+
+  color = vec3(1. - n);
   return color.rgb;
 }
 
@@ -1533,7 +1674,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0.5);
 

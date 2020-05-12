@@ -48,8 +48,8 @@ export default class App {
         y: 0,
         z: 0
       },
-      d: 1,
-      scale: -0.01,
+      d: 0.02,
+      scale: 0.04,
       rot2angle: [0.442, 5.933, 0.26],
       cameraAngles: [0.227, -0.569, 0.193]
     }
@@ -72,11 +72,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0
+    this.angle1C = -0.036
     this.angle2C = 1.587
     this.angle3C = 2.55
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
