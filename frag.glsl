@@ -1511,24 +1511,6 @@ float sdEllipse( in vec2 p, in vec2 ab )
     return length(r-p) * sign(p.y-r.y);
 }
 
-float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t) {
-  float n = 1.;
-
-  // Ring
-  float ring = sdEllipse(q, abR);
-  ring = abs(ring);
-  ring = smoothstep(0.50 * edge, 0., ring);
-  n *= 1. - saturate(d) * ring;
-
-  // Star
-  vec2 eclQ = eclipseQ(abR, t);
-  float star = length(q - eclQ) - starR;
-  star = smoothstep(edge, 0., star);
-  n *= 1. - star;
-
-  return n;
-}
-
 float starSpeed (in float i, in float numStars) {
   // return 1.;
   // return 1. / numStars;
@@ -1543,10 +1525,62 @@ float numStarsCalc (in float i) {
   return (i + 1.) * 8.;
 }
 
+float starEllipseStar (in vec2 q, in vec2 abR, in float starR, in float t) {
+  float n = 1.;
+
+  // Ring
+  float ring = sdEllipse(q, abR);
+  ring = abs(ring);
+  ring = smoothstep(0.50 * edge, 0., ring);
+  n *= 1. - saturate(10. * d) * ring;
+
+  // Star
+  vec2 eclQ = eclipseQ(abR, t);
+  float star = length(q - eclQ) - starR;
+  star = smoothstep(edge, 0., star);
+  n *= 1. - star;
+
+  return n;
+}
+
+float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t, in float i) {
+  float n = 1.;
+
+  // Ring
+  float ring = sdEllipse(q, abR);
+  ring = abs(ring);
+  ring = smoothstep(0.50 * edge, 0., ring);
+  n *= 1. - saturate(d) * ring;
+
+  vec2 eclQ = eclipseQ(abR, t);
+
+  // i += 1.;
+  float speed = 1.;
+  float phase = 0.;
+  float noiseTune = 1000. * angle3C; // 912.423;
+  float noiseTuneAmp = PI * angle2C;
+  float numStars = 0.;
+  float rotAmount = PI * -0.036;
+
+  abR = angle1C * abR;
+  numStars = 8.; // Fix because I cant use dynamic variables in loop conditionals // numStarsCalc(i);
+  speed = starSpeed(i, numStars);
+  phase = starPhase(i, numStars);
+  for (float j = 0.; j < 8.; j++) {
+    n *= starEllipseStar(q - eclQ, abR, starR, speed * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  }
+
+  return n;
+}
+
+float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t) {
+  return starEllipse(q, abR, starR, t, 1.);
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = uv;
+  vec2 q = scale * uv;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
@@ -1556,10 +1590,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 1.;
 
-  float r = 0.1 * scale;
+  float r = 0.1 * 0.04;
   float bigR = 0.0; // Defined for later
   float bigRBase = 0.0125;
-  float bigRInc = 0.03;
+  float bigRInc = 0.025;
 
   vec2 abRoot = vec2(3, 1);
   vec2 abR = bigR * abRoot;
@@ -1569,78 +1603,79 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float noiseTune = 1000. * angle3C; // 912.423;
   float noiseTuneAmp = PI * angle2C;
   float numStars = 0.;
+  float rotAmount = PI * -0.036;
 
   bigR = bigRBase + i * bigRInc;
   abR = bigR * abRoot;
-  q *= rotMat2(i * angle1C * PI);
+  q *= rotMat2(i * rotAmount);
   numStars = numStarsCalc(i);
   speed = starSpeed(i, numStars);
   phase = starPhase(i, numStars);
   for (float j = 0.; j < 8.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
   }
   i += 1.;
-  q = uv;
+  q = scale * uv;
 
   bigR = bigRBase + i * bigRInc;
   abR = bigR * abRoot;
-  q *= rotMat2(i * angle1C * PI);
+  q *= rotMat2(i * rotAmount);
   numStars = numStarsCalc(i);
   speed = starSpeed(i, numStars);
   phase = starPhase(i, numStars);
   for (float j = 0.; j < 16.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
   }
   i += 1.;
-  q = uv;
+  q = scale * uv;
 
-  bigR = bigRBase + i * bigRInc;
-  abR = bigR * abRoot;
-  q *= rotMat2(i * angle1C * PI);
-  numStars = numStarsCalc(i);
-  speed = starSpeed(i, numStars);
-  phase = starPhase(i, numStars);
-  for (float j = 0.; j < 32.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  }
-  i += 1.;
-  q = uv;
+  // bigR = bigRBase + i * bigRInc;
+  // abR = bigR * abRoot;
+  // q *= rotMat2(i * rotAmount);
+  // numStars = numStarsCalc(i);
+  // speed = starSpeed(i, numStars);
+  // phase = starPhase(i, numStars);
+  // for (float j = 0.; j < 32.; j++) {
+  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
+  // }
+  // i += 1.;
+  // q = uv;
 
-  bigR = bigRBase + i * bigRInc;
-  abR = bigR * abRoot;
-  q *= rotMat2(i * angle1C * PI);
-  numStars = numStarsCalc(i);
-  speed = starSpeed(i, numStars);
-  phase = starPhase(i, numStars);
-  for (float j = 0.; j < 40.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  }
-  i += 1.;
-  q = uv;
+  // bigR = bigRBase + i * bigRInc;
+  // abR = bigR * abRoot;
+  // q *= rotMat2(i * rotAmount);
+  // numStars = numStarsCalc(i);
+  // speed = starSpeed(i, numStars);
+  // phase = starPhase(i, numStars);
+  // for (float j = 0.; j < 40.; j++) {
+  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  // }
+  // i += 1.;
+  // q = uv;
 
-  bigR = bigRBase + i * bigRInc;
-  abR = bigR * abRoot;
-  q *= rotMat2(i * angle1C * PI);
-  numStars = 50.; // numStarsCalc(i);
-  speed = starSpeed(i, numStars);
-  phase = starPhase(i, numStars);
-  for (float j = 0.; j < 50.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  }
-  i += 1.;
-  q = uv;
+  // bigR = bigRBase + i * bigRInc;
+  // abR = bigR * abRoot;
+  // q *= rotMat2(i * rotAmount);
+  // numStars = 50.; // numStarsCalc(i);
+  // speed = starSpeed(i, numStars);
+  // phase = starPhase(i, numStars);
+  // for (float j = 0.; j < 50.; j++) {
+  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  // }
+  // i += 1.;
+  // q = uv;
 
-  bigR = bigRBase + i * bigRInc;
-  abR = bigR * abRoot;
-  q *= rotMat2(i * angle1C * PI);
-  numStars = 50.; // numStarsCalc(i);
-  speed = starSpeed(i, numStars);
-  phase = starPhase(i, numStars);
-  for (float j = 0.; j < 50.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  }
-  i += 1.;
-  q = uv;
+  // bigR = bigRBase + i * bigRInc;
+  // abR = bigR * abRoot;
+  // q *= rotMat2(i * rotAmount);
+  // numStars = 50.; // numStarsCalc(i);
+  // speed = starSpeed(i, numStars);
+  // phase = starPhase(i, numStars);
+  // for (float j = 0.; j < 50.; j++) {
+  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
+  // }
+  // i += 1.;
+  // q = uv;
 
   color = vec3(1. - n);
   return color.rgb;
