@@ -1528,15 +1528,24 @@ float numStarsCalc (in float i) {
 float starEllipseStar (in vec2 q, in vec2 abR, in float starR, in float t) {
   float n = 1.;
 
+  vec2 eclQ = eclipseQ(abR, t);
+  vec2 relQ = q - eclQ;
+  float angle = atan(relQ.y, relQ.x) + PI;
+  angle /= TWO_PI; // normalize
+  float normT = mod(t + PI, TWO_PI) / TWO_PI;
+
   // Ring
   float ring = sdEllipse(q, abR);
   ring = abs(ring);
   ring = smoothstep(0.50 * edge, 0., ring);
+  // Make ring a tail
+  ring *= pow(1. - saturate(mod(normT - angle, 1.) / 0.5), 0.5);
+
+  // ring *= mod(t, TWO_PI) / TWO_PI;
   n *= 1. - saturate(10. * d) * ring;
 
   // Star
-  vec2 eclQ = eclipseQ(abR, t);
-  float star = length(q - eclQ) - starR;
+  float star = length(relQ) - starR;
   star = smoothstep(edge, 0., star);
   n *= 1. - star;
 
@@ -1550,9 +1559,9 @@ float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t, in float 
   float ring = sdEllipse(q, abR);
   ring = abs(ring);
   ring = smoothstep(0.50 * edge, 0., ring);
-  n *= 1. - saturate(d) * ring;
+  // n *= 1. - saturate(d) * ring;
 
-  vec2 eclQ = eclipseQ(abR, t);
+  vec2 eclQ = eclipseQ(abR, -t);
 
   // i += 1.;
   float speed = 1.;
@@ -1563,10 +1572,11 @@ float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t, in float 
   float rotAmount = PI * -0.036;
 
   abR = angle1C * abR;
-  numStars = 8.; // Fix because I cant use dynamic variables in loop conditionals // numStarsCalc(i);
+#define numStarsInOrbit 5.
+  numStars = numStarsInOrbit; // Fix because I cant use dynamic variables in loop conditionals // numStarsCalc(i);
   speed = starSpeed(i, numStars);
   phase = starPhase(i, numStars);
-  for (float j = 0.; j < 8.; j++) {
+  for (float j = 0.; j < numStarsInOrbit; j++) {
     n *= starEllipseStar(q - eclQ, abR, starR, speed * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
   }
 
@@ -1590,40 +1600,40 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 1.;
 
-  float r = 0.1 * 0.04;
+  float r = angle3C;
   float bigR = 0.0; // Defined for later
-  float bigRBase = 0.0125;
+  float bigRBase = angle2C;
   float bigRInc = 0.025;
 
-  vec2 abRoot = vec2(3, 1);
+  vec2 abRoot = vec2(2, 1);
   vec2 abR = bigR * abRoot;
   float i = 0.;
   float speed = 1.;
   float phase = 0.;
-  float noiseTune = 1000. * angle3C; // 912.423;
-  float noiseTuneAmp = PI * angle2C;
+  float noiseTune = 0.; // 1000. * angle3C; // 912.423;
+  float noiseTuneAmp = 0.; // PI * angle2C;
   float numStars = 0.;
   float rotAmount = PI * -0.036;
 
-  bigR = bigRBase + i * bigRInc;
-  abR = bigR * abRoot;
-  q *= rotMat2(i * rotAmount);
-  numStars = numStarsCalc(i);
-  speed = starSpeed(i, numStars);
-  phase = starPhase(i, numStars);
-  for (float j = 0.; j < 8.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
-  }
+  // bigR = bigRBase + i * bigRInc;
+  // abR = bigR * abRoot;
+  // q *= rotMat2(i * rotAmount);
+  // numStars = numStarsCalc(i);
+  // speed = starSpeed(i, numStars);
+  // phase = starPhase(i, numStars);
+  // for (float j = 0.; j < 8.; j++) {
+  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
+  // }
   i += 1.;
   q = scale * uv;
 
   bigR = bigRBase + i * bigRInc;
   abR = bigR * abRoot;
   q *= rotMat2(i * rotAmount);
-  numStars = numStarsCalc(i);
+  numStars = 8.; // numStarsCalc(i);
   speed = starSpeed(i, numStars);
   phase = starPhase(i, numStars);
-  for (float j = 0.; j < 16.; j++) {
+  for (float j = 0.; j < 8.; j++) {
     n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
   }
   i += 1.;
@@ -1677,7 +1687,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // i += 1.;
   // q = uv;
 
-  color = vec3(1. - n);
+  color = mix(vec3(0, 0.1, 0.9), vec3(1), 1. - n);
   return color.rgb;
 }
 
