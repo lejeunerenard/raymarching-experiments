@@ -844,18 +844,17 @@ vec3 map (in vec3 p, in float dT) {
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
   wQ += warpScale * 0.05000 * cos(13. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y - 2. * length(wQ));
+  wQ.xyz = twist(wQ.xzy, 0.5 * wQ.y);
   wQ += warpScale * 0.02500 * cos(23. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625 * cos(37. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(31. * wQ.yzx + cosT );
 
   q = wQ;
 
   mPos = q;
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
-  // d.x *= correctionScale;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1054,13 +1053,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = #FF4CD7;
 
   float dNR = dot(nor, -rd);
-  color = mix(color, #E645C3, dNR);
-
-  return color;
-
   color = mix(#CFFCCA, #84AEB0, dNR);
-  color = mix(background, vec3(1), pos.y + 0.5);
+  color *= vec3(0.7, 0.8, 1.);
   return color;
+
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pos;
@@ -1147,7 +1143,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1719,7 +1715,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0.5);
 
