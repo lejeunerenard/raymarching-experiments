@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 8192
+#define maxSteps 1024
 #define maxDistance 10.0
 #define fogMaxDistance 10.
 
@@ -809,52 +809,79 @@ vec3 pieSlice (in vec3 p, in float c) {
   return d;
 }
 
-vec3 squishedSphere (in vec3 q) {
-  float cornerTightness = angle2C;
-  const float cornerPower = 9.00;
+float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
+  float b = sdBox(q, r);
 
-  float scaleFactor = 1.;
-  if (q.y > 0.) {
-    q.y *= 1. + cornerPower * pow(q.y, cornerTightness);
-    scaleFactor *= 1. + cornerPower * pow(q.y, cornerTightness);
+  // crop inners
+  vec3 cropR = r - thickness;
+  vec3 cropQ = q;
+  float crop = sdBox(cropQ, vec3(30, cropR.y, cropR.z));
+
+  if (abs(q.y) > abs(q.x)) {
+    cropQ.yx = cropQ.xy;
   }
-  if (q.x > 0.) {
-    q.x *= 1. + cornerPower * pow(q.x, cornerTightness);
-    scaleFactor *= 1. + cornerPower * pow(q.x, cornerTightness);
+  crop = min(crop, sdBox(cropQ, vec3(30, cropR.x, cropR.z)));
+
+  if (abs(q.z) > abs(q.x)) {
+    cropQ.zx = cropQ.xz;
+  }
+  crop = min(crop, sdBox(cropQ, vec3(30, cropR.x, cropR.y)));
+
+  return max(b, -crop);
+}
+
+vec3 bundleHollowBox (in vec3 wQ, in vec3 r, in float thickness) {
+  vec3 d = vec3(maxDistance, 0, 0);
+
+  for (int i = 0; i < 1; i++) {
+    float fI = float(i);
+    vec3 q = wQ;
+    q *= rotationMatrix(vec3(1, 0, 0.), fI * 0.25 * cosT);
+    mPos = q;
+    vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
+    d = dMin(d, b);
   }
 
-  mPos = q;
-  return vec3((length(q) - r) / scaleFactor, 0, 0);
+  return d;
 }
 
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= -globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  // dT = angle1C;
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 0.375;
+  const float thickness = 0.15;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
-  wQ += warpScale * 0.05000 * cos(13. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 0.5 * wQ.y);
-  wQ += warpScale * 0.02500 * cos(23. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(31. * wQ.yzx + cosT );
-
+  wQ = abs(wQ);
+  wQ *= rotationMatrix(vec3(1), cosT);
   q = wQ;
 
-  mPos = q;
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  vec3 b = bundleHollowBox(q, vec3(r), thickness);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  // q = wQ;
+  // q *= rotationMatrix(vec3(0, 1, 0), 0.25 * PI + cosT);
+  // b = bundleHollowBox(q, vec3(r), thickness);
+  // d = dMin(d, b);
+
+  // q = wQ;
+  // q *= rotationMatrix(vec3(1, 0, 0), 0.25 * PI + cosT);
+  // b = bundleHollowBox(q, vec3(r), thickness);
+  // d = dMin(d, b);
+
+  // q = wQ;
+  // q *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI + cosT);
+  // b = bundleHollowBox(q, vec3(r), thickness);
+  // d = dMin(d, b);
+
+  // d.x *= 0.8;
 
   return d;
 }
@@ -1052,6 +1079,8 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = #FF4CD7;
 
+  return vec3(length(pos) / (0.80 * r));
+
   float dNR = dot(nor, -rd);
   color = mix(#CFFCCA, #84AEB0, dNR);
   color *= vec3(0.7, 0.8, 1.);
@@ -1119,13 +1148,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 5.75;
-      float bumpIntensity = 0.25 * isMaterialSmooth(t.y, 1.);
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 5.75;
+      // float bumpIntensity = 0.25 * isMaterialSmooth(t.y, 1.);
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1143,20 +1172,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 1.0;
+      float freCo = 0.5;
+      float specCo = 0.125;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.80;
+        float diffMin = 0.30;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.8;
+        const float shadowMin = 0.75;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1191,7 +1220,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * reflection(pos, reflectionRd);
+      reflectColor += 0.04 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1201,13 +1230,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.60;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 0.10;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
       // color = diffuseColor;
