@@ -845,6 +845,19 @@ vec3 bundleHollowBox (in vec3 wQ, in vec3 r, in float thickness) {
   return d;
 }
 
+vec3 foldingCage (in vec3 q, in float r, in float thickness, in float axisI) {
+  vec3 axis = vec3(1, 0, 0);
+  axis *= rotationMatrix(vec3(1), (axisI + 1.) * PI * 0.8231);
+
+  // Warp
+  vec3 wQ = q;
+  wQ = abs(wQ);
+  wQ *= rotationMatrix(axis, cosT);
+  q = wQ;
+
+  return bundleHollowBox(q, vec3(r), thickness);
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -859,12 +872,14 @@ vec3 map (in vec3 p, in float dT) {
 
   // Warp
   vec3 wQ = q;
-  wQ = abs(wQ);
-  wQ *= rotationMatrix(vec3(1), cosT);
   q = wQ;
 
-  vec3 b = bundleHollowBox(q, vec3(r), thickness);
-  d = dMin(d, b);
+  for (int i = 0; i < 3; i++) {
+    float fI = float(i);
+    float r = 1.1 - fI * 0.30;
+    vec3 b = foldingCage(q, r, thickness, fI);
+    d = dMin(d, b);
+  }
 
   // q = wQ;
   // q *= rotationMatrix(vec3(0, 1, 0), 0.25 * PI + cosT);
