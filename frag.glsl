@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 1.35;
+float r = 0.045;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -862,7 +862,7 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -872,20 +872,12 @@ vec3 map (in vec3 p, in float dT) {
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y + 0.3 * cos(1.0 * wQ.y + cosT));
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT);
-  wQ += warpScale * 0.050000 * snoise3( 2. * wQ.yzx );
-  wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT);
-  wQ += warpScale * 0.012500 * cos(25. * wQ.yzx + cosT);
-  wQ += warpScale * 0.006250 * cos(31. * wQ.yzx + cosT);
-
   q = wQ;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(r - length(q.xy), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.35;
+  // d.x *= 0.35;
 
   return d;
 }
@@ -1082,7 +1074,31 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.2);
+  vec3 color = vec3(0);
+
+  float a = atan(pos.y, pos.x);
+
+  const vec2 size = vec2(0.5 * 0.03394 * TWO_PI, 3.24);
+  float c = floor((a + size.x*0.5)/size.x);
+  float nOffest = snoise2(1218. * vec2(c));
+
+  vec2 pol = vec2(
+    a,
+    sin(TWO_PI * pos.z + 0.9 * PI * nOffest - 4. * cosT));
+
+  pMod2(pol, size);
+
+  vec2 absPol = abs(pol) - vec2(0.125, 0.3) * size;
+  float n = max(absPol.y, absPol.x);
+  // float n = pol.x;
+
+  // const float start = 0.4;
+  const float start = 0.0;
+  n = smoothstep(start, start + edge, n);
+
+  n = 1. - n;
+
+  color = vec3(n);
 
   return color;
 
@@ -1236,16 +1252,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.00;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.00;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
