@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 10.
 
@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.045;
+float r = 0.1;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -858,26 +858,80 @@ vec3 foldingCage (in vec3 q, in float r, in float thickness, in float axisI) {
   return bundleHollowBox(q, vec3(r), thickness);
 }
 
+vec3 orange (in vec3 wQ, in float r, in float t) {
+  vec3 d = vec3(maxDistance, 0, 0);
+
+  vec3 q = wQ;
+
+  // Leaf
+  float num = 6.;
+  float c = pModPolar(wQ.xz, num);
+
+  float a = atan(wQ.y, wQ.x);
+  float a2 = atan(wQ.z, wQ.x);
+
+  vec3 stemQ = wQ;
+
+  vec2 pol = vec2(a2, a);
+
+  // Bend
+  t -= 0.66 * (c + 2.) / num;
+  t = saturate(3. * t);
+  float unfold = 1. - t;
+  wQ.xy *= rotMat2(-unfold * a);
+  wQ.xz *= rotMat2(-0.5 * a2);
+
+  wQ.x -= r * (1. + 1. * quad(t));
+  // wQ.y += 0.25 * t;
+
+  float myRT = 1. - quintIn(t);
+  float skinThickness = 0.125 * r;
+  float skinHeight = 0.5 * myRT * PI * r;
+  float o = sdBox(wQ, vec3(skinThickness, skinHeight, myRT * TWO_PI * r / num));
+  o -= 4.5125e-4 * cnoise2(14. * pol);
+
+  // Remove lingering shadows
+  o += 0.1 * smoothstep(0.940, 1., t);
+
+  d = dMin(d, vec3(o, 0, c));
+
+  // Stem
+  // vec3 stemQ = wQ.yxz;
+  // stemQ.x -= skinHeight;
+  stemQ.y -= r;
+  vec3 s = vec3(sdCappedCylinder(stemQ, vec2(0.1 * r, 1.54 * skinThickness)), 1, 0);
+  s += 0.05 * t;
+  d = dMin(d, s);
+
+  return d;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 1.25;
   const float thickness = 0.15;
+  const float smallScale = 0.8;
 
   // Warp
   vec3 wQ = q;
+  wQ *= mix(1., smallScale, norT);
   q = wQ;
 
-  vec3 b = vec3(r - length(q.xy), 0, 0);
+  float rSmall = r * smallScale;
+  vec3 b = orange(q, r, norT);
   d = dMin(d, b);
 
-  // d.x *= 0.35;
+  vec3 inner = orange(q, rSmall, 0.);
+  d = dMin(d, inner);
+
+  d.x *= 0.040;
 
   return d;
 }
@@ -1076,6 +1130,8 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
+  return mix(#F08A3B, 0.8 * #39A31C, isMaterialSmooth(m, 1.));
+
   float a = atan(pos.y, pos.x);
 
   const vec2 size = vec2(0.5 * 0.03394 * TWO_PI, 3.24);
@@ -1194,8 +1250,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.85;
+      float freCo = 2.0;
+      float specCo = 0.90;
 
       float specAll = 0.0;
 
@@ -1207,7 +1263,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.75;
+        const float shadowMin = 0.85;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1242,7 +1298,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.04 * reflection(pos, reflectionRd);
+      reflectColor += 0.02 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1261,7 +1317,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += saturate(dispersionColor);
 
 #endif
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
