@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.1;
+float r = 0.9;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -915,23 +915,21 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 1.25;
-  const float thickness = 0.15;
-  const float smallScale = 0.8;
+  const float warpScale = 2.00;
 
   // Warp
   vec3 wQ = q;
-  wQ *= mix(1., smallScale, norT);
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos( 8. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(16. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
-  float rSmall = r * smallScale;
-  vec3 b = orange(q, r, norT);
+  mPos = q;
+  vec3 b = vec3(length(q) - r, 0, 0.);
   d = dMin(d, b);
 
-  vec3 inner = orange(q, rSmall, 0.);
-  d = dMin(d, inner);
-
-  d.x *= 0.040;
+  d.x *= 0.2;
 
   return d;
 }
@@ -1130,50 +1128,13 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  return mix(#F08A3B, 0.8 * #39A31C, isMaterialSmooth(m, 1.));
+  float n = 0.;
 
-  float a = atan(pos.y, pos.x);
+  float i = dot(mPos, vec3(10));
+  n = mod(i, 1.);
+  n = smoothstep(0.5, 0.5 + edge, n);
 
-  const vec2 size = vec2(0.5 * 0.03394 * TWO_PI, 3.24);
-  float c = floor((a + size.x*0.5)/size.x);
-  float nOffest = snoise2(1218. * vec2(c));
-
-  vec2 pol = vec2(
-    a,
-    sin(TWO_PI * pos.z + 0.9 * PI * nOffest - 4. * cosT));
-
-  pMod2(pol, size);
-
-  vec2 absPol = abs(pol) - vec2(0.125, 0.3) * size;
-  float n = max(absPol.y, absPol.x);
-  // float n = pol.x;
-
-  // const float start = 0.4;
-  const float start = 0.0;
-  n = smoothstep(start, start + edge, n);
-
-  n = 1. - n;
-
-  color = vec3(n);
-
-  return color;
-
-  float dNR = dot(nor, -rd);
-
-  // color = mix(#CFFCCA, #84AEB0, dNR);
-  // color *= vec3(0.7, 0.8, 1.);
-  // return color;
-
-  vec3 dI = vec3(dNR);
-
-  dI += 0.2 * pos;
-  dI += 0.1 * pow(dNR, 3.);
-
-  color = mix(#FFA742, #FF5074, smoothstep(0., 0.33, dI.x));
-  color = mix(color, #D43CE8, smoothstep(0.33, 0.67, dI.x));
-  color = mix(color, #8142FF, smoothstep(0.67, 1.00, dI.x));
-
-  return color;
+  return vec3(n);
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1250,15 +1211,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.90;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.750;
+        float diffMin = 1.000;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
