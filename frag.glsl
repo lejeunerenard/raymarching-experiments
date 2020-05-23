@@ -1654,7 +1654,7 @@ float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t) {
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
-  vec2 q = scale * uv;
+  vec2 q = uv;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
@@ -1662,96 +1662,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Sizing
   // const float warpScale = 0.5;
 
-  float n = 1.;
+  float n = 0.;
 
-  float r = angle3C;
-  float bigR = 0.0; // Defined for later
-  float bigRBase = angle2C;
-  float bigRInc = 0.025;
+  // Vertical adjustment
+  q.y += 0.225;
 
-  vec2 abRoot = vec2(2, 1);
-  vec2 abR = bigR * abRoot;
-  float i = 0.;
-  float speed = 1.;
-  float phase = 0.;
-  float noiseTune = 0.; // 1000. * angle3C; // 912.423;
-  float noiseTuneAmp = 0.; // PI * angle2C;
-  float numStars = 0.;
-  float rotAmount = PI * -0.036;
+  float rowHeight = 0.05;
+  float rowC = pMod1(q.y, rowHeight);
 
-  // bigR = bigRBase + i * bigRInc;
-  // abR = bigR * abRoot;
-  // q *= rotMat2(i * rotAmount);
-  // numStars = numStarsCalc(i);
-  // speed = starSpeed(i, numStars);
-  // phase = starPhase(i, numStars);
-  // for (float j = 0.; j < 8.; j++) {
-  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
-  // }
-  i += 1.;
-  q = scale * uv;
+  float numCols = 5. + rowC;
+  float colWidth = 0.5 / numCols;
 
-  bigR = bigRBase + i * bigRInc;
-  abR = bigR * abRoot;
-  q *= rotMat2(i * rotAmount);
-  numStars = 8.; // numStarsCalc(i);
-  speed = starSpeed(i, numStars);
-  phase = starPhase(i, numStars);
-  for (float j = 0.; j < 8.; j++) {
-    n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
-  }
-  i += 1.;
-  q = scale * uv;
+  q.x += colWidth * norT;
+  float colC = pMod1(q.x, colWidth);
 
-  // bigR = bigRBase + i * bigRInc;
-  // abR = bigR * abRoot;
-  // q *= rotMat2(i * rotAmount);
-  // numStars = numStarsCalc(i);
-  // speed = starSpeed(i, numStars);
-  // phase = starPhase(i, numStars);
-  // for (float j = 0.; j < 32.; j++) {
-  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )), i);
-  // }
-  // i += 1.;
-  // q = uv;
+  vec2 absQ = abs(q);
+  float colSpacer = 0.0050;
+  vec2 lineSize = vec2(0.5 * colWidth - colSpacer, rowHeight * 0.1);
+  float line = max(absQ.y - lineSize.y, absQ.x - lineSize.x);
+  n = smoothstep(edge, 0., line);
 
-  // bigR = bigRBase + i * bigRInc;
-  // abR = bigR * abRoot;
-  // q *= rotMat2(i * rotAmount);
-  // numStars = numStarsCalc(i);
-  // speed = starSpeed(i, numStars);
-  // phase = starPhase(i, numStars);
-  // for (float j = 0.; j < 40.; j++) {
-  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  // }
-  // i += 1.;
-  // q = uv;
+  // Mask
+  q = uv;
 
-  // bigR = bigRBase + i * bigRInc;
-  // abR = bigR * abRoot;
-  // q *= rotMat2(i * rotAmount);
-  // numStars = 50.; // numStarsCalc(i);
-  // speed = starSpeed(i, numStars);
-  // phase = starPhase(i, numStars);
-  // for (float j = 0.; j < 50.; j++) {
-  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  // }
-  // i += 1.;
-  // q = uv;
+  absQ = abs(q);
+  float mask = max(absQ.y, absQ.x) - 0.4;
+  mask = smoothstep(edge, 0., mask);
+  n *= mask;
 
-  // bigR = bigRBase + i * bigRInc;
-  // abR = bigR * abRoot;
-  // q *= rotMat2(i * rotAmount);
-  // numStars = 50.; // numStarsCalc(i);
-  // speed = starSpeed(i, numStars);
-  // phase = starPhase(i, numStars);
-  // for (float j = 0.; j < 50.; j++) {
-  //   n *= starEllipse(q, abR, r, speed * TWO_PI * t + j * phase + noiseTuneAmp * noise(vec2((i + 1.) * noiseTune )));
-  // }
-  // i += 1.;
-  // q = uv;
-
-  color = mix(vec3(0, 0.1, 0.9), vec3(1), 1. - n);
+  color = mix(vec3(0.125), vec3(0.9), n);
   return color.rgb;
 }
 
@@ -1783,7 +1722,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0.5);
 
