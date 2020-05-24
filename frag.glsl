@@ -1659,36 +1659,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  // Sizing
-  // const float warpScale = 0.5;
-
   float n = 0.;
 
-  // Vertical adjustment
-  q.y += 0.225;
+  float a = atan(q.y, q.x);
+  float l = length(q);
 
-  float rowHeight = 0.05;
-  float rowC = pMod1(q.y, rowHeight);
+  vec2 pol = vec2(
+      a,
+      l);
 
-  float numCols = 5. + rowC;
-  float colWidth = 0.5 / numCols;
+  float ringHeight = 0.1;
+  float ringC = pMod1(pol.y, ringHeight);
 
-  q.x += colWidth * norT;
-  float colC = pMod1(q.x, colWidth);
+  float num = 3. + 4. * ringC;
+  q *= rotMat2(TWO_PI / num * norT);
+  float aC = pModPolar(q, num);
 
-  vec2 absQ = abs(q);
-  float colSpacer = 0.0050;
-  vec2 lineSize = vec2(0.5 * colWidth - colSpacer, rowHeight * 0.1);
-  float line = max(absQ.y - lineSize.y, absQ.x - lineSize.x);
-  n = smoothstep(edge, 0., line);
+  q.x -= ringC * ringHeight;
+
+  n = length(q) - 0.3 * ringHeight;
+  n = smoothstep(edge, 0., n);
 
   // Mask
-  q = uv;
-
-  absQ = abs(q);
-  float mask = max(absQ.y, absQ.x) - 0.4;
-  mask = smoothstep(edge, 0., mask);
-  n *= mask;
+  // n *= 1. - step(5., ringC);
 
   color = mix(vec3(0.125), vec3(0.9), n);
   return color.rgb;
