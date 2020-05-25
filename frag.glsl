@@ -910,19 +910,18 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 2.00;
+  const float warpScale = 1.00;
 
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ, wQ.y);
   wQ += warpScale * 0.0500 * cos( 8. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(16. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
@@ -1132,7 +1131,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float i = dot(mPos, vec3(10));
   n = mod(i, 1.);
-  n = smoothstep(0.5, 0.5 + edge, n);
+  float stop = 0.25;
+  n = smoothstep(stop, stop + edge, n);
 
   return vec3(n);
 
@@ -1224,7 +1224,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.85;
+        const float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1715,7 +1715,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0.5);
 

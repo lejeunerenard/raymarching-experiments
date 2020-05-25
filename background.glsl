@@ -6,8 +6,13 @@ vec3 getBackground (in vec2 uv) {
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
   // vec3 color = mix(vec3(0.35), vec3(0.0), saturate(length(uv)));
-  vec3 color = mix(vec3(1.0), vec3(0.5), saturate(length(uv)));
-  // vec3 color = vec3(0);
+  // vec3 color = mix(vec3(1.0), vec3(0.5), saturate(length(uv)));
+
+  float i = dot(uv, vec2(25));
+  float n = mod(i, 1.);
+  float stop = 0.25;
+  n = smoothstep(stop, stop + edge, n);
+  vec3 color = vec3(n);
 
   return color;
 }
