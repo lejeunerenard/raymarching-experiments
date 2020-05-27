@@ -910,6 +910,8 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p *= globalRot;
+
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
@@ -917,20 +919,23 @@ vec3 map (in vec3 p, in float dT) {
 
   // Warp
   vec3 wQ = q;
-  wQ.xzy = twist(wQ, 1. * wQ.y);
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos( 8. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ, 2. * wQ.y);
-  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
-  vec3 b = vec3(length(q) - r, 0, 0.);
-  b.x -= 0.010 * cellular(3. * q);
+
+  // Inner "Cellular" sphere
+  float l = length(q);
+  vec3 b = vec3(l - r, 0, 0.);
+  b.x -= 0.250 * cellular(2. * q);
   d = dMin(d, b);
 
-  d.x *= 0.2;
+  // Outer cropping shell
+  float crop = l - (r + angle1C);
+  d.x = max(d.x, crop);
+
+  d.x -= 0.003125 * cellular(12. * q);
+
+  d.x *= 0.7;
 
   return d;
 }
@@ -1262,8 +1267,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 1.00;
       dispersionColor *= dispersionI;
