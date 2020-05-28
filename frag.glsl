@@ -910,15 +910,22 @@ vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 2.00;
+  const float warpScale = 1.00;
 
   // Warp
   vec3 wQ = q;
+  wQ = abs(wQ);
+  mPos = wQ;
+  float delay = 2. * length(wQ);
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT + delay );
+  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT + delay );
+  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT + delay );
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT + delay );
   q = wQ;
 
   mPos = q;
@@ -926,16 +933,16 @@ vec3 map (in vec3 p, in float dT) {
   // Inner "Cellular" sphere
   float l = length(q);
   vec3 b = vec3(l - r, 0, 0.);
-  b.x -= 0.250 * cellular(2. * q);
+  b.x -= 0.1250 * cellular(1. * mPos);
   d = dMin(d, b);
 
   // Outer cropping shell
-  float crop = l - (r + angle1C);
-  d.x = max(d.x, crop);
+  // float crop = l - (r + angle1C);
+  // d.x = max(d.x, crop);
 
-  d.x -= 0.003125 * cellular(12. * q);
+  // d.x -= 0.003125 * cellular(12. * q);
 
-  d.x *= 0.7;
+  d.x *= 0.2;
 
   return d;
 }
@@ -1133,6 +1140,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.1 * snoise3(mPos);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
+  color *= 0.1;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
