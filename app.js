@@ -55,7 +55,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-1.8, 0.24, 2.39)
+    this.cameraRo = vec3.fromValues(-0.6, 0.3, 1)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [84, 8, 138]
@@ -155,27 +155,19 @@ export default class App {
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
       .delay(0 * 1000)
-      .to({ x: -0.05, y: self.cameraRo[1], z: self.cameraRo[2] }, 1.5 * 1000)
+      .to({ x: 0.6, y: self.cameraRo[1], z: self.cameraRo[2] }, 6 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     let cameraPosTween2 = new TWEEN.Tween(ob)
     cameraPosTween2
       .delay(0 * 1000)
-      .to({ x: 0.05, y: self.cameraRo[1], z: self.cameraRo[2] }, 3 * 1000)
-      .easing(TWEEN.Easing.Quadratic.Out)
-      .onUpdate(updatePos)
-
-    let cameraPosTween3 = new TWEEN.Tween(ob)
-    cameraPosTween3
-      .delay(0 * 1000)
-      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 1.5 * 1000)
+      .to({ x: -0.6, y: self.cameraRo[1], z: self.cameraRo[2] }, 6 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
-    cameraPosTween2.chain(cameraPosTween3)
-    cameraPosTween3.chain(cameraPosTween)
+    cameraPosTween2.chain(cameraPosTween)
     // cameraPosTween.start(0)
 
     // Camera rotation
@@ -235,7 +227,7 @@ export default class App {
       .to({ angle1C: TWO_PI * 2 }, 15 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    angle1CTween1.start(0)
+    // angle1CTween1.start(0)
   }
 
   setupAudio () {

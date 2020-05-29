@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 6.0;
+const float totalT = 12.0;
 float modT = 0.;
 float norT = 0.;
 float cosT = 0.;
@@ -915,34 +915,47 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 1.00;
+  const float warpScale = 0.50;
 
   // Warp
   vec3 wQ = q;
-  wQ = abs(wQ);
-  mPos = wQ;
-  float delay = 2. * length(wQ);
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT + delay );
-  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT + delay );
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT + delay );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT + delay );
   q = wQ;
 
   mPos = q;
 
-  // Inner "Cellular" sphere
-  float l = length(q);
-  vec3 b = vec3(l - r, 0, 0.);
-  b.x -= 0.1250 * cellular(1. * mPos);
-  d = dMin(d, b);
+  // Wall
+  vec3 w = vec3(sdBox(q, vec3(5, 5, 0.05)), 0, 0.);
 
-  // Outer cropping shell
-  // float crop = l - (r + angle1C);
-  // d.x = max(d.x, crop);
+  // Window Crop
+  float windowSize = 0.36;
+  float windowOffset = 0.09;
 
-  // d.x -= 0.003125 * cellular(12. * q);
+  vec3 winQ = q;
+  winQ.xy = abs(winQ.xy);
+  winQ -= (windowOffset + windowSize);
 
-  d.x *= 0.2;
+  float winCrop = sdBox(winQ, vec3(windowSize, windowSize, 10));
+  w.x = max(w.x, -winCrop);
+  d = dMin(d, w);
+
+  // Water
+  wQ = q;
+  wQ.y += warpScale * 0.1000 * cos( 3. * wQ.x + 2. * cosT);
+  wQ.y += warpScale * 0.0500 * cos( 7. * (wQ.x + wQ.y) + 4. * cosT);
+  wQ.y += warpScale * 0.0250 * cos(13. * (wQ.x + wQ.y) + 2. * cosT);
+  // wQ.y += warpScale * 0.0125 * cos(27. * (wQ.x + wQ.y) + cosT);
+  q = wQ;
+
+  float waterDepth = 0.7;
+  q.z += waterDepth + 0.2;
+  float waterHeight = 4. * (windowSize + windowOffset);
+  float hideWaterNudge = 0.9;
+  q.y += waterHeight + (windowSize + windowOffset) + hideWaterNudge; // Hide it out of sight
+  q.y -= 2. * (windowSize + windowOffset + 0.8 * hideWaterNudge) * smoothstep(0.1, 1.0, norT);
+  vec3 water = vec3(sdBox(q, vec3(5, waterHeight, waterDepth)), 1, 0.);
+  d = dMin(d, water);
+
+  // d.x *= 0.8;
 
   return d;
 }
@@ -1141,14 +1154,7 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 0.1 * snoise3(mPos);
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  color *= 0.1;
+  color = mix(color, vec3(0, 0.2, 1), isMaterialSmooth(m, 1.));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1188,8 +1194,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(0., 0.001, 1.0), #FFCCCC, 1.0);
-    lights[1] = light(vec3(0.5, 0.0,  1.0), #CCFFFF, 1.0);
+    lights[0] = light(vec3(0., 0.381, 1.0), #FFCCCC, 1.0);
+    lights[1] = light(vec3(0.5, 0.8,  1.0), #CCFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
     float backgroundMask = 1.;
@@ -1233,12 +1239,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 1.000;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        const float shadowMin = 0.95;
+        float shadowMin = 1.;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1284,12 +1290,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.00;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.00;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
       // color = diffuseColor;
