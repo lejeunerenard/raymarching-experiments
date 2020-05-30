@@ -915,47 +915,23 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 0.50;
+  const float warpScale = 1.00;
 
   // Warp
   vec3 wQ = q;
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125 * cos(29. * wQ.yzx + cosT);
   q = wQ;
 
   mPos = q;
 
-  // Wall
-  vec3 w = vec3(sdBox(q, vec3(5, 5, 0.05)), 0, 0.);
+  vec3 b = vec3(sdBox(q, vec3(0.6)), 0, 0.);
+  d = dMin(d, b);
 
-  // Window Crop
-  float windowSize = 0.36;
-  float windowOffset = 0.09;
-
-  vec3 winQ = q;
-  winQ.xy = abs(winQ.xy);
-  winQ -= (windowOffset + windowSize);
-
-  float winCrop = sdBox(winQ, vec3(windowSize, windowSize, 10));
-  w.x = max(w.x, -winCrop);
-  d = dMin(d, w);
-
-  // Water
-  wQ = q;
-  wQ.y += warpScale * 0.1000 * cos( 3. * wQ.x + 2. * cosT);
-  wQ.y += warpScale * 0.0500 * cos( 7. * (wQ.x + wQ.y) + 4. * cosT);
-  wQ.y += warpScale * 0.0250 * cos(13. * (wQ.x + wQ.y) + 2. * cosT);
-  // wQ.y += warpScale * 0.0125 * cos(27. * (wQ.x + wQ.y) + cosT);
-  q = wQ;
-
-  float waterDepth = 0.7;
-  q.z += waterDepth + 0.2;
-  float waterHeight = 4. * (windowSize + windowOffset);
-  float hideWaterNudge = 0.9;
-  q.y += waterHeight + (windowSize + windowOffset) + hideWaterNudge; // Hide it out of sight
-  q.y -= 2. * (windowSize + windowOffset + 0.8 * hideWaterNudge) * smoothstep(0.1, 1.0, norT);
-  vec3 water = vec3(sdBox(q, vec3(5, waterHeight, waterDepth)), 1, 0.);
-  d = dMin(d, water);
-
-  // d.x *= 0.8;
+  d.x *= 0.0625;
 
   return d;
 }
@@ -1043,7 +1019,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 8.));
+  float spread = saturate(1.0 - 1.0 * pow(dNR, 19.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -1075,9 +1051,9 @@ vec3 textures (in vec3 rd) {
   // dI += angle2C; // length(gPos.y) + norT;
 
   // dI += rd.x;
-  // dI *= 0.35;
+  dI *= 0.35;
 
-  color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.2, 0.3) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
   color *= spread;
 
@@ -1154,7 +1130,12 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  color = mix(color, vec3(0, 0.2, 1), isMaterialSmooth(m, 1.));
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.1 * snoise3(pos);
+
+  color = 0.9 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1279,7 +1260,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.02 * reflection(pos, reflectionRd);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1289,13 +1270,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.00;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.00;
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
       // color = diffuseColor;
