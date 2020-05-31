@@ -906,6 +906,13 @@ vec3 orange (in vec3 wQ, in float r, in float t) {
   return d;
 }
 
+float gridBump ( in vec3 q, float size ) {
+  vec3 c = pMod3(q, vec3(size));
+
+  vec3 absQ = abs(q);
+  return vmax(absQ) / size;
+}
+
 vec3 map (in vec3 p, in float dT) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
@@ -915,20 +922,23 @@ vec3 map (in vec3 p, in float dT) {
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
-  const float warpScale = 1.00;
+  const float warpScale = 1.50;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0125 * cos(29. * wQ.yzx + cosT);
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT);
+  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 1.4 * wQ.y);
+  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT);
+  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT);
+  wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + cosT);
   q = wQ;
 
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(0.6)), 0, 0.);
+  vec3 b = vec3(length(q) - 0.8, 0, 0.);
+  q *= rotationMatrix(vec3(1), angle2C);
+  b.x -= angle3C * gridBump(q, angle1C);
   d = dMin(d, b);
 
   d.x *= 0.0625;
@@ -1130,12 +1140,19 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
+  // return vec3(gridBump(pos, angle1C));
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
+  // dI += 0.9 * pos;
+  dI += 0.2 * pow(dNR, 6.);
   dI += 0.1 * snoise3(pos);
 
-  color = 0.9 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  dI *= 0.136;
+  dI += -0.396;
+
+  color = 1.2 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3))));
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1212,20 +1229,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.;
+        float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1258,10 +1275,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1270,13 +1287,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.00;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.00;
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
       // color = diffuseColor;
