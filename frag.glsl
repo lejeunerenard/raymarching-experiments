@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -919,6 +919,8 @@ vec3 map (in vec3 p, in float dT) {
 
   // p *= globalRot;
 
+  p -= vec3(-0.473, 0, 0);
+
   vec3 q = p;
 
   float t = mod(dT + 1.0, 1.);
@@ -927,6 +929,7 @@ vec3 map (in vec3 p, in float dT) {
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT);
+  wQ.xyz = twist(wQ.xzy, 1.4 * wQ.z);
   wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT);
   wQ.xzy = twist(wQ.xyz, 1.4 * wQ.y);
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT);
@@ -936,9 +939,10 @@ vec3 map (in vec3 p, in float dT) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 0.8, 0, 0.);
+  // vec3 b = vec3(length(q) - 0.8, 0, 0.);
+  vec3 b = vec3(sdBox(q, vec3(0.8, 1.2, 0.8)), 0, 0.);
   q *= rotationMatrix(vec3(1), angle2C);
-  b.x -= angle3C * gridBump(q, angle1C);
+  b.x -= 0.05 * gridBump(q, angle1C);
   d = dMin(d, b);
 
   d.x *= 0.0625;
@@ -1140,8 +1144,6 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  // return vec3(gridBump(pos, angle1C));
-
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
@@ -1149,8 +1151,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 6.);
   dI += 0.1 * snoise3(pos);
 
-  dI *= 0.136;
-  dI += -0.396;
+  dI *= -0.205;
+  dI += 2.714;
 
   color = 1.2 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3))));
 
@@ -1230,7 +1232,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.5;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
