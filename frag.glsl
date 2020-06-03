@@ -930,11 +930,12 @@ vec3 map (in vec3 p, in float dT) {
   wQ += warpScale * 0.1000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250 * cos(27. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(37. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 1.0, 0, 0.);
+  vec3 b = vec3(length(q) - 1.1, 0, 0.);
   b.x -= 0.05 * cellular(4. * q);
   d = dMin(d, b);
 
@@ -1137,7 +1138,7 @@ float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  return vec3(0.85);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
