@@ -59,7 +59,7 @@ vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
-const float totalT = 12.0;
+const float totalT = 6.0;
 float modT = 0.;
 float norT = 0.;
 float cosT = 0.;
@@ -1672,34 +1672,36 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
+  float warpScale = 0.5;
+
+  q += warpScale * 0.10000 * cos( 2. * q.yx + cosT);
+  q += warpScale * 0.05000 * cos( 4. * q.yx + cosT);
+  q += warpScale * 0.02500 * cos( 7. * q.yx + cosT);
+  q += warpScale * 0.01250 * cos(11. * q.yx + cosT);
+  q += warpScale * 0.00625 * cos(16. * q.yx + cosT);
+
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  float n = 0.;
+  float n = dot(q, vec2(7));
 
-  float a = atan(q.y, q.x);
-  float l = length(q);
+  // Integral of 2 * cos(x) + 2
+  // n = 2.0 * (n + sin(n));
 
-  vec2 pol = vec2(
-      a,
-      l);
+  // Integral of cos(x) + 2
+  // n = 2. * n + sin(n);
+  n = 2. * n + sin(n + cosT);
 
-  float ringHeight = 0.1;
-  float ringC = pMod1(pol.y, ringHeight);
+  n += 2. * norT;
 
-  float num = 3. + 4. * ringC;
-  q *= rotMat2(TWO_PI / num * norT);
-  float aC = pModPolar(q, num);
-
-  q.x -= ringC * ringHeight;
-
-  n = length(q) - 0.3 * ringHeight;
-  n = smoothstep(edge, 0., n);
+  n = sin(TWO_PI * 2. * n);
+  n = smoothstep(0., edge, n);
 
   // Mask
   // n *= 1. - step(5., ringC);
 
-  color = mix(vec3(0.125), vec3(0.9), n);
+  color = vec3(n);
+
   return color.rgb;
 }
 
@@ -1731,7 +1733,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0.5);
 
