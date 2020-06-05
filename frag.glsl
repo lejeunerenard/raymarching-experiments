@@ -1674,33 +1674,48 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float warpScale = 0.5;
 
-  q += warpScale * 0.10000 * cos( 2. * q.yx + cosT);
-  q += warpScale * 0.05000 * cos( 4. * q.yx + cosT);
-  q += warpScale * 0.02500 * cos( 7. * q.yx + cosT);
-  q += warpScale * 0.01250 * cos(11. * q.yx + cosT);
-  q += warpScale * 0.00625 * cos(16. * q.yx + cosT);
-
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  float n = dot(q, vec2(7));
+  // Grid
+  vec2 size = vec2(0.015);
+  vec2 gC = pMod2(q, size);
+
+  // float n = dot(q, vec2(7, 0));
+  // float n = 7. * length(q);
+  vec2 n = size * gC;
+
+  n += warpScale * 0.10000 * cos( 2. * n.yx + cosT);
+  n += warpScale * 0.05000 * cos( 4. * n.yx + cosT);
+  n += warpScale * 0.02500 * cos( 7. * n.yx + cosT);
+  n += warpScale * 0.01250 * cos(11. * n.yx + cosT);
+  n += warpScale * 0.00625 * cos(16. * n.yx + cosT);
 
   // Integral of 2 * cos(x) + 2
   // n = 2.0 * (n + sin(n));
 
   // Integral of cos(x) + 2
   // n = 2. * n + sin(n);
-  n = 2. * n + sin(n + cosT);
+  // n = 2. * n + sin(n + cosT);
+
+  // Riff on modified integral of cos(x) + 2
+  n = 2. * n + 0.5 * sin(n + 2. * sin(0.4 * n + cosT) + cosT);
 
   n += 2. * norT;
 
-  n = sin(TWO_PI * 2. * n);
-  n = smoothstep(0., edge, n);
+  float i = dot(n, vec2(2));
+  // i = sin(TWO_PI * 2. * i);
+  // i += 1.0;
+  i *= 0.5;
 
-  // Mask
-  // n *= 1. - step(5., ringC);
+  // i = smoothstep(0., edge, i);
 
-  color = vec3(n);
+  // Create rotating lines
+  q *= rotMat2(0.5 * PI * i);
+  i = abs(q.y) / size.y;
+  i = smoothstep(edge, 0., i - 0.05);
+
+  color = vec3(i);
 
   return color.rgb;
 }
