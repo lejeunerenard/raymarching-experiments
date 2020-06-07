@@ -1672,59 +1672,39 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float warpScale = 1.0;
+  float warpScale = 0.25;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  // Grid
-  vec2 size = vec2(0.025);
-  vec2 gC = pMod2(q, size);
+  q += warpScale * 0.10000 * cos( 4. * q.yx + TWO_PI * t);
+  q *= rotMat2(length(q));
+  q += warpScale * 0.05000 * cos( 8. * q.yx + TWO_PI * t);
+  q += warpScale * 0.02500 * cos(13. * q.yx + TWO_PI * t);
+  q += warpScale * 0.01250 * cos(19. * q.yx + TWO_PI * t);
+  q += warpScale * 0.00625 * cos(27. * q.yx + TWO_PI * t);
 
-  // float n = dot(q, vec2(7, 0));
-  // float n = 7. * length(q);
-  vec2 n = size * gC;
+  float d = length(q);
 
-  // n += warpScale * 0.10000 * cos( 2. * n.yx + cosT);
-  // n += warpScale * 0.05000 * cos( 4. * n.yx + cosT);
-  // n += warpScale * 0.02500 * cos( 7. * n.yx + cosT);
-  // n += warpScale * 0.01250 * cos(11. * n.yx + cosT);
-  // n += warpScale * 0.00625 * cos(16. * n.yx + cosT);
+  float freq = 50.;
+  float a = atan(q.y, q.x);
+  float rOffset = 0.03 * snoise2(vec2(sin(a), d));
+  d -= rOffset * smoothstep(0., 10. / freq, d);
 
-  // Integral of 2 * cos(x) + 2
-  // n = 2.0 * (n + sin(n));
+  d *= 2. * dot(q, q) + 0.9;
 
-  // Integral of cos(x) + 2
-  // n = 2. * n + sin(n);
-  // n = 2. * n + sin(n + cosT);
+  d -= 0.691;
 
-  // Riff on modified integral of cos(x) + 2
-  // n = 2. * n + 0.5 * sin(n + 2. * sin(0.4 * n + cosT) + cosT);
+  float n = sin(TWO_PI * freq * d);
 
-  // n += 2. * norT;
+  float fuzz = 0.01;
+  float offset = 0.4 + 0.4 * abs(snoise2(212. * q));
+  n = smoothstep(offset - fuzz, offset + fuzz, n);
 
-  // float i = dot(n, vec2(2));
-  // i *= 0.5;
-  // i = sin(TWO_PI * 2. * i);
-  // i += 1.0;
+  n -= 3. * step(27. / freq, d);
+  n = saturate(n);
 
-  float i = length(2. * n);
-
-  i -= 2. * norT;
-
-  // i = smoothstep(0., edge, i);
-
-  // Create rotating lines
-  // q *= rotMat2(0.5 * PI * i);
-
-  i = sin(PI * i);
-  q.y += 0.4 * size.y * i * sin(1. / size.x * TWO_PI * q.x);
-
-  i = abs(q.y) / size.y;
-  i = smoothstep(edge, 0., i - 0.05);
-
-  color = vec3(i);
-  // color = mix(#222222, vec3(1), i);
+  color = vec3(n);
 
   return color.rgb;
 }
@@ -1757,46 +1737,73 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(0.5);
+  vec3 color = vec3(1);
 
-  // const int slices = 10;
-  // for (int i = 0; i < slices; i++) {
-  //   float fI = float(i) / float(slices);
-  //   vec3 dI = vec3(fI);
-  //   dI += 0.4 * uv.x;
-  //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  const int slices = 4;
+  for (int i = 0; i < slices; i++) {
+    float fI = float(i);
+    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+    vec3 layerColor = vec3(
+        saturate(mod(fI + 0., 3.)),
+        saturate(mod(fI + 1., 3.)),
+        saturate(mod(fI + 2., 3.))
+    );
 
-  //   // layerColor = pow(layerColor, vec3(4 + slices));
+    vec3 dI = vec3(fI);
+    dI += 0.4 * uv.x;
+    // dI += 0.3 * dot(uv, vec2(1));
+    dI += 0.2 * snoise2(3. * uv);
+    layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+    layerColor *= 0.6;
 
-  //   layerColor *= two_dimensional(uv, 0.15 * fI).x;
-  //   // if (i == 0) {
-  //   //   color = layerColor;
-  //   // } else {
-  //   //   color = overlay(color, layerColor);
-  //   // }
-  //   // color *= layerColor;
+    // Add black layer as first layer
+    layerColor *= step(0.5, fI);
 
-  //   vec3 layerColorA = softLight2(color, layerColor);
-  //   vec3 layerColorB = color * layerColor;
-  //   layerColor = layerColorA + layerColorB;
-  //   layerColor *= 0.85;
+    // layerColor = pow(layerColor, vec3(4 + slices));
 
-  //   // layerColor = overlay(color, layerColor);
-  //   // layerColor = screenBlend(color, layerColor);
-  //   color = mix(color, layerColor, 0.3);
-  // }
+    float mask = two_dimensional(uv, norT + 0.125 * fI / float(slices)).x;
+    layerColor *= mask;
+    // if (i == 0) {
+    //   color = layerColor;
+    // } else {
+    //   color = overlay(color, layerColor);
+    // }
+    // color *= layerColor;
 
-  // // color = pow(color, vec3(1.0));
+    // vec3 layerColorA = softLight2(color, layerColor);
+    // vec3 layerColorB = color * layerColor;
+    // layerColor = layerColorA + layerColorB;
+    // layerColor *= 0.85;
 
-  // return vec4(color, 1.);
+    // layerColor = overlay(color, layerColor);
+    // layerColor = screenBlend(color, layerColor);
+    // color = mix(color, layerColor, 0.3);
 
-  vec4 color = vec4(0);
-  float time = norT;
-  vec4 t = march(ro, rd, time);
-  vec4 layer = shade(ro, rd, t, uv, time);
-  return layer;
+    // Multiply
+    // color *= layerColor;
+
+    // Pseudo Multiply
+    color = mix(color, color * layerColor, mask);
+  }
+
+  // color = pow(color, vec3(1.0));
+
+  // float posX = mod(18. * abs(uv.x), 3.);
+  // color = vec3(
+  //     saturate(mod(posX + 0., 3.)),
+  //     saturate(mod(posX + 1., 3.)),
+  //     saturate(mod(posX + 2., 3.))
+  //     );
+
+  return vec4(color, 1.);
+
+//   vec4 color = vec4(0);
+//   float time = norT;
+//   vec4 t = march(ro, rd, time);
+//   vec4 layer = shade(ro, rd, t, uv, time);
+//   return layer;
 }
 
 void main() {
