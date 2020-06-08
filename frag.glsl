@@ -769,7 +769,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.9;
+float r = 0.5;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -924,6 +924,10 @@ vec3 map (in vec3 p, in float dT) {
   float t = mod(dT + 1.0, 1.);
   const float warpScale = 1.0;
 
+  q.x += angle2C;
+  q *= rotationMatrix(vec3(0, 0, 1), angle1C);
+  q *= -globalRot;
+
   // Warp
   vec3 wQ = q;
   wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y);
@@ -935,8 +939,7 @@ vec3 map (in vec3 p, in float dT) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 1.1, 0, 0.);
-  b.x -= 0.05 * cellular(4. * q);
+  vec3 b = vec3(sdBox(q, vec3(r, 2, r)), 0, 0.);
   d = dMin(d, b);
 
   d.x *= 0.125;
@@ -1136,7 +1139,15 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 float gM = 0.;
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.5);
+
+  // float n = length(mPos);
+  float n = dot(mPos, vec3(1));
+  n = sin(TWO_PI * 20. * n);
+
+  n = smoothstep(0., edge, n);
+
+  color = vec3(n);
 
   return color;
 
@@ -1294,7 +1305,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += saturate(dispersionColor);
 
 #endif
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Fog
       // float d = max(0.0, t.x);
@@ -1739,54 +1750,54 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = vec3(1);
+  // vec3 color = vec3(1);
 
-  const int slices = 4;
-  for (int i = 0; i < slices; i++) {
-    float fI = float(i);
-    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-    vec3 layerColor = vec3(
-        saturate(mod(fI + 0., 3.)),
-        saturate(mod(fI + 1., 3.)),
-        saturate(mod(fI + 2., 3.))
-    );
+  // const int slices = 4;
+  // for (int i = 0; i < slices; i++) {
+  //   float fI = float(i);
+  //   // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  //   vec3 layerColor = vec3(
+  //       saturate(mod(fI + 0., 3.)),
+  //       saturate(mod(fI + 1., 3.)),
+  //       saturate(mod(fI + 2., 3.))
+  //   );
 
-    vec3 dI = vec3(fI);
-    dI += 0.4 * uv.x;
-    // dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.2 * snoise2(3. * uv);
-    layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-    layerColor *= 0.6;
+  //   vec3 dI = vec3(fI);
+  //   dI += 0.4 * uv.x;
+  //   // dI += 0.3 * dot(uv, vec2(1));
+  //   dI += 0.2 * snoise2(3. * uv);
+  //   layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  //   layerColor *= 0.6;
 
-    // Add black layer as first layer
-    layerColor *= step(0.5, fI);
+  //   // Add black layer as first layer
+  //   layerColor *= step(0.5, fI);
 
-    // layerColor = pow(layerColor, vec3(4 + slices));
+  //   // layerColor = pow(layerColor, vec3(4 + slices));
 
-    float mask = two_dimensional(uv, norT + 0.125 * fI / float(slices)).x;
-    layerColor *= mask;
-    // if (i == 0) {
-    //   color = layerColor;
-    // } else {
-    //   color = overlay(color, layerColor);
-    // }
-    // color *= layerColor;
+  //   float mask = two_dimensional(uv, norT + 0.125 * fI / float(slices)).x;
+  //   layerColor *= mask;
+  //   // if (i == 0) {
+  //   //   color = layerColor;
+  //   // } else {
+  //   //   color = overlay(color, layerColor);
+  //   // }
+  //   // color *= layerColor;
 
-    // vec3 layerColorA = softLight2(color, layerColor);
-    // vec3 layerColorB = color * layerColor;
-    // layerColor = layerColorA + layerColorB;
-    // layerColor *= 0.85;
+  //   // vec3 layerColorA = softLight2(color, layerColor);
+  //   // vec3 layerColorB = color * layerColor;
+  //   // layerColor = layerColorA + layerColorB;
+  //   // layerColor *= 0.85;
 
-    // layerColor = overlay(color, layerColor);
-    // layerColor = screenBlend(color, layerColor);
-    // color = mix(color, layerColor, 0.3);
+  //   // layerColor = overlay(color, layerColor);
+  //   // layerColor = screenBlend(color, layerColor);
+  //   // color = mix(color, layerColor, 0.3);
 
-    // Multiply
-    // color *= layerColor;
+  //   // Multiply
+  //   // color *= layerColor;
 
-    // Pseudo Multiply
-    color = mix(color, color * layerColor, mask);
-  }
+  //   // Pseudo Multiply
+  //   color = mix(color, color * layerColor, mask);
+  // }
 
   // color = pow(color, vec3(1.0));
 
@@ -1797,13 +1808,13 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   //     saturate(mod(posX + 2., 3.))
   //     );
 
-  return vec4(color, 1.);
+  // return vec4(color, 1.);
 
-//   vec4 color = vec4(0);
-//   float time = norT;
-//   vec4 t = march(ro, rd, time);
-//   vec4 layer = shade(ro, rd, t, uv, time);
-//   return layer;
+  vec4 color = vec4(0);
+  float time = norT;
+  vec4 t = march(ro, rd, time);
+  vec4 layer = shade(ro, rd, t, uv, time);
+  return layer;
 }
 
 void main() {
