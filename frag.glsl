@@ -766,7 +766,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 4.;
+float r = 1.;
 vec3 pieSlice (in vec3 p, in float c) {
   vec3 d = vec3(maxDistance, 0, 0);
 
@@ -918,37 +918,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  const vec3 gateR = vec3(0.3, 0.5, 0.05);
-  q.y += r + gateR.y;
-  float t = dT; //mod(dT, 1.);
+  float t = mod(dT, 1.);
   const float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
-  // Must always equal 0.0625 at t = 1
-  float startingAngleAmount = -0.125;
-  t = mix(t, t - 1., step(1., t));
-  float angleAmount = startingAngleAmount + (0.0625 - startingAngleAmount) * t;
-  wQ *= rotationMatrix(vec3(1, 0, 0), -PI * angleAmount);
+  wQ += warpScale * 0.10000000 * cos( 3.4 * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000000 * cos( 7.7 * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.02500000 * cos(13.1 * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250000 * cos(23.5 * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625000 * cos(29.9 * wQ.yzx + cosT );
+  wQ += warpScale * 0.00312500 * cos(37.3 * wQ.yzx + cosT );
+  wQ += warpScale * 0.00156250 * cos(43.1 * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
-  // 'World'
-  vec3 world = vec3(length(q) - r, 0, 0);
-  d = dMin(d, world);
-
-  q.y -= gateR.y + r - thickness;
-  vec3 b = vec3(sdBox(q, gateR), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
-  vec3 greenScreen = vec3(sdBox(q, vec3(gateR.xy - thickness, gateR.z + 0.01)), 1, 0.);
-  d = dMin(d, greenScreen);
-
-  // Send universe via trap
-  d.z = universe;
-
-  // d.x *= 0.125;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1158,17 +1148,26 @@ vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.05);
 
-  float universe = trap;
-  color = mix(color, vec3(1, 0, 0), universe);
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
 
-  if (m == 1.) {
-    vec2 uv = fragCoord.xy;
+  dI += 0.1 * pos;
+  dI += 0.3 * snoise3(nor);
 
-    float relativeT = t - 1. - step(1., t);
-    vec4 result = march(pos, rd, relativeT, universe + 1.);
-    vec4 layer = shadeTerminate(pos, rd, result, uv, relativeT);
-    color = mix(background, layer.rgb, layer.w);
-  }
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  color *= 0.85;
+
+  // float universe = trap;
+  // color = mix(color, vec3(1, 0, 0), universe);
+
+//   if (m == 1.) {
+//     vec2 uv = fragCoord.xy;
+
+//     float relativeT = t - 1. - step(1., t);
+//     vec4 result = march(pos, rd, relativeT, universe + 1.);
+//     vec4 layer = shadeTerminate(pos, rd, result, uv, relativeT);
+//     color = mix(background, layer.rgb, layer.w);
+//   }
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1231,8 +1230,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     lights[1] = light(vec3(0.5, 0.8,  1.0), #CCFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
-    float universe = t.w + step(1., generalT);
-    universe = mod(universe, 2.);
+    const float universe = 0.;
     background = getBackground(uv, universe);
 
     float backgroundMask = 1.;
@@ -1326,13 +1324,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.00;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.;
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
       if (t.y == 1.) {
@@ -1436,9 +1434,8 @@ vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec
     lights[1] = light(vec3(0.5, 0.8,  1.0), #CCFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
-    float universe = t.w + step(1., generalT);
-    universe = mod(universe, 2.);
-    background = getBackground(uv, universe);
+    const float universe = 0.;
+    background = getBackground(uv);
 
     float backgroundMask = 1.;
     // Allow anything in top right corner
