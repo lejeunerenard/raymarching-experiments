@@ -767,45 +767,6 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
 }
 
 float r = 1.;
-vec3 pieSlice (in vec3 p, in float c) {
-  vec3 d = vec3(maxDistance, 0, 0);
-
-  c = mod(c, repetitions);
-
-  vec3 boxSize = vec3(0.0625 * r, r, 0.25 * r);
-  float subBigR = 1.0 * r;
-
-  float rotOffset = - 0.5 * TWO_PI * c / repetitions;
-  p.xy *= rotMat2(-2. * cosT + rotOffset);
-
-  const float warpScale = 1.;
-
-  vec3 wQ = p;
-
-  float angle = 0.;
-  const float offsetPosMag = 0.2;
-  wQ.xy *= rotMat2(angle);
-  wQ.x += offsetPosMag;
-  vec3 b = vec3(length(wQ) - r, 0, c);
-  d = dMin(d, b);
-
-  wQ = p;
-  angle += 0.333 * TWO_PI;
-  wQ.xy *= rotMat2(angle);
-  wQ.x += offsetPosMag;
-  b = vec3(length(wQ) - r, 0, c);
-  d = dMin(d, b);
-
-  wQ = p;
-  angle += 0.333 * TWO_PI;
-  wQ.xy *= rotMat2(angle);
-  wQ.x += offsetPosMag;
-  b = vec3(length(wQ) - r, 0, c);
-  d = dMin(d, b);
-
-  return d;
-}
-
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -827,88 +788,26 @@ float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   return max(b, -crop);
 }
 
-vec3 bundleHollowBox (in vec3 wQ, in vec3 r, in float thickness) {
-  vec3 d = vec3(maxDistance, 0, 0);
-
-  for (int i = 0; i < 1; i++) {
-    float fI = float(i);
-    vec3 q = wQ;
-    q *= rotationMatrix(vec3(1, 0, 0.), fI * 0.25 * cosT);
-    mPos = q;
-    vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
-    d = dMin(d, b);
-  }
-
-  return d;
-}
-
-vec3 foldingCage (in vec3 q, in float r, in float thickness, in float axisI) {
-  vec3 axis = vec3(1, 0, 0);
-  axis *= rotationMatrix(vec3(1), (axisI + 1.) * PI * 0.8231);
-
-  // Warp
-  vec3 wQ = q;
-  wQ = abs(wQ);
-  wQ *= rotationMatrix(axis, cosT);
-  q = wQ;
-
-  return bundleHollowBox(q, vec3(r), thickness);
-}
-
-vec3 orange (in vec3 wQ, in float r, in float t) {
-  vec3 d = vec3(maxDistance, 0, 0);
-
-  vec3 q = wQ;
-
-  // Leaf
-  float num = 6.;
-  float c = pModPolar(wQ.xz, num);
-
-  float a = atan(wQ.y, wQ.x);
-  float a2 = atan(wQ.z, wQ.x);
-
-  vec3 stemQ = wQ;
-
-  vec2 pol = vec2(a2, a);
-
-  // Bend
-  t -= 0.66 * (c + 2.) / num;
-  t = saturate(3. * t);
-  float unfold = 1. - t;
-  wQ.xy *= rotMat2(-unfold * a);
-  wQ.xz *= rotMat2(-0.5 * a2);
-
-  wQ.x -= r * (1. + 1. * quad(t));
-  // wQ.y += 0.25 * t;
-
-  float myRT = 1. - quintIn(t);
-  float skinThickness = 0.125 * r;
-  float skinHeight = 0.5 * myRT * PI * r;
-  float o = sdBox(wQ, vec3(skinThickness, skinHeight, myRT * TWO_PI * r / num));
-  o -= 4.5125e-4 * cnoise2(14. * pol);
-
-  // Remove lingering shadows
-  o += 0.1 * smoothstep(0.940, 1., t);
-
-  d = dMin(d, vec3(o, 0, c));
-
-  // Stem
-  // vec3 stemQ = wQ.yxz;
-  // stemQ.x -= skinHeight;
-  stemQ.y -= r;
-  vec3 s = vec3(sdCappedCylinder(stemQ, vec2(0.1 * r, 1.54 * skinThickness)), 1, 0);
-  s += 0.05 * t;
-  d = dMin(d, s);
-
-  return d;
-}
-
 float gridBump ( in vec3 q, float size ) {
   vec3 c = pMod3(q, vec3(size));
 
   vec3 absQ = abs(q);
   return vmax(absQ) / size;
 }
+
+vec3 pieMap (in vec3 q, in float c) {
+  q.x += angle1C;
+  q *= rotationMatrix(vec3(1), 0.5 + 0. * TWO_PI * smoothstep(0.5, 1.0, mod(norT + c * 0.1, 1.)));
+  // return vec3(sdBox(q, vec3(0.2)), 0, c);
+  float capEndHalfLength = 0.25;
+  float capLengthI = saturate(0.5 * (q.y / (capEndHalfLength + 0.1) + 1.));
+  q.xy *= rotMat2(0.1 * PI * capLengthI);
+  float nScale = 7.;
+  float r = 0.1 * pow(capLengthI, 1.2) + 0.025 * snoise3(vec3(nScale, 1., nScale) * (q + 0.124 * c));
+  return vec3(sdCapsule(q, vec3(0, capEndHalfLength, 0), vec3(0, -capEndHalfLength, 0), r), 0, c);
+}
+
+#pragma glslify: boxRing = require(./pie-slice, map=pieMap, repetitions=11, cosT=cosT, )
 
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -923,22 +822,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.10000000 * cos( 3.4 * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000000 * cos( 7.7 * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.02500000 * cos(13.1 * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250000 * cos(23.5 * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625000 * cos(29.9 * wQ.yzx + cosT );
-  wQ += warpScale * 0.00312500 * cos(37.3 * wQ.yzx + cosT );
-  wQ += warpScale * 0.00156250 * cos(43.1 * wQ.yzx + cosT );
   q = wQ;
+
+  float c = pMod1(q.z, 0.2);
+
+  q.xy *= rotMat2(0.1593 * c * PI + (1. + mod(c, 2.)) * cosT);
 
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = boxRing(q);
+  b.z = c;
   d = dMin(d, b);
 
-  d.x *= 0.3;
+  d.x *= 0.7;
 
   return d;
 }
@@ -1146,16 +1042,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in float generalT );
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.05);
+  vec3 color = vec3(0.5);
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
+  vec3 dI = vec3(0);
+  dI += 0.813 * trap;
 
-  dI += 0.1 * pos;
-  dI += 0.3 * snoise3(nor);
+  // dI += 0.1 * pos;
+  dI += 0.04 * snoise3(nor);
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  color *= 0.85;
+  // color *= 0.85;
 
   // float universe = trap;
   // color = mix(color, vec3(1, 0, 0), universe);
@@ -1257,7 +1154,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       gRd = rayDirection;
 
       // Basic Diffusion
-      vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, universe, generalT);
+      vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
       float isShiny = gM; // isMaterialSmooth(gM, 1.);
