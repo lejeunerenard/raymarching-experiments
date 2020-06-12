@@ -766,7 +766,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 1.;
+float r = 0.6;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -822,19 +822,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q;
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000 * snoise3( 1. * wQ.yzx );
+  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  wQ += warpScale * 0.02500 * cos(16. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
   q = wQ;
-
-  float c = pMod1(q.z, 0.2);
-
-  q.xy *= rotMat2(0.1593 * c * PI + (1. + mod(c, 2.)) * cosT);
 
   mPos = q;
 
-  vec3 b = boxRing(q);
-  b.z = c;
+  vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.7;
+  d.x *= 0.2;
 
   return d;
 }
@@ -1045,11 +1046,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0.5);
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(0);
-  dI += 0.813 * trap;
+  vec3 dI = vec3(dNR);
 
-  // dI += 0.1 * pos;
+  dI += 0.2 * pow(dNR, 3.);
+
   dI += 0.04 * snoise3(nor);
+
+  dI *= 0.5;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   // color *= 0.85;
@@ -1809,6 +1812,24 @@ float starEllipse (in vec2 q, in vec2 abR, in float starR, in float t) {
   return starEllipse(q, abR, starR, t, 1.);
 }
 
+vec3 gradient (in float i) {
+  const float increment = 0.3333;
+
+  float lowerEdge = 0.;
+
+  vec3 color = #FF7D6B;
+  // color = mix(color, #E8616D, smoothstep(lowerEdge, lowerEdge + increment, i));
+  // lowerEdge += increment;
+  color = mix(color, #FF78C7, smoothstep(lowerEdge, lowerEdge + increment, i));
+  lowerEdge += increment;
+  // color = mix(color, #E261E8, smoothstep(lowerEdge, lowerEdge + increment, i));
+  // lowerEdge += increment;
+  color = mix(color, #D06BFF, smoothstep(lowerEdge, lowerEdge + increment, i));
+  lowerEdge += increment;
+
+  return color;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(background);
 
@@ -1819,34 +1840,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  q += warpScale * 0.10000 * cos( 4. * q.yx + TWO_PI * t);
-  q *= rotMat2(length(q));
-  q += warpScale * 0.05000 * cos( 8. * q.yx + TWO_PI * t);
-  q += warpScale * 0.02500 * cos(13. * q.yx + TWO_PI * t);
-  q += warpScale * 0.01250 * cos(19. * q.yx + TWO_PI * t);
-  q += warpScale * 0.00625 * cos(27. * q.yx + TWO_PI * t);
+  float l = length(uv);
+  float lBanded = floor(l / 0.075) + 1.;
 
-  float d = length(q);
+  float isCirle = 1. - step(7., lBanded);
+  uv *= rotMat2(isCirle * (lBanded * 0.275 * PI * smoothstep(-0.8, 1.0, sin(cosT + 0.100 * PI * lBanded))));
 
-  float freq = 50.;
-  float a = atan(q.y, q.x);
-  float rOffset = 0.03 * snoise2(vec2(sin(a), d));
-  d -= rOffset * smoothstep(0., 10. / freq, d);
+  float n = sin(TWO_PI * 64. * dot(uv, vec2(0, 1)) + 3. * cosT);
+  float lowerEdge = -0.9;
+  n = smoothstep(lowerEdge, lowerEdge + 9. * edge, n);
 
-  d *= 2. * dot(q, q) + 0.9;
-
-  d -= 0.691;
-
-  float n = sin(TWO_PI * freq * d);
-
-  float fuzz = 0.01;
-  float offset = 0.4 + 0.4 * abs(snoise2(212. * q));
-  n = smoothstep(offset - fuzz, offset + fuzz, n);
-
-  n -= 3. * step(27. / freq, d);
-  n = saturate(n);
-
-  color = vec3(n);
+  color = vec3(vec3(0.7, 0.9, 1.0) * (1. - n));
+  // color = vec3(n * gradient(uv.y));
 
   return color.rgb;
 }
