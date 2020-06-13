@@ -1840,18 +1840,47 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  float l = length(uv);
-  float lBanded = floor(l / 0.075) + 1.;
+  float n = 0.;
 
-  float isCirle = 1. - step(7., lBanded);
-  uv *= rotMat2(isCirle * (lBanded * 0.275 * PI * smoothstep(-0.8, 1.0, sin(cosT + 0.100 * PI * lBanded))));
+  float fractalScale = 0.2 * (1. - 0.5 * norT);
+  float triangleSize = 0.15;
+  float itXAdjust = 0.1;
 
-  float n = sin(TWO_PI * 64. * dot(uv, vec2(0, 1)) + 3. * cosT);
-  float lowerEdge = -0.9;
-  n = smoothstep(lowerEdge, lowerEdge + 9. * edge, n);
+  const float tanPI3 = 0.5773502692;
+  q.y += tanPI3 * 6. * 1.9333 * triangleSize * cubicIn(norT);
 
-  color = vec3(vec3(0.7, 0.9, 1.0) * (1. - n));
-  // color = vec3(n * gradient(uv.y));
+  q *= rotMat2(0.333 * TWO_PI * quart(norT));
+
+  q *= fractalScale;
+  q.yx = 0.5 * q.xy;
+  for (int i = 0; i < 9; i++) {
+    q *= 2.0;
+    float c = pModPolar(q, 3.);
+    q.x -= itXAdjust;
+  }
+
+  q.x += itXAdjust;
+  q.x -= 0.2;
+  n = sdTriangleIsosceles(vec2(1,-1) * q.yx, vec2(tanPI3 * triangleSize, triangleSize));
+  float boundary = smoothstep(0., edge, n);
+  n /= fractalScale;
+
+  // n = smoothstep(0., edge, n);
+
+  // Colorize
+  color = vec3(n);
+
+  // n *= 0.03125;
+  n = pow(n, 0.25);
+
+  n *= angle2C;
+  n += angle1C;
+
+  color = 0.5 + 0.5 * cos( TWO_PI * (n + vec3(0, 0.33, 0.67)) );
+
+  color *= boundary;
+
+  // color = vec3(vec3(0.7, 0.9, 1.0) * (1. - n));
 
   return color.rgb;
 }
@@ -1884,7 +1913,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
