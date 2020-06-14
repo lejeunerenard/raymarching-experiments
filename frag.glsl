@@ -1842,18 +1842,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 0.;
 
-  float fractalScale = 0.2 * (1. - 0.5 * norT);
+  float fractalScale = 0.167 * (1. - 0.5 * pow(norT, 0.75));
   float triangleSize = 0.15;
   float itXAdjust = 0.1;
 
+  float bigC = pModPolar(q, 6.);
+  q.x -= 0.1 / fractalScale;
   const float tanPI3 = 0.5773502692;
-  q.y += tanPI3 * 6. * 1.9333 * triangleSize * cubicIn(norT);
+  // q.y += tanPI3 * 6. * 1.9333 * triangleSize * cubicIn(norT);
 
-  q *= rotMat2(0.333 * TWO_PI * quart(norT));
+  // q *= rotMat2(0.333 * TWO_PI * quart(norT));
 
   q *= fractalScale;
-  q.yx = 0.5 * q.xy;
-  for (int i = 0; i < 9; i++) {
+  q.xy = vec2(-1, 1) * q.xy;
+  for (int i = 0; i < 7; i++) {
+    q *= 2.0;
+    float c = pModPolar(q, 3.);
+    q.x -= itXAdjust;
+  }
+
+  // Add resolution near the end
+  if (norT >= 0.25 + 0.5 * snoise2(q)) {
     q *= 2.0;
     float c = pModPolar(q, 3.);
     q.x -= itXAdjust;
@@ -1862,14 +1871,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q.x += itXAdjust;
   q.x -= 0.2;
   n = sdTriangleIsosceles(vec2(1,-1) * q.yx, vec2(tanPI3 * triangleSize, triangleSize));
-  float boundary = smoothstep(0., edge, n);
+  float boundary = smoothstep(0., 3. * edge, n);
   n /= fractalScale;
 
   // n = smoothstep(0., edge, n);
 
   // Colorize
-  color = vec3(n);
-
   // n *= 0.03125;
   n = pow(n, 0.25);
 
@@ -1878,9 +1885,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   color = 0.5 + 0.5 * cos( TWO_PI * (n + vec3(0, 0.33, 0.67)) );
 
-  color *= boundary;
-
-  // color = vec3(vec3(0.7, 0.9, 1.0) * (1. - n));
+  color = vec3(boundary);
+  color = mix(vec3(0.0), vec3(0.8), boundary);
 
   return color.rgb;
 }
