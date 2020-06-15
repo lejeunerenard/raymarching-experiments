@@ -824,15 +824,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * snoise3( 1. * wQ.yzx );
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + PI * 0.25 * cos(wQ.y + cosT));
   wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.02500 * cos(16. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
-  vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.2;
@@ -1053,6 +1055,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.04 * snoise3(nor);
 
   dI *= 0.5;
+  dI += 0.854;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   // color *= 0.85;
@@ -1166,7 +1169,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 0.1;
 
       float specAll = 0.0;
@@ -1919,7 +1922,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
