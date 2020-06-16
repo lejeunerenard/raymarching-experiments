@@ -818,26 +818,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  const float warpScale = 1.0;
+  const float warpScale = 0.125;
 
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * snoise3( 1. * wQ.yzx );
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + PI * 0.25 * cos(wQ.y + cosT));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + PI * 0.125 * cos(wQ.y + cosT));
   wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
   // vec3 b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  q = wQ;
+  // vec3 b = vec3(sdBox(q, vec3(0.3)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., 0.6), 0, 0);
+  // b.x -= 0.00125 * cellular(2. * q);
   d = dMin(d, b);
 
-  d.x *= 0.2;
+  d.x *= 0.8;
 
   return d;
 }
