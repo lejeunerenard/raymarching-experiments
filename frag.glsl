@@ -813,7 +813,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -824,21 +824,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * snoise3( 1. * wQ.yzx );
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + PI * 0.125 * cos(wQ.y + cosT));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
   wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
-  q = wQ;
-  // vec3 b = vec3(sdBox(q, vec3(0.3)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., 0.6), 0, 0);
-  // b.x -= 0.00125 * cellular(2. * q);
+  // vec3 b = vec3(octahedron(q).x, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  // d.x *= 0.8;
 
   return d;
 }
@@ -965,8 +962,8 @@ vec3 textures (in vec3 rd) {
   // dI *= angle1C;
   // dI += angle2C; // length(gPos.y) + norT;
 
-  // dI += rd.x;
   dI *= 0.35;
+  dI += -1.104;
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
@@ -1053,12 +1050,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.2 * pow(dNR, 3.);
 
-  dI += 0.04 * snoise3(nor);
+  dI += 0.14 * snoise3(nor);
 
   dI *= 0.5;
   dI += 0.854;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  color *= mix(#C8FFCF, #FFADC3, saturate(dot(fragCoord, 1.5 * vec2(0.2, 0.8)) + 0.2));
+
   // color *= 0.85;
 
   // float universe = trap;

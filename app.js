@@ -50,7 +50,7 @@ export default class App {
       },
       d: 0.04,
       scale: 1.00,
-      rot2angle: [0.442, 5.933, 0.26],
+      rot2angle: [1.483, 1.275, 2.432],
       cameraAngles: [0.227, -0.569, 0.193]
     }
 
