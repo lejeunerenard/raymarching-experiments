@@ -766,7 +766,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.6;
+float r = 0.8;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -818,7 +818,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  const float warpScale = 0.125;
+  const float warpScale = 0.15;
 
   // Warp
   vec3 wQ = q;
@@ -832,10 +832,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(octahedron(q).x, 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.8;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1052,8 +1053,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.14 * snoise3(nor);
 
-  dI *= 0.5;
-  dI += 0.854;
+  dI *= -0.368;
+  dI += 4.488;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   color *= mix(#C8FFCF, #FFADC3, saturate(dot(fragCoord, 1.5 * vec2(0.2, 0.8)) + 0.2));
