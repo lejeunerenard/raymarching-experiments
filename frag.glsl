@@ -796,7 +796,6 @@ float gridBump ( in vec3 q, float size ) {
 }
 
 vec3 pieMap (in vec3 q, in float c) {
-  q.x += angle1C;
   q *= rotationMatrix(vec3(1), 0.5 + 0. * TWO_PI * smoothstep(0.5, 1.0, mod(norT + c * 0.1, 1.)));
   // return vec3(sdBox(q, vec3(0.2)), 0, c);
   float capEndHalfLength = 0.25;
@@ -813,7 +812,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -960,8 +959,6 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(0.2 * rd);
 
   dI += 0.5 * pow(dNR, 3.);
-  // dI *= angle1C;
-  // dI += angle2C; // length(gPos.y) + norT;
 
   dI *= 0.35;
   dI += -1.104;
@@ -1834,63 +1831,56 @@ vec3 gradient (in float i) {
   return color;
 }
 
+float halfGridSplit (in vec2 q, in float scale, in float t) {
+  const float size = 0.2;
+  // Initial R is fudged so the slightly bigger r of the two spheres overlapping
+  // w/ a smooth min will equal the radius of one sphere by the end.
+  float initialR = 0.15 * size * 0.65;
+  float r = mix(initialR, 0.15 * size * scale, t);
+
+  float rowOdd = mod(floor((q.y + 0.5 * size) / size), 2.);
+  q.x += 1.0 * size * rowOdd;
+
+  vec2 c = pMod2(q, vec2(2. * size, size));
+
+  float offset = 0.075 * length(c);
+  float separation = size * 0.5 * smoothstep(offset, offset + 0.5, t);
+
+  float s1 = length(q - vec2(separation, 0)) - r;
+  float s2 = length(q + vec2(separation, 0)) - r;
+  float n = fOpUnionRound(s1, s2, 2. * r);
+  n = smoothstep(edge, 0., n);
+
+  return n;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(getBackground(uv));
 
   vec2 q = uv;
+
+  q *= 2.;
+
+  float scale = mix(1., 0.707107, generalT);
+  q *= scale;
+  q *= rotMat2(PI * 0.25 * generalT);
+
+  q.x += 0.2 * 0.5 * generalT;
 
   float warpScale = 0.25;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  float n = 0.;
+  float odd = halfGridSplit(q, scale, generalT);
+  color = mix(color, vec3(0, 0, 0.8), odd);
 
-  float fractalScale = 0.167 * (1. - 0.5 * pow(norT, 0.75));
-  float triangleSize = 0.15;
-  float itXAdjust = 0.1;
+  q *= rotMat2(PI * 0.5);
 
-  float bigC = pModPolar(q, 6.);
-  q.x -= 0.1 / fractalScale;
-  const float tanPI3 = 0.5773502692;
-  // q.y += tanPI3 * 6. * 1.9333 * triangleSize * cubicIn(norT);
+  q.y += 0.2;
 
-  // q *= rotMat2(0.333 * TWO_PI * quart(norT));
-
-  q *= fractalScale;
-  q.xy = vec2(-1, 1) * q.xy;
-  for (int i = 0; i < 7; i++) {
-    q *= 2.0;
-    float c = pModPolar(q, 3.);
-    q.x -= itXAdjust;
-  }
-
-  // Add resolution near the end
-  if (norT >= 0.25 + 0.5 * snoise2(q)) {
-    q *= 2.0;
-    float c = pModPolar(q, 3.);
-    q.x -= itXAdjust;
-  }
-
-  q.x += itXAdjust;
-  q.x -= 0.2;
-  n = sdTriangleIsosceles(vec2(1,-1) * q.yx, vec2(tanPI3 * triangleSize, triangleSize));
-  float boundary = smoothstep(0., 3. * edge, n);
-  n /= fractalScale;
-
-  // n = smoothstep(0., edge, n);
-
-  // Colorize
-  // n *= 0.03125;
-  n = pow(n, 0.25);
-
-  n *= angle2C;
-  n += angle1C;
-
-  color = 0.5 + 0.5 * cos( TWO_PI * (n + vec3(0, 0.33, 0.67)) );
-
-  color = vec3(boundary);
-  color = mix(vec3(0.0), vec3(0.8), boundary);
+  float even = halfGridSplit(q, scale, generalT);
+  color = mix(color, vec3(0.9, 0, 0), even);
 
   return color.rgb;
 }
@@ -1923,7 +1913,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
@@ -1986,7 +1976,6 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(color, 1.);
 
   float time = 2. * norT;
-  // float time = angle1C;
   vec4 t = march(ro, rd, time);
   vec4 layer = shade(ro, rd, t, uv, time);
   return layer;
