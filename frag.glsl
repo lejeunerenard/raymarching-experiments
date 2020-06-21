@@ -812,54 +812,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  // p *= globalRot;
+
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  const float warpScale = 0.15;
+  const float warpScale = 0.25;
 
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * snoise3( 1. * wQ.yzx );
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
+  wQ += warpScale * 0.05000 * snoise3( 3. * wQ.yzx );
+  wQ += warpScale * 0.02500 * cos( 7. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
+  wQ += warpScale * 0.01250 * cos(13. * wQ.yzx + cosT );
+  wQ.yzx = twist(wQ.xyz, 0.4 * wQ.x);
   wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
   q = wQ;
-  // q += warpScale * 0.02500 * cos(13. * q.yzx + cosT );
 
+  q *= rotationMatrix(vec3(1, 0, 0), -PI * 1.0 * norT);
   mPos = q;
-  q.x -= -0.818;
-  q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5 * norT);
-
-  // q.xz = opRepLim(q.xz, 2.2 * r, vec2(2.));
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 2. * r, 0), vec3(0,-2. * r, 0), r), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r, 2., r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r, 2., r)), 0, 0);
+  float thicknessR = 0.45 * r;
+  vec3 b = vec3(sdTorus(q.xzy, vec2(r, thicknessR)), 0, 0);
   d = dMin(d, b);
 
-  q *= rotationMatrix(vec3(0, 1, 0), PI * 0.25);
-  b = vec3(sdBox(q, vec3(r, 2., r)), 0, 0);
+  b = vec3(sdTorus(q.xyz, vec2(r, thicknessR)), 1, 0);
   d = dMin(d, b);
 
-  // q = p;
-  // q += warpScale * 0.10000 * cos( 3. * q.yzx + cosT );
-  // q += warpScale * 0.05000 * snoise3( 1. * q.yzx );
-  // q.xzy = twist(q.xyz, 0.5 * q.y);
-
-  // q += warpScale * 0.025000 * cos(13. * q.yzx + cosT );
-  // q += warpScale * 0.012500 * cos(21. * q.yzx + cosT);
-  // q += warpScale * 0.012500 * cos(29. * q.yzx + cosT );
-  // q += warpScale * 0.003125 * cos(37. * q.yzx + cosT);
-
-  // q.z -= angle2C;
-  // q.x -= angle1C;
-  // q *= rotationMatrix(vec3(0, 1, 0), PI * 0.5 * norT);
-
-  // float smallR = 0.30 * r;
-  // b = vec3(sdBox(q, vec3(smallR, 2. * r, smallR)), 1, 0);
-  // d = dMin(d, b);
-
-  d.x *= 0.8;
+  d.x *= 0.5;
 
   return d;
 }
@@ -985,8 +969,8 @@ vec3 textures (in vec3 rd) {
 
   dI += 0.5 * pow(dNR, 3.);
 
-  dI *= 0.35;
-  dI += -1.104;
+  dI *= mix(0.35, 0.6, isMaterialSmooth(gM, 1.));
+  dI += mix(-1.104, angle1C, isMaterialSmooth(gM, 1.));
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
@@ -1082,7 +1066,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   color *= mix(#C8FFCF, #FFADC3, saturate(dot(fragCoord, 1.5 * vec2(0.2, 0.8)) + 0.2));
 
-  color *= 0.4 + 0.8 * dot(nor, -rd);
+  // color *= 0.4 + 0.8 * dot(nor, -rd);
 
   gM = m;
 
@@ -1197,7 +1181,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.0;
       float specCo = 0.6;
 
       float specAll = 0.0;
@@ -1245,7 +1229,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      reflectColor += 0.04 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
