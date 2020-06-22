@@ -766,7 +766,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.8;
+float r = 1.4;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -819,31 +819,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   const float warpScale = 0.25;
 
+  q.xzy = q.xyz;
+
   // Warp
   vec3 wQ = q;
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * snoise3( 3. * wQ.yzx );
   wQ += warpScale * 0.02500 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 0.5 * PI * sin(cosT - 1.5 * PI * length(wQ.xz)));
   wQ += warpScale * 0.01250 * cos(13. * wQ.yzx + cosT );
-  wQ.yzx = twist(wQ.xyz, 0.4 * wQ.x);
+  wQ.xyz = twist(wQ.xyz, 0.6 * wQ.x);
   wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
   q = wQ;
 
-  q *= rotationMatrix(vec3(1, 0, 0), -PI * 1.0 * norT);
   mPos = q;
 
-  // vec3 b = vec3(sdCapsule(q, vec3(0, 2. * r, 0), vec3(0,-2. * r, 0), r), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r, 2., r)), 0, 0);
-  float thicknessR = 0.45 * r;
-  vec3 b = vec3(sdTorus(q.xzy, vec2(r, thicknessR)), 0, 0);
+  vec3 b = vec3(length(q) -r, 0, 0);
   d = dMin(d, b);
 
-  b = vec3(sdTorus(q.xyz, vec2(r, thicknessR)), 1, 0);
-  d = dMin(d, b);
-
-  d.x *= 0.5;
+  d.x *= 0.9;
 
   return d;
 }
@@ -1051,6 +1045,16 @@ vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
+  // mPos += 0.5 * 0.1000 * fbmWarp(2. * mPos.yzx, r, s, w);
+  // mPos += 0.5 * 0.0500 * fbmWarp(4. * mPos.yzx, r, s, w);
+
+  float n = dot(mPos, vec3(0, 1, 0));
+
+  n = sin(TWO_PI * 10. * n);
+  n = smoothstep(0., edge, n);
+
+  return vec3(n);
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
@@ -1058,14 +1062,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.14 * snoise3(nor);
 
-  dI *= -0.368;
-  dI += 5.421;
+  // dI *= -0.368;
+  // dI += 5.421;
 
   // dI += angle3C * isMaterialSmooth(m, 1.);
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  color *= mix(#C8FFCF, #FFADC3, saturate(dot(fragCoord, 1.5 * vec2(0.2, 0.8)) + 0.2));
+  // color *= mix(#C8FFCF, #FFADC3, saturate(dot(fragCoord, 1.5 * vec2(0.2, 0.8)) + 0.2));
 
+  color *= n;
   // color *= 0.4 + 0.8 * dot(nor, -rd);
 
   gM = m;
@@ -1189,12 +1194,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.7;
+        float diffMin = 0.4;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.7;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1239,13 +1244,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      // float dispersionI = dot(nor, -rayDirection);
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
 
@@ -1342,8 +1347,8 @@ vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec
     // }
 
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(0., 0.381, 1.0), #FFCCCC, 1.0);
-    lights[1] = light(vec3(0.5, 0.8,  1.0), #CCFFFF, 1.0);
+    lights[0] = light(vec3(0., 0.381, 1.0), #FFAAAA, 1.0);
+    lights[1] = light(vec3(0.5, 0.8,  1.0), #AAFFFF, 1.0);
     lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
 
     const float universe = 0.;
