@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 4096
 #define maxDistance 10.0
 #define fogMaxDistance 10.
 
@@ -812,32 +812,51 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  const float warpScale = 0.25;
-
-  q.xzy = q.xyz;
+  const float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * snoise3( 3. * wQ.yzx );
-  wQ += warpScale * 0.02500 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 0.5 * PI * sin(cosT - 1.5 * PI * length(wQ.xz)));
-  wQ += warpScale * 0.01250 * cos(13. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xyz, 0.6 * wQ.x);
-  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) -r, 0, 0);
+  float baseR = 0.5;
+  float r = baseR;
+  r += 0.3 * cellular(2. * q);
+  // r += 0.10 * cellular(8. * q);
+  // r += 0.05 * snoise3(11. * q);
+  float l = length(q);
+  vec3 b = vec3(l -r, 0, 0);
+
+  // Crop layer
+  float cropR = baseR + angle1C;
+  cropR += 0.010 * vfbm6(71. * q);
+  cropR += 0.50 * snoise3(3. * q);
+  float cropD = l - cropR;
+
+  // Get Edge
+  b.z = b.x - cropD;
+
+  // Intersect the two spheres
+  b.x = max(b.x, cropD);
   d = dMin(d, b);
 
-  d.x *= 0.9;
+  d.x *= 0.2;
+
+  // // "Object"
+  // float objectR = 0.05;
+  // vec3 oQ = q - vec3(0, 0, 0.2 + baseR + objectR);
+  // oQ *= rotationMatrix(vec3(0, 1, 0), cosT);
+  // vec3 o = vec3(icosahedral(oQ, 32., objectR), 1., 0.);
+  // o.x *= 0.01;
+  // d = dMin(d, o);
+
+  // d.x *= 0.2;
 
   return d;
 }
@@ -1043,17 +1062,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in float generalT );
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
-
-  // mPos += 0.5 * 0.1000 * fbmWarp(2. * mPos.yzx, r, s, w);
-  // mPos += 0.5 * 0.0500 * fbmWarp(4. * mPos.yzx, r, s, w);
-
-  float n = dot(mPos, vec3(0, 1, 0));
-
-  n = sin(TWO_PI * 10. * n);
-  n = smoothstep(0., edge, n);
-
-  return vec3(n);
+  vec3 color = vec3(1); // #FF3B93;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1067,11 +1076,26 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // dI += angle3C * isMaterialSmooth(m, 1.);
 
-  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  // color *= mix(#C8FFCF, #FFADC3, saturate(dot(fragCoord, 1.5 * vec2(0.2, 0.8)) + 0.2));
+  // color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  color *= mix(#CC2EFF, #FF4F2E, fragCoord.y);
+  // color *= 1.5;
 
-  color *= n;
-  // color *= 0.4 + 0.8 * dot(nor, -rd);
+  vec3 edgeColor = #45192D;
+  edgeColor = pow(edgeColor, vec3(0.69));
+
+  float edgeThickness = angle2C;
+  float edgeIndex = abs(trap);
+  float diffEdge = 1. - smoothstep(edgeThickness, edgeThickness + edge, edgeIndex);
+  float minMask = smoothstep(0., edge, length(pos) - 0.603);
+
+  // color = mix(color, edgeColor, diffEdge * minMask);
+
+  // float edgeThickness = angle2C;
+  // float edgeIndex = dot(normalize(pos), nor);
+  // color = mix(color, edgeColor, 1. - smoothstep(edgeThickness, edgeThickness + edge, edgeIndex));
+
+  // "Object"
+  color = mix(color, vec3(0.100), isMaterialSmooth(m, 1.));
 
   gM = m;
 
@@ -1180,26 +1204,26 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isShiny = gM; // isMaterialSmooth(gM, 1.);
+      float isObject = isMaterialSmooth(gM, 1.);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.6;
+      float freCo = 1.; // mix(0.2, 2., isObject);
+      float specCo = mix(0.6, 1.0, isObject);
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.4;
+        float diffMin = mix(0.3, 0.4, isObject);
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.7;
+        float shadowMin = 1.; // mix(0.9, 1.0, isObject);
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1234,7 +1258,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.04 * reflection(pos, reflectionRd);
+      reflectColor += 0.07 * isObject * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1244,13 +1268,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = dot(nor, -rayDirection);
-      // dispersionColor *= dispersionI;
+      float dispersionI = dot(nor, -rayDirection);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
 

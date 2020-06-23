@@ -62,7 +62,7 @@ export default class App {
     this.colors2 = [140, 108, 5]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.000001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -72,9 +72,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.677
-    this.angle2C = 1.280
-    this.angle3C = 0.10
+    this.angle1C = 0.098
+    this.angle2C = 0.013
+    this.angle3C = 0.603
 
     // this.setupAnimation(preset)
 
