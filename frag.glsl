@@ -812,8 +812,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
-
   vec3 q = p;
 
   float t = mod(dT, 1.);
@@ -821,19 +819,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, wQ.y * 2.);
-  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  // wQ.xzy = twist(wQ.xyz, wQ.y * 2.);
+  // wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
   float r = 0.6;
   // r += 0.05 * snoise3(q * 1.3);
-  // r += 0.2 * snoise3(q * 1.7 + r);
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  r += mix(0.025, 0.04, 0.5 + 0.5 * cos(cosT)) * snoise3(q * 1.7 + r);
+  q *= rotationMatrix(vec3(0, 1, 0), PI * norT);
+
+  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -962,6 +962,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.5 * pow(dNR, 3.);
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
+  color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
 
   color *= spread;
 
@@ -1046,10 +1047,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 3.);
 
   // dI += 0.14 * snoise3(nor);
-  dI *= 0.4;
+  dI *= angle1C;
+  dI += angle2C;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
+  // color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
+  color *= 1.4 * mix(#FFF947, #FFA22E, fragCoord.y);
 
   gM = m;
 
@@ -1214,7 +1217,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
-
 #endif
 
       // Fog
