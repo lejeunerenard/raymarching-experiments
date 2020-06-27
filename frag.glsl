@@ -815,25 +815,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  const float warpScale = 0.1;
+  const float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
-  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, wQ.y * 2.);
-  // wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
-  q = wQ;
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  // q = wQ;
+  wQ.xzy = twist(wQ.xyz, wQ.y * 2.);
+  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
+  // q = wQ;
 
   mPos = q;
 
   float r = 0.6;
   // r += 0.05 * snoise3(q * 1.3);
-  r += mix(0.025, 0.04, 0.5 + 0.5 * cos(cosT)) * snoise3(q * 1.7 + r);
+  r += mix(0.025, 0.04, 0.5 + 0.5 * cos(cosT)) * snoise3(wQ * 1.7 + r);
   q *= rotationMatrix(vec3(0, 1, 0), PI * norT);
 
-  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  vec3 b = vec3(octahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -933,7 +936,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 19.));
+  float spread = 1.; // saturate(1.0 - 1.0 * pow(dNR, 19.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -962,7 +965,8 @@ vec3 textures (in vec3 rd) {
   dI += 0.5 * pow(dNR, 3.);
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
-  color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
+  // color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
+  // color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
 
   color *= spread;
 
@@ -1044,15 +1048,19 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.2 * pow(dNR, 3.);
+  dI += 0.4 * pow(dNR, 4.);
 
+  // dI += 0.3 * mPos;
   // dI += 0.14 * snoise3(nor);
+
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  // color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
+
   // color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
-  color *= 1.4 * mix(#FFF947, #FFA22E, fragCoord.y);
+  // color *= 1.4 * mix(#FFF947, #FFA22E, fragCoord.y);
 
   gM = m;
 
