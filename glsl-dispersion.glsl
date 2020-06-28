@@ -112,7 +112,7 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
     thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
-    thisColor *= 0.6;
+    thisColor *= 0.5;
     thisColor *= sceneResult;
 
     color = thisColor;
