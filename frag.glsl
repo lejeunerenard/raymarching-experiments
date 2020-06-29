@@ -662,6 +662,10 @@ vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
 
+float triangle (in float t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
 vec2 triangle (in vec2 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
@@ -1801,14 +1805,14 @@ vec3 gradient (in float i) {
 
   float lowerEdge = 0.;
 
-  vec3 color = #FF7D6B;
-  // color = mix(color, #E8616D, smoothstep(lowerEdge, lowerEdge + increment, i));
-  // lowerEdge += increment;
-  color = mix(color, #FF78C7, smoothstep(lowerEdge, lowerEdge + increment, i));
+  vec3 color = #9CF0C0;
+  color = mix(color, #D3A8F0, smoothstep(lowerEdge, lowerEdge + increment, i));
   lowerEdge += increment;
-  // color = mix(color, #E261E8, smoothstep(lowerEdge, lowerEdge + increment, i));
-  // lowerEdge += increment;
-  color = mix(color, #D06BFF, smoothstep(lowerEdge, lowerEdge + increment, i));
+  color = mix(color, #9FF08F, smoothstep(lowerEdge, lowerEdge + increment, i));
+  lowerEdge += increment;
+  color = mix(color, #F08178, smoothstep(lowerEdge, lowerEdge + increment, i));
+  lowerEdge += increment;
+  color = mix(color, #E1F084, smoothstep(lowerEdge, lowerEdge + increment, i));
   lowerEdge += increment;
 
   return color;
@@ -1838,32 +1842,51 @@ float halfGridSplit (in vec2 q, in float scale, in float t) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(getBackground(uv));
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
-  q *= 2.;
-
-  float scale = mix(1., 0.707107, generalT);
-  q *= scale;
-  q *= rotMat2(PI * 0.25 * generalT);
-
-  q.x += 0.2 * 0.5 * generalT;
+  const float size = 0.05;
 
   float warpScale = 0.25;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  float odd = halfGridSplit(q, scale, generalT);
-  color = mix(color, vec3(0, 0, 0.8), odd);
+  // Split into cells
+  vec2 c = pMod2(q, vec2(size));
+  vec2 cellQ = q;
 
-  q *= rotMat2(PI * 0.5);
+  // Modulate y to create triangle wave shape
+  float amplitude = 0.5 * size * mix(0.2, 1., triangle(TWO_PI * 0.02 * length(c) - norT));
+  const float frequency = 2. / size;
+  const float phase = -0.5; // So its centered
+  q.y += amplitude * (triangle(frequency * q.x + phase) - 0.5);
 
-  q.y += 0.2;
+  // Line
+  float edgeStart = edge;
+  float n = smoothstep(edgeStart, edgeStart + edge, abs(q.y));
 
-  float even = halfGridSplit(q, scale, generalT);
-  color = mix(color, vec3(0.9, 0, 0), even);
+  // -- Local Cell reference frame --
+  // Middle at x = 0
+  // n *= smoothstep(0., edge, abs(cellQ.x));
+
+  // Middle at y = 0
+  // n *= smoothstep(0., edge, abs(cellQ.y));
+
+  // -- Global reference frame --
+  // // Middle at x = 0
+  // n *= smoothstep(0., edge, abs(uv.x));
+
+  // // Middle at y = 0
+  // n *= smoothstep(0., edge, abs(uv.y));
+
+  // Create color
+  // color = vec3(n);
+  float gradientI = mod(uv.x + 0.053 * c.y, 1.);
+  vec3 bright = gradient(gradientI);
+  bright *= 1. - 0.25 * smoothstep(edgeStart, edgeStart + edge - 0.5 * edge, abs(q.y));
+  color = mix(bright, vec3(0.265), n);
 
   return color.rgb;
 }
@@ -1896,7 +1919,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
