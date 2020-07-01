@@ -7,8 +7,9 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Convert from [-1,1] -> [0, 1]
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
-  vec3 color = mix(vec3(0.2), vec3(0.1), saturate(length(uv)));
-  // vec3 color = mix(#786CF5, 0.4 * #3132D1, saturate(length(uv)));
+  // vec3 color = mix(vec3(0.2), vec3(0.1), saturate(length(uv)));
+  const vec3 skyBlue = #8BC0FF;
+  vec3 color = mix(skyBlue, mix(skyBlue, vec3(1), 0.5), saturate(uv.y + 0.5));
 
   return color;
 }

@@ -816,31 +816,60 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  const float sizeX = 0.2;
+  const float size = 0.1;
+  const float yCOffset = sizeX * 0.6 / 0.18;
+
+  const float yDistMoveC = 23.;
+  p.y += yDistMoveC * size * norT;
+  p *= rotationMatrix(vec3(0, 1, 0), mod(yDistMoveC * yCOffset, 2.) * PI * norT);
+
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = angle2C;
-  const float size = 0.2;
+  float warpScale = 1.;
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx );
-  wQ.xzy = twist(wQ.xyz, wQ.y * 0.5);
-  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0250 * cos(17. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
   q = wQ;
 
-  q *= rotationMatrix(vec3(1, 0, 0), angle1C);
-
-  vec2 c = pMod2(q.xz, vec2(size));
   mPos = q;
 
-  float r = 0.465 * size;
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 0.005)), 0, 0);
+  vec3 bumpQ = vec3(
+      atan(q.z, q.x),
+      length(q.xz),
+      q.y);
+  bumpQ.x /= PI;
+
+  float yC = floor((bumpQ.z + size * 0.5) / size);
+  bumpQ.x += yCOffset * yC;
+  float startMod = -1.;
+  float endMod = 1.;
+  bumpQ.x = mod(bumpQ.x, endMod - startMod) + startMod;
+  // bumpQ.x += sizeX * 0.12 * snoise2(vec2(9.123, 3.4738) * vec2(yC));
+
+  float circumX = bumpQ.x;
+  vec3 bumpSize = vec3(sizeX, size, size);
+  vec3 c = pMod3(bumpQ, bumpSize);
+  vec3 absQ = abs(bumpQ) / bumpSize;
+  float gridBump = vmax(absQ);
+
+  // Age
+  float agedR = 0.;
+  float bigAge = 0.005 * snoise3(9. * vec3(circumX, bumpQ.yz));
+  agedR += bigAge;
+  agedR += 0.0025 * snoise3(19. * vec3(circumX, bumpQ.yz));
+  agedR += bigAge * 0.55 * snoise3(89. * vec3(circumX, bumpQ.yz));
+
+  float thickness = 0.05;
+  thickness -= 1.008 * thickness * gridBump;
+  thickness -= agedR;
+
+  // vec3 b = vec3(sdBox(q, vec3(0.5, 0.5, thickness)), 0, 0);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(0.5 + thickness, 7.)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.0125;
+  d.x *= 0.50;
 
   return d;
 }
@@ -1045,7 +1074,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 vec4 shadeTerminate ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in float generalT );
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.9);
+
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1055,9 +1086,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dI += 0.3 * mPos;
   // dI += 0.14 * snoise3(nor);
   dI += 0.44 * snoise3(1. * pos);
-
-  // dI *= angle1C;
-  // dI += angle2C;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   // color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
@@ -1141,13 +1169,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      // float bumpsScale = 5.75;
-      // float bumpIntensity = 0.05;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 5.75;
+      float bumpIntensity = 0.05;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1164,20 +1192,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.;
-      float specCo = 1.0;
+      float freCo = 0.8;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.3;
+        float diffMin = angle1C;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.;
+        float shadowMin = angle2C;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1210,10 +1238,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.2 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1223,12 +1251,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      // float dispersionI = dot(nor, -rayDirection);
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 #endif
 
       // Fog
