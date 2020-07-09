@@ -826,17 +826,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.357 * length(wQ.xy));
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(21. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(31. * wQ.yzx + cosT );
   q = wQ;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 35., r), 0, 0);
-  // b.x -= 0.025 * cellular(2.0 * q);
+  vec3 b = vec3(sdBox(q, vec3(r, 3., r)), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -1050,13 +1045,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dNR);
 
   dI += 0.4 * pow(dNR, 4.);
+  dI += 0.3 * vfbmWarp(3. * pos);
 
   // dI += 0.3 * mPos;
   // dI += 0.14 * snoise3(nor);
   // dI += 0.44 * snoise3(1. * pos);
 
-  // color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  // color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
 
   // color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
   color *= 1.4 * mix(#F553C0, #A83181, fragCoord.y);
@@ -1121,13 +1117,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      // float bumpsScale = 5.75;
-      // float bumpIntensity = 0.05;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 5.75;
+      float bumpIntensity = 0.05;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1144,7 +1140,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 1.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
@@ -1193,7 +1189,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      reflectColor += 0.4 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
