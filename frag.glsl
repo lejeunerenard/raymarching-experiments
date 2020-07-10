@@ -819,7 +819,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 2.0;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
@@ -829,12 +829,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
   q = wQ;
 
+  q.xy *= rotMat2(cosT);
+  float num = 7.;
+  pModPolar(q.xy, num);
+
+  float bigR = 0.35;
+  q = vec3(
+      atan(q.y, q.x),
+      length(q.yx) - bigR,
+      q.z
+      );
+
+  float angleChunk = TWO_PI / num;
+
+  // q.y -= 0.2;
+
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r, 3., r)), 0, 0);
-  d = dMin(d, b);
+  vec3 a = vec3( angleChunk * 0.40, 0, 0);
+  vec3 b = vec3(-angleChunk * 0.40, 0, 0);
+  float abT = length(q - b) / length(a - b);
 
-  d.x *= 0.5;
+  float r = 0.1 * (1. - 1. * pow(smoothstep(0., 1., abT), 1.10));
+
+  vec3 c = vec3(sdCapsule(q, a, b, r), 0, 0);
+  // d = dMin(d, c);
+  q.x -= 0.095;
+  vec3 s = vec3(length(q) - bigR * 1.1, 0, 0);
+  // s.x = max(s.x, -c.x);
+
+  d = dMin(d, s);
+
+  d.x *= 0.05;
 
   return d;
 }
