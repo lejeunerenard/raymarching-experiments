@@ -444,7 +444,7 @@ float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
     return length( pa - ba*h );
 }
 
-#define Iterations 2
+#define Iterations 9
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
 
@@ -816,6 +816,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p *= globalRot;
   vec3 q = p;
 
   float t = mod(dT, 1.);
@@ -823,44 +824,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q;
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  // for (int i = 0; i < 4; i++) {
+  //   q = octahedron (q, minD);
+
+  //   q = (vec4(q, 1) * kifsM).xyz;
+  // }
+  vec2 o = octahedron(q);
+
   q = wQ;
 
-  q.xy *= rotMat2(cosT);
-  float num = 7.;
-  pModPolar(q.xy, num);
+  vec3 b = vec3(o.x, 0, 0);
+  d = dMin(d, b);
 
-  float bigR = 0.35;
-  q = vec3(
-      atan(q.y, q.x),
-      length(q.yx) - bigR,
-      q.z
-      );
-
-  float angleChunk = TWO_PI / num;
-
-  // q.y -= 0.2;
-
-  mPos = q;
-
-  vec3 a = vec3( angleChunk * 0.40, 0, 0);
-  vec3 b = vec3(-angleChunk * 0.40, 0, 0);
-  float abT = length(q - b) / length(a - b);
-
-  float r = 0.1 * (1. - 1. * pow(smoothstep(0., 1., abT), 1.10));
-
-  vec3 c = vec3(sdCapsule(q, a, b, r), 0, 0);
-  // d = dMin(d, c);
-  q.x -= 0.095;
-  vec3 s = vec3(length(q) - bigR * 1.1, 0, 0);
-  // s.x = max(s.x, -c.x);
-
-  d = dMin(d, s);
-
-  d.x *= 0.05;
+  d.x *= 0.5;
 
   return d;
 }
