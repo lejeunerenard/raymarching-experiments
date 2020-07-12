@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.6;
+float r = 1.0;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -816,7 +816,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
+  // p *= globalRot;
   vec3 q = p;
 
   float t = mod(dT, 1.);
@@ -824,16 +824,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q;
-  // for (int i = 0; i < 4; i++) {
-  //   q = octahedron (q, minD);
-
-  //   q = (vec4(q, 1) * kifsM).xyz;
-  // }
-  vec2 o = octahedron(q);
+  float l = length(wQ.xy);
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
+  wQ.xy *= rotMat2(l + cos(3. * l + cosT));
+  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250 * cos(27. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 b = vec3(o.x, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  b.x -= 0.004 * cellular(vec3(2., 8., 2.) * q);
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -1053,6 +1054,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dI += 0.14 * snoise3(nor);
   // dI += 0.44 * snoise3(1. * pos);
 
+  dI *= angle3C;
+
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   // color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
 
@@ -1189,10 +1192,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       // color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.4 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.4 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
