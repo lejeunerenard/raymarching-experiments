@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 1.0;
+float r = 2.5;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -825,15 +825,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
   float l = length(wQ.xy);
+  wQ.z += l + 0.5 * cos(3. * l + cosT);
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xy *= rotMat2(l + cos(3. * l + cosT));
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
   wQ += warpScale * 0.01250 * cos(27. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, r, 0.5)), 0, 0);
   b.x -= 0.004 * cellular(vec3(2., 8., 2.) * q);
   d = dMin(d, b);
 
