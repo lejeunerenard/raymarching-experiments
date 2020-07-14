@@ -822,22 +822,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float warpScale = 1.0;
 
+  q += 0.02500000 * cos( 7. * q.yzx + cosT );
+  q += 0.01250000 * cos(13. * q.yzx + cosT );
+
   // Warp
   vec3 wQ = q;
   float l = length(wQ.xy);
-  wQ.z += l + 0.5 * cos(3. * l + cosT);
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(27. * wQ.yzx + cosT );
 
-  q = wQ;
+  // wQ.z += l + 0.5 * cos(3. * l + cosT);
+  wQ += warpScale * 0.10000000 * cos( 5. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000000 * cos(11. * wQ.yzx + cosT );
+  // q = wQ;
+  wQ += warpScale * 0.02500000 * cos(19. * wQ.yzx + cosT );
+  wQ += warpScale * 0.01250000 * cos(27. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00625000 * cos(39. * wQ.yzx + cosT );
+  wQ += warpScale * 0.00312500 * cos(46. * wQ.yzx + cosT );
 
-  vec3 b = vec3(sdBox(q, vec3(r, r, 0.5)), 0, 0);
-  b.x -= 0.004 * cellular(vec3(2., 8., 2.) * q);
+  // q = wQ;
+
+  // vec3 ridgeQ = wQ;
+  float ridgeI = dot(wQ, 4. * vec3(1, 1,-1));
+  float ridge = abs(sin(TWO_PI * ridgeI));
+
+  float r = 0.6 * (1. + 0.075 * ridge);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1055,6 +1068,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dI += 0.44 * snoise3(1. * pos);
 
   dI *= angle3C;
+  dI += offset.x;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
   // color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
