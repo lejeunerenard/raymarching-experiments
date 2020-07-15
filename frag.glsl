@@ -817,40 +817,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float minD = 0.;
 
   // p *= globalRot;
+
   vec3 q = p;
 
   float t = mod(dT, 1.);
   float warpScale = 1.0;
 
-  q += 0.02500000 * cos( 7. * q.yzx + cosT );
-  q += 0.01250000 * cos(13. * q.yzx + cosT );
-
   // Warp
   vec3 wQ = q;
-  float l = length(wQ.xy);
+  // wQ += warpScale * 0.10000000 * cos( 5. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.05000000 * cos(11. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.02500000 * cos(19. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.01250000 * cos(27. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.00625000 * cos(39. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.00312500 * cos(46. * wQ.yzx + cosT );
 
-  // wQ.z += l + 0.5 * cos(3. * l + cosT);
-  wQ += warpScale * 0.10000000 * cos( 5. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000000 * cos(11. * wQ.yzx + cosT );
-  // q = wQ;
-  wQ += warpScale * 0.02500000 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250000 * cos(27. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625000 * cos(39. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00312500 * cos(46. * wQ.yzx + cosT );
+  q = wQ;
 
-  // q = wQ;
-
-  // vec3 ridgeQ = wQ;
   float ridgeI = dot(wQ, 4. * vec3(1, 1,-1));
   float ridge = abs(sin(TWO_PI * ridgeI));
 
-  float r = 0.6 * (1. + 0.075 * ridge);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  float r = 0.55; // * (1. + 0.075 * ridge);
+  float ico = icosahedral(q, 45., r);
+  float dodce = dodecahedral(q, 45., r);
+
+  float mI = 0.5 + 0.5 * cos(cosT);
+  // mI = smoothstep(0.0, 1., mI);
+  // mI = expo(mI);
+  vec3 b = vec3(mix(dodce, ico, mI), 0, 0);
 
   d = dMin(d, b);
 
-  d.x *= 0.25;
+  // d.x *= 0.25;
 
   return d;
 }
@@ -1218,8 +1216,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
