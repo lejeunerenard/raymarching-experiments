@@ -816,7 +816,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -826,13 +826,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  wQ += warpScale * 0.10000000 * cos( 5. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, wQ.y);
-  wQ += warpScale * 0.05000000 * cos(11. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500000 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250000 * cos(27. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625000 * cos(39. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00312500 * cos(46. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.10000000 * cos( 5. * wQ.yzx + cosT );
+  // wQ.xzy = twist(wQ.xyz, wQ.y);
+  // wQ += warpScale * 0.05000000 * cos(11. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.02500000 * cos(19. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.01250000 * cos(27. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.00625000 * cos(39. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.00312500 * cos(46. * wQ.yzx + cosT );
 
   q = mix(q, wQ, smoothstep(0.2, 0.8, 0.5 + 0.5 * cos(2. * TWO_PI * t + q.y + PI)));
 
@@ -841,17 +841,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.45; // * (1. + 0.075 * ridge);
   float ico = icosahedral(q, 45., r);
-  float dodce = dodecahedral(q, 45., r);
+  float obj2 = octahedral(q, 45., r);
+  // float obj2 = do(q, vec3(r));
 
-  float mI = mix(-1.0, 2.0, 0.5 + 0.5 * cos(TWO_PI * t + q.y));
-  vec3 b = vec3(mix(dodce, ico, mI), 0, 0);
+  // float mI = mix(-1.0, 2.0, angle1C);
+  float mI = -1.2 * dodecahedral(q, 45., r);
+  vec3 b = vec3(mix(obj2, ico, mI), 0, 0);
+  // b.x -= 0.005 * cellular(2. * q);
   d = dMin(d, b);
 
-  d.x *= 0.5;
-
+  d.x *= 0.75;
   // Crop
   q = p;
-  vec3 c = vec3(length(q) - r * 1.65, 0, 0);
+  vec3 c = vec3(length(q) - r * 12., 0, 0);
   d = dMax(d, c);
 
   return d;
@@ -1076,7 +1078,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color = vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
 
   // color *= 1.4 * mix(#3BD1C3, #D14FC3, fragCoord.y);
-  color *= 1.4 * mix(#F553C0, #A83181, fragCoord.y);
+  color *= 1.4 * mix(#F5a3C0, #A89181, fragCoord.y);
   color = mix(color, vec3(1), 0.25);
 
   gM = m;
@@ -1220,8 +1222,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
