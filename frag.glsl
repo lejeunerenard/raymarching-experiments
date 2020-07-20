@@ -821,7 +821,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 3.0;
+  float warpScale = 1.5;
 
   // Warp
   vec3 wQ = q;
@@ -829,15 +829,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x = abs(wQ.x);
 
   wQ += warpScale * 0.10000000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.05000000 * cos( 9. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500000 * cos(13. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
   wQ += warpScale * 0.01250000 * cos(17. * wQ.yzx + cosT );
   wQ += warpScale * 0.00625000 * cos(23. * wQ.yzx + cosT );
 
   q = wQ;
 
-  vec3 b = vec3(dodecahedral(q, 43., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 43., r), 0, 0);
   d = dMin(d, b);
 
   d *= 0.0625;
@@ -965,7 +965,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.3 * pow(dNR, 3.);
 
-  dI *= angle1C;
+  dI *= 0.6;
   dI += angle2C;
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
   // color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
@@ -1176,10 +1176,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1188,13 +1188,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = dot(nor, -rayDirection);
-      // dispersionColor *= dispersionI;
+      float dispersionI = dot(nor, -rayDirection);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
 
@@ -1214,15 +1214,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #endif
 
       // Post processing coloring
-      float dNR = dot(gNor, -rayDirection);
+      vec3 hsvColor = rgb2hsv(color);
+      float hue = hsvColor.x;
+      hue *= 0.6;
 
-      vec3 midColor = #F25D7B * mix(dNR, 1., 0.9);
-      const vec3 highlightColor = #FDE5FB;
-      const vec3 shadowColor = #252863;
-
-      vec3 shaded = color;
-      color = mix(midColor, highlightColor, step(0.625, shaded.x));
-      color = mix(color, shadowColor, step(0.6, 1. - shaded.x));
+      const float hueSize = 0.1;
+      hue = floor(hue / hueSize) * hueSize;
+      // color = vec3(hue);
+      color = 0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)));
+      // Combine value back in
+      color *= mix(hsvColor.z, 1., 0.70);
+      // color *= hsvColor.z;
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
