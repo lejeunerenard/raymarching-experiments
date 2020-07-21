@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.6;
+float r = 0.7;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -821,7 +821,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 1.5;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
@@ -830,6 +830,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000000 * cos( 9. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
   wQ += warpScale * 0.02500000 * cos(13. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
   wQ += warpScale * 0.01250000 * cos(17. * wQ.yzx + cosT );
@@ -838,9 +839,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ;
 
   vec3 b = vec3(icosahedral(q, 43., r), 0, 0);
+  b.x -= 0.1 * abs(sin(TWO_PI * dot(q, vec3(6.0))));
   d = dMin(d, b);
 
-  d *= 0.0625;
+  d *= 0.015625;
 
   return d;
 }
@@ -1130,7 +1132,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.5;
+      float specCo = 0.25;
 
       float specAll = 0.0;
 
@@ -1176,10 +1178,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1214,17 +1216,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #endif
 
       // Post processing coloring
-      vec3 hsvColor = rgb2hsv(color);
-      float hue = hsvColor.x;
-      hue *= 0.6;
+      float dNR = dot(gNor, -rayDirection);
 
-      const float hueSize = 0.1;
-      hue = floor(hue / hueSize) * hueSize;
-      // color = vec3(hue);
-      color = 0.5 + 0.5 * cos(TWO_PI * (hue + vec3(0, 0.33, 0.67)));
-      // Combine value back in
-      color *= mix(hsvColor.z, 1., 0.70);
-      // color *= hsvColor.z;
+      vec3 midColor = #E68CA1 * mix(dNR, 1., 0.9);
+      const vec3 highlightColor = saturate(#E68CA1 * 1.5);
+      const vec3 shadowColor = #8C4858;
+
+      vec3 shaded = color;
+      color = mix(midColor, highlightColor, step(0.55, shaded.x));
+      color = mix(color, shadowColor, step(0.7, 1. - shaded.x));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));

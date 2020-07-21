@@ -11,7 +11,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(vec3(0.8), vec3(1.0), saturate(length(uv)));
   // uv *= rotMat2Back(2. * (uv.y + sin(uv.x)));
   // vec3 color = mix(#FFA07D, #FF707C, saturate(uv.y + 0.5));
-  vec3 color = #FDE5FB;
+  vec3 color = #DEF6FF;
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
 
   return color;
