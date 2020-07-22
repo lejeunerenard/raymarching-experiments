@@ -1615,12 +1615,51 @@ float halfGridSplit (in vec2 q, in float scale, in float t) {
   return n;
 }
 
+vec2 spaceTransform (in vec2 q, in float size) {
+  const float warpScale = 0.50;
+
+  q += warpScale * 0.10000 * cos( 3. * q.yx + cosT );
+  q += warpScale * 0.05000 * cos( 7. * q.yx + cosT );
+
+  vec2 c = pMod2(q, vec2(size));
+  vec2 cellQ = q;
+
+  return q;
+}
+
+vec2 spaceTransformUndo (in vec2 q, in float size, in vec2 cellC) {
+  const float warpScale = 1.00;
+
+  // Undo pMod2
+  q += size * 0.5;
+  q -= 2. * size * cellC;
+
+  // q2 = q + warpScale * 0.10000 * cos( 3. * q.yx + cosT );
+  q -= warpScale * 0.10000 * cos( 3. * q.yx + cosT );
+
+  return q;
+}
+
+float cellImage (in vec2 q, in float size, in vec2 offset) {
+  q += 2. * size * offset;
+  q = spaceTransform(q, size);
+
+  float r = size * 0.25;
+  float edgeStart = edge;
+  return smoothstep(edgeStart, edgeStart + edge, length(q) - r);
+}
+
+vec3 layerColor (in vec2 q, in float phase) {
+  return 0.5 + 0.5 * cos(TWO_PI * (0.123 * vec3(q, 0.) + phase + vec3(0, 0.33, 0.67)));
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.9);
 
   vec2 q = uv;
 
-  const float size = 0.05;
+  const float size = 0.075;
+  const float r = size * 0.25;
 
   float warpScale = 0.25;
 
@@ -1628,39 +1667,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
 
   // Split into cells
-  vec2 c = pMod2(q, vec2(size));
+	vec2 c = floor((q + size*0.5)/size);
   vec2 cellQ = q;
 
-  // Modulate y to create triangle wave shape
-  float amplitude = 0.5 * size * mix(0.2, 1., triangle(TWO_PI * 0.02 * length(c) - norT));
-  const float frequency = 2. / size;
-  const float phase = -0.5; // So its centered
-  q.y += amplitude * (triangle(frequency * q.x + phase) - 0.5);
-
-  // Line
-  float edgeStart = edge;
-  float n = smoothstep(edgeStart, edgeStart + edge, abs(q.y));
-
-  // -- Local Cell reference frame --
-  // Middle at x = 0
-  // n *= smoothstep(0., edge, abs(cellQ.x));
-
-  // Middle at y = 0
-  // n *= smoothstep(0., edge, abs(cellQ.y));
-
-  // -- Global reference frame --
-  // // Middle at x = 0
-  // n *= smoothstep(0., edge, abs(uv.x));
-
-  // // Middle at y = 0
-  // n *= smoothstep(0., edge, abs(uv.y));
+  float layerStep = 0.499;
+  color = mix(color, color * layerColor(q, 1. * layerStep), (1. - cellImage(cellQ, size, vec2( 0, 0))));
+  color = mix(color, color * layerColor(q, 2. * layerStep), (1. - cellImage(cellQ, size, vec2( 1, 0))));
+  color = mix(color, color * layerColor(q, 3. * layerStep), (1. - cellImage(cellQ, size, vec2(-1, 0))));
+  color = mix(color, color * layerColor(q, 4. * layerStep), (1. - cellImage(cellQ, size, vec2( 0, 1))));
+  color = mix(color, color * layerColor(q, 5. * layerStep), (1. - cellImage(cellQ, size, vec2( 0,-1))));
 
   // Create color
   // color = vec3(n);
-  float gradientI = mod(uv.x + 0.053 * c.y, 1.);
-  vec3 bright = gradient(gradientI);
-  bright *= 1. - 0.25 * smoothstep(edgeStart, edgeStart + edge - 0.5 * edge, abs(q.y));
-  color = mix(bright, vec3(0.265), n);
 
   return color.rgb;
 }
@@ -1693,7 +1711,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
