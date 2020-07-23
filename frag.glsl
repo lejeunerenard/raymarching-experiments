@@ -1615,38 +1615,24 @@ float halfGridSplit (in vec2 q, in float scale, in float t) {
   return n;
 }
 
-vec2 spaceTransform (in vec2 q, in float size) {
-  const float warpScale = 0.50;
-
-  q += warpScale * 0.10000 * cos( 3. * q.yx + cosT );
-  q += warpScale * 0.05000 * cos( 7. * q.yx + cosT );
-
-  vec2 c = pMod2(q, vec2(size));
-  vec2 cellQ = q;
-
-  return q;
-}
-
-vec2 spaceTransformUndo (in vec2 q, in float size, in vec2 cellC) {
-  const float warpScale = 1.00;
-
-  // Undo pMod2
-  q += size * 0.5;
-  q -= 2. * size * cellC;
-
-  // q2 = q + warpScale * 0.10000 * cos( 3. * q.yx + cosT );
-  q -= warpScale * 0.10000 * cos( 3. * q.yx + cosT );
-
-  return q;
-}
-
+vec2 cellQ;
 float cellImage (in vec2 q, in float size, in vec2 offset) {
-  q += 2. * size * offset;
-  q = spaceTransform(q, size);
+  offset *= 0.1;
+
+  const float warpScale = 0.5;
 
   float r = size * 0.25;
-  float edgeStart = edge;
-  return smoothstep(edgeStart, edgeStart + edge, length(q) - r);
+
+  vec2 shift = vec2(0);
+  shift += warpScale * 0.1000 * cos( 3. * (offset.yx + shift) + cosT );
+  shift *= rotMat2(length(offset) + cosT);
+  shift += warpScale * 0.0500 * cos( 7. * (offset.yx + shift) + cosT );
+  shift += warpScale * 0.0250 * cos(14. * (offset.yx + shift) + cosT );
+
+  q += shift;
+  cellQ = q;
+  float s = length(q) - r;
+  return s;
 }
 
 vec3 layerColor (in vec2 q, in float phase) {
@@ -1666,19 +1652,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  // Split into cells
-	vec2 c = floor((q + size*0.5)/size);
-  vec2 cellQ = q;
+  float n = 1.;
 
-  float layerStep = 0.499;
-  color = mix(color, color * layerColor(q, 1. * layerStep), (1. - cellImage(cellQ, size, vec2( 0, 0))));
-  color = mix(color, color * layerColor(q, 2. * layerStep), (1. - cellImage(cellQ, size, vec2( 1, 0))));
-  color = mix(color, color * layerColor(q, 3. * layerStep), (1. - cellImage(cellQ, size, vec2(-1, 0))));
-  color = mix(color, color * layerColor(q, 4. * layerStep), (1. - cellImage(cellQ, size, vec2( 0, 1))));
-  color = mix(color, color * layerColor(q, 5. * layerStep), (1. - cellImage(cellQ, size, vec2( 0,-1))));
+  // Split into cells
+  vec2 c = pMod2(q, vec2(size));
+  // vec2 c = vec2(0);
+
+  for (float x = -2.; x < 3.; x++)
+  for (float y = -2.; y < 3.; y++) {
+    vec2 shift = vec2(x, y);
+    float cell = cellImage(q - size * shift, size, c + shift);
+    if (cell < n) {
+      mPos.xy = cellQ;
+    }
+    n = min(n, cell);
+  }
+
+  float edgeStart = edge;
+  n = smoothstep(edgeStart, edgeStart + edge, n);
 
   // Create color
   // color = vec3(n);
+  vec3 white = vec3(0.625 + 0.313 * 0.5 * (mPos.y + r) / r);
+  color = mix(white, vec3(0, 0, 1), n);
 
   return color.rgb;
 }
