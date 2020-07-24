@@ -1621,10 +1621,14 @@ float cellImage (in vec2 q, in float size, in vec2 offset) {
 
   const float warpScale = 0.5;
 
-  float r = size * 0.25;
+  float r = size * 0.09375;
 
+  offset *= rotMat2(0.125 * PI);
+
+  float a = atan(offset.y, offset.x);
   vec2 shift = vec2(0);
   shift += warpScale * 0.1000 * cos( 3. * (offset.yx + shift) + cosT );
+  shift += warpScale * 0.100 * sin(shift.yx + length(offset) + cosT );
   shift *= rotMat2(length(offset) + cosT);
   shift += warpScale * 0.0500 * cos( 7. * (offset.yx + shift) + cosT );
   shift += warpScale * 0.0250 * cos(14. * (offset.yx + shift) + cosT );
@@ -1644,8 +1648,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  const float size = 0.075;
-  const float r = size * 0.25;
+  const float size = 0.025;
+  const float r = size * 0.09375;
 
   float warpScale = 0.25;
 
@@ -1658,9 +1662,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = pMod2(q, vec2(size));
   // vec2 c = vec2(0);
 
-  for (float x = -2.; x < 3.; x++)
-  for (float y = -2.; y < 3.; y++) {
+  const float baseI = 10.;
+  for (float x = -baseI; x < baseI + 1.; x++)
+  for (float y = -baseI; y < baseI + 1.; y++) {
     vec2 shift = vec2(x, y);
+    shift.x += 4. * norT;
     float cell = cellImage(q - size * shift, size, c + shift);
     if (cell < n) {
       mPos.xy = cellQ;
@@ -1674,7 +1680,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Create color
   // color = vec3(n);
   vec3 white = vec3(0.625 + 0.313 * 0.5 * (mPos.y + r) / r);
-  color = mix(white, vec3(0, 0, 1), n);
+  color = mix(white, vec3(0), n);
 
   return color.rgb;
 }
