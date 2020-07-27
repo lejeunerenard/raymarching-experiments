@@ -821,7 +821,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 1.0;
+  float warpScale = 0.4;
 
   // Warp
   vec3 wQ = q;
@@ -830,7 +830,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000000 * cos( 9. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
   wQ += warpScale * 0.02500000 * cos(13. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
   wQ += warpScale * 0.01250000 * cos(17. * wQ.yzx + cosT );
@@ -839,10 +838,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ;
 
   vec3 b = vec3(icosahedral(q, 43., r), 0, 0);
-  b.x -= 0.1 * abs(sin(TWO_PI * dot(q, vec3(6.0))));
+  b.x -= 0.005 * abs(sin(TWO_PI * dot(q, 6. * vec3(1.0))));
   d = dMin(d, b);
 
-  d *= 0.015625;
+  d *= 0.25;
 
   return d;
 }
@@ -1051,6 +1050,19 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   gM = m;
 
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.2 * pow(dNR, 3.);
+  dI += 0.2 * snoise3(pos);
+
+  dI *= 0.32; // angle1C;
+  dI += 0.0; // angle2C;
+
+  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(2,1,0) * dI + vec3(0.5, 0.2, 0.25) ) );
+  color *= 1.3;
+
 #ifdef NO_MATERIALS
   color = vec3(0.5);
 #endif
@@ -1108,13 +1120,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 5.75;
-      float bumpIntensity = 0.05;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 5.75;
+      // float bumpIntensity = 0.05;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1131,20 +1143,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.25;
+      float freCo = 2.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.0;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1157,7 +1169,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += pow(specCo * spec, 4.);
 
         // Ambient
-        lin += 0.1 * amb * diffuseColor;
+        lin += 0.0 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
@@ -1178,10 +1190,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1190,8 +1202,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
@@ -1215,16 +1227,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color = diffuseColor;
 #endif
 
-      // Post processing coloring
-      float dNR = dot(gNor, -rayDirection);
+      // // Post processing coloring
+      // float dNR = dot(gNor, -rayDirection);
 
-      vec3 midColor = #E68CA1 * mix(dNR, 1., 0.9);
-      const vec3 highlightColor = saturate(#E68CA1 * 1.5);
-      const vec3 shadowColor = #8C4858;
+      // vec3 midColor = #E68CA1 * mix(dNR, 1., 0.9);
+      // const vec3 highlightColor = saturate(#E68CA1 * 1.5);
+      // const vec3 shadowColor = #8C4858;
 
-      vec3 shaded = color;
-      color = mix(midColor, highlightColor, step(0.55, shaded.x));
-      color = mix(color, shadowColor, step(0.7, 1. - shaded.x));
+      // vec3 shaded = color;
+      // color = mix(midColor, highlightColor, step(0.55, shaded.x));
+      // color = mix(color, shadowColor, step(0.7, 1. - shaded.x));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
@@ -1713,7 +1725,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
