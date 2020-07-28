@@ -821,7 +821,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 0.4;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
@@ -831,15 +831,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.10000000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000000 * cos( 9. * wQ.yzx + cosT );
   wQ += warpScale * 0.02500000 * cos(13. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + cosT);
+  wQ.xzy = twist(wQ.xyz, 5. * wQ.y + cosT);
   wQ += warpScale * 0.01250000 * cos(17. * wQ.yzx + cosT );
   wQ += warpScale * 0.00625000 * cos(23. * wQ.yzx + cosT );
 
-  q = wQ;
+  // Insection
+  vec3 intersectQ = q;
+  vec3 intersectD = vec3(maxDistance, 0, 0);
 
-  vec3 b = vec3(icosahedral(q, 43., r), 0, 0);
-  b.x -= 0.005 * abs(sin(TWO_PI * dot(q, 6. * vec3(1.0))));
-  d = dMin(d, b);
+  vec3 ring = vec3(sdTorus(intersectQ.yzx, vec2(r, 0.5 * r + 0.01)), 0, 0);
+  intersectD = dMin(intersectD, ring);
+
+  intersectQ.y += r * sin(cosT);
+  vec3 sphere = vec3(length(intersectQ) - r, 1, 0);
+  intersectD = dMax(intersectD, sphere);
+
+  q = mix(q, wQ, 0.80 + 0.10 * sin(q.y + cosT));
+
+  ring = vec3(sdBox(q - vec3(0.1 * r, 0, 0), vec3(0.5 * r, 3. * r, 0.5 * r)), intersectD.y, 0);
+  ring.x -= 0.005 * cellular(3. * wQ.yzx);
+  d = dMin(d, ring);
 
   d *= 0.25;
 
