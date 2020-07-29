@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.7;
+float r = 0.8;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -825,34 +825,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q;
+  // wQ += warpScale * 0.10000 * cos( 4. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT );
+  wQ.xyz = twist(wQ.xzy, 0.25 * PI * sin(2. * wQ.z + cosT));
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + cosT );
+  q = wQ;
 
-  // wQ.x = abs(wQ.x);
+  mPos = q;
+  // Cross section angle
+  vec2 crossQ = vec2(length(q.xz) - r, q.y);
+  float crossA = atan(crossQ.y, crossQ.x);
+  vec3 b = vec3(sdTorus(q, vec2(r, 0.4 * r)), 0, crossA);
+  // b.x -= 0.005 * cellular(3. * wQ.yzx);
+  d = dMin(d, b);
 
-  wQ += warpScale * 0.10000000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000000 * cos( 9. * wQ.yzx + cosT );
-  wQ += warpScale * 0.02500000 * cos(13. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 5. * wQ.y + cosT);
-  wQ += warpScale * 0.01250000 * cos(17. * wQ.yzx + cosT );
-  wQ += warpScale * 0.00625000 * cos(23. * wQ.yzx + cosT );
-
-  // Insection
-  vec3 intersectQ = q;
-  vec3 intersectD = vec3(maxDistance, 0, 0);
-
-  vec3 ring = vec3(sdTorus(intersectQ.yzx, vec2(r, 0.5 * r + 0.01)), 0, 0);
-  intersectD = dMin(intersectD, ring);
-
-  intersectQ.y += r * sin(cosT);
-  vec3 sphere = vec3(length(intersectQ) - r, 1, 0);
-  intersectD = dMax(intersectD, sphere);
-
-  q = mix(q, wQ, 0.80 + 0.10 * sin(q.y + cosT));
-
-  ring = vec3(sdBox(q - vec3(0.1 * r, 0, 0), vec3(0.5 * r, 3. * r, 0.5 * r)), intersectD.y, 0);
-  ring.x -= 0.005 * cellular(3. * wQ.yzx);
-  d = dMin(d, ring);
-
-  d *= 0.25;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1059,20 +1047,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1);
 
+  float angle = (atan(mPos.z, mPos.x) + PI) / TWO_PI;
+  const float reps = 5.;
+  float twist = 5. * TWO_PI * angle;
+  float v = sin(reps * (trap + PI) + cosT + twist);
+  v = smoothstep(0., edge, v);
+  color = vec3(v);
+
   gM = m;
-
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 0.2 * pow(dNR, 3.);
-  dI += 0.2 * snoise3(pos);
-
-  dI *= 0.32; // angle1C;
-  dI += 0.0; // angle2C;
-
-  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(2,1,0) * dI + vec3(0.5, 0.2, 0.25) ) );
-  color *= 1.3;
 
 #ifdef NO_MATERIALS
   color = vec3(0.5);
@@ -1162,12 +1144,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.8;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
