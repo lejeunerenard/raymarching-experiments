@@ -1649,43 +1649,102 @@ vec3 layerColor (in vec2 q, in float phase) {
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0.9);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
-  const float size = 0.035;
-  const float r = size * 0.023438;
-
-  float warpScale = 0.25;
+  float warpScale = 1.5;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
   float n = 1.;
 
-  // Split into cells
-  vec2 c = pMod2(q, vec2(size));
-  // vec2 c = vec2(0);
+  // Source 1
+  q = uv;
 
-  const float baseI = 5.;
-  for (float x = -baseI; x < baseI + 1.; x++)
-  for (float y = -baseI; y < baseI + 1.; y++) {
-    vec2 shift = vec2(x, y);
-    shift.x += 2. * norT;
-    float cell = cellImage(q - size * shift, size, c + shift);
-    if (cell < n) {
-      mPos.xy = cellQ;
-    }
-    n = min(n, cell);
-  }
+  q += warpScale * 0.1000 * cos( 3. * q.yx + cosT );
+  q += warpScale * 0.0500 * cos( 7. * q.yx + cosT );
+  q += warpScale * 0.0250 * cos(19. * q.yx + cosT );
+  q += warpScale * 0.0125 * cos(23. * q.yx + cosT );
 
-  float edgeStart = edge;
-  n = smoothstep(edgeStart, edgeStart + edge, n);
+  float r1 = 0.2 + 0.2 * cos(cosT);
+  float s1 = length(q) - r1;
 
-  // Create color
-  // color = vec3(n);
-  vec3 white = vec3(0.625 + 0.313 * 0.5 * (mPos.y + r) / r);
-  color = mix(white, vec3(0), n);
+  // Source 2
+  q = uv;
+  q.x -= 0.2;
+
+  q += warpScale * 0.1000 * cos( 3. * q.yx + cosT );
+  q *= rotMat2(length(q));
+  q += warpScale * 0.0500 * cos( 7. * q.yx + cosT );
+  q += warpScale * 0.0250 * cos(19. * q.yx + cosT );
+  q += warpScale * 0.0125 * cos(23. * q.yx + cosT );
+
+  float r2 = 0.075 + 0.2 * sin(cosT);
+  float s2 = length(q) - r2;
+
+  // Source 3
+  q = uv;
+  q += 0.3;
+
+  q += warpScale * 0.1000 * cos( 7. * q.yx + cosT );
+  q += warpScale * 0.0500 * cos(11. * q.yx - cosT );
+  q += warpScale * 0.0250 * cos(13. * q.yx + cosT );
+
+  float r3 = 0.075 + 0.025 * cos(cosT + 0.25 * PI);
+  float s3 = length(q) - angle3C;
+
+  // // Cyan, Purple, Yellow
+  // const vec3 s1Color = #50EBDE;
+  // const vec3 s2Color = #B75BEB;
+  // const vec3 s3Color = #FFF83D;
+
+  // Cyan, Purple, Yellow
+  const vec3 s1Color = #FFD814;
+  const vec3 s2Color = #EB4B4B;
+  const vec3 s3Color = #4369F7;
+
+  // // Only s1
+  // color = vec3(s1);
+
+  // // Only s2
+  // color = vec3(s2);
+
+  // // Only s3
+  // color = vec3(s3);
+
+  // // Component wise
+  // color = vec3(s1, s2, s3);
+
+  // // Mix wise
+  // color = mix(color, s1Color, s1);
+  // color = mix(color, s2Color, s2);
+  // color = mix(color, s3Color, s3);
+
+  // // Max wise most similar
+  // float maxS = vmax(vec3(s1, s2, s3));
+  // // color = vec3(1. - abs(maxS - s1));
+  // // color = vec3(1. - abs(maxS - s2));
+  // // color = vec3(1. - abs(maxS - s3));
+  // color = mix(color, s1Color, 1. - abs(maxS - s1));
+  // color = mix(color, s2Color, 1. - abs(maxS - s2));
+  // color = mix(color, s3Color, 1. - abs(maxS - s3));
+
+  // // Min wise most similar
+  // float minS = min(min(s1, s2), s3);
+  // // color = vec3(1. - abs(maxS - s1));
+  // // color = vec3(1. - abs(maxS - s2));
+  // // color = vec3(1. - abs(maxS - s3));
+  // color = mix(color, s1Color, 1. - abs(minS - s1));
+  // color = mix(color, s2Color, 1. - abs(minS - s2));
+  // color = mix(color, s3Color, 1. - abs(minS - s3));
+
+  // Multiply
+  color = vec3(1);
+  color = mix(color, color * s1Color + 2. * vec3(0.1 * uv, 0), s1);
+  color = mix(color, color * s2Color + 2. * vec3(0, 0.2 * uv), s2);
+  color = mix(color, color * s3Color - 2. * vec3(0.1 * uv.x, 0, 0.1 * uv.y), s3);
 
   return color.rgb;
 }
@@ -1718,7 +1777,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
