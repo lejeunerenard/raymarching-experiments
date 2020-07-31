@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.8;
+float r = 1.2;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -821,26 +821,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 1.0;
+  float warpScale = 2.728;
 
   // Warp
   vec3 wQ = q;
-  // wQ += warpScale * 0.10000 * cos( 4. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 0.25 * PI * sin(2. * wQ.z + cosT));
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + cosT );
+  float waffle = 0.2 * PI * sin(cosT);
+  wQ += warpScale * 0.10000 * cos( 4. * wQ.yzx );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + waffle );
+  wQ.xyz = twist(wQ.xzy, 0.25 * PI * sin(2. * wQ.z));
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + waffle );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx );
   q = wQ;
 
   mPos = q;
-  // Cross section angle
-  vec2 crossQ = vec2(length(q.xz) - r, q.y);
-  float crossA = atan(crossQ.y, crossQ.x);
-  vec3 b = vec3(sdTorus(q, vec2(r, 0.4 * r)), 0, crossA);
-  // b.x -= 0.005 * cellular(3. * wQ.yzx);
+  vec3 b = vec3(sdBox(q, vec3(r, r, 0.05)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.25;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1047,12 +1044,26 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1);
 
-  float angle = (atan(mPos.z, mPos.x) + PI) / TWO_PI;
-  const float reps = 5.;
-  float twist = 5. * TWO_PI * angle;
-  float v = sin(reps * (trap + PI) + cosT + twist);
-  v = smoothstep(0., edge, v);
-  color = vec3(v);
+  float offset = 0.;
+  float frequency = 0.33;
+
+  vec2 q = mPos.xy;
+
+  const float size = 0.00625;
+
+  float c = pMod1(q.x, size);
+  frequency += 1. * mod(c, 2.);
+  offset += q.y;
+  offset += 0.5 * mod(c, 29.) * 0.793103;
+
+  float i = mod(frequency * norT + offset, 1.);
+
+  float n = sin(3. * TWO_PI * i);
+  n = smoothstep(0., 0.25 * edge, n);
+
+  color = vec3(n);
+  color *= smoothstep(0.25 * edge, 0., abs(q.x) - 0.35 * size);
+  color *= 1.5;
 
   gM = m;
 
@@ -1137,7 +1148,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 2.0;
-      float specCo = 0.5;
+      float specCo = 0.7;
 
       float specAll = 0.0;
 
@@ -1183,10 +1194,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1196,12 +1207,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      // float dispersionI = dot(nor, -rayDirection);
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
 
@@ -1777,7 +1788,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
