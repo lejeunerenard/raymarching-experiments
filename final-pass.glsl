@@ -12,6 +12,9 @@ uniform sampler2D buffer;
 uniform sampler2D prevBuffer;
 uniform float wet;
 
+uniform vec3 colors1;
+uniform vec3 colors2;
+
 #pragma glslify: import(./time)
 const float edge = 0.0024;
 

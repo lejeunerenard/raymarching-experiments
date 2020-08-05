@@ -816,45 +816,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalRot;
-
   vec3 q = p;
 
   float t = mod(dT, 1.);
-  float warpScale = 2.;
+  float warpScale = 2.5;
 
   // Warp
   vec3 wQ = q;
-  float yMirrorOffset = angle1C;
 
-  float zMirrorOffset = angle3C;
-  // wQ.z = abs(wQ.z);
-  pModPolar(wQ.xz, 8.);
-  wQ.z = abs(wQ.z);
-  wQ.z += zMirrorOffset;
-
-  pModPolar(wQ.yx, 6.);
-  wQ.y += yMirrorOffset;
-
-  pModPolar(wQ.yx, 6.);
-
-  wQ.x = abs(wQ.x);
-  // float waffle = 0.1 * PI * sin(cosT);
-  wQ += warpScale * 0.1000000 * cos( 4. * wQ.yzx + cosT);
-  wQ.xyz = twist(wQ.xzy, 0.25 * PI * sin(2. * wQ.z));
+  wQ += warpScale * 0.0500000 * cos( 2. * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 0.25 * PI * sin(3. * wQ.y));
   wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0500000 * snoise3( 3. * wQ.yzx );
+  wQ += warpScale * 0.0500000 * length(wQ);
   wQ += warpScale * 0.0250000 * cos(13. * wQ.yzx + cosT);
   wQ += warpScale * 0.0125000 * cos(19. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125000 * snoise3( 3. * wQ.yzx );
   wQ += warpScale * 0.0062500 * cos(27. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0031250 * cos(37. * wQ.yzx + cosT);
+
   q = wQ;
 
   mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // b.x -= 0.005 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.125;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1061,32 +1048,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1);
 
-  float offset = 0.;
-  float frequency = 1.;
+  float i = dot(mPos, vec3(-1, 1, 1));
+  // i += 0.05 * snoise3(0.1 * i + 412. * mPos);
+  float colorI = floor(i/ 0.2);
+  colorI *= 0.538462;
 
-  vec2 q = mPos.xy;
+  color  = 0.5 + 0.5 * cos(TWO_PI * (colorI + vec3(0, 0.33, 0.67)));
 
-  const float size = 0.01875;
+  vec3 dI = vec3(i);
+  dI += 0.1 * pow(dot(nor, -rd), 2.);
 
-  float c = pMod1(q.x, size);
-  frequency += 1. * mod(c, 2.);
-  offset += q.y;
-  offset += 0.5 * mod(c, 29.) * 0.793103;
-  // offset += 0.5 * snoise2(123.238 * vec2(c));
+  color += 0.3 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
-  float i = mod(frequency * norT + offset, 1.);
-
-  float n = sin(2. * TWO_PI * i);
-  vec3 dI = 0.4 * vec3(n);
-  dI += 0.1 * pos;
-  dI += 0.1 * snoise3(nor);
-  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0., 0.33, 0.67)) );
-  n = smoothstep(0., 0.25 * edge, n + 0.5);
-  color *= n;
-
-  // color = vec3(n);
-  color *= smoothstep(0.25 * edge, 0., abs(q.x) - 0.35 * size);
-  color *= 1.5;
+  // color *= 0.9;
 
   gM = m;
 
@@ -1217,10 +1191,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1755,24 +1729,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = mix(color, s1Color, s1);
   // color = mix(color, s2Color, s2);
   // color = mix(color, s3Color, s3);
-
-  // // Max wise most similar
-  // float maxS = vmax(vec3(s1, s2, s3));
-  // // color = vec3(1. - abs(maxS - s1));
-  // // color = vec3(1. - abs(maxS - s2));
-  // // color = vec3(1. - abs(maxS - s3));
-  // color = mix(color, s1Color, 1. - abs(maxS - s1));
-  // color = mix(color, s2Color, 1. - abs(maxS - s2));
-  // color = mix(color, s3Color, 1. - abs(maxS - s3));
-
-  // // Min wise most similar
-  // float minS = min(min(s1, s2), s3);
-  // // color = vec3(1. - abs(maxS - s1));
-  // // color = vec3(1. - abs(maxS - s2));
-  // // color = vec3(1. - abs(maxS - s3));
-  // color = mix(color, s1Color, 1. - abs(minS - s1));
-  // color = mix(color, s2Color, 1. - abs(minS - s2));
-  // color = mix(color, s3Color, 1. - abs(minS - s3));
 
   // Multiply
   color = vec3(1);

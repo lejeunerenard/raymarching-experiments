@@ -55,11 +55,11 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 3.31)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [84, 8, 138]
-    this.colors2 = [140, 108, 5]
+    this.colors1 = [183, 199, 250]
+    this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.00001
@@ -432,6 +432,8 @@ export default class App {
     this.finalPass.uniforms.resolution = dim
     this.finalPass.uniforms.time = this.getTime(t)
     this.finalPass.uniforms.wet = BLOOM_WET
+    this.finalPass.uniforms.colors1 = [this.colors1[0] / 255, this.colors1[1] / 255, this.colors1[2] / 255]
+    this.finalPass.uniforms.colors2 = [this.colors2[0] / 255, this.colors2[1] / 255, this.colors2[2] / 255]
     drawTriangle(gl)
 
     // Render again as framebuffer
