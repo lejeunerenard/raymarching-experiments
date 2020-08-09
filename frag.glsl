@@ -812,46 +812,64 @@ vec3 pieMap (in vec3 q, in float c) {
 
 #pragma glslify: boxRing = require(./pie-slice, map=pieMap, repetitions=11, cosT=cosT, )
 
+vec3 sphericalCoords (in vec3 q) {
+  float a = atan(q.z, q.x);
+  float arc = atan(q.y, length(q.xz));
+  return vec3(
+      a,
+      arc,
+      length(q));
+}
+
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
   vec3 q = p;
 
-  float a = atan(q.z, q.x);
-  float arc = atan(q.y, length(q.xz));
-  vec3 pol = vec3(
-    a,
-    arc,
-    length(q) - 0.7
-  );
-
   float size = 2.1 * r;
-
-  pol.y += size * 2. * norT;
-  vec2 c = floor((pol.xy + size*0.5)/size);
-  pol.x += 2. * size * norT + 0.5 * size * (c.y + 0. * norT);
-  c = pMod2(pol.xy, vec2(size));
-
 
   float t = mod(dT, 1.);
   float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
+
+  vec3 pol = sphericalCoords(q);
+  float warpR = 0.5 + 0.5 * cos(cosT + q.x + cos(2. * (cosT + q.x)));
+  float sphericalR = 0.3 + 0.4 * warpR; // radius range = [0.3, 0.4]
+  pol.z -= sphericalR;
+
+  // Mod/Grid the spherical coordinates
+  pol.y += size * 2. * norT; // Rotate down by 2 spots
+  vec2 c = floor((pol.xy + size*0.5)/size); // Get cell coordinates
+
+  pol.x +=
+      2. * size * norT // Rotate by 1 spots (it's 2 * size)
+    + 0.5 * size * c.y; // Adjust to where that next tile will be
+
+  c = pMod2(pol.xy, vec2(size));
+
   wQ = pol;
+
   q = wQ;
 
   mPos = q;
-  // Pyramid
+
+  // Pyramid Shell
   vec3 absQ = abs(q);
   float sqr = max(absQ.x, absQ.y);
-  // vec3 b = vec3(sdBox(q, vec3(r, r, 0.05 - 0.25 * sqr)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
-
+  float pointiness = 0.165 * expo(warpR);
+  vec3 b = vec3(sdBox(q, vec3(r, r, 0.05 - pointiness * sqr)), 0, warpR);
   d = dMin(d, b);
 
-  d.x *= 0.1;
+  // Inner filling
+  // This enables the dispersion simulation to travel through the sphere
+  q = p;
+  vec3 f = vec3(length(q) - sphericalR, 0, warpR);
+  d = dMin(d, f);
+
+  d.x *= 0.3;
 
   return d;
 }
@@ -1066,7 +1084,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 3.);
 
   dI *= angle1C;
-  dI += angle2C;
+  dI += trap;
 
   color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
@@ -1213,13 +1231,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
-      color += 0.20 * saturate(dispersionColor);
+      color += 1.0 * saturate(dispersionColor);
 
 #endif
 
