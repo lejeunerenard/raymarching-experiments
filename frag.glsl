@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.275;
+float r = 0.75;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -830,27 +830,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.1 * r;
 
   float t = mod(dT, 1.);
-  float warpScale = 1.0;
+  float warpScale = 0.375;
 
   // Warp
   vec3 wQ = q;
 
-  vec3 pol = sphericalCoords(q);
-  float warpR = 0.5 + 0.5 * cos(cosT + q.x + cos(2. * (cosT + q.x)));
-  float sphericalR = 0.3 + 0.4 * warpR; // radius range = [0.3, 0.4]
-  pol.z -= sphericalR;
-
-  // Mod/Grid the spherical coordinates
-  pol.y += size * 2. * norT; // Rotate down by 2 spots
-  vec2 c = floor((pol.xy + size*0.5)/size); // Get cell coordinates
-
-  pol.x +=
-      2. * size * norT // Rotate by 1 spots (it's 2 * size)
-    + 0.5 * size * c.y; // Adjust to where that next tile will be
-
-  c = pMod2(pol.xy, vec2(size));
-
-  wQ = pol;
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(29. * wQ.yzx + cosT );
+  wQ += warpScale * 0.003125 * cos(37. * wQ.yzx + cosT );
 
   q = wQ;
 
@@ -859,15 +849,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Pyramid Shell
   vec3 absQ = abs(q);
   float sqr = max(absQ.x, absQ.y);
-  float pointiness = 0.165 * expo(warpR);
-  vec3 b = vec3(sdBox(q, vec3(r, r, 0.05 - pointiness * sqr)), 0, warpR);
+  float pointiness = 0.165;
+  float myR = r;
+  myR -= 0.05 * (sin(TWO_PI * dot(q, vec3(0.7, 0.5, 0.5)) - 0.25 * PI));
+  vec3 b = vec3(length(q) - myR, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r, r, 0.05 - pointiness * sqr)), 0, 0);
   d = dMin(d, b);
-
-  // Inner filling
-  // This enables the dispersion simulation to travel through the sphere
-  q = p;
-  vec3 f = vec3(length(q) - sphericalR, 0, warpR);
-  d = dMin(d, f);
 
   d.x *= 0.3;
 
@@ -1086,7 +1073,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += trap;
 
-  color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // color += 0.3 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
@@ -1234,10 +1221,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
+      float dispersionI = 1.; // dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
-      color += 1.0 * saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
 
