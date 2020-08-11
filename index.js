@@ -7,7 +7,7 @@ import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 5
+const secondsLong = 6
 const capturing = false
 
 const FOV = 70
@@ -27,10 +27,12 @@ if (capturing) {
   massagedName = massagedName.replace(/'/g, '')
   massagedName = massagedName.toLowerCase()
 
+  let filename = massagedName + '-render1'
+  console.log('filename', filename)
   capturer = new CCapture({
     format: 'jpg',
     framerate: fr,
-    name: massagedName + '-render1',
+    name: filename,
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,

@@ -830,14 +830,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.1 * r;
 
   float t = mod(dT, 1.);
-  float warpScale = 0.375;
+  float warpScale = 0.75;
 
   // Warp
   vec3 wQ = q;
 
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y * 2.);
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y * 3.);
   wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
   wQ += warpScale * 0.006250 * cos(29. * wQ.yzx + cosT );
   wQ += warpScale * 0.003125 * cos(37. * wQ.yzx + cosT );
@@ -981,7 +983,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.3 * pow(dNR, 3.);
 
-  dI *= 0.6;
+  dI *= angle1C;
   dI += angle2C;
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
   // color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
@@ -1071,7 +1073,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * pow(dNR, 3.);
 
   dI *= angle1C;
-  dI += trap;
+  dI += angle2C;
 
   // color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 

@@ -13,7 +13,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import { vec3, mat4 } from 'gl-matrix'
 
-const dpr = 1.0
+const dpr = 1.0 / window.devicePixelRatio
 
 const TWO_PI = 2 * Math.PI
 // const PHI = (1 + Math.sqrt(5)) / 2
@@ -72,8 +72,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.11
-    this.angle2C = 2.94
+    this.angle1C = 0.022
+    this.angle2C = 1.225
     this.angle3C = -0.559
 
     this.setupAnimation(preset)
