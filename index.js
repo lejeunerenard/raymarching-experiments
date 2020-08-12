@@ -27,7 +27,7 @@ if (capturing) {
   massagedName = massagedName.replace(/'/g, '')
   massagedName = massagedName.toLowerCase()
 
-  let filename = massagedName + '-render1'
+  let filename = massagedName + '-render2'
   console.log('filename', filename)
   capturer = new CCapture({
     format: 'jpg',

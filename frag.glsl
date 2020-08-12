@@ -856,6 +856,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   myR -= 0.05 * (sin(TWO_PI * dot(q, vec3(0.7, 0.5, 0.5)) - 0.25 * PI));
   vec3 b = vec3(length(q) - myR, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r, r, 0.05 - pointiness * sqr)), 0, 0);
+  b.x -= 0.005 * cellular(2. * q);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -1161,8 +1162,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 1.25;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
