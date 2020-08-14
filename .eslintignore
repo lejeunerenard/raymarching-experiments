@@ -1,2 +1,2 @@
 gallery/**/*.js
-dat.gui.min.js
+*.min.js

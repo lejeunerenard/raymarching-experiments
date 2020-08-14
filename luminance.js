@@ -1,4 +1,4 @@
-const color = [0, 0, 0]
+// const color = [0, 0, 0]
 
 const redLuminanceCoefficient = 0.2126
 const greenLuminanceCoefficient = 0.7152
