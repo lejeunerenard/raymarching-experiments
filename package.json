@@ -52,6 +52,8 @@
       "AudioContext": true,
       "Image": true,
       "dat": true,
+      "CCapture": true,
+      "XMLHttpRequest": true,
       "WebVRManager": true
     }
   },
