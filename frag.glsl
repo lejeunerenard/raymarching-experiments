@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -836,25 +836,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
 
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, wQ.y * 2.);
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
 
   q = wQ;
 
-  mPos = q;
 
   // Pyramid Shell
-  float myR = r;
-  myR -= 0.05000 *    (sin(TWO_PI * 1.0 * dot(q, vec3(0.7, 0.5, 0.5)) - 0.25 * PI));
-  myR -= 0.02500 * abs(sin(TWO_PI * 2.0 * dot(q, vec3(0.7, 0.5, 0.5)) - 0.25 * PI));
-  // myR -= 0.01250 *    (sin(TWO_PI * 4.0 * dot(q, vec3(0.7, 0.5, 0.5)) - 0.25 * PI));
-  // myR -= 0.00625 * abs(sin(TWO_PI * 8.0 * dot(q, vec3(0.7, 0.5, 0.5)) - 0.25 * PI));
-  vec3 b = vec3(length(q.xy) - myR, 0, 0);
-  b.x -= 0.005 * cellular(2. * q);
+  float h = 0.;
+  float l = length(q.xz);
+  float a = atan(q.z, q.x) + PI;
+  h += 0.5 + 0.5 * cos(1. * (a + TWO_PI * l - 2. * cosT));
+  h *= 0.5 + 0.5 * cos(3. * (TWO_PI * l - cosT));
+
+  h *= smoothstep(0., 0.2, l);
+
+  q.y -= 0.2 * h;
+
+  mPos = q;
+  vec3 b = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  // b.x -= 0.005 * cellular(2. * q);
   d = dMin(d, b);
 
-  d.x *= 0.3;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1071,7 +1078,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle3C;
   dI += offset.x;
 
-  color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.20, 0.40)));
 
   // color += 0.3 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
@@ -1157,7 +1164,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.75;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -1204,10 +1211,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.3 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
