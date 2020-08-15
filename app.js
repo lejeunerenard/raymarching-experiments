@@ -11,6 +11,7 @@ import { rot4 } from './utils'
 import drawTriangle from 'a-big-triangle'
 
 import defined from 'defined'
+import assert from 'assert'
 import { vec3, mat4 } from 'gl-matrix'
 
 const dpr = 1.0 / window.devicePixelRatio
@@ -96,7 +97,7 @@ export default class App {
       })
 
     // Scene Rendering
-    this.sceneRender = defined(options.sceneRender, this.defaultSceneRender)
+    this.sceneRenderer = options.sceneRenderer
 
     Object.assign(this, {
       canvas,
@@ -329,10 +330,6 @@ export default class App {
   tick (t) {
     this.shader.bind()
 
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    // gl.clearColor(0, 0, 0, 0)
-    // gl.viewport(0, 0, dim[0], dim[1])
-
     this.update(t)
     this.render(t)
   }
@@ -445,10 +442,6 @@ export default class App {
     return window.time || t / 1000
   }
 
-  defaultSceneRender (_, t) {
-    drawTriangle(this.gl)
-  }
-
   render (t) {
     let { shader, gl } = this
 
@@ -458,7 +451,7 @@ export default class App {
 
     shader.uniforms.time = this.getTime(t)
     shader.uniforms.BLOOM = BLOOM
-    this.sceneRender(shader, t)
+    this.sceneRenderer(shader, t)
 
     if (BLOOM) {
       this.bloomBlur(gl, t)
@@ -466,6 +459,8 @@ export default class App {
   }
 
   run () {
+    assert(this.sceneRenderer, 'A sceneRenderer is required')
+
     this.canvas.style.display = null
     this.resize()
 

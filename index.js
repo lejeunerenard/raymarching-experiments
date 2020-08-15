@@ -71,13 +71,12 @@ if (capturing) {
     isUndistorted: false
   }
   manager = new WebVRManager({ domElement: app.canvas }, effect, params)
-  app.sceneRender = manager.render.bind(manager)
+  app.sceneRenderer = manager.render.bind(manager)
 
   let resize = () => {
     let dim = app.getDimensions()
     effect.setSize(dim[0], dim[1])
   }
-  // window.addEventListener('resize', resize)
   resize()
 
   navigator.getVRDisplays().then((displays) => {
@@ -201,7 +200,7 @@ if (capturing) {
   })
 
   // Run
-  app.sceneRender = manager.render.bind(manager)
+  app.sceneRenderer = manager.render.bind(manager)
   app.run()
 
   let tick = (t) => {
