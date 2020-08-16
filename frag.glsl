@@ -770,7 +770,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.75;
+float r = 0.6;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -825,9 +825,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  vec3 q = p;
+  // p *= globalRot;
 
-  float size = 2.1 * r;
+  vec3 q = p;
 
   float t = mod(dT, 1.);
   float warpScale = 0.75;
@@ -835,9 +835,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
   // wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
   // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
   // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
@@ -845,23 +845,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ;
 
 
-  // Pyramid Shell
-  float h = 0.;
-  float l = length(q.xz);
-  float a = atan(q.z, q.x) + PI;
-  h += 0.5 + 0.5 * cos(1. * (a + TWO_PI * l - 2. * cosT));
-  h *= 0.5 + 0.5 * cos(3. * (TWO_PI * l - cosT));
-
-  h *= smoothstep(0., 0.2, l);
-
-  q.y -= 0.2 * h;
-
   mPos = q;
-  vec3 b = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // b.x -= 0.005 * cellular(2. * q);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  // d.x *= 0.5;
 
   return d;
 }
@@ -942,10 +931,12 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: softshadow = require(./soft-shadows, map=map)
 #pragma glslify: calcAO = require(./ao, map=map)
 
+// --- Patterns ---
 // #pragma glslify: checker = require(glsl-checker)
+// #pragma glslify: herringBone = require(./patterns/herring-bone)
+
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: rgb2hsv = require(./rgb2hsv.glsl)
-// #pragma glslify: debugColor = require(./debug-color-clip)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
@@ -1065,22 +1056,25 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
 vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in float generalT );
 
+float phaseHerringBone (in float c) {
+  return c * 0.124 + 2. * (1. + mod(c, 2.)) * cosT;
+}
+
+#pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
+
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float dNR = dot(nor, -rd);
+  float size = 0.1;
+  float borderSize = 0.2 * size;
 
-  vec3 dI = vec3(dNR);
+  vec2 herringQ = mPos.xy;
+  herringQ = mix(herringQ, vec2(1, -1) * mPos.xz, step(0., abs(mPos.y) - (0.99 * r)));
+  herringQ = mix(herringQ, vec2(1,  1) * mPos.zy, step(0., abs(mPos.x) - (0.99 * r)));
 
-  dI += 0.1 * snoise3(nor);
-  dI += 0.2 * pow(dNR, 3.);
+  float n = herringBone(herringQ, size, borderSize, 15.);
 
-  dI *= angle3C;
-  dI += offset.x;
-
-  color  = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.20, 0.40)));
-
-  // color += 0.3 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  color = vec3(n);
 
   gM = m;
 
@@ -1223,13 +1217,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      // float dispersionI = dot(nor, -rayDirection);
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
 
 #endif
 
@@ -1688,73 +1682,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 1.;
 
-  // Source 1
-  q = uv;
+  float size = 0.1;
+  float thickness = 0.2 * size;
 
-  q += warpScale * 0.1000 * cos( 3. * q.yx + cosT );
-  q += warpScale * 0.0500 * cos( 7. * q.yx + cosT );
-  q += warpScale * 0.0250 * cos(19. * q.yx + cosT );
-  q += warpScale * 0.0125 * cos(23. * q.yx + cosT );
+  n = herringBone(q, size, thickness, 15.);
 
-  float r1 = 0.2 + 0.2 * cos(cosT);
-  float s1 = length(q) - r1;
+  color = vec3(n);
 
-  // Source 2
-  q = uv;
-  q.x -= 0.2;
-
-  q += warpScale * 0.1000 * cos( 3. * q.yx + cosT );
-  q *= rotMat2(length(q));
-  q += warpScale * 0.0500 * cos( 7. * q.yx + cosT );
-  q += warpScale * 0.0250 * cos(19. * q.yx + cosT );
-  q += warpScale * 0.0125 * cos(23. * q.yx + cosT );
-
-  float r2 = 0.075 + 0.2 * sin(cosT);
-  float s2 = length(q) - r2;
-
-  // Source 3
-  q = uv;
-  q += 0.3;
-
-  q += warpScale * 0.1000 * cos( 7. * q.yx + cosT );
-  q += warpScale * 0.0500 * cos(11. * q.yx - cosT );
-  q += warpScale * 0.0250 * cos(13. * q.yx + cosT );
-
-  float r3 = 0.075 + 0.025 * cos(cosT + 0.25 * PI);
-  float s3 = length(q) - angle3C;
-
-  // // Cyan, Purple, Yellow
-  // const vec3 s1Color = #50EBDE;
-  // const vec3 s2Color = #B75BEB;
-  // const vec3 s3Color = #FFF83D;
-
-  // Cyan, Purple, Yellow
-  const vec3 s1Color = #FFD814;
-  const vec3 s2Color = #EB4B4B;
-  const vec3 s3Color = #4369F7;
-
-  // // Only s1
-  // color = vec3(s1);
-
-  // // Only s2
-  // color = vec3(s2);
-
-  // // Only s3
-  // color = vec3(s3);
-
-  // // Component wise
-  // color = vec3(s1, s2, s3);
-
-  // // Mix wise
-  // color = mix(color, s1Color, s1);
-  // color = mix(color, s2Color, s2);
-  // color = mix(color, s3Color, s3);
-
-  // Multiply
-  color = vec3(1);
-  color = mix(color, color * s1Color + 2. * vec3(0.1 * uv, 0), s1);
-  color = mix(color, color * s2Color + 2. * vec3(0, 0.2 * uv), s2);
-  color = mix(color, color * s3Color - 2. * vec3(0.1 * uv.x, 0, 0.1 * uv.y), s3);
 
   return color.rgb;
 }
