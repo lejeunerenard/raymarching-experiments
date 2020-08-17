@@ -835,22 +835,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.012500 * cos(17. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + cosT );
+  float a = atan(wQ.y, wQ.x);
+  float l = length(wQ.xy);
+  float bigR = 2.5 * r;
+
+  wQ = vec3(
+      a,
+      l - bigR,
+      wQ.z);
 
   q = wQ;
 
 
   mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(TWO_PI, r, r)), 0, 0);
   // b.x -= 0.005 * cellular(2. * q);
   d = dMin(d, b);
 
-  // d.x *= 0.5;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1069,8 +1071,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float borderSize = 0.2 * size;
 
   vec2 herringQ = mPos.xy;
-  herringQ = mix(herringQ, vec2(1, -1) * mPos.xz, step(0., abs(mPos.y) - (0.99 * r)));
-  herringQ = mix(herringQ, vec2(1,  1) * mPos.zy, step(0., abs(mPos.x) - (0.99 * r)));
+  // herringQ = mix(herringQ, vec2(1, -1) * mPos.xz, step(0., abs(mPos.y) - (0.99 * r)));
+  // herringQ = mix(herringQ, vec2(1,  1) * mPos.zy, step(0., abs(mPos.x) - (0.99 * r)));
 
   float n = herringBone(herringQ, size, borderSize, 15.);
 
