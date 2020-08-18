@@ -1672,6 +1672,42 @@ vec3 layerColor (in vec2 q, in float phase) {
   return 0.5 + 0.5 * cos(TWO_PI * (0.123 * vec3(q, 0.) + phase + vec3(0, 0.33, 0.67)));
 }
 
+const float size = 0.05;
+float map (in vec2 q, in vec2 c) {
+  // Shift odd rows
+  q.x += 0.5 * size * mod(c.y, 2.);
+
+  float l = length(c);
+
+  const float numOfSteps = 3.;
+  const float angleStep = 1.0 / numOfSteps * TWO_PI;
+
+  float angle = dot(c, vec2(4)) * angleStep;
+
+  const float tStep = 1.0 / numOfSteps;
+  const float tBuffer = tStep * 0.2;
+
+  float tOffset = l * tStep * 0.125;
+  float t = mod(norT - tOffset, 1.);
+  // float t = sin(0.5 * PI * (norT - tOffset));
+
+  float tIndex = 0.;
+  for (float i = 0.; i < numOfSteps; i++) {
+    tIndex += smoothstep( i * tStep + tBuffer, (i + 1.) * tStep - tBuffer, t);
+  }
+
+  angle += angleStep * tIndex;
+
+  q *= rotMat2(angle);
+
+  // q *= vec2(0.75, 3.0);
+  vec2 absQ = abs(q);
+
+  return max(absQ.x, absQ.y) - size * 0.25;
+}
+
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=1.)
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
@@ -1684,13 +1720,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = 1.;
 
-  float size = 0.1;
-  float thickness = 0.2 * size;
-
-  n = herringBone(q, size, thickness, 15.);
+  n = neighborGrid(q, vec2(size));
+  n = smoothstep(0., edge, n);
 
   color = vec3(n);
-
 
   return color.rgb;
 }
@@ -1723,7 +1756,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
