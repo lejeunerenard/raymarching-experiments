@@ -551,6 +551,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: pMod1 = require(./hg_sdf/p-mod1.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 #pragma glslify: pMod3 = require(./hg_sdf/p-mod3.glsl)
+#pragma glslify: pMod4 = require(./modulo/p-mod4.glsl)
 #pragma glslify: pModPolar = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: quad = require(glsl-easings/quintic-in-out)
 // #pragma glslify: cub = require(glsl-easings/cubic-in-out)
@@ -770,7 +771,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.6;
+float r = 1.0;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -825,34 +826,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  // p *= globalRot;
-
   vec3 q = p;
+  // vec4 z = vec4(q, 0.25 * cos(cosT + 1. * q.x));
+  vec4 z = vec4(q, q.x);
 
+  const float size = 0.1;
   float t = mod(dT, 1.);
-  float warpScale = 0.75;
+  float warpScale = 1.00;
 
   // Warp
-  vec3 wQ = q;
+  // vec3 wQ = q;
+  // q = wQ;
+  vec4 wQ = z;
 
-  float a = atan(wQ.y, wQ.x);
-  float l = length(wQ.xy);
-  float bigR = 2.5 * r;
+  wQ += warpScale * 0.1000000 * cos( 4. * wQ.yzwx + 1. * cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.0500000 * cos( 9. * wQ.yzwx + 1. * cosT );
+  wQ += warpScale * 0.0250000 * cos(17. * wQ.yzwx + 1. * cosT );
+  wQ.ywz = twist(wQ.yzw, 2. * wQ.z);
+  wQ += warpScale * 0.0125000 * cos(23. * wQ.yzwx + 1. * cosT );
+  wQ += warpScale * 0.0062500 * cos(31. * wQ.yzwx + 1. * cosT );
+  wQ += warpScale * 0.0031250 * cos(47. * wQ.yzwx + 1. * cosT );
+  wQ += warpScale * 0.0015625 * cos(51. * wQ.yzwx + 1. * cosT );
 
-  wQ = vec3(
-      a,
-      l - bigR,
-      wQ.z);
-
-  q = wQ;
+  z = wQ;
 
 
-  mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(TWO_PI, r, r)), 0, 0);
+  mPos = z.xyz;
+  vec3 b = vec3(length(z) - r, 0, 0);
   // b.x -= 0.005 * cellular(2. * q);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -979,8 +984,8 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.3 * pow(dNR, 3.);
 
-  dI *= angle1C;
-  dI += angle2C;
+  // dI *= angle1C;
+  // dI += angle2C;
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
   // color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
   color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
@@ -1067,16 +1072,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float size = 0.1;
-  float borderSize = 0.2 * size;
+  float dNR = dot(nor, rd);
+  vec3 dI = vec3(dNR);
 
-  vec2 herringQ = mPos.xy;
-  // herringQ = mix(herringQ, vec2(1, -1) * mPos.xz, step(0., abs(mPos.y) - (0.99 * r)));
-  // herringQ = mix(herringQ, vec2(1,  1) * mPos.zy, step(0., abs(mPos.x) - (0.99 * r)));
+  dI += 0.2 * snoise3(pos);
+  dI += 0.1 * pow(dNR, 3.);
 
-  float n = herringBone(herringQ, size, borderSize, 15.);
-
-  color = vec3(n);
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
 
   gM = m;
 
@@ -1160,7 +1162,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.75;
+      float freCo = 1.00;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -1219,13 +1221,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = dot(nor, -rayDirection);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.; // dot(nor, -rayDirection);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
 
 #endif
 
@@ -1756,7 +1758,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
