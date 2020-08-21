@@ -855,8 +855,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = z.yzw;
   vec3 b = vec3(length(z) - r, 0, 0);
   // vec3 b = vec3(sdBox(z, vec4(r)), 0, 0);
-  // b.x -= 0.005 * cellular(2. * q);
+  b.x -= 0.125 * cellular(2. * z);
+  // Think about zooming in on a high/fast period noise
+  // b.x -= 0.125 * cellular(5. * z);
   d = dMin(d, b);
+  float crop = sdBox(vec4(q, q.x), vec4(1.5 * r, 0.6 * r, 1.5 * r, r));
+  d.x = max(d.x, crop);
 
   d.x *= 0.125;
 
@@ -1076,17 +1080,20 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, rd);
   vec3 dI = vec3(dNR);
 
-  // dI += 0.2 * snoise3(pos);
-  // dI += 0.1 * pow(dNR, 3.);
+  dI += 0.2 * snoise3(pos);
+  dI += 0.1 * pow(dNR, 3.);
 
-  // color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  dI *= angle1C;
+  dI += angle2C;
 
-  float n = dot(mPos, vec3(1));
-  n = 0.5 + 0.5 * sin(TWO_PI * n);
+  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+
+  // float n = dot(mPos, vec3(1));
+  // n = 0.5 + 0.5 * sin(TWO_PI * n);
 
   // n = smoothstep(0., edge, n);
 
-  color = vec3(n);
+  // color = vec3(n);
 
   gM = m;
 
@@ -1230,12 +1237,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.; // dot(nor, -rayDirection);
-      // dispersionColor *= dispersionI;
+      float dispersionI = dot(nor, -rayDirection);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
+      // color = saturate(dispersionColor);
 
 #endif
 
