@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -832,7 +832,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float size = 0.1;
   float t = mod(dT, 1.);
-  float warpScale = 2.00;
+  float warpScale = 1.25;
 
   // Warp
   // vec3 wQ = q;
@@ -846,6 +846,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.0125000 * cos(23. * wQ.yzwx + cosT );
   wQ += warpScale * 0.0062500 * cos(31. * wQ.yzwx + cosT );
+  wQ.yxz = twist(wQ.yzx, 2. * wQ.x);
   wQ += warpScale * 0.0031250 * cos(47. * wQ.yzwx + cosT );
   wQ += warpScale * 0.0015625 * cos(51. * wQ.yzwx + cosT );
 
@@ -853,16 +854,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 
   mPos = z.yzw;
-  vec3 b = vec3(length(z) - r, 0, 0);
-  // vec3 b = vec3(sdBox(z, vec4(r)), 0, 0);
-  b.x -= 0.125 * cellular(2. * z);
-  // Think about zooming in on a high/fast period noise
-  // b.x -= 0.125 * cellular(5. * z);
-  d = dMin(d, b);
-  float crop = sdBox(vec4(q, q.x), vec4(1.5 * r, 0.6 * r, 1.5 * r, r));
-  d.x = max(d.x, crop);
+  // vec3 b = vec3(length(z) - r, 0, 0);
+  vec3 b = vec3(sdBox(z, vec4(r)), 0, 0);
+  // b.x -= 0.125 * cellular(2. * z);
+  b.x -= 0.125 * cellular(5. * z);
 
-  d.x *= 0.125;
+  d = dMin(d, b);
+
+  d.x *= 0.0625;
 
   return d;
 }
@@ -1185,12 +1184,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position; // * globalLRot;
-        float diffMin = 0.85;
+        float diffMin = 0.80;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.6;
+        float shadowMin = 0.7;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1236,8 +1235,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
