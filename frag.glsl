@@ -77,6 +77,7 @@ const float thickness = 0.05;
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
 
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
+#pragma glslify: rotationMatrix4 = require(./rotation-matrix4)
 
 float ncnoise2(in vec2 x) {
   return smoothstep(-1.00, 1.00, cnoise2(x));
@@ -832,32 +833,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float size = 0.1;
   float t = mod(dT, 1.);
-  float warpScale = 1.25;
+  float warpScale = 2.0;
 
   // Warp
   // vec3 wQ = q;
   // q = wQ;
   vec4 wQ = z;
 
-  wQ += warpScale * 0.1000000 * cos( 4. * wQ.yzwx + cosT );
+  wQ += warpScale * 0.1000000 * cos( 3. * wQ.yzwx + cosT );
   wQ.ywz = twist(wQ.yzw, 2. * wQ.z);
-  wQ += warpScale * 0.0500000 * cos( 9. * wQ.yzwx + cosT );
-  wQ += warpScale * 0.0250000 * cos(17. * wQ.yzwx + cosT );
+  wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzwx + cosT );
+  wQ += warpScale * 0.0250000 * cos(13. * wQ.yzwx + cosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.0125000 * cos(23. * wQ.yzwx + cosT );
+  wQ += warpScale * 0.0125000 * cos(29. * wQ.yzwx + cosT );
+  wQ *= rotationMatrix4(wQ.yzw, sin(TWO_PI * length(wQ) + cosT));
   wQ += warpScale * 0.0062500 * cos(31. * wQ.yzwx + cosT );
   wQ.yxz = twist(wQ.yzx, 2. * wQ.x);
-  wQ += warpScale * 0.0031250 * cos(47. * wQ.yzwx + cosT );
-  wQ += warpScale * 0.0015625 * cos(51. * wQ.yzwx + cosT );
+  // wQ += warpScale * 0.0031250 * cos(47. * wQ.yzwx + cosT );
+  // wQ += warpScale * 0.0015625 * cos(51. * wQ.yzwx + cosT );
+  // wQ += warpScale * 7.8125e-4 * cos(63. * wQ.yzwx + cosT );
+  // wQ += warpScale * 3.90625e-4 * cos(71. * wQ.yzwx + cosT );
 
   z = wQ;
 
 
   mPos = z.yzw;
-  // vec3 b = vec3(length(z) - r, 0, 0);
-  vec3 b = vec3(sdBox(z, vec4(r)), 0, 0);
-  // b.x -= 0.125 * cellular(2. * z);
-  b.x -= 0.125 * cellular(5. * z);
+  vec3 b = vec3(length(z) - r, 0, 0);
+  // b.x -= 0.125 * cellular(5. * z);
 
   d = dMin(d, b);
 
@@ -1081,9 +1083,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.2 * snoise3(pos);
   dI += 0.1 * pow(dNR, 3.);
-
-  dI *= angle1C;
-  dI += angle2C;
 
   color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
 

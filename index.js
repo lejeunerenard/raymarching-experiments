@@ -7,7 +7,7 @@ import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 20
+const secondsLong = 12
 const capturing = false
 
 const FOV = 70
