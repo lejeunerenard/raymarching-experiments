@@ -827,6 +827,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p *= globalLRot;
+
   vec3 q = p;
   // vec4 z = vec4(q, q.x);
 
@@ -836,15 +838,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float cylinderHeight = 0.7;
 
-  vec3 baseQ = q;
-  baseQ *= globalLRot;
-  q = baseQ;
-
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ.y *= 0.6;
+  // wQ.y *= 0.6;
 
   wQ += warpScale * 0.1000000 * cos( 3. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, -2. * length(wQ.xz));
@@ -858,39 +856,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // mPos = z.yzw;
   mPos = q;
-  float boxStopHeight = r - 0.2;
-  vec3 b = vec3(sdBox(q + vec3(0, boxStopHeight, 0), vec3(r)), 0, 0);
+  // float obj1 = length(q) - r;
+  // float obj1 = sdBox(q, vec3(r));
+  float obj2 = dodecahedral(q, 52., r);
+  // float obj = mix(obj1, obj2, 0.5 + 0.5 * cos(cosT));
+  float obj = obj2;
+
+  vec3 b = vec3(obj, 0, 0);
   b.x += 0.03125 * cellular(2. * q);
   d = dMin(d, b);
-
-  // Vortex
-  float vortexSmoothing = 0.1;
-  q = baseQ;
-  q += warpScale * 0.1000000 * cos( 3. * q.yzx + cosT );
-  float angle = atan(q.z, q.x);
-  float vortexR = 0.7 * pow(smoothstep(-0.6, boxStopHeight, q.y), 1.5) + 0.025 * abs(sin(10. * angle + 4. * TWO_PI * q.y - 4. * TWO_PI * norT));
-  float vortex = sdCappedCylinder(q, vec2(vortexR, cylinderHeight));
-  d.x = smax(d.x, -vortex, vortexSmoothing);
-
-  // Vortex 2
-  vortexR = 0.7 * pow(smoothstep(-0.6, boxStopHeight, q.y), 1.5);
-  vortexR += 0.025 * abs(sin(7. * angle + 3. * TWO_PI * q.y - 3. * TWO_PI * norT));
-  vortex = sdCappedCylinder(q, vec2(vortexR, cylinderHeight));
-  d.x = smax(d.x, -vortex, vortexSmoothing);
-
-  q = p;
-  // Bottom
-  vec3 floor = vec3(sdBox(q + vec3(0, cylinderHeight, 0), vec3(10, 0.1, 10)), 1, 0);
-  // floor.x += 0.0625 * cellular(2. * q);
-  d.x = max(d.x, -floor.x);
-  d = dMin(d, floor);
-
-  // Constrain to cylinder
-  float crop = sdCappedCylinder(q, vec2(0.7, cylinderHeight));
-  float cropRidgeMask = smoothstep(-0.05, 0.05, q.z);
-  q *= globalLRot;
-  crop += 0.001953 * cropRidgeMask * cellular(vec3(1, 10, 1) * q);
-  d.x = max(d.x, crop);
 
   d.x *= 0.5;
 
@@ -991,7 +965,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 19.));
+  float spread = saturate(1.0 - 1.0 * pow(dNR, 9.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -1108,24 +1082,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0);
 
   float dNR = dot(nor, rd);
-  vec3 dI = vec3(dNR);
+  float staticIndex = angle3C;
+  vec3 dI = vec3(staticIndex);
 
   dI += 0.2 * snoise3(pos);
   dI += 0.1 * pow(dNR, 3.);
 
-  float staticIndex = 0.451;
   color = 0.5 + 0.5 * cos( TWO_PI * (staticIndex + vec3(0, 0.33, 0.67)) );
-  color *= 1. - 0.7 * smoothstep(-0.5, 0.9, -pos.y);
-
-  // Floor color
-  color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
-
-  // float n = dot(mPos, vec3(1));
-  // n = 0.5 + 0.5 * sin(TWO_PI * n);
-
-  // n = smoothstep(0., edge, n);
-
-  // color = vec3(n);
+  color *= offset.x;
+  // color *= 1. - 0.7 * smoothstep(-0.5, 0.9, -pos.y);
 
   gM = m;
 
@@ -1271,7 +1236,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = isMaterialSmooth(t.y, 0.) * dot(nor, -rayDirection);
+      float dispersionI = 1.; // dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
