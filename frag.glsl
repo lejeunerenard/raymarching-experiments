@@ -845,7 +845,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y *= 0.6;
 
   wQ += warpScale * 0.1000000 * cos( 3. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -2. * length(wQ.xz));
+  wQ.xzy = twist(wQ.xyz, -1. * length(wQ.xz));
   wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250000 * cos(13. * wQ.yzx + cosT );
   wQ += warpScale * 0.0125000 * cos(29. * wQ.yzx + cosT );
@@ -856,14 +856,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // mPos = z.yzw;
   mPos = q;
-  // float obj1 = length(q) - r;
-  // float obj1 = sdBox(q, vec3(r));
-  float obj2 = dodecahedral(q, 52., r);
-  // float obj = mix(obj1, obj2, 0.5 + 0.5 * cos(cosT));
-  float obj = obj2;
+  float obj = icosahedral(q, 52., r);
 
   vec3 b = vec3(obj, 0, 0);
-  b.x += 0.03125 * cellular(2. * q);
+  b.x += 0.015625 * cellular(2. * q);
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -999,6 +995,8 @@ vec3 textures (in vec3 rd) {
   // color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
   color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
 
+  color = mix(color, color * #FCC6BB, 0.2);
+
   // color *= spread;
 
   return clamp(color, 0., 1.);
@@ -1092,6 +1090,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color *= offset.x;
   // color *= 1. - 0.7 * smoothstep(-0.5, 0.9, -pos.y);
 
+  color = #FCC6BB;
+  color *= 0.95;
+
   gM = m;
 
 #ifdef NO_MATERIALS
@@ -1174,20 +1175,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.00;
-      float specCo = 0.95;
+      float freCo = 0.80;
+      float specCo = 0.65;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.80;
+        float diffMin = 0.875;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.75;
+        float shadowMin = 0.60;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1223,7 +1224,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * reflection(pos, reflectionRd);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1236,7 +1237,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.; // dot(nor, -rayDirection);
+      float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
