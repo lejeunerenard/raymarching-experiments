@@ -801,19 +801,6 @@ float gridBump ( in vec3 q, float size ) {
   return vmax(absQ) / size;
 }
 
-vec3 pieMap (in vec3 q, in float c) {
-  q *= rotationMatrix(vec3(1), 0.5 + 0. * TWO_PI * smoothstep(0.5, 1.0, mod(norT + c * 0.1, 1.)));
-  // return vec3(sdBox(q, vec3(0.2)), 0, c);
-  float capEndHalfLength = 0.25;
-  float capLengthI = saturate(0.5 * (q.y / (capEndHalfLength + 0.1) + 1.));
-  q.xy *= rotMat2(0.1 * PI * capLengthI);
-  float nScale = 7.;
-  float r = 0.1 * pow(capLengthI, 1.2) + 0.025 * snoise3(vec3(nScale, 1., nScale) * (q + 0.124 * c));
-  return vec3(sdCapsule(q, vec3(0, capEndHalfLength, 0), vec3(0, -capEndHalfLength, 0), r), 0, c);
-}
-
-#pragma glslify: boxRing = require(./pie-slice, map=pieMap, repetitions=11, cosT=cosT, )
-
 vec3 sphericalCoords (in vec3 q) {
   float a = atan(q.z, q.x);
   float arc = atan(q.y, length(q.xz));
@@ -1712,8 +1699,47 @@ float map (in vec2 q, in vec2 c) {
 
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=1.)
 
+float bounceOffset (in float c, in float angleSegment, in float numberOfPositionsShifted, in float phase) {
+  return 0.10 * abs(sin(4. * (cosT + phase) + angleSegment * (c - numberOfPositionsShifted * norT)));
+}
+
+float bounceOffset (in float c, in float angleSegment, in float numberOfPositionsShifted) {
+  return bounceOffset (c, angleSegment, numberOfPositionsShifted, 0.);
+}
+
+vec3 pieMap (in vec3 q, in float c) {
+  vec3 d = vec3(maxDistance, 0, 0);
+  vec2 uv = q.xy;
+
+  float angleSegment = TWO_PI * 0.142857;
+  float numberOfPositionsShifted = 2.;
+  uv *= rotMat2(-numberOfPositionsShifted * angleSegment * norT);
+
+  const float groundR = 0.25;
+
+  float a = atan(uv.y, uv.x);
+  float h = uv.x - (groundR + bounceOffset(c, angleSegment, numberOfPositionsShifted, a));
+
+  vec3 t = vec3(abs(h) - 0.0125, 1, -a);
+  // d = dMin(d, t);
+  vec2 ballUV = uv;
+  float ballR = 0.05;
+
+  ballUV.x -= groundR + bounceOffset(c, angleSegment, numberOfPositionsShifted);
+  vec3 b = vec3(length(ballUV) - ballR, 0, 0);
+  d = dMin(d, b);
+
+  float groundThickness = 0.05;
+  vec3 g = vec3(abs(length(uv) - (groundR - 0. * ballR - groundThickness)), 0, 0);
+  d = dMin(d, g);
+
+  return d;
+}
+
+#pragma glslify: ringSpace = require(./pie-slice, map=pieMap, repetitions=7, cosT=cosT, )
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = mix(vec3(1, 0, 1), vec3(1, 0, 0), 0.425);
 
   vec2 q = uv;
 
@@ -1722,12 +1748,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  float n = 1.;
+  float n = maxDistance;
+  vec3 d = ringSpace(vec3(q, 0));
 
-  n = neighborGrid(q, vec2(size));
-  n = smoothstep(0., edge, n);
+  vec3 ballColor = vec3(0);
+  color = mix(color, ballColor, smoothstep(edge, 0., d.x) * isMaterialSmooth(d.y, 0.));
 
-  color = vec3(1. - n);
+  // vec3 tailColor = vec3(saturate(smoothstep(0., edge, d.x) + 2. * d.z));
+  // tailColor = mix(tailColor, vec3(1),  step(0., -d.z));
+  // color = mix(tailColor, ballColor, isMaterialSmooth(d.y, 0.));
 
   return color.rgb;
 }

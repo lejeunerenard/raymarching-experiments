@@ -4,6 +4,10 @@
 
 #pragma glslify: rotMat2 = require(./rotation-matrix2)
 
+vec3 dMin (vec3 d1, vec3 d2) {
+  return (d1.x < d2.x) ? d1 : d2;
+}
+
 // Expects the following:
 // - map : SDF w/ a vec3 for position & a float for the index
 // - repetitions : SDF w/ a vec3 for position & a float for the index
@@ -21,7 +25,7 @@ vec3 pieSlice (in vec3 p) {
     vec3 wQ = p;
     wQ.xy *= rotMat2(angle);
     vec3 b = map(wQ, float(i));
-    d = min(d, b);
+    d = dMin(d, b);
     angle += TWO_PI / fRepetitions;
   }
 
