@@ -58,7 +58,7 @@
     }
   },
   "scripts": {
-    "start": "budo simple-index.js:bundle.js --live",
+    "start": "budo index.js:bundle.js --live",
     "build": "npm run build:bundle",
     "build:bundle": "browserify app.js --standalone RayMarch | uglifyjs -cm > bundle.js",
     "build:gallery": "npm run build:bundle; node bin/gallery.js",

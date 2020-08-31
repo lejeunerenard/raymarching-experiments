@@ -1,8 +1,6 @@
-import WebVRManager from 'shader-webvr-manager'
-import ShaderVREffect from 'shader-vr-effect'
-import ShaderVROrbitControls from 'shader-vr-orbit-controls'
-
+import DefaultSceneRenderer from './default-scene-renderer'
 import App from './app'
+
 import { name } from './info.json'
 
 const fr = 60
@@ -10,19 +8,28 @@ const captureTime = 0 * 5
 const secondsLong = 6
 const capturing = false
 
-const FOV = 70
-
 let app = new App()
 window.app = app
 
 app.width = 1080
 app.height = 1920
 
+let sceneRenderer = new DefaultSceneRenderer(app.gl)
+app.sceneRenderer = sceneRenderer.render.bind(sceneRenderer)
+
+// Setup resizing
+let resize = () => {
+  let dim = app.getDimensions()
+  sceneRenderer.resize(dim[0], dim[1])
+}
+resize()
+
 // window.time = 0.3
 const still = false
 
-let capturer = {}
 if (capturing) {
+  let capturer = {}
+
   let massagedName = name.replace(/ /g, '-')
   massagedName = massagedName.replace(/'/g, '')
   massagedName = massagedName.toLowerCase()
@@ -39,6 +46,8 @@ if (capturing) {
     timeLimit: secondsLong,
     verbose: true
   })
+
+  const RENDER_DELAY = 250
 
   let currentTime = captureTime * 1000
   window.capturer = capturer
@@ -60,42 +69,9 @@ if (capturing) {
     app.run()
   }
 
-  let vrDisplay, effect, controls, currentRAF, manager
-
-  effect = new ShaderVREffect(app.gl)
-  effect.fov = FOV
-  controls = new ShaderVROrbitControls(app.gl)
-
-  let params = {
-    hideButton: true,
-    isUndistorted: false
-  }
-  manager = new WebVRManager({ domElement: app.canvas }, effect, params)
-  app.sceneRenderer = manager.render.bind(manager)
-
-  let resize = () => {
-    let dim = app.getDimensions()
-    effect.setSize(dim[0], dim[1])
-  }
-  resize()
-
-  navigator.getVRDisplays().then((displays) => {
-    if (displays.length > 0) {
-      vrDisplay = displays[0]
-      effect.setVRDisplay(vrDisplay)
-      controls.setVRDisplay(vrDisplay)
-    }
-
-    if (manager.mode !== WebVRManager.Modes.VR) {
-      manager.button.setVisibility(true)
-    }
-
-    manager.enableEvents()
-    run()
-  })
-
-  let tick = () => {
-    let t = currentTime + 1000 / fr
+  let currentRAF
+  let tick = (t) => {
+    t = currentTime + 1000 / fr
     currentTime = t
 
     app.tick(t)
@@ -104,9 +80,9 @@ if (capturing) {
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
         if (!still) {
-          currentRAF = vrDisplay.requestAnimationFrame(tick)
+          currentRAF = window.requestAnimationFrame(tick)
         }
-      }, 500)
+      }, RENDER_DELAY)
     } else {
       window.setTimeout(() => {
         console.log('done sending message')
@@ -119,9 +95,10 @@ if (capturing) {
   }
 
   app.loaded.then(() => {
-    if (vrDisplay && !currentRAF) {
-      currentRAF = vrDisplay.requestAnimationFrame(tick)
+    if (!currentRAF) {
+      currentRAF = window.requestAnimationFrame(tick)
     }
+    run()
   })
 } else {
   let gui = new dat.GUI()
@@ -155,6 +132,7 @@ if (capturing) {
   cameraPosF.add(app.cameraRo, '2', -20, 20).step(0.01).listen()
 
   let cameraRotF = cameraF.addFolder('Rotation')
+  cameraRotF.add(app, 'LOOKAT')
   cameraRotF.add(app.cameraAngles, '0', -Math.PI, Math.PI).step(0.001).listen()
   cameraRotF.add(app.cameraAngles, '1', -Math.PI, Math.PI).step(0.001).listen()
   cameraRotF.add(app.cameraAngles, '2', -Math.PI, Math.PI).step(0.001).listen()
@@ -164,57 +142,21 @@ if (capturing) {
   colorsF.addColor(app, 'colors2').listen()
 
   // ----- Setup -----
-
-  // VR Setup
-  let vrDisplay, effect, controls, currentRAF, manager
-
-  effect = new ShaderVREffect(app.gl)
-  effect.fov = FOV
-  controls = new ShaderVROrbitControls(app.gl)
-
-  let params = {
-    hideButton: true,
-    isUndistorted: false
-  }
-  manager = new WebVRManager({ domElement: app.canvas }, effect, params)
-
-  let resize = () => {
-    let dim = app.getDimensions()
-    effect.setSize(dim[0], dim[1])
-  }
   window.addEventListener('resize', resize)
-  resize()
-
-  navigator.getVRDisplays().then((displays) => {
-    if (displays.length > 0) {
-      vrDisplay = displays[0]
-      effect.setVRDisplay(vrDisplay)
-      controls.setVRDisplay(vrDisplay)
-    }
-
-    if (manager.mode !== WebVRManager.Modes.VR) {
-      manager.button.setVisibility(true)
-    }
-
-    manager.enableEvents()
-  })
 
   // Run
-  app.sceneRenderer = manager.render.bind(manager)
   app.run()
 
+  let currentRAF
   let tick = (t) => {
-    if (!still) {
-      currentRAF = vrDisplay.requestAnimationFrame(tick)
-    }
+    currentRAF = window.requestAnimationFrame(tick)
 
-    controls.update(app.shader)
     app.tick(t)
   }
 
   app.loaded.then(() => {
-    if (vrDisplay && !currentRAF) {
-      currentRAF = vrDisplay.requestAnimationFrame(tick)
+    if (!currentRAF) {
+      currentRAF = window.requestAnimationFrame(tick)
     }
   })
 }
