@@ -1741,19 +1741,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
 
   float warpScale = 1.5;
+  float size = 0.075;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
+  
+  vec2 c = pMod2(q, vec2(size));
+  t -= 0.1 * length(c);
+  t += 0.5 * mod(dot(c, vec2(1)), 2.);
+  t = mod(t, 1.);
 
-  float n = maxDistance;
-  vec3 d = ringSpace(vec3(q, 0));
+  float n = 1.;
 
-  vec3 ballColor = vec3(0);
-  color = mix(color, ballColor, smoothstep(edge, 0., d.x) * isMaterialSmooth(d.y, 0.));
+  float t1 = mod(2. * t, 1.);
+  float t2 = mod(2. * t - 1., 1.);
+  float secondHalf = step(0.5, t);
 
-  // vec3 tailColor = vec3(saturate(smoothstep(0., edge, d.x) + 2. * d.z));
-  // tailColor = mix(tailColor, vec3(1),  step(0., -d.z));
-  // color = mix(tailColor, ballColor, isMaterialSmooth(d.y, 0.));
+  vec2 absQ = abs(q);
+  float r = 0.5 * ((1. - secondHalf) * t1 + secondHalf * t2) * size;
+  float s = max(absQ.x, absQ.y) - r;
+  n = min(n, s);
+
+  n = smoothstep(0., edge, n);
+  n = mix(n, 1. - n, secondHalf);
+
+  color = vec3(saturate(n));
 
   return color.rgb;
 }
@@ -1786,7 +1798,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
