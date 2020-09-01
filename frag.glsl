@@ -1672,6 +1672,37 @@ vec3 layerColor (in vec2 q, in float phase) {
   return 0.5 + 0.5 * cos(TWO_PI * (0.123 * vec3(q, 0.) + phase + vec3(0, 0.33, 0.67)));
 }
 
+// vec3 pieMap (in vec3 q, in float c) {
+//   vec3 d = vec3(maxDistance, 0, 0);
+//   vec2 uv = q.xy;
+
+//   float angleSegment = TWO_PI * 0.142857;
+//   float numberOfPositionsShifted = 2.;
+//   uv *= rotMat2(-numberOfPositionsShifted * angleSegment * norT);
+
+//   const float groundR = 0.25;
+
+//   float a = atan(uv.y, uv.x);
+//   float h = uv.x - (groundR + bounceOffset(c, angleSegment, numberOfPositionsShifted, a));
+
+//   vec3 t = vec3(abs(h) - 0.0125, 1, -a);
+//   // d = dMin(d, t);
+//   vec2 ballUV = uv;
+//   float ballR = 0.05;
+
+//   ballUV.x -= groundR + bounceOffset(c, angleSegment, numberOfPositionsShifted);
+//   vec3 b = vec3(length(ballUV) - ballR, 0, 0);
+//   d = dMin(d, b);
+
+//   float groundThickness = 0.05;
+//   vec3 g = vec3(abs(length(uv) - (groundR - 0. * ballR - groundThickness)), 0, 0);
+//   d = dMin(d, g);
+
+//   return d;
+// }
+
+// #pragma glslify: ringSpace = require(./pie-slice, map=pieMap, repetitions=7, cosT=cosT, )
+
 const float size = 0.075;
 float map (in vec2 q, in vec2 c) {
   float oddColumn = mod(c.x, 2.);
@@ -1679,91 +1710,34 @@ float map (in vec2 q, in vec2 c) {
   float evenColumn = 1. - mod(c.x + oddRow, 2.);
   float evenRow = 1. - mod(c.y + oddColumn + evenColumn, 2.);
 
-  // float tOffset = 0.;
   float t = mod(norT, 1.);
 
-  float tMul = 4.0;
-  float tOffset = 1. / tMul;
-  q.y += oddColumn * size * 1.0 * saturate(tMul * (t - 0. * tOffset));
-  q.x += oddRow * size * 1.0 * saturate(tMul * (t - 1. * tOffset));
+  // float phase = dot(c, vec2(1));
+  float phase = -length(c);
+  // Square metric
+  // vec2 absC = abs(c);
+  // float phase = -max(absC.x, absC.y);
+  float r = (1.0 + 0.4 * sin(cosT + phase)) * size;
 
-  q.y -= evenColumn * size * 1.0 * saturate(tMul * (t - 2. * tOffset));
-  q.x -= evenRow * size * 1.0 * saturate(tMul * (t - 3. * tOffset));
-
-  vec2 absQ = abs(q);
-  return max(absQ.x, absQ.y) - size * 0.25;
+  return abs(length(q) - r);
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=1.)
-
-float bounceOffset (in float c, in float angleSegment, in float numberOfPositionsShifted, in float phase) {
-  return 0.10 * abs(sin(4. * (cosT + phase) + angleSegment * (c - numberOfPositionsShifted * norT)));
-}
-
-float bounceOffset (in float c, in float angleSegment, in float numberOfPositionsShifted) {
-  return bounceOffset (c, angleSegment, numberOfPositionsShifted, 0.);
-}
-
-vec3 pieMap (in vec3 q, in float c) {
-  vec3 d = vec3(maxDistance, 0, 0);
-  vec2 uv = q.xy;
-
-  float angleSegment = TWO_PI * 0.142857;
-  float numberOfPositionsShifted = 2.;
-  uv *= rotMat2(-numberOfPositionsShifted * angleSegment * norT);
-
-  const float groundR = 0.25;
-
-  float a = atan(uv.y, uv.x);
-  float h = uv.x - (groundR + bounceOffset(c, angleSegment, numberOfPositionsShifted, a));
-
-  vec3 t = vec3(abs(h) - 0.0125, 1, -a);
-  // d = dMin(d, t);
-  vec2 ballUV = uv;
-  float ballR = 0.05;
-
-  ballUV.x -= groundR + bounceOffset(c, angleSegment, numberOfPositionsShifted);
-  vec3 b = vec3(length(ballUV) - ballR, 0, 0);
-  d = dMin(d, b);
-
-  float groundThickness = 0.05;
-  vec3 g = vec3(abs(length(uv) - (groundR - 0. * ballR - groundThickness)), 0, 0);
-  d = dMin(d, g);
-
-  return d;
-}
-
-#pragma glslify: ringSpace = require(./pie-slice, map=pieMap, repetitions=7, cosT=cosT, )
-
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = mix(vec3(1, 0, 1), vec3(1, 0, 0), 0.425);
 
   vec2 q = uv;
 
   float warpScale = 1.5;
-  float size = 0.075;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
   
-  vec2 c = pMod2(q, vec2(size));
-  t -= 0.1 * length(c);
-  t += 0.5 * mod(dot(c, vec2(1)), 2.);
-  t = mod(t, 1.);
-
   float n = 1.;
-
-  float t1 = mod(2. * t, 1.);
-  float t2 = mod(2. * t - 1., 1.);
-  float secondHalf = step(0.5, t);
-
-  vec2 absQ = abs(q);
-  float r = 0.5 * ((1. - secondHalf) * t1 + secondHalf * t2) * size;
-  float s = max(absQ.x, absQ.y) - r;
-  n = min(n, s);
+  n = neighborGrid(q, vec2(size));
+  // n = abs(n);
 
   n = smoothstep(0., edge, n);
-  n = mix(n, 1. - n, secondHalf);
 
   color = vec3(saturate(n));
 
