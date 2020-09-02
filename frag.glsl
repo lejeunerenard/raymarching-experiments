@@ -1717,9 +1717,21 @@ float map (in vec2 q, in vec2 c) {
   // Square metric
   // vec2 absC = abs(c);
   // float phase = -max(absC.x, absC.y);
-  float r = (1.0 + 0.4 * sin(cosT + phase)) * size;
+  float r = mix(0.95, 1.249, (0.5 + 0.5 * sin(cosT + phase))) * size;
+  // float r = angle1C * size;
 
-  return abs(length(q) - r);
+  // // Square
+  // vec2 absQ = abs(q);
+  // float d = max(absQ.x, absQ.y) - r;
+
+  // // Diamond
+  // vec2 absQ = abs(q);
+  // float d = dot(absQ, vec2(1)) - r;
+
+  // Hexagon
+  float d = sdHexPrism(vec3(q, 0), vec2(r, 1));
+
+  return abs(d);
 }
 
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
@@ -1738,6 +1750,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   n = smoothstep(0., edge, n);
+
+  n = 1. - n;
 
   color = vec3(saturate(n));
 
