@@ -772,7 +772,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.9;
+float r = 1.15;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -819,16 +819,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
   // vec4 z = vec4(q, q.x);
 
-  q *= rotationMatrix(vec3(1), 0.03125 * PI * sin(cosT));
-  q *= rotationMatrix(vec3(-1, 0, 0.5), 0.03125 * PI * sin(cosT + 0.125 * PI + 0.25 * PI * sin(cosT)));
+  // q *= rotationMatrix(vec3(1), 0.03125 * PI * sin(cosT));
+  // q *= rotationMatrix(vec3(-1, 0, 0.5), 0.03125 * PI * sin(cosT + 0.125 * PI + 0.25 * PI * sin(cosT)));
 
-  q.y -= 0.125 * sin(cosT);
+  q.y -= 0.05 * sin(cosT);
 
   const float size = 0.1;
   float t = mod(dT, 1.);
   float warpScale = 1.0;
-
-  float r = 0.9;
 
   // Warp
   vec3 wQ = q;
@@ -845,24 +843,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ;
   // z = wQ;
 
+  vec2 absQ = abs(q.xz);
+  float h = (r - max(absQ.x, absQ.y)) / r;
+  h -= 0.2 * smoothstep(0., edge, q.y) * vfbmWarp(vec3(3, 0.01, 3.) * q);
+  pModPolar(q.xz, 7.);
+  q.z = abs(q.z);
+  h -= 0.075 * abs(sin(TWO_PI * dot(q.xz, vec2(1))));
+  // h -= 0.075 * abs(sin(TWO_PI * dot(absQ.xy, vec2(1))));
+
   // mPos = z.yzw;
   mPos = q;
-  float i = dot(q, vec3(-1, 1, -1));
-  float m = step(0., -(abs(i) - 0.3));
-
-  r -= 0.025 * isMaterialSmooth(m, 1.);
-
-  vec3 o = vec3(icosahedral(q, 52., r), m, 0);
+  vec3 o = vec3(sdBox(q, vec3(r, h, r)), 0, 0);
   d = dMin(d, o);
 
-  q *= rotationMatrix(vec3(0.3, 1., -0.2), 2.5);
-
-  float crop = dodecahedral(q, 52., r);
-  d.x = max(d.x, crop);
-
-  d.x += 0.007812 * cellular(1. * q);
-
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1077,24 +1071,10 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float i = dot(mPos, vec3(-1, 1, -1));
-
-  float dNR = dot(nor, rd);
-  vec3 dI = vec3(dNR);
-
-  dI += 0.2 * snoise3(pos);
-  dI += 0.1 * pow(dNR, 3.);
-  dI += 0.1 * pos;
-
-  dI *= angle3C;
-  dI += offset.x;
-
-  color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
-  // color = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.2, 0.67)) );
-
-  vec3 boringColor = mix(vec3(0.155), vec3(0.975), step(0., i));
-  color = mix(color, boringColor, isMaterialSmooth(m, 0.));
-  color = mix(color, vec3(0.975), isMaterialSmooth(m, 2.));
+  float n = mPos.y / r;
+  n = 1. - n;
+  n = pow(n, angle1C);
+  color = vec3(n);
 
   gM = m;
 
@@ -1178,7 +1158,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 0.75;
       float specCo = 0.75;
 
       float specAll = 0.0;
