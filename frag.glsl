@@ -822,7 +822,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // q *= rotationMatrix(vec3(1), 0.03125 * PI * sin(cosT));
   // q *= rotationMatrix(vec3(-1, 0, 0.5), 0.03125 * PI * sin(cosT + 0.125 * PI + 0.25 * PI * sin(cosT)));
 
-  q.y -= 0.05 * sin(cosT);
+  // q.y -= 0.05 * sin(cosT);
 
   const float size = 0.1;
   float t = mod(dT, 1.);
@@ -844,7 +844,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // z = wQ;
 
   vec2 absQ = abs(q.xz);
-  float h = (r - max(absQ.x, absQ.y)) / r;
+  float h = 0.4; // (r - max(absQ.x, absQ.y)) / r;
   h -= 0.2 * smoothstep(0., edge, q.y) * vfbmWarp(vec3(3, 0.01, 3.) * q);
   pModPolar(q.xz, 7.);
   q.z = abs(q.z);
@@ -855,6 +855,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
   vec3 o = vec3(sdBox(q, vec3(r, h, r)), 0, 0);
   d = dMin(d, o);
+
+  q = p;
+
+  // Mirror
+  float mirrorSize = 0.1;
+  q.y -= 0.4 + 0.01 + mirrorSize;
+  vec3 m = vec3(sdBox(q, vec3(mirrorSize, mirrorSize, 0.01)), 1, 0);
+  d = dMin(d, m);
 
   d.x *= 0.125;
 
@@ -1074,6 +1082,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float n = mPos.y / r;
   n = 1. - n;
   n = pow(n, angle1C);
+
+  n = mix(n, 0., isMaterialSmooth(m, 1.));
+
   color = vec3(n);
 
   gM = m;
@@ -1166,12 +1177,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.875;
+        float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.70;
+        float shadowMin = 0.80;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1207,7 +1218,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      reflectColor += isMaterialSmooth(t.y, 1.) * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1217,13 +1228,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = isMaterialSmooth(gM, 1.) * dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      // float dispersionI = isMaterialSmooth(gM, 1.) * dot(nor, -rayDirection);
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1714,21 +1725,25 @@ float map (in vec2 q, in vec2 c) {
   // float phase = dot(c, vec2(1));
   float phase = -length(c);
   // Square metric
-  // vec2 absC = abs(c);
+  vec2 absC = abs(c);
   // float phase = -max(absC.x, absC.y);
   float r = mix(0.95, 1.249, (0.5 + 0.5 * sin(cosT + phase))) * size;
   // float r = angle1C * size;
 
-  // // Square
-  // vec2 absQ = abs(q);
-  // float d = max(absQ.x, absQ.y) - r;
+  const float warpScale = 0.25;
 
-  // // Diamond
-  // vec2 absQ = abs(q);
-  // float d = dot(absQ, vec2(1)) - r;
+  // float warpPhase = dot(c, vec2(0.10));
+  // float warpPhase = -0.123 * length(c);
+  float warpPhase = -0.3 * max(absC.x, absC.y);
+  q += warpScale * 0.1000 * cos( 9. * q.yx + cosT + 0.123 * warpPhase);
+  q += warpScale * 0.0500 * cos(18. * q.yx + cosT + 0.123 * warpPhase);
+  q += warpScale * 0.0250 * cos(25. * q.yx + cosT + 0.123 * warpPhase);
+
+  // Circle
+  float d = length(q) - r;
 
   // Hexagon
-  float d = sdHexPrism(vec3(q, 0), vec2(r, 1));
+  // float d = sdHexPrism(vec3(q, 0), vec2(r, 1));
 
   return abs(d);
 }
@@ -1785,7 +1800,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
