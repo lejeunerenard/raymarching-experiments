@@ -1723,29 +1723,38 @@ float map (in vec2 q, in vec2 c) {
   float t = mod(norT, 1.);
 
   // float phase = dot(c, vec2(1));
-  float phase = -length(c);
+  // float phase = -length(c);
   // Square metric
-  vec2 absC = abs(c);
+  // vec2 absC = abs(c);
   // float phase = -max(absC.x, absC.y);
-  float r = mix(0.95, 1.249, (0.5 + 0.5 * sin(cosT + phase))) * size;
+  // float r = mix(0.95, 1.249, (0.5 + 0.5 * sin(cosT + phase))) * size;
   // float r = angle1C * size;
 
   const float warpScale = 0.25;
 
   // float warpPhase = dot(c, vec2(0.10));
   // float warpPhase = -0.123 * length(c);
-  float warpPhase = -0.3 * max(absC.x, absC.y);
-  q += warpScale * 0.1000 * cos( 9. * q.yx + cosT + 0.123 * warpPhase);
-  q += warpScale * 0.0500 * cos(18. * q.yx + cosT + 0.123 * warpPhase);
-  q += warpScale * 0.0250 * cos(25. * q.yx + cosT + 0.123 * warpPhase);
+  // float warpPhase = -0.3 * max(absC.x, absC.y);
+  // q += warpScale * 0.1000 * cos( 9. * q.yx + cosT + 0.123 * warpPhase);
+  // q += warpScale * 0.0500 * cos(18. * q.yx + cosT + 0.123 * warpPhase);
+  // q += warpScale * 0.0250 * cos(25. * q.yx + cosT + 0.123 * warpPhase);
+
+  // Random positions
+  q += 0.2 * size * vec2(
+      snoise2(0.2 * sin(cosT - 0.9 * length(c)) + c * 0.123),
+      snoise2(0.2 * sin(cosT - 0.9 * length(c)) + c * 8.123 + 0.777778));
 
   // Circle
-  float d = length(q) - r;
+  float d = length(q);
 
-  // Hexagon
+  // // Hexagon
   // float d = sdHexPrism(vec3(q, 0), vec2(r, 1));
 
-  return abs(d);
+  // // Square
+  // vec2 absQ = abs(c);
+  // float d = max(absQ.x, absQ.y);
+
+  return d;
 }
 
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
@@ -1761,11 +1770,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   
   float n = 1.;
   n = neighborGrid(q, vec2(size));
-  // n = abs(n);
 
+  // Stripes
+  n = sin(TWO_PI * 110. * n);
   n = smoothstep(0., edge, n);
-
-  n = 1. - n;
 
   color = vec3(saturate(n));
 
