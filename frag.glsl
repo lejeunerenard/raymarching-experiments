@@ -819,11 +819,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
   // vec4 z = vec4(q, q.x);
 
-  // q *= rotationMatrix(vec3(1), 0.03125 * PI * sin(cosT));
-  // q *= rotationMatrix(vec3(-1, 0, 0.5), 0.03125 * PI * sin(cosT + 0.125 * PI + 0.25 * PI * sin(cosT)));
-
-  // q.y -= 0.05 * sin(cosT);
-
   const float size = 0.1;
   float t = mod(dT, 1.);
   float warpScale = 0.55;
@@ -1705,13 +1700,14 @@ vec3 layerColor (in vec2 q, in float phase) {
 
 // #pragma glslify: ringSpace = require(./pie-slice, map=pieMap, repetitions=7, cosT=cosT, )
 
-const float size = 0.075;
+const float size = 0.1;
 float map (in vec2 q, in vec2 c) {
   float oddColumn = mod(c.x, 2.);
   float oddRow = mod(c.y + oddColumn, 2.);
   float evenColumn = 1. - mod(c.x + oddRow, 2.);
   float evenRow = 1. - mod(c.y + oddColumn + evenColumn, 2.);
 
+  q.x += 0.5 * size * oddRow;
   float t = mod(norT, 1.);
 
   // float phase = dot(c, vec2(1));
@@ -1722,28 +1718,29 @@ float map (in vec2 q, in vec2 c) {
   // float r = mix(0.95, 1.249, (0.5 + 0.5 * sin(cosT + phase))) * size;
   // float r = angle1C * size;
 
-  const float warpScale = 0.25;
+  const float warpScale = 0.15;
 
+  vec2 absC = abs(c);
   // float warpPhase = dot(c, vec2(0.10));
   // float warpPhase = -0.123 * length(c);
-  // float warpPhase = -0.3 * max(absC.x, absC.y);
-  // q += warpScale * 0.1000 * cos( 9. * q.yx + cosT + 0.123 * warpPhase);
-  // q += warpScale * 0.0500 * cos(18. * q.yx + cosT + 0.123 * warpPhase);
-  // q += warpScale * 0.0250 * cos(25. * q.yx + cosT + 0.123 * warpPhase);
+  float warpPhase = -2.413 * max(absC.x, absC.y);
+  q += warpScale * 0.1000 * cos(19. * q.yx + cosT + warpPhase);
+  q += warpScale * 0.0500 * cos(61. * q.yx + cosT + warpPhase);
+  q += warpScale * 0.0250 * cos(65. * q.yx + cosT + warpPhase);
 
   // Random positions
-  q += 0.2 * size * vec2(
-      snoise2(0.2 * sin(cosT - 0.9 * length(c)) + c * 0.123),
-      snoise2(0.2 * sin(cosT - 0.9 * length(c)) + c * 8.123 + 0.777778));
+  q += 0.7 * size * vec2(
+      snoise2(0.2 * sin(cosT - 2.9 * length(c)) + c * 0.123),
+      snoise2(0.2 * sin(cosT - 1.9 * length(c)) + c * 8.123 + 0.777778));
 
   // Circle
   float d = length(q);
 
   // // Hexagon
-  // float d = sdHexPrism(vec3(q, 0), vec2(r, 1));
+  // float d = sdHexPrism(vec3(q, 0), vec2(0., 1));
 
   // // Square
-  // vec2 absQ = abs(c);
+  // vec2 absQ = abs(q);
   // float d = max(absQ.x, absQ.y);
 
   return d;
@@ -1763,11 +1760,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = 1.;
   n = neighborGrid(q, vec2(size));
 
+  n /= size;
+
   // Stripes
-  n = sin(TWO_PI * 110. * n);
-  n = smoothstep(0., edge, n);
+  // n = sin(TWO_PI * 10. * n);
+  // n = smoothstep(0., edge, n);
+
+  n = 1. - n;
 
   color = vec3(saturate(n));
+  color *= mix(vec3(12./255., 31./255., 93./255.), vec3(227./255., 227./255., 178./255.), n);
 
   return color.rgb;
 }
@@ -1800,7 +1802,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
