@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 4096
 #define maxDistance 10.0
-#define fogMaxDistance 10.
+#define fogMaxDistance 5.5
 
 #define slowTime time * 0.2
 // v3
@@ -772,7 +772,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 1.15;
+float r = 0.75;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -821,34 +821,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float size = 0.1;
   float t = mod(dT, 1.);
-  float warpScale = 0.50;
+  float warpScale = 1.50;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ.y -= 0.1 * vfbmWarp(0.6 * wQ);
-
-  wQ = vec3(
-      atan(wQ.z, wQ.x),
-      wQ.y,
-      length(wQ.xz));
-
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx - 2. * cosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y);
   wQ += warpScale * 0.0500 * cos(12. * wQ.yzx - 2. * cosT );
   wQ += warpScale * 0.0250 * cos(23. * wQ.yzx - 2. * cosT );
   wQ += warpScale * 0.0125 * cos(37. * wQ.yzx - 2. * cosT );
 
-  wQ.y -= 0.30 * sin(cosT - length(q));
-  // wQ.y -= 0.10 * sin(cosT - 3.5 * length(wQ));
-
-  // q = mix(q, wQ, smoothstep(0.5, 1.0, sin(cosT - length(q.xz))));
   q = wQ;
   // z = wQ;
 
   // mPos = z.yzw;
   mPos = q;
-  vec3 o = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.5;
@@ -941,7 +931,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 1.398;
+float n2 = angle1C;
 const float amount = 0.25;
 
 float gM = 0.;
@@ -1064,12 +1054,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0, 0, 1);
-
-  float yScale = 2.5;
-  color = mix(color, vec3(0, 0.8, 1), saturate(yScale * pos.y));
-  color = mix(color, vec3(1), smoothstep(0.5, 1., saturate(yScale * pos.y)));
-  // color += 0.5 * pow(dot(nor, -rd), 2.);
+  vec3 color = vec3(0.05);
 
   gM = m;
 
@@ -1112,11 +1097,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
     // float dNR = dot()
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(0., 0.381, 1.0), #FFFFFF, 1.0);
-    lights[1] = light(vec3(0.5, 0.8,  1.0), #FFFFFF, 1.0);
-    lights[2] = light(vec3( 0.0, 1.0,  1.0), #FFFFFF, 1.0);
-    lights[3] = light(vec3( 0.3, 0.8,  0.4), #FFFFFF, 1.0);
-    lights[4] = light(vec3(-0.4, -.2,  1.0), #FFFFFF, 1.0);
+    lights[0] = light(vec3(0., 0.381,-1.0), #FFFFFF, 1.0);
+    lights[1] = light(vec3(0.5, 0.8, -1.0), #FFFFFF, 1.0);
+    lights[2] = light(vec3( 0.0, 1.0, -1.0), #FFFFFF, 1.0);
+    lights[3] = light(vec3( 0.3, 0.8, -0.4), #FFFFFF, 1.0);
+    lights[4] = light(vec3(-0.4, -.2, -1.0), #FFFFFF, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1153,15 +1138,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.50;
-      float specCo = 1.00;
+      float freCo = 0.5;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.9;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1174,7 +1159,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
         // Specular Lighting
         fre *= freCo * dif * occ;
-        lin += fre;
+        lin += fre * background;
         specAll += specCo * spec;
         lin += pow(specCo * spec, 4.);
 
