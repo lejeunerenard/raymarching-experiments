@@ -17,7 +17,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(0.5 * vec3(0.3, 0.25, 0.1), vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.25, 0.1, 0.1), vec3(0.15, 0.05, 0), bgIndex);
-  // vec3 color = mix(vec3(0.95), vec3(0.7), bgIndex);
+  vec3 color = mix(vec3(0.95), vec3(0.8), bgIndex);
   // // Rainbow dark background color
   // float rainbowI = 0.5 * (atan(uv.y, uv.x) / PI + 1.);
   // rainbowI += 0.125 * sin(TWO_PI * rainbowI + sin(1. * TWO_PI * rainbowI));
@@ -26,8 +26,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 rainbow = 0.5 + 0.5 * cos(TWO_PI * (rainbowI + vec3(0, 0.33, 0.67)));
   // vec3 color = mix(rainbowValue * rainbow, vec3(0.0), bgIndex);
   // vec3 color = mix(#FF6A0A, #A11E0A, saturate(1.0 * bgIndex));
-  vec3 color = mix(#FF6A0A, #A11E0A, saturate(1.0 * bgIndex));
-  color = mix(vec3(0.), color, pow(1. - bgIndex, 0.2));
+  // vec3 color = mix(#FF6A0A, #A11E0A, saturate(1.0 * bgIndex));
 
   // Solid colors
   // vec3 color = vec3(0);
