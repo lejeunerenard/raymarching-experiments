@@ -828,18 +828,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = z;
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx - cosT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + 0.2 * sin(cosT) + length(wQ.xy));
-  wQ += warpScale * 0.05000 * cos( 5. * wQ.yzx - cosT );
-  wQ += warpScale * 0.02500 * cos( 7. * wQ.yzx - 2. * cosT );
-  wQ += warpScale * 0.01250 * cos(11. * wQ.yzx - 2. * cosT );
-  wQ += warpScale * 0.00625 * cos(17. * wQ.yzx - 2. * cosT );
+  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx - cosT );
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + 0.0 * sin(cosT) + length(wQ.xy));
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx - 2. * cosT );
+  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.z + length(wQ.xy));
+  wQ += warpScale * 0.01250 * cos(17. * wQ.yzx - 2. * cosT );
+  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx - 2. * cosT );
 
   q = wQ;
   // z = wQ;
 
   // mPos = z.yzw;
   mPos = q;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   // o.x -= 0.0125 * cellular(q);
   d = dMin(d, o);
 
@@ -1061,12 +1062,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI *= 0.464;
-  dI += 5.409;
+  dI *= angle1C;
+  dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  color.rb += cos(TWO_PI * ( dI.xy + vec2(0., 0.33) ));
+  color.bg += 0.5 + 0.5 * cos(TWO_PI * ( dI.xy + vec2(0., 0.33) ));
+  color *= 0.875;
 
   gM = m;
 
