@@ -772,7 +772,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.75;
+float r = 0.20;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -814,6 +814,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p *= rotationMatrix(vec3(0, 1, 0), 0.25 * PI * sin(cosT));
+
   // p *= globalRot;
 
   vec3 q = p;
@@ -821,28 +823,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float size = 0.1;
   float t = mod(dT, 1.);
-  float warpScale = 1.50;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx - cosT );
-  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx - cosT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + 0.0 * sin(cosT) + length(wQ.xy));
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx - 2. * cosT );
-  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.z + length(wQ.xy));
-  wQ += warpScale * 0.01250 * cos(17. * wQ.yzx - 2. * cosT );
-  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx - 2. * cosT );
-
-  q = wQ;
+  // q = wQ;
   // z = wQ;
 
-  // mPos = z.yzw;
-  mPos = q;
-  vec3 o = vec3(length(q) - r, 0, 0);
-  // o.x -= 0.0125 * cellular(q);
-  d = dMin(d, o);
+  for (int i = 0; i < 13; i++) {
+    float fI = float(i);
+    vec3 localQ = wQ;
+    vec3 rectSize = vec3(3, 5, 0.1);
+    localQ += rectSize * r * sin(vec3(558.35921, 43.427418, 2345.) * fI + 0.312);
+
+    localQ *= rotationMatrix(vec3(2. * sin(fI), 0.5, 0.2 + 0.8 * sin(PI * fI)), fI * 2.123);
+
+    // localQ += warpScale * 0.10000 * cos( 3. * localQ.yzx - cosT );
+    // localQ += warpScale * 0.05000 * cos( 9. * localQ.yzx - cosT );
+    // localQ.xzy = twist(localQ.xyz, 1. * localQ.y + 0.0 * sin(cosT) + length(localQ.xy));
+    // localQ += warpScale * 0.02500 * cos(13. * localQ.yzx - 2. * cosT );
+    // // localQ.xzy = twist(localQ.xyz, 0.5 * localQ.z + length(localQ.xy));
+    // localQ += warpScale * 0.01250 * cos(17. * localQ.yzx - 2. * cosT );
+    // localQ += warpScale * 0.00625 * cos(23. * localQ.yzx - 2. * cosT );
+
+    vec3 o = vec3(sdBox(localQ, vec3(r)), 0, 0);
+    if (o.x < d.x) {
+      mPos = q;
+    }
+    d = dMin(d, o);
+  }
 
   d.x *= 0.35;
 
@@ -1067,8 +1078,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  color.bg += 0.5 + 0.5 * cos(TWO_PI * ( dI.xy + vec2(0., 0.33) ));
-  color *= 0.875;
+  color.gb += 0.5 + 0.5 * cos(TWO_PI * ( dI.xy + vec2(0., 0.33) ));
+  // color *= 0.875;
 
   gM = m;
 
@@ -1160,12 +1171,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.8;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.90;
+        float shadowMin = 0.85;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
@@ -1199,10 +1210,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
