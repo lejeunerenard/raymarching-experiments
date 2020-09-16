@@ -56,7 +56,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.86, 0.21, -2.29)
+    this.cameraRo = vec3.fromValues(0, 0, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [183, 199, 250]

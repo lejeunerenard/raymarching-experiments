@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 4096
 #define maxDistance 10.0
-#define fogMaxDistance 5.5
+#define fogMaxDistance 11.0
 
 #define slowTime time * 0.2
 // v3
@@ -828,28 +828,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpScale = 1.0;
 
   // Warp
-  // vec3 wQ = q;
-  vec4 wQ = z;
+  vec3 wQ = q;
+  // vec4 wQ = z;
 
-  wQ += warpScale * 0.10000 * cos( 3.5 * wQ.yzwx - cosT );
-  wQ.xzy = twist(wQ.xyz, 6. * wQ.y);
-  wQ += warpScale * 0.05000 * cos( 9.9 * wQ.yzwx - cosT );
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzwx - cosT );
-  wQ += warpScale * 0.01250 * cos(17. * wQ.yzwx - cosT );
-  wQ += warpScale * 0.00625 * cos(23. * wQ.yzwx - cosT );
-
+  wQ.xy *= rotMat2(1. * wQ.z + 0.25 * PI * sin(wQ.z - cosT));
   q = wQ.xyz;
-  z = wQ;
+  // z = wQ;
 
-  float r = 0.5;
-  r += 0.1 * r * snoise3(12. * vec3(1,0.01,1) * z.xyz);
+  float r = 0.5 + 0.02 * snoise3(vec3(0.1, 0.2, 1) * q);
 
-  float yEndpoint = 0.75;
-  // vec3 o = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
-  vec3 o = vec3(sdCapsule(z, vec4(0, yEndpoint, 0, 0), vec4(0, -yEndpoint, 0, 0), r), 0, 0);
+  vec2 absQ = abs(q.xy);
+  float boxD = r - max(absQ.x, absQ.y);
+  vec3 o = vec3(boxD, 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.125;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1064,17 +1057,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
-  float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-
-  dI *= angle1C;
-  dI += angle2C;
-  dI += 0.0125 * pos.y;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  color.rg += 0.5 + 0.5 * cos(TWO_PI * ( dI.xy + vec2(0., 0.33) ));
-  color *= 0.875;
+  const float freq = 8.;
+  float phase = -cosT;
+  float n = sin(freq * TWO_PI * pos.z + phase);
+  n = smoothstep(0., edge, n);
+  // float mask = snoise2(vec2(0.5, 1. * freq) * pos.xz + vec2(0, sin(cosT)));
+  // n *= mask;
+  color = vec3(n);
 
   gM = m;
 
@@ -1158,20 +1147,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.4;
+      float freCo = 0.2;
+      float specCo = 0.1;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.7;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.65;
+        float shadowMin = 0.85;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.001, 4.75));
         dif *= sha;
 
