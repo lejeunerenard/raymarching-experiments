@@ -825,7 +825,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 1.0;
+  float warpScale = 1.5 * smoothstep(-1.2, 0.75, sin(cosT + dot(q, vec3(1))));
 
   // Warp
   vec3 wQ = q;
@@ -833,20 +833,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000 * cos( 2.638 * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos( 9.237 * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.02500 * cos(15.123 * wQ.yzx + cosT );
-  wQ += warpScale * 0.01250 * cos(23.738 * wQ.yzx + cosT );
+  // wQ += warpScale * 0.01250 * cos(23.738 * wQ.yzx + cosT );
+  // wQ += warpScale * 0.00625 * cos(37.738 * wQ.yzx + cosT );
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.5 + 0.3 * sin(snoise3(q));
+  float r = 0.65;
 
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 o = vec3(length(q) - r, 0, 0);
+  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
+  o.x -= 0.001 * cellular(3. * q);
   d = dMin(d, o);
 
-  d.x *= 0.125;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1067,13 +1070,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * pow(dNR, 3.);
   dI += 0.2 * pos;
 
-  dI += 0.3 * pos.y;
+  dI += 0.4 * refract(rd, nor, 1.2);
+
+  // dI += 0.3 * pos.y;
 
   dI *= angle1C;
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color.rb += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
+  color.gb += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.13)));
 
   gM = m;
 
@@ -1157,7 +1162,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
+      float freCo = 0.8;
       float specCo = 0.1;
 
       float specAll = 0.0;
@@ -1206,7 +1211,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      reflectColor += 0.15 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
