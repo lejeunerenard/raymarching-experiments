@@ -825,28 +825,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 1.5 * smoothstep(-1.2, 0.75, sin(cosT + dot(q, vec3(1))));
+  float warpScale = 1.0;
+
+  // q.zy = abs(q.zy);
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
   wQ += warpScale * 0.10000 * cos( 2.638 * wQ.yzx + cosT );
+  q.z = abs(q.z);
   wQ += warpScale * 0.05000 * cos( 9.237 * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.02500 * cos(15.123 * wQ.yzx + cosT );
-  // wQ += warpScale * 0.01250 * cos(23.738 * wQ.yzx + cosT );
-  // wQ += warpScale * 0.00625 * cos(37.738 * wQ.yzx + cosT );
+  q.z = abs(q.z);
+  wQ += warpScale * 0.01250 * cos(27.323 * wQ.yzx + cosT );
+
+  wQ.xyz = twist(wQ.xzy, 1. * wQ.z - 2. * length(wQ));
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.65;
+  float r = 0.45;
 
   // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 o = vec3(length(q) - r, 0, 0);
-  o.x -= 0.001 * cellular(3. * q);
+  // vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdTorus(q, vec2(r, 0.7 * r)), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.25;
@@ -939,7 +944,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = angle1C;
+float n2 = 1.5;
 const float amount = 0.25;
 
 float gM = 0.;
@@ -979,8 +984,8 @@ vec3 textures (in vec3 rd) {
   dI *= angle3C + rd.y;
   dI += offset.x;
 
-  // color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
+  // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
   color *= spread;
 
@@ -1070,7 +1075,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * pow(dNR, 3.);
   dI += 0.2 * pos;
 
-  dI += 0.4 * refract(rd, nor, 1.2);
+  // dI += 0.4 * refract(rd, nor, 1.2);
 
   // dI += 0.3 * pos.y;
 
@@ -1078,7 +1083,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color.gb += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.13)));
+  color.rb += 0.5 + 0.5 * cos(TWO_PI * (vec2(color.b, dI.y) + vec2(0, 0.33)));
 
   gM = m;
 
@@ -1162,8 +1167,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.1;
+      float freCo = 1.0;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1211,7 +1216,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * reflection(pos, reflectionRd);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
