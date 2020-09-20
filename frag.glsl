@@ -819,13 +819,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p.y -= 0.025 * sin(2. * cosT);
+
+  p *= rotationMatrix(vec3(1), cosT);
+
   vec3 q = p;
   vec4 z = vec4(q, q.x);
 
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 1.0;
+  float warpScale = 1.7;
 
   // q.zy = abs(q.zy);
 
@@ -833,13 +837,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.10000 * cos( 2.638 * wQ.yzx + cosT );
-  q.z = abs(q.z);
-  wQ += warpScale * 0.05000 * cos( 9.237 * wQ.yzx + cosT );
+  wQ += warpScale * 0.100000 * cos( 2.638 * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos( 9.237 * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.02500 * cos(15.123 * wQ.yzx + cosT );
-  q.z = abs(q.z);
-  wQ += warpScale * 0.01250 * cos(27.323 * wQ.yzx + cosT );
+  wQ += warpScale * 0.025000 * cos(15.123 * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(27.323 * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(33.713 * wQ.yzx + cosT );
+  wQ += warpScale * 0.003125 * cos(47.713 * wQ.yzx + cosT );
 
   wQ.xyz = twist(wQ.xzy, 1. * wQ.z - 2. * length(wQ));
 
@@ -848,11 +852,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.45;
 
-  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 o = vec3(length(q) - r, 0, 0);
-  vec3 o = vec3(sdTorus(q, vec2(r, 0.7 * r)), 0, 0);
+  float halfT = mod(2. * norT, 1.);
+  halfT -= 0.5;
+  halfT = abs(halfT);
+  halfT *= 2.;
+
+  float innerR = r * (0.35 + 1.65 * pow(quart(halfT), 2.));
+
+  vec3 o = vec3(length(q) - innerR, 0, 0);
+  o.x -= 0.01 * cellular(3. * q);
   d = dMin(d, o);
+
+  float thickness = r * 0.05;
+  q = p;
+  float crop = sdBox(q, vec3(r - 2. * thickness));
+  crop -= 0.01 * cellular(5. * q);
+  d.x = max(d.x, crop);
+
+  vec3 f = vec3(sdHollowBox(q, vec3(r), 2. * thickness), 1, 0);
+  d = dMin(d, f);
+
+  f = vec3(sdHollowBox(q, vec3(r + thickness), thickness), 1, 0);
+  d = dMin(d, f);
 
   d.x *= 0.25;
 
@@ -1085,6 +1106,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   color.rb += 0.5 + 0.5 * cos(TWO_PI * (vec2(color.b, dI.y) + vec2(0, 0.33)));
 
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
+
   gM = m;
 
 #ifdef NO_MATERIALS
@@ -1230,7 +1253,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
