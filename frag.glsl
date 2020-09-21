@@ -819,7 +819,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p.y -= 0.025 * sin(2. * cosT);
+  p.y -= 0.025 * sin(TWO_PI * sigmoid(norT));
 
   p *= rotationMatrix(vec3(1), cosT);
 
@@ -839,9 +839,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 2.638 * wQ.yzx + cosT );
   wQ += warpScale * 0.050000 * cos( 9.237 * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y - 0.5 * length(wQ.xz));
   wQ += warpScale * 0.025000 * cos(15.123 * wQ.yzx + cosT );
   wQ += warpScale * 0.012500 * cos(27.323 * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.006250 * cos(33.713 * wQ.yzx + cosT );
   wQ += warpScale * 0.003125 * cos(47.713 * wQ.yzx + cosT );
 
@@ -857,7 +858,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   halfT = abs(halfT);
   halfT *= 2.;
 
-  float innerR = r * (0.35 + 1.65 * pow(quart(halfT), 2.));
+  float innerR = r * 2.;
 
   vec3 o = vec3(length(q) - innerR, 0, 0);
   o.x -= 0.01 * cellular(3. * q);
@@ -867,13 +868,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = p;
   float crop = sdBox(q, vec3(r - 2. * thickness));
   crop -= 0.01 * cellular(5. * q);
-  d.x = max(d.x, crop);
-
-  vec3 f = vec3(sdHollowBox(q, vec3(r), 2. * thickness), 1, 0);
-  d = dMin(d, f);
-
-  f = vec3(sdHollowBox(q, vec3(r + thickness), thickness), 1, 0);
-  d = dMin(d, f);
+  // d.x = max(d.x, crop);
 
   d.x *= 0.25;
 
