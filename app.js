@@ -46,7 +46,7 @@ export default class App {
     const preset = {
       offset: {
         x: 0.449,
-        y: 0,
+        y: 1.5,
         z: 0
       },
       d: 0.04,
@@ -75,7 +75,7 @@ export default class App {
 
     this.angle1C = -1.308
     this.angle2C = 5.857
-    this.angle3C = 1.331
+    this.angle3C = 0.731
 
     this.setupAnimation(preset)
 
