@@ -1716,7 +1716,7 @@ vec3 layerColor (in vec2 q, in float phase) {
 
 // #pragma glslify: ringSpace = require(./pie-slice, map=pieMap, repetitions=7, cosT=cosT, )
 
-const float size = 0.1;
+const float size = 0.075;
 float map (in vec2 q, in vec2 c) {
   float oddColumn = mod(c.x, 2.);
   float oddRow = mod(c.y + oddColumn, 2.);
@@ -1773,19 +1773,32 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
   
-  float n = 1.;
-  n = neighborGrid(q, vec2(size));
+  vec2 c = pMod2(q, vec2(size));
 
-  n /= size;
+  float i = dot(c, vec2(1));
+  float odd = mod(i, 2.);
 
-  // Stripes
-  // n = sin(TWO_PI * 10. * n);
-  // n = smoothstep(0., edge, n);
+  // Change swipe direction
+  q *= rotMat2(0.5 * PI * mod(i, 4.));
 
-  n = 1. - n;
+  float n = mod(odd, 2.);
+
+  float phase = -0.04 * length(c);
+  float myT = mod(t + phase, 1.0);
+  float secondStage = step(0.5, myT);
+
+  myT = mod(2. * myT, 1.);
+
+  // Quarter turn on 'return'
+  q = mix(q, q.yx, secondStage);
+
+  float swipe = step(myT, (q.x + size) / (2. * size));
+
+  n = mix(n, 1. - n, secondStage);
+  n = mix(n, 1. - n, swipe);
 
   color = vec3(saturate(n));
-  color *= mix(vec3(12./255., 31./255., 93./255.), vec3(227./255., 227./255., 178./255.), n);
+  // color *= mix(vec3(12./255., 31./255., 93./255.), vec3(227./255., 227./255., 178./255.), n);
 
   return color.rgb;
 }
@@ -1818,7 +1831,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
