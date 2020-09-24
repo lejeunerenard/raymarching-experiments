@@ -681,6 +681,10 @@ vec3 triangleWave (in vec3 t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
 
+vec4 triangleWave (in vec4 t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
 float lengthP(in vec2 q, in float p) {
   return pow(dot(pow(q, vec2(p)), vec2(1)), 1.0 / p);
 }
@@ -829,32 +833,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 1.0;
+  float warpScale = 0.2;
 
   // q.zy = abs(q.zy);
 
   // Warp
-  vec3 wQ = q;
-  // vec4 wQ = z;
+  // vec3 wQ = q;
+  vec4 wQ = z;
 
-  wQ += warpScale * 0.100000 * triangleWave( 2.638 * wQ.yzx + norT );
-  wQ += warpScale * 0.050000 * cos( 4.237 * wQ.yzx + cosT );
+  wQ += 0.100000 * cos( 5.638 * wQ.yzwx + cosT );
+  wQ += 0.050000 * cos(13.128 * wQ.yzwx + cosT );
+
+  wQ += warpScale * 0.100000 * triangleWave( 2.638 * wQ.yzwx + norT );
+  wQ += warpScale * 0.050000 * cos( 4.237 * wQ.yzwx + cosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y - 0.5 * length(wQ.xz));
-  wQ += warpScale * 0.025000 * triangleWave( 8.123 * wQ.yzx + norT );
-  // wQ += warpScale * 0.012500 * triangleWave(27.323 * wQ.yzx + norT );
+  wQ += warpScale * 0.025000 * triangleWave( 8.123 * wQ.yzwx + norT );
+  // wQ += warpScale * 0.012500 * triangleWave(27.323 * wQ.yzwx + norT );
   // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   // wQ += warpScale * 0.006250 * triangleWave(33.713 * wQ.yzx + norT );
   // wQ += warpScale * 0.003125 * triangleWave(47.713 * wQ.yzx + norT );
 
-  q = wQ.xyz;
-  // z = wQ;
+  // q = wQ.xyz;
+  z = wQ;
 
   float r = 0.60;
 
-  // vec3 o = vec3(length(q) - r, 0, 0);
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(length(z.yzwx) - r, 0, 0);
+  // vec3 o = vec3(dodecahedral(z.yzw, 52., r), 0, 0);
   // o.x -= 0.01 * cellular(3. * q);
   d = dMin(d, o);
 
@@ -1831,7 +1836,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
