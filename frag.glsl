@@ -669,6 +669,13 @@ vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
 
+// source: https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+// float opRevolution( in vec3 p, in sdf2d primitive, float o )
+// {
+//     vec2 q = vec2( length(p.xz) - o, p.y );
+//     return primitive(q)
+// }
+
 float triangleWave (in float t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
@@ -823,44 +830,43 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p.y -= 0.025 * sin(TWO_PI * sigmoid(norT));
-
-  p *= rotationMatrix(vec3(1), cosT);
-
   vec3 q = p;
   vec4 z = vec4(q, q.x);
 
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.2;
-
-  // q.zy = abs(q.zy);
+  float warpScale = 1.0;
 
   // Warp
-  // vec3 wQ = q;
-  vec4 wQ = z;
+  vec3 wQ = q;
+  // vec4 wQ = z;
 
-  wQ += 0.100000 * cos( 5.638 * wQ.yzwx + cosT );
-  wQ += 0.050000 * cos(13.128 * wQ.yzwx + cosT );
-
-  wQ += warpScale * 0.100000 * triangleWave( 2.638 * wQ.yzwx + norT );
-  wQ += warpScale * 0.050000 * cos( 4.237 * wQ.yzwx + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y - 0.5 * length(wQ.xz));
-  wQ += warpScale * 0.025000 * triangleWave( 8.123 * wQ.yzwx + norT );
-  // wQ += warpScale * 0.012500 * triangleWave(27.323 * wQ.yzwx + norT );
+  // wQ += warpScale * 0.100000 * cos( 5.638 * wQ.yzx + cosT );
+  // wQ += warpScale * 0.050000 * cos(11.237 * wQ.yzx + cosT );
   // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  // wQ += warpScale * 0.006250 * triangleWave(33.713 * wQ.yzx + norT );
-  // wQ += warpScale * 0.003125 * triangleWave(47.713 * wQ.yzx + norT );
+  // wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzx + cosT );
 
-  // q = wQ.xyz;
-  z = wQ;
+  float r = 0.50;
 
-  float r = 0.60;
+  wQ.y += r;
+  const float swayAngle = 0.03125;
+  wQ *= rotationMatrix(vec3(0.7, 0,-0.8), swayAngle * PI * sin(cosT));
+  wQ *= rotationMatrix(vec3(0.9, 1, 0.0), swayAngle * PI * cos(cosT));
+  wQ.y -= r;
 
-  vec3 o = vec3(length(z.yzwx) - r, 0, 0);
-  // vec3 o = vec3(dodecahedral(z.yzw, 52., r), 0, 0);
-  // o.x -= 0.01 * cellular(3. * q);
+  wQ.xz *= rotMat2(cosT);
+
+  q = wQ.xyz;
+  // z = wQ;
+
+  // Create extrusion space
+  float off = 0.0;
+  vec2 q2 = vec2( length(q.xz) - off, q.y );
+
+  const float pr = 0.75;
+  vec3 o = vec3(pow(dot(pow(q2, vec2(pr)), vec2(1)), pr) - r, 0, 0);
+  o.x -= 0.00175 * cellular(3. * q);
   d = dMin(d, o);
 
   d.x *= 0.25;
@@ -953,7 +959,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = offset.y;
+float n2 = 2.4;
 const float amount = 0.25;
 
 float gM = 0.;
@@ -1778,29 +1784,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
   
-  vec2 c = pMod2(q, vec2(size));
+  // vec2 c = pMod2(q, vec2(size));
 
-  float i = dot(c, vec2(1));
-  float odd = mod(i, 2.);
+  float n = 0.;
 
-  // Change swipe direction
-  q *= rotMat2(0.5 * PI * mod(i, 4.));
+  float p = 0.5;
+  float d = pow(dot(pow(q, vec2(p)), vec2(1)), p) - 0.5;
 
-  float n = mod(odd, 2.);
-
-  float phase = -0.04 * length(c);
-  float myT = mod(t + phase, 1.0);
-  float secondStage = step(0.5, myT);
-
-  myT = mod(2. * myT, 1.);
-
-  // Quarter turn on 'return'
-  q = mix(q, q.yx, secondStage);
-
-  float swipe = step(myT, (q.x + size) / (2. * size));
-
-  n = mix(n, 1. - n, secondStage);
-  n = mix(n, 1. - n, swipe);
+  n = d;
+  // n = smoothstep(0., edge, d);
 
   color = vec3(saturate(n));
   // color *= mix(vec3(12./255., 31./255., 93./255.), vec3(227./255., 227./255., 178./255.), n);
