@@ -1727,10 +1727,10 @@ vec3 layerColor (in vec2 q, in float phase) {
 
 // #pragma glslify: ringSpace = require(./pie-slice, map=pieMap, repetitions=7, cosT=cosT, )
 
-const float size = 0.075;
+const float size = 0.035;
 float map (in vec2 q, in vec2 c) {
   float oddColumn = mod(c.x, 2.);
-  float oddRow = mod(c.y + oddColumn, 2.);
+  float oddRow = mod(c.y, 2.);
   float evenColumn = 1. - mod(c.x + oddRow, 2.);
   float evenRow = 1. - mod(c.y + oddColumn + evenColumn, 2.);
 
@@ -1745,7 +1745,7 @@ float map (in vec2 q, in vec2 c) {
   // float r = mix(0.95, 1.249, (0.5 + 0.5 * sin(cosT + phase))) * size;
   // float r = angle1C * size;
 
-  const float warpScale = 0.15;
+  const float warpScale = 0.;
 
   vec2 absC = abs(c);
   // float warpPhase = dot(c, vec2(0.10));
@@ -1756,12 +1756,13 @@ float map (in vec2 q, in vec2 c) {
   q += warpScale * 0.0250 * cos(65. * q.yx + cosT + warpPhase);
 
   // Random positions
-  q += 0.7 * size * vec2(
-      snoise2(0.2 * sin(cosT - 2.9 * length(c)) + c * 0.123),
-      snoise2(0.2 * sin(cosT - 1.9 * length(c)) + c * 8.123 + 0.777778));
+  // q += 0.7 * size * vec2(
+  //     snoise2(0.2 * sin(cosT - 2.9 * length(c)) + c * 0.123),
+  //     snoise2(0.2 * sin(cosT - 1.9 * length(c)) + c * 8.123 + 0.777778));
 
   // Circle
   float d = length(q);
+  d = smoothstep(0., edge, d - size * 0.25);
 
   // // Hexagon
   // float d = sdHexPrism(vec3(q, 0), vec2(0., 1));
@@ -1783,19 +1784,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
-  
-  // vec2 c = pMod2(q, vec2(size));
 
-  float n = 0.;
+  vec2 c = floor((q + size*0.5)/size);
 
-  float p = 0.5;
-  float d = pow(dot(pow(q, vec2(p)), vec2(1)), p) - 0.5;
+  q *= 1. + 0.3 * (0.5 + 0.5 * cos(generalT - 0.123 * length(c)));
 
-  n = d;
-  // n = smoothstep(0., edge, d);
+  float n = neighborGrid(q, vec2(size));
+
+  n = 1. - n;
 
   color = vec3(saturate(n));
-  // color *= mix(vec3(12./255., 31./255., 93./255.), vec3(227./255., 227./255., 178./255.), n);
 
   return color.rgb;
 }
@@ -1830,56 +1828,60 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(1);
+  vec3 color = vec3(0);
 
-  // const int slices = 4;
-  // for (int i = 0; i < slices; i++) {
-  //   float fI = float(i);
-  //   // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  //   vec3 layerColor = vec3(
-  //       saturate(mod(fI + 0., 3.)),
-  //       saturate(mod(fI + 1., 3.)),
-  //       saturate(mod(fI + 2., 3.))
-  //   );
+  const int slices = 5;
+  for (int i = 0; i < slices; i++) {
+    float fI = float(i);
+    // vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+    vec3 layerColor = vec3(
+        saturate(mod(fI + 0., 3.)),
+        saturate(mod(fI + 1., 3.)),
+        saturate(mod(fI + 2., 3.))
+    );
 
-  //   vec3 dI = vec3(fI);
-  //   dI += 0.4 * uv.x;
-  //   // dI += 0.3 * dot(uv, vec2(1));
-  //   dI += 0.2 * snoise2(3. * uv);
-  //   layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-  //   layerColor *= 0.6;
+    vec3 dI = vec3(fI);
+    dI += 0.4 * uv.x;
+    dI += 0.3 * dot(uv, vec2(1));
+    // dI += 0.2 * snoise2(3. * uv);
+    layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+    layerColor *= 0.6;
 
-  //   // Add black layer as first layer
-  //   layerColor *= step(0.5, fI);
+    // Add black layer as first layer
+    // layerColor *= step(0.5, fI);
 
-  //   // layerColor = pow(layerColor, vec3(4 + slices));
+    // layerColor = pow(layerColor, vec3(4 + slices));
 
-  //   float mask = two_dimensional(uv, norT + 0.125 * fI / float(slices)).x;
-  //   layerColor *= mask;
-  //   // if (i == 0) {
-  //   //   color = layerColor;
-  //   // } else {
-  //   //   color = overlay(color, layerColor);
-  //   // }
-  //   // color *= layerColor;
+    float mask = two_dimensional(uv, cosT + 1.148 * fI / float(slices)).x;
+    layerColor *= mask;
+    // if (i == 0) {
+    //   color = layerColor;
+    // } else {
+    //   color = overlay(color, layerColor);
+    // }
+    // color *= layerColor;
 
-  //   // vec3 layerColorA = softLight2(color, layerColor);
-  //   // vec3 layerColorB = color * layerColor;
-  //   // layerColor = layerColorA + layerColorB;
-  //   // layerColor *= 0.85;
+    // vec3 layerColorA = softLight2(color, layerColor);
+    // vec3 layerColorB = color * layerColor;
+    // layerColor = layerColorA + layerColorB;
+    // layerColor *= 0.85;
 
-  //   // layerColor = overlay(color, layerColor);
-  //   // layerColor = screenBlend(color, layerColor);
-  //   // color = mix(color, layerColor, 0.3);
+    // layerColor = overlay(color, layerColor);
+    // layerColor = screenBlend(color, layerColor);
+    // color = mix(color, layerColor, 0.3);
 
-  //   // Multiply
-  //   // color *= layerColor;
+    // Add
+    color += layerColor;
 
-  //   // Pseudo Multiply
-  //   color = mix(color, color * layerColor, mask);
-  // }
+    // Multiply
+    // color *= layerColor;
 
-  // color = pow(color, vec3(1.0));
+    // Pseudo Multiply
+    // color = mix(color, color * layerColor, mask);
+  }
+
+  color = pow(color, vec3(1.75));
+  color /= float(slices);
 
   // float posX = mod(18. * abs(uv.x), 3.);
   // color = vec3(
@@ -1888,7 +1890,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   //     saturate(mod(posX + 2., 3.))
   //     );
 
-  // return vec4(color, 1.);
+  return vec4(color, 1.);
 
   float time = 2. * norT;
   vec4 t = march(ro, rd, time);
