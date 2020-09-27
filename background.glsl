@@ -17,7 +17,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(0.5 * vec3(0.3, 0.25, 0.1), vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.15, 0.2, 0.1), vec3(0.0), bgIndex);
-  vec3 color = mix(vec3(1.), vec3(0.6), bgIndex);
+  // vec3 color = mix(vec3(1.), vec3(0.6), bgIndex);
 
   // const vec3 bgColor = #F2900A;
   // vec3 color = mix(0.8 * bgColor, bgColor, bgIndex);
@@ -36,6 +36,24 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // Solid colors
   // vec3 color = vec3(0);
+
+  // -- Patterns --
+  // // Grid
+  // const float size = 0.015;
+  // float sizeI = smoothstep(-1.0, 0.5, uv.y);
+  // uv *= rotMat2Back(0.25 * PI);
+  // vec2 c = pMod2(uv, vec2(size));
+  // vec2 absQ = abs(uv);
+  // float n = max(absQ.x, absQ.y) - (0.35 + 0.115 * sizeI) * size;
+  // n = 1. - step(0.0, n);
+  // vec3 color = 0.8 * vec3(n);
+
+  // Stripes
+  float dI = dot(uv, vec2(1));
+  float n = sin(47. * TWO_PI * dI);
+  float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
+  n = 1. - smoothstep(cutoff, cutoff + edge, n);
+  vec3 color = 0.8 * vec3(n);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
