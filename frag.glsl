@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 11.0
 
@@ -848,17 +848,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzxw + cosT );
   wQ += warpScale * 0.012500 * cos(27.723 * wQ.yzxw + cosT );
   wQ.ywz = twist(wQ.yzw, 2. * wQ.z);
-  wQ += warpScale * 0.006250 * cos(33.323 * wQ.yzxw + cosT );
 
   // q = wQ.xyz;
   z = wQ;
 
   mPos = z.xyz;
-  vec3 o = vec3(length(z) - r, 0, 0);
-  // o.x -= 0.005 * cellular(3. * q);
+  // vec3 o = vec3(length(z) - r, 0, 0);
+  vec3 o = vec3(sdBox(z, vec4(r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.3;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1073,11 +1072,19 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.25);
 
-  float n = dot(mPos, vec3(1));
-  n = sin(23. * TWO_PI * n);
-  n = step(0., n);
+  float dNR = dot(nor, -rd);
+  vec3 dI = vec3(dNR);
 
-  color = 1.25 * vec3(n);
+  dI += 0.2 * pos;
+  dI += 0.1 * snoise3(pos);
+  dI += 0.3 * pow(dNR, 3.);
+
+  dI *= angle1C;
+  dI += angle2C;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0,-0.33, 0.67)));
+  dI += 0.1 * nor;
+  color.rg *= 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
 
   gM = m;
 
@@ -1138,13 +1145,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 5.75;
-      float bumpIntensity = 0.25;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 5.75;
+      // float bumpIntensity = 0.25;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1161,15 +1168,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.0;
+      float freCo = 0.75;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.5;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1208,10 +1215,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.25 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1220,13 +1227,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.; // dot(nor, -rayDirection);
-      // dispersionColor *= dispersionI;
+      float dispersionI = dot(nor, -rayDirection);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif

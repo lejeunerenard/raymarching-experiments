@@ -45,7 +45,7 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.449,
+        x: 1.661,
         y: 1.5,
         z: 0
       },
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = -1.308
-    this.angle2C = 5.857
-    this.angle3C = 0.731
+    this.angle1C = 0.224
+    this.angle2C = 2.533
+    this.angle3C = 1.089
 
     this.setupAnimation(preset)
 
