@@ -788,7 +788,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.800;
+float r = 0.650;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -830,13 +830,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
+  p *= globalLRot;
+
   vec3 q = p;
   vec4 z = vec4(q, q.x);
 
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 1.5;
+  float warpScale = 0.15;
 
   // Warp
   // vec3 wQ = q;
@@ -844,10 +846,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 5.638 * wQ.yzwx + cosT );
   wQ += warpScale * 0.050000 * cos(11.237 * wQ.yzxw + cosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y);
   wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzxw + cosT );
   wQ += warpScale * 0.012500 * cos(27.723 * wQ.yzxw + cosT );
-  wQ.ywz = twist(wQ.yzw, 2. * wQ.z);
 
   // q = wQ.xyz;
   z = wQ;
@@ -855,9 +856,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = z.xyz;
   // vec3 o = vec3(length(z) - r, 0, 0);
   vec3 o = vec3(sdBox(z, vec4(r)), 0, 0);
+  o.x += 0.001 * cellular(3. * z.xyz);
   d = dMin(d, o);
 
-  d.x *= 0.05;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1086,6 +1088,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * nor;
   color.rg *= 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
 
+  color = vec3(
+      color.r + color.b,
+      color.r + color.g,
+      color.g + color.b);
+
   gM = m;
 
 #ifdef NO_MATERIALS
@@ -1176,7 +1183,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.7;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1217,7 +1224,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd);
+      reflectColor += 0.35 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
