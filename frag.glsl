@@ -385,6 +385,15 @@ float sdBox( vec4 p, vec4 b ) {
   vec4 d = abs(p) - b;
   return min(max(d.x,max(d.y,max(d.z, d.w))),0.0) + length(max(d,0.0));
 }
+
+float lpBox ( vec4 p, vec4 b ) {
+  vec4 d = abs(p) - b;
+  // float metricD = max(d.x,max(d.y,max(d.z, d.w)));
+  float metricD = min(d.x,min(d.y,min(d.z, d.w)));
+  // float metricD = dot(d, vec4(1));
+  return min(metricD, 0.0) + length(max(d,0.0));
+}
+
 float udRoundBox( vec3 p, vec3 b, float r ) {
   return length(max(abs(p)-b,0.0))-r;
 }
@@ -788,7 +797,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.650;
+float r = 0.40;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -838,7 +847,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.15;
+  float warpScale = 0.75;
 
   // Warp
   // vec3 wQ = q;
@@ -846,17 +855,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 5.638 * wQ.yzwx + cosT );
   wQ += warpScale * 0.050000 * cos(11.237 * wQ.yzxw + cosT );
-  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 2.00 * wQ.y);
   wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzxw + cosT );
-  wQ += warpScale * 0.012500 * cos(27.723 * wQ.yzxw + cosT );
+  wQ += warpScale * 0.012500 * triangleWave(27.723 * wQ.yzxw + norT );
 
   // q = wQ.xyz;
   z = wQ;
 
   mPos = z.xyz;
-  // vec3 o = vec3(length(z) - r, 0, 0);
-  vec3 o = vec3(sdBox(z, vec4(r)), 0, 0);
-  o.x += 0.001 * cellular(3. * z.xyz);
+  vec3 o = vec3(lpBox(z, vec4(r)), 0, 0);
+  // vec3 o = vec3(sdBox(z, vec4(r)), 0, 0);
+  // o.x += 0.001 * cellular(3. * z.xyz);
   d = dMin(d, o);
 
   d.x *= 0.25;
@@ -1086,12 +1095,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0,-0.33, 0.67)));
   dI += 0.1 * nor;
-  color.rg *= 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
+  color.rg += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
 
   color = vec3(
       color.r + color.b,
       color.r + color.g,
       color.g + color.b);
+  color *= 0.435;
 
   gM = m;
 
@@ -1176,7 +1186,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.75;
-      float specCo = 0.5;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
