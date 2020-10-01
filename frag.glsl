@@ -388,9 +388,11 @@ float sdBox( vec4 p, vec4 b ) {
 
 float lpBox ( vec4 p, vec4 b ) {
   vec4 d = abs(p) - b;
-  // float metricD = max(d.x,max(d.y,max(d.z, d.w)));
-  float metricD = min(d.x,min(d.y,min(d.z, d.w)));
+  float metricD = max(d.x,max(d.y,max(d.z, d.w)));
+  // float metricD = min(d.x,min(d.y,min(d.z, d.w)));
   // float metricD = dot(d, vec4(1));
+  float pr = 0.25;
+  // float metricD = pow(pow(d.x, pr) + pow(d.y, pr) + pow(d.z, pr) + pow(d.w, pr), 1. / pr);
   return min(metricD, 0.0) + length(max(d,0.0));
 }
 
@@ -797,7 +799,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.40;
+float r = 0.60;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -839,7 +841,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 0.;
 
-  p *= globalLRot;
+  // p *= globalLRot;
 
   vec3 q = p;
   vec4 z = vec4(q, q.x);
@@ -847,7 +849,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.75;
+  float warpScale = 1.0;
 
   // Warp
   // vec3 wQ = q;
@@ -857,7 +859,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.050000 * cos(11.237 * wQ.yzxw + cosT );
   wQ.xzy = twist(wQ.xyz, 2.00 * wQ.y);
   wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzxw + cosT );
-  wQ += warpScale * 0.012500 * triangleWave(27.723 * wQ.yzxw + norT );
 
   // q = wQ.xyz;
   z = wQ;
@@ -1234,7 +1235,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.35 * reflection(pos, reflectionRd);
+      reflectColor += 0.22 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
