@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -391,7 +391,7 @@ float lpBox ( vec4 p, vec4 b ) {
   float metricD = max(d.x,max(d.y,max(d.z, d.w)));
   // float metricD = min(d.x,min(d.y,min(d.z, d.w)));
   // float metricD = dot(d, vec4(1));
-  float pr = 0.25;
+  // float pr = 0.25;
   // float metricD = pow(pow(d.x, pr) + pow(d.y, pr) + pow(d.z, pr) + pow(d.w, pr), 1. / pr);
   return min(metricD, 0.0) + length(max(d,0.0));
 }
@@ -799,7 +799,7 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
   return vec4(p, c);
 }
 
-float r = 0.60;
+float r = 1.50;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   float b = sdBox(q, r);
 
@@ -855,10 +855,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 wQ = q;
   vec4 wQ = z;
 
+  wQ *= 0.5;
   wQ += warpScale * 0.100000 * cos( 5.638 * wQ.yzwx + cosT );
   wQ += warpScale * 0.050000 * cos(11.237 * wQ.yzxw + cosT );
   wQ.xzy = twist(wQ.xyz, 2.00 * wQ.y);
   wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzxw + cosT );
+  wQ.xzy = twist(wQ.xyz, 2.00 * wQ.y);
+  wQ *= 2.0;
 
   // q = wQ.xyz;
   z = wQ;
@@ -869,7 +872,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // o.x += 0.001 * cellular(3. * z.xyz);
   d = dMin(d, o);
 
-  d.x *= 0.25;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1235,7 +1238,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.22 * reflection(pos, reflectionRd);
+      reflectColor += 0.12 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1245,10 +1248,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
+      float dispersionI = 1.; // dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -1777,26 +1780,50 @@ float map (in vec2 q, in vec2 c) {
   return d;
 }
 
+vec2 getCoords ( in float r, in float i, in float num ) {
+  float angleIncrement = TWO_PI / num;
+
+  return r * vec2(
+      cos(i * angleIncrement),
+      sin(i * angleIncrement));
+}
+
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = mix(vec3(1, 0, 1), vec3(1, 0, 0), 0.425);
+  vec3 color = vec3(0);
 
   vec2 q = uv;
 
-  float warpScale = 1.5;
+  float l = length(q);
+  float bigR = 0.3;
+  float r = bigR * 0.175;
+  float warpScale = 15. * pow(saturate(bigR - r - l), 2.);
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  vec2 c = floor((q + size*0.5)/size);
+  // Warp
+  // q += warpScale * 0.10000 * cos( 3. * q.yx + TWO_PI * t );
+  // q += warpScale * 0.05000 * cos( 7. * q.yx + TWO_PI * t );
+  // q *= rotMat2(4. * warpScale * l * TWO_PI);
+  // q += warpScale * 0.02500 * cos(15. * q.yx + TWO_PI * t );
+  // q += warpScale * 0.01250 * cos(21. * q.yx + TWO_PI * t );
 
-  q *= 1. + 0.3 * (0.5 + 0.5 * cos(generalT - 0.123 * length(c)));
+  const int num = 8;
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
 
-  float n = neighborGrid(q, vec2(size));
+    float localT = mod(t + 0.2 * fI / float(num), 1.);
 
-  n = 1. - n;
+    vec2 localQ = q + getCoords(bigR, fI, float(num));
+    vec2 target = q + getCoords(bigR, fI + 3., float(num));
+    localQ = mix(localQ, target, smoothstep(0.3, 0.8, localT));
 
-  color = vec3(saturate(n));
+    float n = length(localQ) - r;
+    n = smoothstep(edge, 0., n);
+
+    color = mix(color, vec3(1, 0, 1), n);
+  }
 
   return color.rgb;
 }
