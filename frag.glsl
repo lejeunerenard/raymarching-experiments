@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -849,19 +849,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 1.0;
+  float warpScale = 2.0;
 
   // Warp
   // vec3 wQ = q;
   vec4 wQ = z;
 
-  wQ *= 0.5;
   wQ += warpScale * 0.100000 * cos( 5.638 * wQ.yzwx + cosT );
   wQ += warpScale * 0.050000 * cos(11.237 * wQ.yzxw + cosT );
   wQ.xzy = twist(wQ.xyz, 2.00 * wQ.y);
-  wQ += warpScale * 0.025000 * cos(19.123 * wQ.yzxw + cosT );
+  wQ += warpScale * 0.025000 * cos(23.123 * wQ.yzxw + cosT );
   wQ.xzy = twist(wQ.xyz, 2.00 * wQ.y);
-  wQ *= 2.0;
+  wQ += warpScale * 0.012500 * cos(37.123 * wQ.yzxw + cosT );
 
   // q = wQ.xyz;
   z = wQ;
@@ -872,7 +871,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // o.x += 0.001 * cellular(3. * z.xyz);
   d = dMin(d, o);
 
-  d.x *= 0.125;
+  d.x *= 0.0125;
 
   return d;
 }
