@@ -45,12 +45,12 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 1,
-        y: 0.339,
+        x: 1.216,
+        y: 2,
         z: 0
       },
       d: 0.04,
-      scale: 0.9,
+      scale: 2.9,
       rot2angle: [0, 3.034, 2.432],
       cameraAngles: [0.977, -0.001, 0.137]
     }
@@ -59,7 +59,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(1.68, -0.07, 2.87)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [183, 199, 250]
+    this.colors1 = [193, 199, 250]
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.11
-    this.angle2C = 6.85
-    this.angle3C = 1.849
+    this.angle1C = 0.232
+    this.angle2C = 1.297
+    this.angle3C = -2.167
 
     this.setupAnimation(preset)
 
@@ -200,36 +200,39 @@ export default class App {
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween1)
 
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .to({ scale: 1.53 }, 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let scaleTweenReturn = new TWEEN.Tween(this)
-    scaleTweenReturn
-      .to({ scale: this.scale }, 10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    scaleTween1.chain(scaleTweenReturn)
-    // scaleTween1.start(0)
+      .delay(0.125 * 1000)
+      .to({ scale: 12 }, 20 * 1000)
+      .easing(TWEEN.Easing.Linear.None)
+    scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([ this.offset[0], 2.775, this.offset[2] ], 10 * 1000)
+      .delay(0.125 * 1000)
+      .to([ 1.753, 1, this.offset[2] ], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+    offsetTween1.start(0)
 
-    // offsetTween1.start(0)
-
-    // Angle1C Tween
-    let angle1CTween1 = new TWEEN.Tween(this)
-    angle1CTween1
-      .to({ angle1C: TWO_PI * 2 }, 15 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // // Angle1C Tween
+    // let angle1CTween1 = new TWEEN.Tween(this)
+    // angle1CTween1
+    //   .to({ angle1C: TWO_PI * 2 }, 15 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
 
     // angle1CTween1.start(0)
+
+    // // Angle2C Tween
+    // let angle2CTween1 = new TWEEN.Tween(this)
+    // angle2CTween1
+    //   .to({ angle2C: TWO_PI * 2 }, 15 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
+
+    // angle2CTween1.start(0)
   }
 
   setupAudio () {

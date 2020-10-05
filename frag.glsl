@@ -1794,37 +1794,44 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
   vec2 q = uv;
+  q.yx = q.xy;
 
-  float l = length(q);
-  float bigR = 0.3;
-  float r = bigR * 0.175;
-  float warpScale = 15. * pow(saturate(bigR - r - l), 2.);
+  q *= scale;
+  float warpScale = 1.;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
   // Warp
-  // q += warpScale * 0.10000 * cos( 3. * q.yx + TWO_PI * t );
-  // q += warpScale * 0.05000 * cos( 7. * q.yx + TWO_PI * t );
-  // q *= rotMat2(4. * warpScale * l * TWO_PI);
-  // q += warpScale * 0.02500 * cos(15. * q.yx + TWO_PI * t );
-  // q += warpScale * 0.01250 * cos(21. * q.yx + TWO_PI * t );
-
-  const int num = 8;
-  for (int i = 0; i < num; i++) {
+  const int iterations = 14;
+  for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    float localT = mod(t + 0.2 * fI / float(num), 1.);
-
-    vec2 localQ = q + getCoords(bigR, fI, float(num));
-    vec2 target = q + getCoords(bigR, fI + 3., float(num));
-    localQ = mix(localQ, target, smoothstep(0.3, 0.8, localT));
-
-    float n = length(localQ) - r;
-    n = smoothstep(edge, 0., n);
-
-    color = mix(color, vec3(1, 0, 1), n);
+    q *= angle2C;;
+    // q.x = abs(q.x);
+    q.xy = abs(q.xy);
+    q.x += angle3C;
+    q *= rotMat2(offset.x * PI);
   }
+
+  // Final shape
+  float n = length(q);
+  // n = smoothstep(edge, 0., n);
+
+  n *= 0.4;
+  vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (n + vec3(0, 0.1, 0.3)) );
+  float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
+  option2I = sigmoid(option2I);
+  // float option2I = n;
+  // vec3 option2 = vec3(smoothstep(0., edge, sin(offset.y * TWO_PI * n)));
+  vec3 option2 = option2I * mix(vec3(0., 0.1, 0.8), vec3(1), pow(option2I, 4.0));
+
+  // color = mix(option2, option1, norT);
+  color = option2;
+
+  float mask = smoothstep(0., edge, n - r);
+  color = mix(color, background, mask);
+
 
   return color.rgb;
 }
@@ -1857,7 +1864,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
