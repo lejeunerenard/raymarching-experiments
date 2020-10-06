@@ -45,8 +45,8 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 1.216,
-        y: 2,
+        x: 1.138,
+        y: 0.882,
         z: 0
       },
       d: 0.04,
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.232
-    this.angle2C = 1.297
-    this.angle3C = -2.167
+    this.angle1C = 0.24
+    this.angle2C = 1.273
+    this.angle3C = -2.201
 
     this.setupAnimation(preset)
 
@@ -206,7 +206,7 @@ export default class App {
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
       .delay(0.125 * 1000)
-      .to({ scale: 12 }, 20 * 1000)
+      .to({ scale: 11 }, 20 * 1000)
       .easing(TWEEN.Easing.Linear.None)
     scaleTween1.start(0)
 
@@ -214,7 +214,7 @@ export default class App {
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
       .delay(0.125 * 1000)
-      .to([ 1.753, 1, this.offset[2] ], 20 * 1000)
+      .to([ 1.697, 1, this.offset[2] ], 20 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     offsetTween1.start(0)
 

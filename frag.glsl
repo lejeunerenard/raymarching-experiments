@@ -1794,7 +1794,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
 
   vec2 q = uv;
-  q.yx = q.xy;
+  // q.yx = q.xy;
 
   q *= scale;
   float warpScale = 1.;
@@ -1802,36 +1802,52 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
 
-  // Warp
+  // Fractal Warp
+  float minD = maxDistance;
+  float avgD = 0.;
   const int iterations = 14;
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
+    q.x = abs(q.x);
     q *= angle2C;;
-    // q.x = abs(q.x);
-    q.xy = abs(q.xy);
+    // q.xy = abs(q.xy);
     q.x += angle3C;
     q *= rotMat2(offset.x * PI);
+    // float d = length(q);
+    float d = dot(q, q);
+    // float pr = 5.5;
+    // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
+
+    avgD += d;
+    minD = min(minD, d);
   }
+
+  avgD /= float(iterations);
 
   // Final shape
   float n = length(q);
   // n = smoothstep(edge, 0., n);
 
-  n *= 0.4;
-  vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (n + vec3(0, 0.1, 0.3)) );
-  float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
-  option2I = sigmoid(option2I);
+  // n *= 0.4;
+
+  // Option 1
+  float option1I = min(minD, avgD);
+  vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.1, 0.3)) );
+
+  // Option 2
+  // float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
   // float option2I = n;
+  float option2I = minD; // min(sqrt(minD), avgD);
   // vec3 option2 = vec3(smoothstep(0., edge, sin(offset.y * TWO_PI * n)));
-  vec3 option2 = option2I * mix(vec3(0., 0.1, 0.8), vec3(1), pow(option2I, 4.0));
+  vec3 option2 = option2I * mix(#026FF2, vec3(1), pow(option2I, 3.0));
 
   // color = mix(option2, option1, norT);
+  // color = option1;
   color = option2;
 
   float mask = smoothstep(0., edge, n - r);
-  color = mix(color, background, mask);
-
+  // color = mix(color, background, mask);
 
   return color.rgb;
 }
