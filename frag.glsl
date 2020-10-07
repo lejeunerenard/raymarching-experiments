@@ -1789,6 +1789,14 @@ vec2 getCoords ( in float r, in float i, in float num ) {
       sin(i * angleIncrement));
 }
 
+float lineTrap (in vec2 point) {
+  vec2 pointOnLine = 2. * (colors1.xy - vec2(0.5));
+  vec2 lineNor = normalize(vec2(0.4, 0.8));
+
+  vec2 polToP = pointOnLine - point;
+  return length(polToP - dot(polToP, lineNor) * lineNor);
+}
+
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -1797,6 +1805,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q.yx = q.xy;
 
   q *= scale;
+  q += offset.xy;
   float warpScale = 1.;
 
   // Global Timing
@@ -1805,22 +1814,39 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Fractal Warp
   float minD = maxDistance;
   float avgD = 0.;
-  const int iterations = 14;
+  const int iterations = 50;
+  float iteration = 0.;
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    q.x = abs(q.x);
-    q *= angle2C;;
-    // q.xy = abs(q.xy);
-    q.x += angle3C;
-    q *= rotMat2(offset.x * PI);
+    // q.x = abs(q.x);
+    // q *= angle2C;;
+    // // q.xy = abs(q.xy);
+    // q.x += angle3C;
+    // q *= rotMat2(offset.x * PI);
+
+    // Julia set
+    vec2 c = vec2(angle1C, angle2C); // vec2(0.4, 0.6);
+    c += 0.01 * cos(cosT + vec2(0, 0.5 * PI) + 0. * uv);
+    // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
+    q = vec2(
+        q.x * q.x - q.y * q.y,
+        2. * q.x * q.y);
+    q += c;
+
+    float dis = dot(q, q);
+    if (dis > 8.) break;
+
     // float d = length(q);
     float d = dot(q, q);
     // float pr = 5.5;
     // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
 
+    // float d = lineTrap(q);
+
     avgD += d;
     minD = min(minD, d);
+    iteration += 1.;
   }
 
   avgD /= float(iterations);
@@ -1832,22 +1858,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n *= 0.4;
 
   // Option 1
-  float option1I = min(minD, avgD);
-  vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.1, 0.3)) );
+  float option1I = angle3C * minD;
+  // float option1I = iteration / float(iterations);
+  // vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.33, 0.66)) );
+  vec3 option1 = vec3(0.5 + 0.5 * sin(TWO_PI * option1I));
 
   // Option 2
   // float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
+  // float option2I = iteration / float(iterations);
   // float option2I = n;
-  float option2I = minD; // min(sqrt(minD), avgD);
+  float option2I = offset.z * minD;
   // vec3 option2 = vec3(smoothstep(0., edge, sin(offset.y * TWO_PI * n)));
-  vec3 option2 = option2I * mix(#026FF2, vec3(1), pow(option2I, 3.0));
+  vec3 option2 = 0.5 + 0.5 * cos( TWO_PI * (option2I + vec3(0, 0.33, 0.67)) );
+  // vec3 option2 = option2I * mix(#026FF2, vec3(1), pow(option2I, 3.0));
 
   // color = mix(option2, option1, norT);
-  // color = option1;
-  color = option2;
+  color = option1;
+  // color = option2;
 
   float mask = smoothstep(0., edge, n - r);
   // color = mix(color, background, mask);
+
+  if (iteration != float(iterations)) {
+    color = option2;
+  }
 
   return color.rgb;
 }
