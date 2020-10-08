@@ -1804,12 +1804,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
   // q.yx = q.xy;
 
-  q *= scale;
-  q += offset.xy;
   float warpScale = 1.;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
+
+  // Julia set setup
+  // q *= scale;
+  // q += offset.xy;
+
+  // Mandelbrot setup
+  vec2 c = uv;
+  c.yx = c.xy;
+  c.x = abs(c.x);
+  c *= scale;
+  c += offset.xy;
+
+  q = angle1C * cos(cosT + vec2(0, 0.5 * PI));
 
   // Fractal Warp
   float minD = maxDistance;
@@ -1825,9 +1836,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // q.x += angle3C;
     // q *= rotMat2(offset.x * PI);
 
-    // Julia set
-    vec2 c = vec2(angle1C, angle2C); // vec2(0.4, 0.6);
-    c += 0.01 * cos(cosT + vec2(0, 0.5 * PI) + 0. * uv);
+    // // Julia set
+    // vec2 c = vec2(angle1C, angle2C);
+    // // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
+    // q = vec2(
+    //     q.x * q.x - q.y * q.y,
+    //     2. * q.x * q.y);
+    // q += c;
+
+    // Mandelbrot set
+    // vec2 c = uv;
     // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
     q = vec2(
         q.x * q.x - q.y * q.y,
@@ -1858,18 +1876,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n *= 0.4;
 
   // Option 1
-  float option1I = angle3C * minD;
-  // float option1I = iteration / float(iterations);
+  // float option1I = angle3C * minD;
+  float option1I = length(q) + angle3C;
   // vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.33, 0.66)) );
-  vec3 option1 = vec3(0.5 + 0.5 * sin(TWO_PI * option1I));
+  // vec3 option1 = vec3(0.5 + 0.5 * sin(TWO_PI * option1I));
+  vec3 option1 = vec3(option1I);
 
   // Option 2
   // float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
-  // float option2I = iteration / float(iterations);
+  float option2I = pow(iteration / float(iterations), 0.85);
   // float option2I = n;
-  float option2I = offset.z * minD;
+  // float option2I = offset.z * iteration / float(iterations);
+  vec3 option2 = vec3(option2I);
   // vec3 option2 = vec3(smoothstep(0., edge, sin(offset.y * TWO_PI * n)));
-  vec3 option2 = 0.5 + 0.5 * cos( TWO_PI * (option2I + vec3(0, 0.33, 0.67)) );
+  // vec3 option2 = 0.5 + 0.5 * cos( TWO_PI * (option2I + vec3(0, 0.33, 0.67)) );
   // vec3 option2 = option2I * mix(#026FF2, vec3(1), pow(option2I, 3.0));
 
   // color = mix(option2, option1, norT);
