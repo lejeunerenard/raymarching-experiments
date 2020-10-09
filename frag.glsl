@@ -1810,50 +1810,66 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
 
   // Julia set setup
-  // q *= scale;
-  // q += offset.xy;
+  q *= scale;
+  q += offset.xy;
 
-  // Mandelbrot setup
-  vec2 c = uv;
-  c.yx = c.xy;
-  c.x = abs(c.x);
-  c *= scale;
-  c += offset.xy;
+  // // Mandelbrot setup
+  // vec2 c = uv;
+  // c.yx = c.xy;
+  // c.x = abs(c.x);
+  // c *= scale;
+  // c += offset.xy;
 
-  q = angle1C * cos(cosT + vec2(0, 0.5 * PI));
+  // q = angle1C * cos(cosT + vec2(0, 0.5 * PI));
 
   // Fractal Warp
   float minD = maxDistance;
   float avgD = 0.;
-  const int iterations = 50;
+  const int iterations = 90;
   float iteration = 0.;
+  // float dropOutInteration = floor(mix(60., float(iterations), pow(saturate(1.4 * norT), 0.35)));
+  float dropOutInteration = float(iterations);
+
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
+    // Kifs
     // q.x = abs(q.x);
     // q *= angle2C;;
     // // q.xy = abs(q.xy);
     // q.x += angle3C;
     // q *= rotMat2(offset.x * PI);
 
-    // // Julia set
-    // vec2 c = vec2(angle1C, angle2C);
+    // Julia set
+    vec2 c = vec2(angle1C, angle2C);
+
+    // q^3 = (q.x^2 + 2. * q.x * q.y * i + - q.y^2) * (q.x + q.y * i)
+    // q^3 = (  q.x^3 + q.y * q.x^2 * i
+    //        + 2. * q.x^2 * q.y * i + - 2. * q.x * q.y^2
+    //        + - q.x * q.y^2 - q.y^3 * i)
+    // q^3 =  q.x^3 + - 2. * q.x * q.y^2 + - q.x * q.y^2
+    //        + (q.y * q.x^2 + 2. * q.x^2 * q.y - q.y^3) * i 
+    q = vec2(
+        q.x * q.x * q.x - 3. * q.x * q.y * q.y,
+        3. * q.x * q.x * q.y - q.y * q.y * q.y);
+
+    // // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
+    // q = vec2(
+    //     q.x * q.x - q.y * q.y,
+    //     2. * q.x * q.y);
+    q += c;
+
+    // // Mandelbrot set
+    // // vec2 c = uv;
     // // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
     // q = vec2(
     //     q.x * q.x - q.y * q.y,
     //     2. * q.x * q.y);
     // q += c;
 
-    // Mandelbrot set
-    // vec2 c = uv;
-    // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
-    q = vec2(
-        q.x * q.x - q.y * q.y,
-        2. * q.x * q.y);
-    q += c;
-
     float dis = dot(q, q);
     if (dis > 8.) break;
+    if (iteration >= dropOutInteration) break;
 
     // float d = length(q);
     float d = dot(q, q);
@@ -1877,14 +1893,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Option 1
   // float option1I = angle3C * minD;
-  float option1I = length(q) + angle3C;
+  // float option1I = length(q) + angle3C;
   // vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.33, 0.66)) );
   // vec3 option1 = vec3(0.5 + 0.5 * sin(TWO_PI * option1I));
-  vec3 option1 = vec3(option1I);
+  // vec3 option1 = vec3(option1I);
+  vec3 option1 = vec3(1.);
 
   // Option 2
   // float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
-  float option2I = pow(iteration / float(iterations), 0.85);
+  float option2I = pow(offset.z * iteration / dropOutInteration, angle3C);
   // float option2I = n;
   // float option2I = offset.z * iteration / float(iterations);
   vec3 option2 = vec3(option2I);
@@ -1899,7 +1916,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float mask = smoothstep(0., edge, n - r);
   // color = mix(color, background, mask);
 
-  if (iteration != float(iterations)) {
+  if (iteration != dropOutInteration) {
     color = option2;
   }
 

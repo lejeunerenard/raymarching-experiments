@@ -45,12 +45,12 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -1.375,
+        x: -0.056,
         y: 0,
         z: 0.78
       },
       d: 0.04,
-      scale: 3.74,
+      scale: 2.64,
       rot2angle: [0, 3.034, 2.432],
       cameraAngles: [0.977, -0.001, 0.137]
     }
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.356
-    this.angle2C = 0.223
-    this.angle3C = 0.429
+    this.angle1C = 0.321
+    this.angle2C = -0.712
+    this.angle3C = 0.85
 
     this.setupAnimation(preset)
 
@@ -206,17 +206,17 @@ export default class App {
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
       .delay(0.125 * 1000)
-      .to({ scale: 11 }, 20 * 1000)
-      .easing(TWEEN.Easing.Linear.None)
-    // scaleTween1.start(0)
+      .to({ scale: 0.006 }, (20 - 0.125) * 1000)
+      .easing(TWEEN.Easing.Circular.Out)
+    scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
       .delay(0.125 * 1000)
-      .to([ 1.697, 1, this.offset[2] ], 20 * 1000)
+      .to([ this.offset[0], this.offset[1], 0.373 ], (20 - 0.125) * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    // offsetTween1.start(0)
+    offsetTween1.start(0)
 
     // // Angle1C Tween
     // let angle1CTween1 = new TWEEN.Tween(this)
@@ -233,6 +233,15 @@ export default class App {
     //   .easing(TWEEN.Easing.Quadratic.InOut)
 
     // angle2CTween1.start(0)
+
+    // Angle3C Tween
+    let angle3CTween1 = new TWEEN.Tween(this)
+    angle3CTween1
+      .delay(0.125 * 1000)
+      .to({ angle3C: 1.25 }, (20 - 0.125) * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    angle3CTween1.start(0)
   }
 
   setupAudio () {

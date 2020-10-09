@@ -111,11 +111,11 @@ if (capturing) {
   offsetF.add(app.offset, '2', -5, 5).step(0.001).listen()
 
   gui.add(app, 'd', 0, 20).step(0.01).listen()
-  gui.add(app, 'scale', -15, 15).step(0.01).listen()
+  gui.add(app, 'scale', -15, 15).step(0.0001).listen()
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
 
   let angleCF = gui.addFolder('Angle Coefficients')
-  angleCF.add(app, 'angle1C', -2, 2).step(0.001).listen()
+  angleCF.add(app, 'angle1C', -2, 2).step(0.00001).listen()
   angleCF.add(app, 'angle2C', -2, 2).step(0.001).listen()
   angleCF.add(app, 'angle3C', -5, 100).step(0.001).listen()
 
