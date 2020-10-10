@@ -47,10 +47,10 @@ export default class App {
       offset: {
         x: -0.056,
         y: 0,
-        z: 0.78
+        z: 0
       },
       d: 0.04,
-      scale: 2.64,
+      scale: 1.3204,
       rot2angle: [0, 3.034, 2.432],
       cameraAngles: [0.977, -0.001, 0.137]
     }
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.321
-    this.angle2C = -0.712
-    this.angle3C = 0.85
+    this.angle1C = 0.4979
+    this.angle2C = -0.1
+    this.angle3C = 2.5
 
     this.setupAnimation(preset)
 
@@ -208,7 +208,7 @@ export default class App {
       .delay(0.125 * 1000)
       .to({ scale: 0.006 }, (20 - 0.125) * 1000)
       .easing(TWEEN.Easing.Circular.Out)
-    scaleTween1.start(0)
+    // scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
@@ -216,15 +216,14 @@ export default class App {
       .delay(0.125 * 1000)
       .to([ this.offset[0], this.offset[1], 0.373 ], (20 - 0.125) * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
 
-    // // Angle1C Tween
-    // let angle1CTween1 = new TWEEN.Tween(this)
-    // angle1CTween1
-    //   .to({ angle1C: TWO_PI * 2 }, 15 * 1000)
-    //   .easing(TWEEN.Easing.Quadratic.InOut)
-
-    // angle1CTween1.start(0)
+    // Angle1C Tween
+    let angle1CTween1 = new TWEEN.Tween(this)
+    angle1CTween1
+      .to({ angle1C: 0.5166 }, 20 * 1000)
+      .easing(TWEEN.Easing.Linear.None)
+    angle1CTween1.start(0)
 
     // // Angle2C Tween
     // let angle2CTween1 = new TWEEN.Tween(this)
@@ -235,13 +234,12 @@ export default class App {
     // angle2CTween1.start(0)
 
     // Angle3C Tween
-    let angle3CTween1 = new TWEEN.Tween(this)
-    angle3CTween1
-      .delay(0.125 * 1000)
-      .to({ angle3C: 1.25 }, (20 - 0.125) * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // let angle3CTween1 = new TWEEN.Tween(this)
+    // angle3CTween1
+    //   .to({ angle3C: 1.25 }, 20 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
 
-    angle3CTween1.start(0)
+    // angle3CTween1.start(0)
   }
 
   setupAudio () {

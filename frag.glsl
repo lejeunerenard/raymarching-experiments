@@ -1797,6 +1797,28 @@ float lineTrap (in vec2 point) {
   return length(polToP - dot(polToP, lineNor) * lineNor);
 }
 
+float cLength2 (in vec2 q) {
+  return dot(q,q);
+}
+
+vec2 cSquare (in vec2 q) {
+  return vec2(
+      q.x * q.x - q.y * q.y,  // real
+      2. * q.x * q.y);        // complex
+}
+
+vec2 cCube (in vec2 q) {
+  // q³ = (q.x² + 2. * q.x * q.y * i + - q.y²) * (q.x + q.y * i)
+  // q³ = (  q.x³ + q.y * q.x² * i
+  //        + 2. * q.x² * q.y * i + - 2. * q.x * q.y²
+  //        + - q.x * q.y² - q.y³ * i)
+  // q³ =  q.x³ + - 2. * q.x * q.y² + - q.x * q.y²
+  //        + (q.y * q.x² + 2. * q.x² * q.y - q.y³) * i 
+  return vec2(
+      q.x * q.x * q.x - 3. * q.x * q.y * q.y,   // real
+      3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
+}
+
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -1808,6 +1830,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
+
+  // Fractal General setup
+  float dist2dq = 1.;
+  float modulo2;
 
   // Julia set setup
   q *= scale;
@@ -1825,7 +1851,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Fractal Warp
   float minD = maxDistance;
   float avgD = 0.;
-  const int iterations = 90;
+  const int iterations = 200;
   float iteration = 0.;
   // float dropOutInteration = floor(mix(60., float(iterations), pow(saturate(1.4 * norT), 0.35)));
   float dropOutInteration = float(iterations);
@@ -1833,48 +1859,43 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    // Kifs
+    // // Kifs
     // q.x = abs(q.x);
     // q *= angle2C;;
-    // // q.xy = abs(q.xy);
+    // q.xy = abs(q.xy);
     // q.x += angle3C;
     // q *= rotMat2(offset.x * PI);
 
     // Julia set
     vec2 c = vec2(angle1C, angle2C);
 
-    // q^3 = (q.x^2 + 2. * q.x * q.y * i + - q.y^2) * (q.x + q.y * i)
-    // q^3 = (  q.x^3 + q.y * q.x^2 * i
-    //        + 2. * q.x^2 * q.y * i + - 2. * q.x * q.y^2
-    //        + - q.x * q.y^2 - q.y^3 * i)
-    // q^3 =  q.x^3 + - 2. * q.x * q.y^2 + - q.x * q.y^2
-    //        + (q.y * q.x^2 + 2. * q.x^2 * q.y - q.y^3) * i 
-    q = vec2(
-        q.x * q.x * q.x - 3. * q.x * q.y * q.y,
-        3. * q.x * q.x * q.y - q.y * q.y * q.y);
+    // q³ power
+    // q' = 3q² -> |q'|² = 9|q²|²
+    dist2dq *= 9. * cLength2(cSquare(q));
+    q = cCube(q);
 
-    // // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
-    // q = vec2(
-    //     q.x * q.x - q.y * q.y,
-    //     2. * q.x * q.y);
+    // q² power
+    // // q' = 2q -> |q'|² = 9|q²|²
+    // dist2dq = 9. * cLength2(cSquare(q));
+    // q = cSquare(q);
+
+    modulo2 = cLength2(q);
     q += c;
 
     // // Mandelbrot set
-    // // vec2 c = uv;
-    // // q^2 = q.x^2 + 2. * q.x * q.y * i + - q.y^2
-    // q = vec2(
-    //     q.x * q.x - q.y * q.y,
-    //     2. * q.x * q.y);
+    // vec2 c = uv;
+    // q = cSquare(q);
     // q += c;
 
     float dis = dot(q, q);
-    if (dis > 8.) break;
+    if (dis > 256.) break;
     if (iteration >= dropOutInteration) break;
 
     // float d = length(q);
-    float d = dot(q, q);
+    // float d = dot(q, q);
     // float pr = 5.5;
     // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
+    float d = length(q - vec2(0.3, 0.5)) - 0.1; // circle trap
 
     // float d = lineTrap(q);
 
@@ -1885,11 +1906,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   avgD /= float(iterations);
 
-  // Final shape
-  float n = length(q);
-  // n = smoothstep(edge, 0., n);
+  // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
+  float d = 0.5 * log(modulo2) * sqrt(modulo2 / dist2dq);
 
-  // n *= 0.4;
+  // d = min(d, minD);
+
+  float threshold = 0.00025;
+  float n = smoothstep(0., threshold, d);
 
   // Option 1
   // float option1I = angle3C * minD;
@@ -1897,12 +1920,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.33, 0.66)) );
   // vec3 option1 = vec3(0.5 + 0.5 * sin(TWO_PI * option1I));
   // vec3 option1 = vec3(option1I);
-  vec3 option1 = vec3(1.);
+  vec3 option1 = vec3(0.);
 
   // Option 2
   // float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
-  float option2I = pow(offset.z * iteration / dropOutInteration, angle3C);
-  // float option2I = n;
+  // float option2I = pow(offset.z * iteration / dropOutInteration, angle3C);
+  float option2I = 1.;
   // float option2I = offset.z * iteration / float(iterations);
   vec3 option2 = vec3(option2I);
   // vec3 option2 = vec3(smoothstep(0., edge, sin(offset.y * TWO_PI * n)));
@@ -1912,9 +1935,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = mix(option2, option1, norT);
   color = option1;
   // color = option2;
-
-  float mask = smoothstep(0., edge, n - r);
-  // color = mix(color, background, mask);
 
   if (iteration != dropOutInteration) {
     color = option2;
