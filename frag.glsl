@@ -1837,7 +1837,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Julia set setup
   q *= scale;
-  q += offset.xy;
+  // q += offset.xy;
 
   // // Mandelbrot setup
   // vec2 c = uv;
@@ -1868,16 +1868,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     // Julia set
     vec2 c = vec2(angle1C, angle2C);
+    c += 0.01 * sin(cosT + vec2(0, 0.5 * PI));
 
-    // q³ power
-    // q' = 3q² -> |q'|² = 9|q²|²
-    dist2dq *= 9. * cLength2(cSquare(q));
-    q = cCube(q);
+    // // q³ power
+    // // q' = 3q² -> |q'|² = 9|q²|²
+    // dist2dq *= 9. * cLength2(cSquare(q));
+    // q = cCube(q);
 
     // q² power
-    // // q' = 2q -> |q'|² = 9|q²|²
-    // dist2dq = 9. * cLength2(cSquare(q));
-    // q = cSquare(q);
+    // q' = 2q -> |q'|² = 4|q|²
+    dist2dq = 2. * modulo2;
+    q = cSquare(q);
 
     modulo2 = cLength2(q);
     q += c;
@@ -1888,19 +1889,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // q += c;
 
     float dis = dot(q, q);
-    if (dis > 256.) break;
+    if (dis > 128.) break;
     if (iteration >= dropOutInteration) break;
 
     // float d = length(q);
     // float d = dot(q, q);
     // float pr = 5.5;
     // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
-    float d = length(q - vec2(0.3, 0.5)) - 0.1; // circle trap
+    if (i > 1) {
+      float d = length(q - offset.xy) - (offset.z + 0. * norT); // circle trap
+      // d = 0.5 + 0.5 * sin(TWO_PI * d);
+      d = abs(d);
+      // d -= 0.00625 * iteration / float(iterations);
+      d -= 0.015625;
 
     // float d = lineTrap(q);
 
-    avgD += d;
-    minD = min(minD, d);
+      avgD += d;
+      minD = min(minD, d);
+    }
     iteration += 1.;
   }
 
@@ -1909,36 +1916,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
   float d = 0.5 * log(modulo2) * sqrt(modulo2 / dist2dq);
 
-  // d = min(d, minD);
+  d = min(d, minD);
 
-  float threshold = 0.00025;
-  float n = smoothstep(0., threshold, d);
+  float threshold = 0.25;
+  float n = d; // smoothstep(0., threshold, d);
 
   // Option 1
-  // float option1I = angle3C * minD;
-  // float option1I = length(q) + angle3C;
-  // vec3 option1 = 0.5 + 0.5 * cos( TWO_PI * (option1I + vec3(0, 0.33, 0.66)) );
-  // vec3 option1 = vec3(0.5 + 0.5 * sin(TWO_PI * option1I));
-  // vec3 option1 = vec3(option1I);
-  vec3 option1 = vec3(0.);
+  float option1I = d;
+  option1I = smoothstep(0., 0.0025, option1I);
+  vec3 option1 = vec3(option1I);
 
   // Option 2
-  // float option2I = 0.5 + 0.5 * sin(offset.y * TWO_PI * n);
-  // float option2I = pow(offset.z * iteration / dropOutInteration, angle3C);
   float option2I = 1.;
-  // float option2I = offset.z * iteration / float(iterations);
   vec3 option2 = vec3(option2I);
-  // vec3 option2 = vec3(smoothstep(0., edge, sin(offset.y * TWO_PI * n)));
-  // vec3 option2 = 0.5 + 0.5 * cos( TWO_PI * (option2I + vec3(0, 0.33, 0.67)) );
-  // vec3 option2 = option2I * mix(#026FF2, vec3(1), pow(option2I, 3.0));
 
-  // color = mix(option2, option1, norT);
   color = option1;
   // color = option2;
 
-  if (iteration != dropOutInteration) {
-    color = option2;
-  }
+  // if (iteration != dropOutInteration) {
+  //   color = option2;
+  // }
 
   return color.rgb;
 }
