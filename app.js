@@ -40,30 +40,30 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.323,
-        y: 0.506,
-        z: 1
+        x: 0.16,
+        y: -0.544,
+        z: -0.764
       },
       d: 0.04,
       scale: 0.8,
       rot2angle: [0, 3.034, 2.432],
-      cameraAngles: [0.977, -0.001, 0.137]
+      cameraAngles: [0.278, 2.43, -0.16]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.68, -0.07, 2.87)
+    this.cameraRo = vec3.fromValues(1.02, 0.85, -1.25)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.00001
+    this.epsilon = preset.epsilon || 0.0001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.01775
-    this.angle2C = -1.11
-    this.angle3C = -0.113
+    this.angle1C = 0.4001
+    this.angle2C = -0.044
+    this.angle3C = -0.628
 
     // this.setupAnimation(preset)
 
