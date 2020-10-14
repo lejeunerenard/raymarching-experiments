@@ -1933,9 +1933,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q = angle1C * cos(cosT + vec2(0, 0.5 * PI));
 
   // Fractal Warp
-  float minD = maxDistance;
+  vec3 minD = vec3(maxDistance);
   float avgD = 0.;
-  const int iterations = 19;
+  const int iterations = 100;
   float iteration = 0.;
   // float dropOutInteration = floor(mix(60., float(iterations), pow(saturate(1.4 * norT), 0.35)));
   float dropOutInteration = float(iterations);
@@ -1943,29 +1943,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    // Kifs
-    q.x = abs(q.x);
-    q *= angle2C;;
-    q.xy = abs(q.xy);
-    q.x += angle3C;
-    q *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
+    // // Kifs
+    // q.x = abs(q.x);
+    // q *= angle2C;;
+    // q.xy = abs(q.xy);
+    // q.x += angle3C;
+    // q *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
 
     // Julia set
-    // vec2 c = vec2(angle1C, angle2C);
-    // c += 0.05 * sin(TWO_PI * t + vec2(0, 0.5 * PI));
+    vec2 c = vec2(angle1C, angle2C);
+    c += 0.0125 * sin(TWO_PI * t + vec2(0, 0.5 * PI));
 
-    // // q³ power
-    // // q' = 3q² -> |q'|² = 9|q²|²
-    // dist2dq *= 9. * cLength2(cSquare(q));
-    // q = cCube(q);
+    // q³ power
+    // q' = 3q² -> |q'|² = 9|q²|²
+    dist2dq *= 9. * cLength2(cSquare(q));
+    q = cCube(q);
 
     // // q² power
     // // q' = 2q -> |q'|² = 4|q|²
     // dist2dq = 2. * modulo2;
     // q = cSquare(q);
 
-    // modulo2 = cLength2(q);
-    // q += c;
+    modulo2 = cLength2(q);
+    q += c;
 
     // // Mandelbrot set
     // vec2 c = uv;
@@ -1973,33 +1973,39 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // q += c;
 
     float dis = dot(q, q);
-    // if (dis > 128.) break;
-    // if (iteration >= dropOutInteration) break;
+    if (dis > 256.) break;
+    if (iteration >= dropOutInteration) break;
 
     // float d = length(q);
     // float d = dot(q, q);
     // float pr = 5.5;
     // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
-    if (i > 1) {
-      float d = length(q - offset.xy) - (offset.z + 0. * norT); // circle trap
+    // if (i != 1) {
+      float d = length(q - offset.xy) - offset.z; // circle trap
       // d = 0.5 + 0.5 * sin(TWO_PI * d);
-      d = abs(d);
+      // d = abs(d);
       // d -= 0.00625 * iteration / float(iterations);
-      d -= 0.015625;
+      // d -= 0.015625;
 
-    // float d = lineTrap(q);
+      // float d = lineTrap(q);
+      // float d = vfbm6(q);
+      float n = iqFBM(0.8*q);
+      // vec2 r = vec2(0);
+      // float n = fbmWarp(0.2*q, r);
+      // float s = abs(0.5 * q.x + 0.1 * sin(3. * q.y));
+      float s = abs(snoise2(0.1 * q));
 
       avgD += d;
-      minD = min(minD, d);
-    }
+      minD = min(minD, vec3(d, n, s));
+    // }
     iteration += 1.;
   }
 
   avgD /= float(dropOutInteration);
 
-  // // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
-  // float d = 0.5 * log(modulo2) * sqrt(modulo2 / dist2dq);
-  float d = length(q) - 0.055;
+  // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
+  float d = 0.5 * log(modulo2) * sqrt(modulo2 / dist2dq);
+  // float d = length(q) - 0.055;
 
   // d = min(d, minD);
 
@@ -2007,9 +2013,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = smoothstep(0., threshold, d);
 
   // Option 1
-  float option1I = n;
-  // option1I = smoothstep(0., 0.0025, option1I);
-  vec3 option1 = vec3(option1I);
+  vec3 option1 = 0.5 + 0.5 * cos(minD.x + vec3(0, 0.1, 0.3));
+  option1 = mix(option1, 0.5 + 0.5 * cos(0.8 * minD.z + vec3(0, 0.3, 0.5)), minD.y);
+  // option1 = mix(option1, vec3(0.5), minD.z);
 
   // Option 2
   float option2I = 1.;
@@ -2018,9 +2024,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   color = option1;
   // color = option2;
 
-  // if (iteration != dropOutInteration) {
-  //   color = option2;
-  // }
+//   if (iteration != dropOutInteration) {
+//     color = option1;
+//   }
 
   return color.rgb;
 }
@@ -2053,7 +2059,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
