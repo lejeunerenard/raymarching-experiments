@@ -1952,7 +1952,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     // Julia set
     vec2 c = vec2(angle1C, angle2C);
-    c += 0.0125 * sin(TWO_PI * t + vec2(0, 0.5 * PI));
+    // 0.004 <=> 0.3517
+    // ∆/2 => 0.17385
+    // center = 0.17785
+    c += vec2(0.165, 0.025) * sin(TWO_PI * t + vec2(0, 0.5 * PI));
 
     // q³ power
     // q' = 3q² -> |q'|² = 9|q²|²
@@ -1976,24 +1979,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     if (dis > 256.) break;
     if (iteration >= dropOutInteration) break;
 
-    // float d = length(q);
-    // float d = dot(q, q);
-    // float pr = 5.5;
-    // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
     // if (i != 1) {
-      float d = length(q - offset.xy) - offset.z; // circle trap
+      // float d = length(q);
+      // float d = dot(q, q);
+      // float pr = 5.5;
+      // float d = pow(dot(pow(q, vec2(pr)), vec2(1)), 1. / pr);
+      // float d = length(q - offset.xy) - offset.z; // circle trap
       // d = 0.5 + 0.5 * sin(TWO_PI * d);
       // d = abs(d);
       // d -= 0.00625 * iteration / float(iterations);
       // d -= 0.015625;
 
+    // float d = 0.2 * q.x + sin(2. * q.y);
       // float d = lineTrap(q);
-      // float d = vfbm6(q);
-      float n = iqFBM(0.8*q);
-      // vec2 r = vec2(0);
-      // float n = fbmWarp(0.2*q, r);
-      // float s = abs(0.5 * q.x + 0.1 * sin(3. * q.y));
-      float s = abs(snoise2(0.1 * q));
+      vec2 t = vec2(0);
+      float d = fbmWarp(1.0 * vec2(0.2, 0.3) * q, t);
+
+      vec2 r = vec2(0);
+      float n = fbmWarp(0.5 * vec2(0.25, 0.1) * q, r);
+      float s = dot(r, r);
 
       avgD += d;
       minD = min(minD, vec3(d, n, s));
@@ -2013,20 +2017,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = smoothstep(0., threshold, d);
 
   // Option 1
-  vec3 option1 = 0.5 + 0.5 * cos(minD.x + vec3(0, 0.1, 0.3));
-  option1 = mix(option1, 0.5 + 0.5 * cos(0.8 * minD.z + vec3(0, 0.3, 0.5)), minD.y);
-  // option1 = mix(option1, vec3(0.5), minD.z);
+  vec3 option1 = 0.5 + 0.5 * cos(5. * minD.y + vec3(0));
+  // vec3 option1 = 0.5 + 0.5 * cos(3. * minD.y + vec3(0, 0.1, 0.3));
+  // option1 = mix(option1, 0.5 + 0.5 * cos(minD.x + vec3(0, 0.33, 0.67)), minD.z);
 
   // Option 2
-  float option2I = 1.;
-  vec3 option2 = vec3(option2I);
+  vec3 option2 = 0.5 + 0.5 * cos(5. * minD.x + vec3(0));
 
   color = option1;
-  // color = option2;
 
-//   if (iteration != dropOutInteration) {
-//     color = option1;
-//   }
+  if (iteration != dropOutInteration) {
+    color = option2;
+  }
 
   return color.rgb;
 }
