@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 4096
 #define maxDistance 10.0
 #define fogMaxDistance 11.0
 
@@ -876,11 +876,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   // vec3 wQ = q;
   vec4 wQ = z;
+
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzwx + cosT);
+  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzwx + cosT);
+  wQ += warpScale * 0.0250 * cos(13. * wQ.yzwx + cosT);
+
   // q = wQ.xyz;
   z = wQ;
 
   float avgD = 0.;
-  const int iterations = 50;
+  const int iterations = 100;
   float dropOutInteration = float(iterations);
   float iteration = 0.;
 
@@ -893,6 +898,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     // z.xy = abs(z.xy);
     // z.x += angle3C;
     // z *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
+
+    z += warpScale * 0.0250 * cos(8. * z.yzwx + cosT);
 
     // Julia set
     vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
@@ -945,6 +952,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
   float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
   vec3 o = vec3(sdfD, 0, 0);
+  o.x -= 0.015;
+  o.x -= 0.0023 * cellular(0.005 * vec3(0.2, 2., 2.) * z.xyz);
   mPos = z.xyz;
   d = dMin(d, o);
 
@@ -954,7 +963,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // trapD.x *= 0.25;
   // d = dMin(d, trapD);
 
-  d.x *= 0.25;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1082,7 +1091,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.3 * pow(dNR, 3.);
 
   dI *= 0.797;
-  dI += offset.x;
+  dI += 0.267;
 
   // color = vec3(0.098039, 0.960784, 0.960784) + vec3(0.2, 0.4, 0.2) * cos( TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25)) );
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
@@ -1274,7 +1283,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.5;
       float specCo = 0.75;
 
       float specAll = 0.0;
@@ -1282,12 +1291,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.60;
+        float diffMin = 0.65;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.80;
+        float shadowMin = 0.85;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.75));
         dif *= sha;
 
@@ -1321,10 +1330,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1336,7 +1345,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.; // dot(nor, -rayDirection);
+      float dispersionI = dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -2061,7 +2070,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
