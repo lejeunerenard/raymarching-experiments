@@ -45,18 +45,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.135,
-        y: 0.008,
-        z: -0.813
+        x: -0.169,
+        y: -0.169,
+        z: 0
       },
       d: 0.04,
-      scale: 2.497,
-      rot2angle: [0, 3.034, 2.432],
+      scale: 1.1,
+      rot2angle: [2.871, 2.939, 3.909],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.68, 0.57, -1.75)
+    this.cameraRo = vec3.fromValues(1.43, 1.31, 1.06)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
@@ -73,11 +73,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = -0.34982
-    this.angle2C = -0.217
+    this.angle1C = 0.4001
+    this.angle2C = 0.475
     this.angle3C = 0.356
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -190,17 +190,23 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], 2.572, this.rot2angle[2]], 5 * 1000)
+      .to([this.rot2angle[0], 3.571, this.rot2angle[2]], 9 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([...this.rot2angle], 5 * 1000)
+      .to([3.325, 4.405, 4.055], 9 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .delay(3 * 1000)
+      .to([...this.rot2angle], 9 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween1)
 
-    // rotTween1.start(0)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -223,7 +229,7 @@ export default class App {
     angle1CTween1
       .to({ angle1C: 0.5166 }, 20 * 1000)
       .easing(TWEEN.Easing.Linear.None)
-    angle1CTween1.start(0)
+    // angle1CTween1.start(0)
 
     // // Angle2C Tween
     // let angle2CTween1 = new TWEEN.Tween(this)

@@ -855,7 +855,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e10;
 
-  // p *= globalLRot;
+  p *= globalRot;
 
   p.y -= 0.15;
   p.y *= -1.;
@@ -877,46 +877,47 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 wQ = q;
   vec4 wQ = z;
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzwx + cosT);
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzwx + cosT);
-  wQ += warpScale * 0.0250 * cos(13. * wQ.yzwx + cosT);
+  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzwx + cosT);
+  // wQ += warpScale * 0.0500 * cos( 7. * wQ.yzwx + cosT);
+  // wQ += warpScale * 0.0250 * cos(13. * wQ.yzwx + cosT);
 
   // q = wQ.xyz;
   z = wQ;
 
   float avgD = 0.;
-  const int iterations = 100;
+  const int iterations = 22;
   float dropOutInteration = float(iterations);
   float iteration = 0.;
 
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    // // Kifs
-    // z.x = abs(z.x);
+    // Kifs
+    z = abs(z);
     // z *= angle2C;;
     // z.xy = abs(z.xy);
     // z.x += angle3C;
+    z *= kifsM;
+    z.xyz += offset;
+    // z.yzwx = z.xyzw;
     // z *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
 
-    z += warpScale * 0.0250 * cos(8. * z.yzwx + cosT);
+    // // Julia set
+    // vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
+    // c += 0.075 * sin(TWO_PI * t + vec4(0, 0.5 * PI, 0, 0.5 * PI));
 
-    // Julia set
-    vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
-    c += 0.075 * sin(TWO_PI * t + vec4(0, 0.5 * PI, 0, 0.5 * PI));
-
-    // z³ power
-    // z' = 3q² -> |z'|² = 9|z²|²
-    dist2dq *= 9. * qLength2(qSquare(z));
-    z = qCube(z);
+    // // z³ power
+    // // z' = 3q² -> |z'|² = 9|z²|²
+    // dist2dq *= 9. * qLength2(qSquare(z));
+    // z = qCube(z);
 
     // // z² power
     // // z' = 2q -> |z'|² = 4|z|²
     // dist2dq = 2. * modulo2;
     // z = qSquare(z);
 
-    modulo2 = qLength2(z);
-    z += c;
+    // modulo2 = qLength2(z);
+    // z += c;
 
     // // Mandelbrot set
     // vec2 c = uv;
@@ -950,10 +951,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   avgD /= float(dropOutInteration);
 
   // // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
-  float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
+  // float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
+  float sdfD = sdBox(z, vec4(0.2));
   vec3 o = vec3(sdfD, 0, 0);
-  o.x -= 0.015;
-  o.x -= 0.0023 * cellular(0.005 * vec3(0.2, 2., 2.) * z.xyz);
   mPos = z.xyz;
   d = dMin(d, o);
 
@@ -1182,13 +1182,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pos;
-  dI += 0.3 * pow(dNR, 3.);
+  dI += 0.3 * pow(dNR, 5.);
+  dI += 0.4 * snoise3(pos);
 
-  dI *= 0.8;
-  dI += 0.;
+  dI *= angle1C;
+  dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0,-0.33, 0.67)));
-  color.rg += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // color.rg += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
 
   // color *= 0.65;
 
@@ -1345,7 +1346,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = dot(nor, -rayDirection);
+      float dispersionI = 1.; // dot(nor, -rayDirection);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
