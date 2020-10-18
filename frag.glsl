@@ -885,7 +885,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   z = wQ;
 
   float avgD = 0.;
-  const int iterations = 22;
+  const int iterations = 10;
   float dropOutInteration = float(iterations);
   float iteration = 0.;
 
@@ -924,7 +924,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     // z = cSquare(z);
     // z += c;
 
-    if (i > 0) {
+    // if (i > 2) {
       // float trap = length(z);
       // float trap = dot(z, z);
       // float pr = 5.5;
@@ -932,14 +932,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       float trap = length(z.xy - offset.yz); // circle trap
       // trap = 0.5 + 0.5 * sin(TWO_PI * trap);
       trap = abs(trap);
-      trap -= 0.00625 * iteration / float(iterations);
-      trap -= 0.1;
+      // trap -= 0.00625 * iteration / float(iterations);
+      trap -= 0.045;
 
     // float trap = lineTrap(z);
 
       avgD += trap;
       minD = min(minD, trap);
-    }
+    // }
 
     float dis = modulo2;
     if (dis > 512.) break;
@@ -961,7 +961,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 trapD = vec3(minD, 1, 0);
   // trapD.x *= 0.25;
-  // d = dMin(d, trapD);
+  d = dMin(d, trapD);
 
   d.x *= 0.125;
 
@@ -1199,7 +1199,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   //     color.g + color.b);
   // color *= 0.435;
 
-  vec3 trapColor = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)) );
+  vec3 trapColor = vec3(0.0);
   color = mix(color, trapColor, isMaterialSmooth(m, 1.));
 
   gM = m;
@@ -1347,7 +1347,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 1.; // dot(nor, -rayDirection);
-      dispersionColor *= dispersionI;
+      dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);

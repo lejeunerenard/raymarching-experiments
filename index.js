@@ -5,7 +5,7 @@ import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 30
+const secondsLong = 20
 const capturing = false
 
 let app = new App()
