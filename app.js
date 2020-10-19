@@ -51,7 +51,7 @@ export default class App {
       },
       d: 0.04,
       scale: 1.1525,
-      rot2angle: [0.549, 0.246, 3.149],
+      rot2angle: [2.721, 0.299, 2.978],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
@@ -190,7 +190,7 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([0.149, this.rot2angle[1], 3.008], 10 * 1000)
+      .to([2.913, this.rot2angle[1], 2.978], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2

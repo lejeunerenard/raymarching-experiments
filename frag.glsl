@@ -929,7 +929,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       // float trap = dot(z, z);
       // float pr = 5.5;
       // float d = pow(dot(pow(z, vec2(pr)), vec2(1)), 1. / pr);
-      float trap = length(z.xy - offset.yz); // circle trap
+      float trap = length(z.xy - offset.yz + 0.3 * sin(z.zw + PI * 0.0 * sin(cosT))); // circle trap
       // trap = 0.5 + 0.5 * sin(TWO_PI * trap);
       trap = abs(trap);
       // trap -= 0.00625 * iteration / float(iterations);
@@ -1181,12 +1181,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
+  dI += 0.4 * length(pos);
   dI += 0.2 * pos;
   dI += 0.3 * pow(dNR, 5.);
   dI += 0.4 * snoise3(pos);
 
   dI *= angle1C;
   dI += angle2C;
+
+  dI += norT;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   // color.rg += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.33)));
@@ -1199,7 +1202,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   //     color.g + color.b);
   // color *= 0.435;
 
-  vec3 trapColor = vec3(0.0);
+  vec3 trapColor = vec3(pow(saturate(0.65 * length(pos)), 3.));
   color = mix(color, trapColor, isMaterialSmooth(m, 1.));
 
   gM = m;
@@ -1284,8 +1287,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
-      float specCo = 0.75;
+      float freCo = 0.2;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1331,10 +1334,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1344,12 +1347,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.; // dot(nor, -rayDirection);
-      dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
+      // float dispersionI = 1.; // dot(nor, -rayDirection);
+      // dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
