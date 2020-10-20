@@ -855,7 +855,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e10;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   p.y -= 0.15;
   p.y *= -1.;
@@ -892,32 +892,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    // Kifs
-    z = abs(z);
-    // z *= angle2C;;
-    // z.xy = abs(z.xy);
-    // z.x += angle3C;
-    z *= kifsM;
-    z.xyz += offset;
-    // z.yzwx = z.xyzw;
-    // z *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
+    // // Kifs
+    // z = abs(z);
+    // // z *= angle2C;;
+    // // z.xy = abs(z.xy);
+    // // z.x += angle3C;
+    // z *= kifsM;
+    // z.xyz += offset;
+    // // z.yzwx = z.xyzw;
+    // // z *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
 
-    // // Julia set
-    // vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
-    // c += 0.075 * sin(TWO_PI * t + vec4(0, 0.5 * PI, 0, 0.5 * PI));
+    // Julia set
+    vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
+    c += 0.075 * sin(TWO_PI * t + vec4(0, 0.5 * PI, 0, 0.5 * PI));
 
-    // // z³ power
-    // // z' = 3q² -> |z'|² = 9|z²|²
-    // dist2dq *= 9. * qLength2(qSquare(z));
-    // z = qCube(z);
+    // z³ power
+    // z' = 3q² -> |z'|² = 9|z²|²
+    dist2dq *= 9. * qLength2(qSquare(z));
+    z = qCube(z);
 
     // // z² power
     // // z' = 2q -> |z'|² = 4|z|²
     // dist2dq = 2. * modulo2;
     // z = qSquare(z);
 
-    // modulo2 = qLength2(z);
-    // z += c;
+    modulo2 = qLength2(z);
+    z += c;
 
     // // Mandelbrot set
     // vec2 c = uv;
@@ -929,11 +929,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       // float trap = dot(z, z);
       // float pr = 5.5;
       // float d = pow(dot(pow(z, vec2(pr)), vec2(1)), 1. / pr);
-      float trap = length(z.xy - offset.yz + 0.3 * sin(z.zw + PI * 0.0 * sin(cosT))); // circle trap
+      float trap = length(z.xy - vec2(0.669, -0.323) + 0.4 * sin(z.zw + PI)); // circle trap
       // trap = 0.5 + 0.5 * sin(TWO_PI * trap);
       trap = abs(trap);
       // trap -= 0.00625 * iteration / float(iterations);
-      trap -= 0.045;
+      trap -= 0.082;
 
     // float trap = lineTrap(z);
 
@@ -950,9 +950,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   avgD /= float(dropOutInteration);
 
-  // // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
-  // float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
-  float sdfD = sdBox(z, vec4(0.2));
+  // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
+  float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
+  // float sdfD = sdBox(z, vec4(0.2));
   vec3 o = vec3(sdfD, 0, 0);
   mPos = z.xyz;
   d = dMin(d, o);
@@ -960,7 +960,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x = max(d.x, q.z);
 
   vec3 trapD = vec3(minD, 1, 0);
-  // trapD.x *= 0.25;
+  trapD.x *= 0.125;
   d = dMin(d, trapD);
 
   d.x *= 0.125;
@@ -1186,8 +1186,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.3 * pow(dNR, 5.);
   dI += 0.4 * snoise3(pos);
 
-  dI *= angle1C;
-  dI += angle2C;
+  dI *= 0.669;
+  dI += -0.323;
 
   dI += norT;
 
@@ -1202,7 +1202,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   //     color.g + color.b);
   // color *= 0.435;
 
-  vec3 trapColor = vec3(pow(saturate(0.65 * length(pos)), 3.));
+  vec3 trapColor = vec3(0.05);
   color = mix(color, trapColor, isMaterialSmooth(m, 1.));
 
   gM = m;
@@ -1287,15 +1287,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.4;
+      float freCo = mix(0.2, 1., isMaterialSmooth(t.y, 1.));
+      float specCo = mix(0.2, 0.7, isMaterialSmooth(t.y, 1.));
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.65;
+        float diffMin = 0.75;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1334,10 +1334,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.30 * isMaterialSmooth(t.y, 1.) * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1347,12 +1347,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.; // dot(nor, -rayDirection);
-      // dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
+      float dispersionI = dot(nor, -rayDirection);
+      dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
