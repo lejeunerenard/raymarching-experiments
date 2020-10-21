@@ -76,8 +76,23 @@ const float thickness = 0.05;
 
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
 
+// Math
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 #pragma glslify: rotationMatrix4 = require(./rotation-matrix4)
+
+vec4 qSquare (in vec4 q) {
+  return vec4(q.x*q.x - q.y*q.y - q.z*q.z - q.w*q.w, 2.0*q.x*q.yzw);
+}
+
+float qLength2 (in vec4 q) {
+  return dot(q, q);
+}
+
+vec4 qCube ( in vec4 q ) {
+  vec4  q2 = q*q;
+  return vec4(q.x  *(    q2.x - 3.0*q2.y - 3.0*q2.z - 3.0*q2.w), 
+      q.yzw*(3.0*q2.x -     q2.y -     q2.z -     q2.w));
+}
 
 float ncnoise2(in vec2 x) {
   return smoothstep(-1.00, 1.00, cnoise2(x));
@@ -624,24 +639,91 @@ float sigmoid ( in float x ) {
 }
 
 #define jTrap 14
-float julia (in vec3 p, in vec4 c) {
-    vec4 z = vec4(p, 0.);
+vec2 julia (in vec4 z, in vec4 c, in float t) {
+  // Fractal General setup
+  float minD = 1e10;
+  float dist2dq = 1.;
+  float modulo2;
 
-    float dz2 = 1.;
-    float mz2 = dot(z,z);
-    for (int i = 0; i < jTrap; i++) {
-        // ∆z[n+1]^2 = 4z[n]^2∆z[n]^2
-        dz2 *= 4. * mz2;
+  float avgD = 0.;
+  const int iterations = 18;
+  float dropOutInteration = float(iterations);
+  float iteration = 0.;
 
-        // [n+1] = z[n]^2 + c
-        z = vec4(z.x*z.x - dot(z.yzw, z.yzw),
-               2.*z.x*z.yzw) + c;
+  const float warpScale = 0.5;
 
-        mz2 = dot(z,z);
-        if (mz2 > 4.) break;
-    }
+  for (int i = 0; i < iterations; i++) {
+    float fI = float(i);
 
-  return 0.25 * sqrt(mz2 / dz2) * log(mz2);
+    // General space pre-warp
+    // z += warpScale * 0.1000 * triangleWave(3. * z.yzwx + t * TWO_PI);
+
+    // // Kifs
+    // z = abs(z);
+    // // z *= angle2C;;
+    // // z.xy = abs(z.xy);
+    // // z.x += angle3C;
+    // z *= kifsM;
+    // z.xyz += offset;
+    // // z.yzwx = z.xyzw;
+    // // z *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
+
+    // Julia set
+    // z³ power
+    // z' = 3q² -> |z'|² = 9|z²|²
+    dist2dq *= 9. * qLength2(qSquare(z));
+    z = qCube(z);
+
+    // // z² power
+    // // z' = 2q -> |z'|² = 4|z|²
+    // dist2dq = 2. * modulo2;
+    // z = qSquare(z);
+
+    modulo2 = qLength2(z);
+    z += c;
+
+    // // Mandelbrot set
+    // vec2 c = uv;
+    // z = cSquare(z);
+    // z += c;
+
+    // if (i > 2) {
+      // float trap = length(z);
+      // float trap = dot(z, z);
+      // float pr = 5.5;
+      // float d = pow(dot(pow(z, vec2(pr)), vec2(1)), 1. / pr);
+      float trap = length(z.xy - vec2(0.669, -0.323) + 0.4 * sin(z.zw + PI)); // circle trap
+      // trap = 0.5 + 0.5 * sin(TWO_PI * trap);
+      trap = abs(trap);
+      // trap -= 0.00625 * iteration / float(iterations);
+      trap -= 0.082;
+
+    // float trap = lineTrap(z);
+
+      avgD += trap;
+      minD = min(minD, trap);
+    // }
+
+    float dis = modulo2;
+    if (dis > 512.) break;
+    if (iteration >= dropOutInteration) break;
+
+    iteration += 1.;
+  }
+
+  avgD /= float(dropOutInteration);
+
+  // Fractal Hubbard-Douady potential distance estimation
+  // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
+  float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
+  return vec2(sdfD, minD);
+}
+vec2 julia (in vec4 z, in vec4 c) {
+  return julia(z, c, 0.);
+}
+vec2 julia (in vec4 z) {
+  vec4 c = vec4(0);
+  return julia(z, c, 0.);
 }
 
 // Source: https://www.shadertoy.com/view/MdcXzn
@@ -837,23 +919,8 @@ vec3 sphericalCoords (in vec3 q) {
       length(q));
 }
 
-vec4 qSquare (in vec4 q) {
-  return vec4(q.x*q.x - q.y*q.y - q.z*q.z - q.w*q.w, 2.0*q.x*q.yzw);
-}
-
-float qLength2 (in vec4 q) {
-  return dot(q, q);
-}
-
-vec4 qCube ( in vec4 q ) {
-  vec4  q2 = q*q;
-  return vec4(q.x  *(    q2.x - 3.0*q2.y - 3.0*q2.z - 3.0*q2.w), 
-      q.yzw*(3.0*q2.x -     q2.y -     q2.z -     q2.w));
-}
-
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
-  float minD = 1e10;
 
   // p *= globalRot;
 
@@ -869,10 +936,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float warpScale = 1.5;
 
-  // Fractal General setup
-  float dist2dq = 1.;
-  float modulo2;
-
   // Warp
   // vec3 wQ = q;
   vec4 wQ = z;
@@ -884,82 +947,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // q = wQ.xyz;
   z = wQ;
 
-  float avgD = 0.;
-  const int iterations = 10;
-  float dropOutInteration = float(iterations);
-  float iteration = 0.;
-
-  for (int i = 0; i < iterations; i++) {
-    float fI = float(i);
-
-    // // Kifs
-    // z = abs(z);
-    // // z *= angle2C;;
-    // // z.xy = abs(z.xy);
-    // // z.x += angle3C;
-    // z *= kifsM;
-    // z.xyz += offset;
-    // // z.yzwx = z.xyzw;
-    // // z *= rotMat2(offset.x * PI + 0.125 * PI * sin(TWO_PI * t) + 0.3);
-
-    // Julia set
-    vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
-    c += 0.075 * sin(TWO_PI * t + vec4(0, 0.5 * PI, 0, 0.5 * PI));
-
-    // z³ power
-    // z' = 3q² -> |z'|² = 9|z²|²
-    dist2dq *= 9. * qLength2(qSquare(z));
-    z = qCube(z);
-
-    // // z² power
-    // // z' = 2q -> |z'|² = 4|z|²
-    // dist2dq = 2. * modulo2;
-    // z = qSquare(z);
-
-    modulo2 = qLength2(z);
-    z += c;
-
-    // // Mandelbrot set
-    // vec2 c = uv;
-    // z = cSquare(z);
-    // z += c;
-
-    // if (i > 2) {
-      // float trap = length(z);
-      // float trap = dot(z, z);
-      // float pr = 5.5;
-      // float d = pow(dot(pow(z, vec2(pr)), vec2(1)), 1. / pr);
-      float trap = length(z.xy - vec2(0.669, -0.323) + 0.4 * sin(z.zw + PI)); // circle trap
-      // trap = 0.5 + 0.5 * sin(TWO_PI * trap);
-      trap = abs(trap);
-      // trap -= 0.00625 * iteration / float(iterations);
-      trap -= 0.082;
-
-    // float trap = lineTrap(z);
-
-      avgD += trap;
-      minD = min(minD, trap);
-    // }
-
-    float dis = modulo2;
-    if (dis > 512.) break;
-    if (iteration >= dropOutInteration) break;
-
-    iteration += 1.;
-  }
-
-  avgD /= float(dropOutInteration);
-
-  // SDF(z) = log|z|·|z|/|dz| : https://iquilezles.org/www/articles/distancefractals/distancefractals.htm
-  float sdfD = 0.25 * log(modulo2) * sqrt(modulo2 / dist2dq);
-  // float sdfD = sdBox(z, vec4(0.2));
-  vec3 o = vec3(sdfD, 0, 0);
+  vec4 c = vec4(angle1C, angle2C, angle3C + 0.392, offset.x);
+  c += 0.075 * sin(TWO_PI * t + vec4(0, 0.5 * PI, 0, 0.5 * PI));
+  vec2 jules = julia(z, c, t);
+  vec3 o = vec3(jules.x, 0, 0);
   mPos = z.xyz;
   d = dMin(d, o);
 
-  // d.x = max(d.x, q.z);
-
-  vec3 trapD = vec3(minD, 1, 0);
+  vec3 trapD = vec3(jules.y, 1, 0);
   trapD.x *= 0.125;
   d = dMin(d, trapD);
 
