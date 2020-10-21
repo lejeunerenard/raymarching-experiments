@@ -65,13 +65,6 @@ const float thickness = 0.05;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
-#pragma glslify: cnoise4 = require(glsl-noise/classic/4d)
-#pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
-#pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
-#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
-#pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
-#pragma glslify: snoise4 = require(glsl-noise/simplex/4d)
-//#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
@@ -94,6 +87,51 @@ vec4 qCube ( in vec4 q ) {
       q.yzw*(3.0*q2.x -     q2.y -     q2.z -     q2.w));
 }
 
+float triangleWave (in float t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
+vec2 triangleWave (in vec2 t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
+vec3 triangleWave (in vec3 t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
+vec4 triangleWave (in vec4 t) {
+  return 2. * abs(mod(t, 1.) - 0.5);
+}
+
+float lengthP(in vec2 q, in float p) {
+  return pow(dot(pow(q, vec2(p)), vec2(1)), 1.0 / p);
+}
+
+float lengthP(in vec3 q, in float p) {
+  return pow(dot(pow(q, vec3(p)), vec3(1)), 1.0 / p);
+}
+
+float lengthP(in vec4 q, in float p) {
+  return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
+}
+
+// Inverse stereographic projection of p,
+// p4 lies onto the unit 3-sphere centered at 0.
+// - mla https://www.shadertoy.com/view/lsGyzm
+vec4 inverseStereographic(vec3 p, out float k) {
+    k = 2.0/(1.0+dot(p,p));
+    return vec4(k*p,k-1.0);
+}
+
+// Noise
+#pragma glslify: cnoise4 = require(glsl-noise/classic/4d)
+#pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
+#pragma glslify: cnoise2 = require(glsl-noise/classic/2d)
+#pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
+#pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
+#pragma glslify: snoise4 = require(glsl-noise/simplex/4d)
+
+//#pragma glslify: pnoise3 = require(glsl-noise/periodic/3d)
 float ncnoise2(in vec2 x) {
   return smoothstep(-1.00, 1.00, cnoise2(x));
 }
@@ -769,41 +807,6 @@ vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
 //     return primitive(q)
 // }
 
-float triangleWave (in float t) {
-  return 2. * abs(mod(t, 1.) - 0.5);
-}
-
-vec2 triangleWave (in vec2 t) {
-  return 2. * abs(mod(t, 1.) - 0.5);
-}
-
-vec3 triangleWave (in vec3 t) {
-  return 2. * abs(mod(t, 1.) - 0.5);
-}
-
-vec4 triangleWave (in vec4 t) {
-  return 2. * abs(mod(t, 1.) - 0.5);
-}
-
-float lengthP(in vec2 q, in float p) {
-  return pow(dot(pow(q, vec2(p)), vec2(1)), 1.0 / p);
-}
-
-float lengthP(in vec3 q, in float p) {
-  return pow(dot(pow(q, vec3(p)), vec3(1)), 1.0 / p);
-}
-
-float lengthP(in vec4 q, in float p) {
-  return pow(dot(pow(q, vec4(p)), vec4(1)), 1.0 / p);
-}
-
-// Inverse stereographic projection of p,
-// p4 lies onto the unit 3-sphere centered at 0.
-// - mla https://www.shadertoy.com/view/lsGyzm
-vec4 inverseStereographic(vec3 p, out float k) {
-    k = 2.0/(1.0+dot(p,p));
-    return vec4(k*p,k-1.0);
-}
 
 // tdhooper's adjustment to make inverse stereographic project to be lipschitz
 // continuous.
