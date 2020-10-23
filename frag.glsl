@@ -931,42 +931,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 2.0;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.10000 * cos( 4.8234 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, wQ.y);
-  wQ += warpScale * 0.05000 * cos( 9.1221 * wQ.yzx + cosT);
-  wQ += warpScale * 0.02500 * cos(15.3130 * wQ.yzx + cosT);
-  wQ += warpScale * 0.01250 * cos(21.7820 * wQ.yzx + cosT);
-  wQ += warpScale * 0.00625 * cos(39.4310 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.10000 * cos( 4.8234 * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ += warpScale * 0.05000 * cos( 9.1221 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.02500 * cos(15.3130 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.01250 * cos(21.7820 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.00625 * cos(39.4310 * wQ.yzx + cosT);
   // wQ += warpScale * 0.02500 * cos(33.1830 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.5; // + 0.2 * sin(dot(wQ, vec3(1)));
-  vec3 o = vec3(length(q) - r, 0, 0);
-  // o.x += 0.01 * cellular(q);
+  float r = 0.5;
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  // q = p;
-  // q *= rotationMatrix(vec3(1, 0.3, 0.7), cosT + 0.2423 * PI);
-  // o = vec3(icosahedral(q, 52., 1.3 * r), 0, 0);
-  // o.x += 0.01 * cellular(q);
-  // mPos = q.xyz;
-  // d = dMin(d, o);
-
-  q = p;
-  q *= rotationMatrix(vec3(-0.1, 0.5, 0.8), cosT + 0.1317 * PI);
-  o = vec3(dodecahedral(q, 52., 1.0 * r), 0, 0);
-  o.x += 0.01 * cellular(q);
+  q *= rotationMatrix(vec3(0, 1, 0), 2. + cosT);
+  o = vec3(icosahedral(q, 52., r), 0, 0);
   mPos = q.xyz;
-  d = dMax(d, o);
+  d = dSMin(d, o, 0.05 * r);
 
   d.x *= 0.25;
 
@@ -1258,7 +1248,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 0.75;
+      float bumpsScale = 1.05;
       float bumpIntensity = 0.125;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
