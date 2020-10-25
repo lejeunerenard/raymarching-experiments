@@ -937,23 +937,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ = abs(wQ);
-
-  wQ += warpScale * 0.10000 * cos( 5.8234 * wQ.yzx + cosT);
+  wQ += warpScale * 0.10000 * cos( 6.8234 * wQ.yzx + cosT);
   wQ.xzy = twist(wQ.xyz, 4. * wQ.y);
-  wQ += warpScale * 0.050000 * snoise3(6. * wQ.yzx);
+  wQ += warpScale * 0.050000 * snoise3(2. * wQ.yzx);
   wQ += warpScale * 0.05000 * cos(11.1221 * wQ.yzx + cosT);
   wQ += warpScale * 0.02500 * cos(17.3130 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += warpScale * 0.01250 * cos(24.7820 * wQ.yzx + cosT);
-  wQ += warpScale * 0.00625 * cos(39.4310 * wQ.yzx + cosT);
-  wQ += warpScale * 0.02500 * cos(53.1830 * wQ.yzx + cosT);
+  wQ += warpScale * 0.01250 * cos(21.3130 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.5;
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  float r = 0.25;
+  vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
