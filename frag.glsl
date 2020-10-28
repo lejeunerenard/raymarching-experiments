@@ -925,6 +925,8 @@ vec3 sphericalCoords (in vec3 q) {
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
 
+  p *= globalRot;
+
   vec3 q = p;
   vec4 z = vec4(q, 0.);
 
@@ -938,19 +940,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = z;
 
   wQ += warpScale * 0.10000 * cos( 5.8234 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.25 * PI * sin(cosT));
+
+  float twistAmount = 4.;
+  wQ.xzy = twist(wQ.xyz, twistAmount * wQ.y + 0.25 * PI * sin(cosT));
   wQ += warpScale * 0.05000 * cos(9.1221 * wQ.yzx + cosT);
   wQ += warpScale * 0.02500 * cos(17.3130 * wQ.yzx + cosT);
   wQ += warpScale * 0.01250 * cos(21.3130 * wQ.yzx + cosT);
 
-  // q = mix(q, wQ.xyz, angle1C);
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.35;
-  r += 0.1 * r * snoise3(vec3(5, 8, 2) * q);
-  vec3 o = vec3(length(q) - r, 0, 0);
-  o.x -= 0.001 * cellular(vec3(3, 5, 1) * q);
+  float r = 0.325;
+  // r += 0.1 * r * snoise3(vec3(5, 8, 2) * q);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  // o.x -= 0.001 * cellular(vec3(3, 5, 1) * q);
   mPos = q.xyz;
   d = dMin(d, o);
 
@@ -1044,7 +1047,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 2.4;
+float n2 = 1.4;
 const float amount = 0.25;
 
 float gM = 0.;
@@ -1180,7 +1183,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += -0.323;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color.rb += 0.5 + 0.5 * cos(TWO_PI * (dI.xy + vec2(0, 0.53)));
+  color.rb += 0.5 + 0.5 * cos(TWO_PI * (vec2(1., 2.) * dI.xy + vec2(0, 0.53)));
 
   // color *= 0.85;
 
