@@ -927,7 +927,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   p *= globalRot;
 
-  p.y += 0.10 * sin(cosT + 2. * p.y);
+  p.y += 0.075 * sin(cosT + 2. * p.y);
 
   vec3 q = p;
   vec4 z = vec4(q, 0.);
@@ -941,27 +941,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.05000 * cos( 2.8234 * wQ.yzx + cosT);
-  wQ.y *= 0.8;
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.25 * PI * sin(cosT - 2.* wQ.y));
-  wQ += warpScale * 0.05000 * cos(9.1221 * wQ.yzx + cosT);
-  wQ *= rotationMatrix(vec3(0, 1, 0), length(wQ));
-  wQ += warpScale * 0.02500 * cos(17.3130 * wQ.yzx + cosT);
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.25);
-  wQ += warpScale * 0.01250 * cos(25.3130 * wQ.yzx + cosT);
-  wQ.y *= 0.8;
-  wQ += warpScale * 0.00625 * cos(31.3130 * wQ.yzx + cosT);
+  for ( int i = 0; i < 24; i++ ) {
+    wQ = abs(wQ);
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+  }
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.20;
-  // r += 0.0125 * snoise3(2. * q);
-  // q.xzy = twist(q.xyz, 2. * q.y);
-  vec3 o = vec3(length(q) - r, 0, 0);
-  float n = cnoise3(vec3(2, 2, 13) * q);
-  // o.x += 0.1000 * smoothstep(0., 40. * edge, n) * n;
-  // o.x += 0.005 * dot(sin(s), vec3(10));
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
@@ -1180,7 +1169,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  return mix(background, vec3(1), 1.5 * (pos.y + 0.5));
+  return mix(background, vec3(1), 1.4 * (pos.y + 0.75));
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1342,7 +1331,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.3 * pow(1. - dot(nor, -rayDirection), 1.5);
+      float dispersionI = 0.8 * pow(1. - dot(nor, -rayDirection), 1.5);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
