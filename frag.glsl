@@ -941,15 +941,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 24; i++ ) {
-    wQ = abs(wQ);
+  for ( int i = 0; i < 27; i++ ) {
+    wQ.xy = abs(wQ.xy);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
   }
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.20;
+  float r = 0.25;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
@@ -1329,12 +1329,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.8 * pow(1. - dot(nor, -rayDirection), 1.5);
-      dispersionColor *= dispersionI;
+      // float dispersionI = 0.8 * pow(1. - dot(nor, -rayDirection), 1.5);
+      // dispersionColor *= dispersionI;
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
