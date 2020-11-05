@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -925,7 +925,9 @@ vec3 sphericalCoords (in vec3 q) {
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
 
-  p *= globalRot;
+  p.zyx = p.xyz;
+  p.yxz *= globalRot;
+  p.xz -= vec2(angle1C, angle2C);
 
   p.y += 0.075 * sin(cosT + 2. * p.y);
 
