@@ -944,7 +944,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = z;
 
   for ( int i = 0; i < 27; i++ ) {
-    wQ.xy = abs(wQ.xy);
+    wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
   }
 
@@ -1171,7 +1171,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  return mix(background, vec3(1), 1.4 * (pos.y + 0.75));
+  return mix(background, vec3(1.5), 1.4 * (pos.y + 0.75));
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1271,8 +1271,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.20;
-      float specCo = 0.3;
+      float freCo = 0.00;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1284,7 +1284,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.75;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1318,10 +1318,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.05 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
