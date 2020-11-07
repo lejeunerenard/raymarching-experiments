@@ -924,10 +924,10 @@ vec3 sphericalCoords (in vec3 q) {
 
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
+  float minD = 1e19;
 
   p.zyx = p.xyz;
   p.yxz *= globalRot;
-  p.xz -= vec2(angle1C, angle2C);
 
   p.y += 0.075 * sin(cosT + 2. * p.y);
 
@@ -946,13 +946,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   for ( int i = 0; i < 27; i++ ) {
     wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
+    float trap = abs(length(wQ.xy - vec2(0, 0.5)) - 0.1);
+    minD = min(minD, trap);
   }
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.25;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
   mPos = q.xyz;
   d = dMin(d, o);
 
@@ -1171,21 +1173,20 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.);
 
-  return mix(background, vec3(1.5), 1.4 * (pos.y + 0.75));
-
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
-  color = mix(vec3(0.1, 0.0, 0.25), vec3(1), pos.y);
+  vec3 dI = vec3(trap);
+
+  // dI += 0.2 * dNR;
+  dI += 0.2 * snoise3(pos);
 
   // dI += length(pos);
+  // dI += 2. * pos.y;
 
-  dI += 2. * pos.y;
+  dI *= angle1C;
+  dI += angle2C;
 
-  dI *= angle3C;
-  dI += offset.x;
-
-  vec3 iridescent = 0.5 + 0.5 * cos( TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color = mix(iridescent, color, pow(dNR, 0.125));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.1, 0.3)));
+  color =  mix(background, color, 1.4 * (pos.y + 0.75));
 
   // color *= 0.85;
 
