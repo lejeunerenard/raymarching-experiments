@@ -45,13 +45,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -1.887,
-        y: 0.449,
-        z: -2.308
+        x: 0.482,
+        y: -1.004,
+        z: 0.995
       },
       d: 0.04,
       scale: 1.1844,
-      rot2angle: [1.307, 2.973, 5.714],
+      rot2angle: [3.287, 3.361, 2.643],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
@@ -73,11 +73,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = -1.849
-    this.angle2C = 0.18
+    this.angle1C = 0.3119
+    this.angle2C = -0.482
     this.angle3C = -2
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 

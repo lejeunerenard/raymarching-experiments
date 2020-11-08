@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 4096
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 11.0
 
@@ -943,10 +943,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 27; i++ ) {
+  for ( int i = 0; i < 20; i++ ) {
     wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    float trap = abs(length(wQ.xy - vec2(0, 0.5)) - 0.1);
+    float trap = abs(length(wQ.xy - vec2(0.007843, 0.65098)) - 0.1);
     minD = min(minD, trap);
   }
 
