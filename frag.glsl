@@ -943,17 +943,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 20; i++ ) {
+  for ( int i = 0; i < 23; i++ ) {
     wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    float trap = abs(length(wQ.xy - vec2(0.007843, 0.65098)) - 0.1);
+    float trap = abs(length(wQ.xy - vec2(-1.4527, 0.224)) - 0.1);
     minD = min(minD, trap);
   }
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.25;
+  float r = 0.3;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
   mPos = q.xyz;
   d = dMin(d, o);
@@ -1177,7 +1177,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(trap);
 
   // dI += 0.2 * dNR;
-  dI += 0.2 * snoise3(pos);
+  dI += 0.2 * snoise3(2. * pos);
 
   // dI += length(pos);
   // dI += 2. * pos.y;
@@ -1186,7 +1186,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.1, 0.3)));
+  // color = vec3(0.5 + 0.5 * sin(TWO_PI * dI));
   color =  mix(background, color, 1.4 * (pos.y + 0.75));
+  color = mix(color, vec3(1), 0.25);
 
   // color *= 0.85;
 
@@ -2141,7 +2143,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
