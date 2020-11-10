@@ -926,7 +926,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p.zyx = p.xyz;
   p.yxz *= globalRot;
 
   p.y += 0.075 * sin(cosT + 2. * p.y);
@@ -940,21 +939,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpScale = 4.0;
 
   // Warp
-  vec3 wQ = q;
-  // vec4 wQ = z;
+  // vec3 wQ = q;
+  vec4 wQ = z;
 
-  for ( int i = 0; i < 23; i++ ) {
+  for ( int i = 0; i < 18; i++ ) {
     wQ.xyz = abs(wQ.xyz);
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
+    // wQ.yzwx = wQ.xyzw;
+    wQ.yzw *= rotationMatrix(vec3(1), 0.4);
+    // wQ = (vec4(wQ, 1) * kifsM).xyz;
+    wQ = wQ * kifsM;
     float trap = abs(length(wQ.xy - vec2(-1.4527, 0.224)) - 0.1);
     minD = min(minD, trap);
   }
 
-  q = wQ.xyz;
-  // z = wQ;
+  // q = wQ.xyz;
+  z = wQ;
 
   float r = 0.3;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
+  vec3 o = vec3(sdBox(z, vec4(r)), 0, minD);
   mPos = q.xyz;
   d = dMin(d, o);
 
@@ -1185,12 +1187,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.1, 0.3)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.3, 0.68)));
   // color = vec3(0.5 + 0.5 * sin(TWO_PI * dI));
-  color =  mix(background, color, 1.4 * (pos.y + 0.75));
-  color = mix(color, vec3(1), 0.25);
+  color =  mix(background, color, saturate(2.0 * (pos.y + 1.00)));
+  // color = mix(color, vec3(1), 0.5);
 
-  // color *= 0.85;
+  color *= 2.0;
 
   gM = m;
 
@@ -1274,8 +1276,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.00;
-      float specCo = 0.0;
+      float freCo = 0.2;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1333,13 +1335,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.8 * pow(1. - dot(nor, -rayDirection), 1.5);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.8 * pow(1. - dot(nor, -rayDirection), 1.5);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif

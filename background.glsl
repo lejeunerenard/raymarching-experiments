@@ -15,7 +15,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // --- Set colors / gradient ---
   // Gradients
-  // vec3 color = mix(vec3(0.15), vec3(0.0), bgIndex);
+  vec3 color = mix(vec3(0.15), vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.05), vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(1), vec3(0.6), bgIndex);
 
@@ -35,7 +35,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(#FAC699, #FAC699, saturate(1.0 * bgIndex));
 
   // Solid colors
-  vec3 color = vec3(0.1);
+  // vec3 color = vec3(0.1);
 
   // -- Patterns --
   // // Grid
