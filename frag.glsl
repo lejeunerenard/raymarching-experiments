@@ -942,7 +942,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 20; i++ ) {
+  for ( int i = 0; i < 35; i++ ) {
     wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     float trap = length(wQ.xy - vec2(-1.32035, 1.459)) - 0.1;
@@ -952,7 +952,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.3;
+  float r = angle3C;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
   mPos = q.xyz;
   d = dMin(d, o);
@@ -1170,7 +1170,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.);
+  vec3 color = vec3(1.25);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
@@ -1274,7 +1275,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.7;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1333,12 +1334,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.5 * pow(1. - dot(nor, -rayDirection), 3.0);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.5 * pow(1. - dot(nor, -rayDirection), 1.0);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
