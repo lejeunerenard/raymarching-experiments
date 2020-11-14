@@ -941,14 +941,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
+  wQ = abs(wQ);
+
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT);
   wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT);
 
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 30; i++ ) {
+  for ( int i = 0; i < 6; i++ ) {
     wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     float trap = length(wQ.xy - vec2(-1.32035, 1.459)) - 0.1;
@@ -963,7 +965,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.03125;
+  d.x *= 0.13;
 
   return d;
 }
@@ -1176,7 +1178,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.25);
+  vec3 color = vec3(1.5);
   return color;
 
   float dNR = dot(nor, -rd);

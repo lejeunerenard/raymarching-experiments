@@ -45,13 +45,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.096,
-        y: -1.435,
-        z: -1.326
+        x: -0.875,
+        y: -1.647,
+        z: -2.198
       },
       d: 0.04,
       scale: 1.0757,
-      rot2angle: [3.173, 2.213, 1.934],
+      rot2angle: [3.493, 3.639, 0.2],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
@@ -63,7 +63,7 @@ export default class App {
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.0005
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -75,7 +75,7 @@ export default class App {
 
     this.angle1C = -1.49681
     this.angle2C = -1.188
-    this.angle3C = 0.135
+    this.angle3C = 0.186
 
     // this.setupAnimation(preset)
 
