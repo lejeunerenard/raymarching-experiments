@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -928,7 +928,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   p.yxz *= globalRot;
 
-  p.y += 0.075 * sin(cosT + 2. * p.y);
+  // p.y += 0.075 * sin(cosT + 2. * p.y);
 
   vec3 q = p;
   vec4 z = vec4(q, 0.);
@@ -941,16 +941,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  wQ = abs(wQ);
+  // wQ = abs(wQ);
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT);
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT);
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + cosT);
 
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 6; i++ ) {
+  for ( int i = 0; i < 25; i++ ) {
     wQ.xyz = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     float trap = length(wQ.xy - vec2(-1.32035, 1.459)) - 0.1;
@@ -1178,11 +1178,12 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
-  return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(trap);
+  vec3 dI = vec3(dNR);
+
+  dI += 0.1 * trap;
 
   // dI += 0.2 * dNR;
   dI += 0.2 * snoise3(2. * pos);
@@ -1193,12 +1194,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.3, 0.68)));
-  // color = vec3(0.5 + 0.5 * sin(TWO_PI * dI));
-  color =  mix(background, color, saturate(2.0 * (pos.y + 1.00)));
-  // color = mix(color, vec3(1), 0.5);
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.33, 0.67)));
 
-  color *= 2.0;
+  // color *= 2.0;
 
   gM = m;
 
