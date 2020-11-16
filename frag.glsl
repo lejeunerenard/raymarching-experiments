@@ -926,6 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
+  // p *= globalRot;
   p.yxz *= globalRot;
 
   // p.y += 0.075 * sin(cosT + 2. * p.y);
@@ -950,8 +951,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec4 wQ = z;
 
-  for ( int i = 0; i < 25; i++ ) {
-    wQ.xyz = abs(wQ.xyz);
+  for ( int i = 0; i < 24; i++ ) {
+    wQ.yzx = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     float trap = length(wQ.xy - vec2(-1.32035, 1.459)) - 0.1;
     minD = min(minD, trap);
@@ -1089,12 +1090,12 @@ vec3 textures (in vec3 rd) {
   // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
   vec3 dI = vec3(dNR);
-  dI += 0.2 * snoise3(0.1 * rd);
-  // dI += 0.3 * pow(dNR, 3.);
+  // dI += 0.2 * snoise3(0.1 * rd);
+  dI += 0.3 * pow(dNR, 3.);
 
   dI += 0.25 * sin(TWO_PI * rd.x);
-  dI *= angle1C;
-  dI += angle2C;
+  dI *= -0.7909;
+  dI += 0.268;
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
@@ -1183,7 +1184,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
-  dI += 0.1 * trap;
+  // dI += 0.1 * trap;
 
   // dI += 0.2 * dNR;
   dI += 0.2 * snoise3(2. * pos);
@@ -1195,8 +1196,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
 
-  // color *= 2.0;
+  // color *= 0.8;
 
   gM = m;
 
@@ -1281,7 +1283,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 2.0;
-      float specCo = 0.65;
+      float specCo = 0.25;
 
       float specAll = 0.0;
 
@@ -1342,7 +1344,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.7 * pow(1. - dot(nor, -rayDirection), 1.0);
+      float dispersionI = pow(1. - dot(nor, -rayDirection), 1.0);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -2149,7 +2151,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
