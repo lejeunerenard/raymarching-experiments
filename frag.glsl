@@ -954,9 +954,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec4 wQ = z;
 
+  float deScale = 1.;
   for ( int i = 0; i < 25; i++ ) {
     wQ.zxy = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
+    deScale /= scale;
     float trap = length(wQ.xy - vec2(-1.32035, 1.459)) - 0.1;
     minD = min(minD, trap);
   }
@@ -966,12 +968,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = angle3C;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
+  o.x *= deScale;
   // vec3 o = vec3(dodecahedral(q, 52., r), 0, minD);
   // vec3 o = vec3(length(q) - r, 0, minD);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.05;
+  // d.x *= 0.05;
 
   return d;
 }
