@@ -955,7 +955,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = z;
 
   float deScale = 1.;
-  for ( int i = 0; i < 25; i++ ) {
+  for ( int i = 0; i < 35; i++ ) {
     wQ.zxy = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     deScale /= scale;
