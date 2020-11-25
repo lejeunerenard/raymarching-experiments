@@ -45,13 +45,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 3.647,
-        y: 1.441,
-        z: 2.324
+        x: -2.419,
+        y: 1.111,
+        z: 4.309
       },
       d: 0.04,
-      scale: 1.4814,
-      rot2angle: [2.052, 2.795, 0.9],
+      scale: 1.0156,
+      rot2angle: [1.342, 3.976, 4.920],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
@@ -73,11 +73,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = -1.7173
-    this.angle2C = 1.018
-    this.angle3C = 0.052
+    this.angle1C = -1.23435
+    this.angle2C = 0.753
+    this.angle3C = 0.072
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -190,13 +190,12 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .delay(5 * 1000)
-      .to([4.068, this.rot2angle[1], this.rot2angle[2]], 10 * 1000)
+      .delay(2 * 1000)
+      .to([2.548, this.rot2angle[1], this.rot2angle[2]], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .delay(5 * 1000)
-      .to([...this.rot2angle], 10 * 1000)
+      .to([...this.rot2angle], 28 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
@@ -207,9 +206,17 @@ export default class App {
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .delay(0.125 * 1000)
-      .to({ scale: 0.006 }, (20 - 0.125) * 1000)
-      .easing(TWEEN.Easing.Circular.Out)
+      .delay(0 * 1000)
+      .to({ scale: 1.4911 }, 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let scaleTween2 = new TWEEN.Tween(this)
+    scaleTween2
+      .delay(0 * 1000)
+      .to({ scale: this.scale }, 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    scaleTween1.chain(scaleTween2)
+    scaleTween2.chain(scaleTween1)
     // scaleTween1.start(0)
 
     // Offset Tween

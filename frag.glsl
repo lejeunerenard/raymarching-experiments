@@ -959,20 +959,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     wQ.zxy = abs(wQ.xyz);
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     deScale /= scale;
-    float trap = length(wQ.xy - vec2(-1.32035, 1.459)) - 0.1;
+    float trap = length(wQ.xy - vec2(-1.23435, 0.753) + vec2(0, sin(wQ.z + 0. * cosT))) - angle3C;
     minD = min(minD, trap);
   }
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = angle3C;
+  float r = 0.05;
   vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
   o.x *= deScale;
   // vec3 o = vec3(dodecahedral(q, 52., r), 0, minD);
   // vec3 o = vec3(length(q) - r, 0, minD);
   mPos = q.xyz;
   d = dMin(d, o);
+
+  // Trap
+  vec3 trap = vec3(minD, 1, 0);
+  trap.x *= 0.1;
+  d = dMin(d, trap);
 
   // d.x *= 0.05;
 
@@ -1188,7 +1193,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.0);
-
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1206,10 +1210,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.33, 0.67)));
-  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  // color = 0.5 + 0.5 * cos(TWO_PI * dI);
-  color += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
+  vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.33, 0.67)));
+  // layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  // layerColor = 0.5 + 0.5 * cos(TWO_PI * dI);
+  layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
+
+  color = mix(color, layerColor, isMaterialSmooth(m, 1.));
 
   // color *= 0.8;
 
@@ -1321,7 +1327,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += pow(specCo * spec, 4.);
 
         // Ambient
-        lin += 0.05 * amb * diffuseColor;
+        lin += 0.10 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
