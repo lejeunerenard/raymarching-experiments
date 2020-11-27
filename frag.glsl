@@ -945,10 +945,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ = abs(wQ);
 
   wQ += warpScale * 0.0500000 * cos( 3. * wQ.yzx + cosT);
-  wQ += warpScale * 0.1000000 * cellular(0.5 * wQ.yzx + 0.4 * cos(vec3(0, 0.5, 1) * PI + cosT) + 0.2);
+  wQ += warpScale * 0.2000000 * (saturate(wQ.y + 0.75)) * cellular(0.5 * wQ.yzx + 0.4 * cos(vec3(0, 0.5, 1) * PI + cosT) + 0.2);
   wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
   wQ += warpScale * 0.0250000 * cos( 5. * wQ.yzx + cosT);
   wQ += warpScale * 0.0125000 * cos( 9. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125000 * cellular(1.0 * wQ.yzx + 0.4 * cos(vec3(0, 0.5, 1) * PI + cosT + 5.2348));
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  wQ += warpScale * 0.0062500 * cos(13. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0031250 * cos(17. * wQ.yzx + cosT);
 
 
   // vec4 wQ = z;
@@ -966,7 +970,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // z = wQ;
 
   float r = angle3C;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, minD);
+  vec3 o = vec3(length(q) - r, 0, minD);
   // o.x *= deScale;
   // vec3 o = vec3(dodecahedral(q, 52., r), 0, minD);
   // vec3 o = vec3(length(q) - r, 0, minD);
@@ -1191,8 +1195,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.0);
-  return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1210,13 +1213,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.33, 0.67)));
-  // layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  // layerColor = 0.5 + 0.5 * cos(TWO_PI * dI);
   layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
 
-  color = mix(color, layerColor, isMaterialSmooth(m, 1.));
+  color = mix(vec3(0), layerColor, saturate(1. - dNR));
 
-  // color *= 0.8;
+  // color *= 0.25;
 
   gM = m;
 
@@ -1300,8 +1301,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 0.8;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1349,7 +1350,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * reflection(pos, reflectionRd);
+      reflectColor += 0.35 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
