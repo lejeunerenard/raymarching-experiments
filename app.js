@@ -21,9 +21,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 2
-const BLOOM_WET = 0.8
-const BLOOM_MIN_BRIGHTNESS = 1.0
+const BLOOM_PASSES = 4
+const BLOOM_WET = 1.0
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -56,7 +56,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(5.44, 1.5, 0)
+    this.cameraRo = vec3.fromValues(0, 0.001, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = -2
-    this.angle2C = -1
-    this.angle3C = 1.54
+    this.angle1C = -1.14389
+    this.angle2C = 1.194
+    this.angle3C = 1.00
 
     // this.setupAnimation(preset)
 
