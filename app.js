@@ -21,9 +21,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 4
+const BLOOM_PASSES = 2
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.9
+const BLOOM_MIN_BRIGHTNESS = 1.0
 
 // Initialize shell
 export default class App {
@@ -45,18 +45,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -2.419,
-        y: 1.111,
-        z: 4.309
+        x: -1.217,
+        y: -1.286,
+        z: -0.213
       },
       d: 0.04,
-      scale: 1.0156,
-      rot2angle: [1.342, 3.976, 4.920],
+      scale: 1.187,
+      rot2angle: [3.226, 5.152, 2.214],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.001, 2)
+    this.cameraRo = vec3.fromValues(0, 0.001, 2.66)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
@@ -75,9 +75,9 @@ export default class App {
 
     this.angle1C = -1.14389
     this.angle2C = 1.194
-    this.angle3C = 1.00
+    this.angle3C = -0.482
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -190,12 +190,12 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .delay(2 * 1000)
-      .to([2.548, this.rot2angle[1], this.rot2angle[2]], 30 * 1000)
+      .to([3.041, 5.032, 2.009], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([...this.rot2angle], 28 * 1000)
+      .delay(1 * 1000)
+      .to([...this.rot2angle], 9 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
