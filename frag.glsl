@@ -946,15 +946,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ = abs(wQ);
 
-  wQ += warpScale * 0.0500000 * cos( 3. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0500000 * cos( 3.253 * wQ.yzx + cosT);
   // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
-  wQ += warpScale * 0.0250000 * cos( 5. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0250000 * cos( 9.243 * wQ.yzx + cosT);
   wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + cosT);
-  wQ += warpScale * 0.0125000 * cos( 9. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0062500 * cos(13. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0100000 * snoise3( 4. * wQ.yxz);
-  wQ += warpScale * 0.0031250 * cos(19. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0015625 * cos(23. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0125000 * cos(13.813 * wQ.yzx + cosT);
+  wQ += warpScale * 0.0062500 * cos(19.891 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0100000 * snoise3( 4. * wQ.yxz);
+  wQ += warpScale * 0.0031250 * cos(24. * wQ.yzx + cosT);
+  wQ += warpScale * 0.0015625 * cos(31. * wQ.yzx + cosT);
 
 
   // float deScale = 1.;
@@ -974,7 +974,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // o.x *= deScale; // KIFS Fractal scale adjustment
   // vec3 o = vec3(dodecahedral(q, 52., r), 0, minD);
   vec3 o = vec3(length(q) - r, 0, 0);
-  o.x += 0.02 * cellular(2. * q.xyz);
+  o.x += 0.02 * cellular(2. * q);
   mPos = q.xyz;
   d = dMin(d, o);
 
@@ -983,7 +983,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // trap.x *= 0.1;
   // d = dMin(d, trap);
 
-  d.x *= 0.25;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1111,8 +1111,8 @@ vec3 textures (in vec3 rd) {
   dI += 0.3 * pow(dNR, 3.);
 
   dI += 0.25 * sin(TWO_PI * rd.x);
-  // dI *= -0.7909;
-  // dI += 0.268;
+  dI *= -0.7909;
+  dI += 0.268;
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
@@ -1196,8 +1196,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.75);
-  // return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1217,7 +1216,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(0.4, 0.5, 0.6) * dI + vec3(0, 0.33, 0.67)));
   layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
 
-  color = mix(color, layerColor, saturate(1. - dNR));
+  color = mix(color, layerColor, saturate(1. - pow(dNR, 0.75)));
   // color += layerColor;
 
   // color *= 0.25;
@@ -1281,13 +1280,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 1.05;
-      float bumpIntensity = 0.125;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 1.05;
+      // float bumpIntensity = 0.125;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1305,7 +1304,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.40;
+      float specCo = 0.60;
 
       float specAll = 0.0;
 
@@ -1366,7 +1365,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = pow(1. - dot(nor, -rayDirection), 1.00);
+      // vec2 polDispersion = vec2(
+      //     atan(pos.z, pos.x),
+      //     atan(pos.y, length(pos.xz))
+      //     );
+      // vec2 polGrid = pMod2(polDispersion, 4. * vec2(0.25 * PI, 0.125 * PI));
+
+      float dispersionI = pow(1. - dot(nor, -rayDirection), 0.75);
+      // dispersionI *= snoise3(1.5 * pos + 0.2);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
