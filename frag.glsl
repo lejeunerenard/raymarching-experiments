@@ -1946,7 +1946,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float warpScale = 0.5;
+  float warpScale = 0.125;
 
   // Global Timing
   float t = TWO_PI * mod(generalT + 0.0, 1.);
@@ -1954,7 +1954,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + t );
-  wQ *= rotMat2(PI * 0.4 * sin(3.0 * length(q) + t));
+  wQ *= rotMat2(PI * 0.2 * sin(-3.0 * length(q) + t + 2. * snoise2(wQ)));
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yx + t );
   wQ += warpScale * 0.02500 * cos(13. * wQ.yx + t );
   wQ += warpScale * 0.01250 * cos(19. * wQ.yx + t );
@@ -1971,18 +1971,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   color = vec3(1);
   // color = vec3(n);
 
-  float stop = 0.5;
+  float stop = 0.65;
   n = smoothstep(stop, stop + edge, n);
 
   color *= n;
 
-  float r = 0.4;
-  float mask = length(uv) - r;
+  float r = 0.35;
+  vec2 absUV = abs(uv);
+  float maxLength = max(absUV.x, absUV.y);
+  float mask = maxLength - r;
   mask = smoothstep(edge, 0., mask);
   color *= mask;
 
   float ringStop = 0.00625 * r;
-  color += smoothstep(ringStop + edge, ringStop, abs(length(uv) - (r * 1.05)));
+  color += smoothstep(ringStop + edge, ringStop, abs(maxLength - (r * 1.05)));
 
   return color.rgb;
 }
@@ -2019,7 +2021,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 10;
+  const int slices = 80;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2041,7 +2043,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    float mask = two_dimensional(uv, norT + 0.1 * (0.51 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
+    float mask = two_dimensional(uv, norT + 0.30 * (0.51 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
     layerColor *= mask;
     // if (i == 0) {
     //   color = layerColor;
@@ -2069,7 +2071,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color = mix(color, color * layerColor, mask);
   }
 
-  color = pow(color, vec3(1.75));
+  color = pow(color, vec3(1.25));
   color /= float(slices);
 
   return vec4(color, 1.);
