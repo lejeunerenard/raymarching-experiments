@@ -1953,17 +1953,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + t );
+  wQ += warpScale * 0.10000 * cos( 3.283 * wQ.yx + t );
   wQ *= rotMat2(PI * 0.2 * sin(-3.0 * length(q) + t + 2. * snoise2(wQ)));
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yx + t );
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yx + t );
-  wQ += warpScale * 0.01250 * cos(19. * wQ.yx + t );
-  wQ += warpScale * 0.00625 * cos(21. * wQ.yx + t );
+  wQ += warpScale * 0.05000 * cos( 7.182 * wQ.yx + t );
+  wQ += warpScale * 0.02500 * cos(13.917 * wQ.yx + t );
+  wQ += warpScale * 0.01250 * cos(19.382 * wQ.yx + t );
+  wQ += warpScale * 0.00625 * cos(21.571 * wQ.yx + t );
 
   q = wQ;
 
   float n = dot(q, vec2(1));
-  n = sin(15. * TWO_PI * n);
+  n = sin(7. * TWO_PI * n);
 
   float dI = n;
   // dI = pow(dI, 0.5);
@@ -1971,20 +1971,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   color = vec3(1);
   // color = vec3(n);
 
-  float stop = 0.65;
+  float stop = 0.35;
   n = smoothstep(stop, stop + edge, n);
 
   color *= n;
 
   float r = 0.35;
-  vec2 absUV = abs(uv);
-  float maxLength = max(absUV.x, absUV.y);
-  float mask = maxLength - r;
+  vec3 maskQ = vec3(uv, 0);
+  maskQ *= rotationMatrix(vec3(1), t);
+  //
+  // float mask = icosahedral(maskQ, 52., 0.3);
+  float mask = sdBox(maskQ, vec3(0.25));
   mask = smoothstep(edge, 0., mask);
   color *= mask;
-
-  float ringStop = 0.00625 * r;
-  color += smoothstep(ringStop + edge, ringStop, abs(maxLength - (r * 1.05)));
 
   return color.rgb;
 }
@@ -2035,7 +2034,15 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     dI += 0.7 * uv.x;
     dI += 0.3 * dot(uv, vec2(1));
     dI += 0.2 * snoise2(3. * uv);
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+    // layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+
+    // CYM
+    layerColor = vec3(0);
+    layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+    layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+    layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+    layerColor *= 0.5;
+
     // layerColor *= 0.6;
 
     // Add black layer as first layer
@@ -2043,7 +2050,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    float mask = two_dimensional(uv, norT + 0.30 * (0.51 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
+    const float maxDelayLength = 0.5;
+    float mask = two_dimensional(uv, norT + maxDelayLength * (0.51 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
     layerColor *= mask;
     // if (i == 0) {
     //   color = layerColor;
