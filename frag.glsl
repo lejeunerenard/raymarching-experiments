@@ -1949,30 +1949,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
 
   // Global Timing
-  float t = TWO_PI * mod(generalT + 0.0, 1.);
+  float t = mod(generalT + 0.0, 1.);
+  float localCosT = TWO_PI * t;
 
   vec2 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 3.283 * wQ.yx + t );
-  wQ *= rotMat2(PI * 0.2 * sin(-3.0 * length(q) + t + 2. * snoise2(wQ)));
-  wQ += warpScale * 0.05000 * cos( 7.182 * wQ.yx + t );
-  wQ += warpScale * 0.02500 * cos(13.917 * wQ.yx + t );
-  wQ += warpScale * 0.01250 * cos(19.382 * wQ.yx + t );
-  wQ += warpScale * 0.00625 * cos(21.571 * wQ.yx + t );
+  wQ += warpScale * 0.10000 * cos( 3.283 * wQ.yx + localCosT );
+  wQ *= rotMat2(PI * 0.2 * sin(-3.0 * length(q) + localCosT + 2. * snoise2(wQ)));
+  wQ += warpScale * 0.05000 * cos( 7.182 * wQ.yx + localCosT );
+  wQ += warpScale * 0.02500 * cos(13.917 * wQ.yx + localCosT );
+  wQ += warpScale * 0.01250 * cos(19.382 * wQ.yx + localCosT );
+  wQ += warpScale * 0.00625 * cos(21.571 * wQ.yx + localCosT );
 
   q = wQ;
 
   // float n = dot(q, vec2(1));
-  float n = length(q) - 0.0 * vfbm4(1.0 * q);
+  float n = sdTriPrism(vec3(q, 0), vec2(0.00, 0.4));
+  // float n = length(q);
   // n = 1. - saturate(n);
   // n = pow(n, 4.);
   // n = sin(17. * TWO_PI * n);
 
-  float dI = n;
-  // dI = pow(dI, 0.5);
-  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.1, 0.2)));
   color = vec3(1);
-  // color = vec3(n);
 
   float stop = 0.225;
   n = smoothstep(stop, stop + edge, n);
@@ -1982,12 +1980,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 pol = vec2(
       atan(q.y, q.x),
       length(q));
-  float r = 0.40 - 0.275 * vfbmWarp(vec2(4., 1.2) * pol + 0.2 * sin(uv + cosT));
+
+  float noiseSpeed = 2.;
+  float rNoise1 = vfbmWarp(vec2(4., 1.2) * pol + vec2(0.3, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (0. + t));
+  float rNoise2 = vfbmWarp(vec2(4., 1.2) * pol + vec2(0.3, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (1. - t));
+  float transitionStart = 0.75;
+  float rNoise = mix(rNoise1, rNoise2, saturate(t - transitionStart) / (1. - transitionStart));
+
+  float r = 0.40 - 0.275 * rNoise;
   vec3 maskQ = vec3(uv, 0);
-  maskQ *= rotationMatrix(vec3(1), t);
-  //
-  float mask = icosahedral(maskQ, 52., r);
-  // float mask = sdBox(maskQ, vec3(0.25));
+  maskQ *= rotationMatrix(vec3(1), localCosT);
+
+  // float mask = icosahedral(maskQ, 52., r);
+  float mask = sdBox(maskQ, vec3(r));
   mask = smoothstep(edge, 0., mask);
   color *= mask;
 
@@ -2041,7 +2046,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     dI += 0.3 * dot(uv, vec2(1));
     dI += 0.2 * snoise2(3. * uv);
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-    layerColor *= vec3(1.0, 0.6, 0.9);
+    layerColor *= vec3(1.0, 0.6, 0.7);
     layerColor *= 1.1;
 
     // CYM
@@ -2058,8 +2063,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.175;
-    float mask = two_dimensional(uv, norT + maxDelayLength * (0.75 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
+    const float maxDelayLength = 0.200;
+    float mask = two_dimensional(uv, norT + maxDelayLength * (1.00 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
     layerColor *= mask;
     // if (i == 0) {
     //   color = layerColor;
