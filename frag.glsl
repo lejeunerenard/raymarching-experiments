@@ -1946,7 +1946,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  float warpScale = 0.25;
+  float warpScale = 0.05;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
@@ -1958,24 +1958,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= rotMat2(PI * 0.2 * sin(-3.0 * length(q) + localCosT + 2. * snoise2(wQ)));
   wQ += warpScale * 0.05000 * cos( 7.182 * wQ.yx + localCosT );
   wQ += warpScale * 0.02500 * cos(13.917 * wQ.yx + localCosT );
+  wQ *= rotMat2(PI * 0.2 * sin(-8.0 * length(q) + localCosT));
   wQ += warpScale * 0.01250 * cos(19.382 * wQ.yx + localCosT );
   wQ += warpScale * 0.00625 * cos(21.571 * wQ.yx + localCosT );
 
   q = wQ;
 
   // float n = dot(q, vec2(1));
-  float n = sdTriPrism(vec3(q, 0), vec2(0.00, 0.4));
-  // float n = length(q);
+  // float n = sdTriPrism(vec3(q, 0), vec2(0.00, 0.4));
+  float n = length(q);
+  // float n = vfbmWarp(0.5 * q);
+
   // n = 1. - saturate(n);
   // n = pow(n, 4.);
-  // n = sin(17. * TWO_PI * n);
+  // n = sin( 7. * TWO_PI * n);
 
   color = vec3(1);
 
   float stop = 0.225;
   n = smoothstep(stop, stop + edge, n);
 
-  color *= n;
+  // color *= n;
 
   vec2 pol = vec2(
       atan(q.y, q.x),
@@ -1988,11 +1991,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float rNoise = mix(rNoise1, rNoise2, saturate(t - transitionStart) / (1. - transitionStart));
 
   float r = 0.40 - 0.275 * rNoise;
-  vec3 maskQ = vec3(uv, 0);
-  maskQ *= rotationMatrix(vec3(1), localCosT);
+  vec3 maskQ = vec3(uv.x, 0, uv.y);
+  maskQ *= rotationMatrix(vec3(1), PI * 0.125 * cos(localCosT));
 
+  // float mask = sdTriPrism(maskQ, vec2(0.3 * r, 0.4 * r));
   // float mask = icosahedral(maskQ, 52., r);
-  float mask = sdBox(maskQ, vec3(r));
+  // float mask = sdBox(maskQ, vec3(1.00 * r, r, 1.125 * r));
+  float mask = sdTorus(maskQ, vec2(r, 0.25 * r));
   mask = smoothstep(edge, 0., mask);
   color *= mask;
 
@@ -2044,17 +2049,18 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     vec3 dI = vec3(fI / float(slices));
     dI += 0.7 * uv.x;
     dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.2 * snoise2(3. * uv);
+    dI += 0.3 * snoise2(2. * uv);
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-    layerColor *= vec3(1.0, 0.6, 0.7);
-    layerColor *= 1.1;
+    layerColor *= vec3(1.0, 0.6, 0.60);
+    layerColor *= 1.2;
 
     // CYM
     // layerColor = vec3(0);
     // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
     // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
     // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-    // layerColor *= 0.5;
+    // layerColor *= 0.65;
+    // layerColor *= vec3(1.0, 0.6, 0.60);
 
     // layerColor *= 0.6;
 
