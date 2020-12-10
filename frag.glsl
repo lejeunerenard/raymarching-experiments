@@ -1985,19 +1985,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
       length(q));
 
   float noiseSpeed = 2.;
-  float rNoise1 = vfbmWarp(vec2(4., 1.2) * pol + vec2(0.3, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (0. + t));
-  float rNoise2 = vfbmWarp(vec2(4., 1.2) * pol + vec2(0.3, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (1. - t));
+  vec2 polCoef = vec2(1.5, 1.2);
+  float rNoise1 = vfbmWarp(polCoef * pol + vec2(0.4, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (0. + t));
+  float rNoise2 = vfbmWarp(polCoef * pol + vec2(0.4, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (1. - t));
   float transitionStart = 0.75;
   float rNoise = mix(rNoise1, rNoise2, saturate(t - transitionStart) / (1. - transitionStart));
 
-  float r = 0.40 - 0.275 * rNoise;
+  float r = 1.5 * (0.40 - (0.350 - 0.1 * length(uv)) * rNoise);
   vec3 maskQ = vec3(uv.x, 0, uv.y);
-  maskQ *= rotationMatrix(vec3(1), PI * 0.125 * cos(localCosT));
+  maskQ *= rotationMatrix(vec3(1), PI * 1.0 * cos(localCosT));
 
   // float mask = sdTriPrism(maskQ, vec2(0.3 * r, 0.4 * r));
   // float mask = icosahedral(maskQ, 52., r);
-  // float mask = sdBox(maskQ, vec3(1.00 * r, r, 1.125 * r));
-  float mask = sdTorus(maskQ, vec2(r, 0.25 * r));
+  float mask = sdBox(maskQ, vec3(1.00 * r, r, 1.125 * r));
+  mask = max(mask, -(length(maskQ) - 0.925 * r));
+  // float mask = sdTorus(maskQ, vec2(r, 0.25 * r));
   mask = smoothstep(edge, 0., mask);
   color *= mask;
 
