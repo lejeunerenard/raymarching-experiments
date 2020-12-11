@@ -37,11 +37,11 @@ if (capturing) {
   let filename = massagedName + '-render1'
   console.log('filename', filename)
   capturer = new CCapture({
-    format: 'jpg',
+    format: 'png',
     framerate: fr,
     name: filename,
     autoSaveTime: 5,
-    quality: 98,
+    quality: 100,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
