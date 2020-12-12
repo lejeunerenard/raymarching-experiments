@@ -926,7 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
   // p.zxy *= globalRot;
 
   // p.y += 0.075 * sin(cosT + 2. * p.y);
@@ -944,24 +944,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = z;
 
 
-  wQ.z = abs(wQ.z);
-  pModPolar(wQ.xy, 6.);
-  wQ.y = abs(wQ.y);
+  // wQ.z = abs(wQ.z);
+  // pModPolar(wQ.xy, 6.);
+  // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.0500000 * cos( 3.253 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
-  wQ += warpScale * 0.0250000 * cos( 9.243 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0500000 * cos( 3.253 * wQ.yzx + cosT);
+  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  // wQ += warpScale * 0.0250000 * cos( 9.243 * wQ.yzx + cosT);
   // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + cosT);
-  wQ += warpScale * 0.0125000 * cos(13.813 * wQ.yzx + cosT);
-  wQ += warpScale * 0.0062500 * cos(19.891 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0125000 * cos(13.813 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0062500 * cos(19.891 * wQ.yzx + cosT);
   // wQ += warpScale * 0.0100000 * snoise3( 4. * wQ.yxz);
-  wQ += warpScale * 0.0031250 * cos(24. * wQ.yzx + cosT);
-  wQ += warpScale * 0.0015625 * cos(31. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0031250 * cos(24. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.0015625 * cos(31. * wQ.yzx + cosT);
 
 
   float deScale = 1.;
-  for ( int i = 0; i < 25; i++ ) {
-    wQ.zxy = abs(wQ.xyz);
+  for ( int i = 0; i < 15; i++ ) {
+    wQ.z = abs(wQ.z);
+    pModPolar(wQ.xy, 6.);
+    wQ.y = abs(wQ.y);
+    // wQ.zxy = abs(wQ.xyz);
     // wQ.yzw = (vec4(wQ.yzw, 1) * kifsM).xyz;
     wQ.xyz = (vec4(wQ.xyz, 1) * kifsM).xyz;
     deScale /= scale;
@@ -987,7 +990,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // trap.x *= 0.1;
   // d = dMin(d, trap);
 
-  d.x *= 0.0625;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1200,7 +1203,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.0);
+  vec3 color = vec3(1.25);
   return color;
 
   float dNR = dot(nor, -rd);
