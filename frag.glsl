@@ -926,7 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.zxy *= globalRot;
 
   // p.y += 0.075 * sin(cosT + 2. * p.y);
@@ -960,7 +960,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 
   float deScale = 1.;
-  for ( int i = 0; i < 15; i++ ) {
+  for ( int i = 0; i < 20; i++ ) {
     wQ.z = abs(wQ.z);
     pModPolar(wQ.xy, 6.);
     wQ.y = abs(wQ.y);

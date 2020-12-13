@@ -45,18 +45,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -1.415,
-        y: -0.544,
-        z: 1.732
+        x: -1.084,
+        y: -1.039,
+        z: 0.521
       },
       d: 0.04,
-      scale: 1.5361,
-      rot2angle: [2.183, 3.031, 1.049],
+      scale: 1.59,
+      rot2angle: [3.293, 3.444, 1.384],
       cameraAngles: [0.278, 2.43, -0.16]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2.95)
+    this.cameraRo = vec3.fromValues(0, 0, 2.97)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
@@ -75,9 +75,9 @@ export default class App {
 
     this.angle1C = 1.4589
     this.angle2C = 1.679
-    this.angle3C = -0.208
+    this.angle3C = -0.017
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -201,7 +201,7 @@ export default class App {
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween1)
 
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -222,10 +222,17 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .delay(0.125 * 1000)
-      .to([ this.offset[0], this.offset[1], 0.373 ], (20 - 0.125) * 1000)
+      .to([ 0.672, this.offset[1], this.offset[2] ], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    // offsetTween1.start(0)
+    let offsetTween2 = new TWEEN.Tween(this.offset)
+    offsetTween2
+      .to([ ...this.offset ], 30 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    offsetTween1.chain(offsetTween2)
+    offsetTween2.chain(offsetTween1)
+
+    offsetTween1.start(0)
 
     // Angle1C Tween
     let angle1CTween1 = new TWEEN.Tween(this)
