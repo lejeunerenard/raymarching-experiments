@@ -4,8 +4,8 @@ import App from './app'
 import { name } from './info.json'
 
 const fr = 60
-const captureTime = 0 * 5
-const secondsLong = 60
+const captureTime = 1 * 5
+const secondsLong = 30
 const capturing = false
 
 let app = new App()
@@ -37,11 +37,11 @@ if (capturing) {
   let filename = massagedName + '-render1'
   console.log('filename', filename)
   capturer = new CCapture({
-    format: 'png',
+    format: 'jpg',
     framerate: fr,
     name: filename,
     autoSaveTime: 5,
-    quality: 100,
+    quality: 98,
     startTime: captureTime,
     timeLimit: secondsLong,
     verbose: true
