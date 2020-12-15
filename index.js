@@ -59,25 +59,11 @@ if (capturing) {
     timeLength: secondsLong
   })
 
-  const RENDER_DELAY = 250
-
   let currentTime = captureTime * 1000
   window.capturer = capturer
-  let winSetTimeout = window.setTimeout
-  let winClearTimeout = window.clearTimeout
-  let winSetInterval = window.setInterval
-  let winclearInterval = window.clearInterval
-  let winRequestAnimationFrame = window.requestAnimationFrame
-  let winProfNow = window.performance.now
 
   let run = () => {
     capturer.start()
-    window.setTimeout = winSetTimeout
-    window.clearTimeout = winClearTimeout
-    window.setInterval = winSetInterval
-    window.clearInterval = winclearInterval
-    window.requestAnimationFrame = winRequestAnimationFrame
-    window.performance.now = winProfNow
     app.run()
   }
 
@@ -90,11 +76,9 @@ if (capturing) {
     await capturer.capture(app.canvas)
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
-      window.setTimeout(() => {
-        if (!still) {
-          currentRAF = window.requestAnimationFrame(tick)
-        }
-      }, RENDER_DELAY)
+      if (!still) {
+        currentRAF = window.requestAnimationFrame(tick)
+      }
     } else {
       capturer.save().then(() => {
         window.localStorage.renderings = JSON.stringify(renderings)
