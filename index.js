@@ -1,4 +1,5 @@
 import DefaultSceneRenderer from './default-scene-renderer'
+import CCaptureCapturer from './capturer/ccapture'
 import App from './app'
 
 import { name } from './info.json'
@@ -28,23 +29,20 @@ resize()
 const still = false
 
 if (capturing) {
-  let capturer = {}
-
   let massagedName = name.replace(/ /g, '-')
   massagedName = massagedName.replace(/'/g, '')
   massagedName = massagedName.toLowerCase()
 
   let filename = massagedName + '-render1'
   console.log('filename', filename)
-  capturer = new CCapture({
+  let capturer = new CCaptureCapturer({
     format: 'jpg',
     framerate: fr,
-    name: filename,
+    filename,
     autoSaveTime: 5,
     quality: 98,
     startTime: captureTime,
-    timeLimit: secondsLong,
-    verbose: true
+    timeLength: secondsLong
   })
 
   const RENDER_DELAY = 250
@@ -70,12 +68,12 @@ if (capturing) {
   }
 
   let currentRAF
-  let tick = (t) => {
+  let tick = async (t) => {
     t = currentTime + 1000 / fr
     currentTime = t
 
     app.tick(t)
-    capturer.capture(app.canvas)
+    await capturer.capture(app.canvas)
 
     if (currentTime <= 1000 * (secondsLong + captureTime) + 1000 / fr) {
       window.setTimeout(() => {
@@ -84,13 +82,15 @@ if (capturing) {
         }
       }, RENDER_DELAY)
     } else {
-      window.setTimeout(() => {
-        console.log('done sending message')
-        var xmlHTTP = new XMLHttpRequest()
-        xmlHTTP.open('GET', 'http://localhost:7321/', false)
-        xmlHTTP.send(null)
-        console.log('response text', xmlHTTP.responseText)
-      }, 250)
+      capturer.save().then(() => {
+        window.setTimeout(() => {
+          console.log('done sending message')
+          var xmlHTTP = new XMLHttpRequest()
+          xmlHTTP.open('GET', 'http://localhost:7321/', false)
+          xmlHTTP.send(null)
+          console.log('response text', xmlHTTP.responseText)
+        }, 250)
+      })
     }
   }
 
