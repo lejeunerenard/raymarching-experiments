@@ -1,4 +1,5 @@
 const Capturer = require('./capturer-interface')
+const CCapture = require('../ccapture.js/src/CCapture')
 
 class CCaptureCapturer extends Capturer {
   constructor (opt = {}) {
