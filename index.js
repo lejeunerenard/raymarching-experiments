@@ -85,7 +85,7 @@ if (capturing) {
         window.setTimeout(() => {
           console.log('done sending message')
           var xmlHTTP = new XMLHttpRequest()
-          xmlHTTP.open('GET', 'http://localhost:7321/', false)
+          xmlHTTP.open('GET', 'http://' + window.location.hostname + ':7321/', false)
           xmlHTTP.send(null)
           console.log('response text', xmlHTTP.responseText)
         }, 250)
