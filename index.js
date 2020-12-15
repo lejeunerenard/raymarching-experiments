@@ -33,7 +33,21 @@ if (capturing) {
   massagedName = massagedName.replace(/'/g, '')
   massagedName = massagedName.toLowerCase()
 
-  let filename = massagedName + '-render1'
+  let renderCount = 3
+
+  let renderings = {}
+  try {
+    renderings = JSON.parse(window.localStorage.renderings)
+  } catch (e) {}
+  if (!renderings) renderings = {}
+
+  if (massagedName in renderings) {
+    renderCount = renderings[massagedName] + 1
+  }
+
+  renderings[massagedName] = renderCount
+
+  let filename = massagedName + '-render' + renderCount
   console.log('filename', filename)
   let capturer = new CCaptureCapturer({
     format: 'jpg',
@@ -83,6 +97,7 @@ if (capturing) {
       }, RENDER_DELAY)
     } else {
       capturer.save().then(() => {
+        window.localStorage.renderings = JSON.stringify(renderings)
         window.setTimeout(() => {
           console.log('done sending message')
           var xmlHTTP = new XMLHttpRequest()
