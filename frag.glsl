@@ -973,11 +973,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       atan(q.z, q.x),
       length(q.xz));
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  // vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(0.875 * r)), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  float c = icosahedral(q, 52., 0.75 * r);
+  // float c = icosahedral(q, 52., 0.75 * r);
+  float c = dodecahedral(q, 52., 0.75 * r);
   d.x = max(d.x, -c);
 
   // d.x *= 0.75;
@@ -1204,18 +1206,18 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * snoise3(0.25 * pos);
   // dI += 0.15 * pow(dNR, 2.);
 
-  // dI += length(pos);
+  dI += 0.2 * length(pos);
   // dI += 2. * pos.y;
 
   dI *= angle1C;
   dI += angle2C;
 
   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  // layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
+  layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
 
-  // color = mix(color, layerColor, saturate(1. - pow(dNR, 0.75)));
+  color = mix(color, layerColor, saturate(1. - pow(dNR, 2.00)));
   // color += layerColor;
-  color = layerColor;
+  // color = layerColor;
 
   // color *= 0.85;
 
