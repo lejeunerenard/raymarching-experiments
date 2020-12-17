@@ -5,8 +5,8 @@ import App from './app'
 import { name } from './info.json'
 
 const fr = 60
-const captureTime = 1 * 5
-const secondsLong = 10
+const captureTime = 0 * 5
+const secondsLong = 20
 const capturing = false
 
 let app = new App()
