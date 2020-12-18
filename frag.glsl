@@ -959,6 +959,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float foldLimitShrug = 1.;
 
   for ( int i = 0; i < 18; i++ ) {
+    wQ = abs(wQ);
     vec4 z = vec4(wQ, 1.);
     z.xyz = clamp(z.xyz, -foldLimitShrug, foldLimitShrug) * 2. - z.xyz;
     wQ.xyz = z.xyz;
@@ -976,12 +977,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = angle3C;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(length(q) - r, 0, minD);
   o.x *= deScale;
   mPos = q.xyz;
   d = dMin(d, o);
 
-  // d.x *= 0.75;
+  // Delete 'cliffs'
+  float crop = sdBox(p - vec3(0, 9, 0), vec3(50, 4, 50));
+  // d.x = min(d.x, crop);
+  d.x = max(d.x, -crop);
+
+  d.x *= 0.95;
 
   return d;
 }
@@ -1208,6 +1214,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * length(pos);
   // dI += 2. * pos.y;
 
+  dI += trap;
+
   dI *= angle1C;
   dI += angle2C;
 
@@ -1261,9 +1269,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
     // float dNR = dot()
     // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(1.0, 0.81, 1.0), #FFAAAA, 1.0);
+    lights[0] = light(vec3(1.0, 1.21, 1.0), #FFAAAA, 1.0);
     lights[1] = light(vec3(1.5, 1.2,  1.0), #AAFFFF, 0.5);
-    lights[2] = light(vec3(0.1,1.0,  1.0), #FFFFFF, 1.0);
+    lights[2] = light(vec3(0.1,2.0,  1.0), #FFFFFF, 1.0);
     // lights[3] = light(vec3( 0.3, 0.8, -0.4), #FFFFFF, 1.0);
     // lights[4] = light(vec3(-0.4, -.2, -1.0), #FFFFFF, 1.0);
 
@@ -1302,8 +1310,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.50;
+      float freCo = 0.75;
+      float specCo = 0.20;
 
       float specAll = 0.0;
 
@@ -1315,7 +1323,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.1;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1349,10 +1357,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2113,7 +2121,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
