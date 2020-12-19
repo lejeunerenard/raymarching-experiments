@@ -987,7 +987,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x = min(d.x, crop);
   d.x = max(d.x, -crop);
 
-  d.x *= 0.95;
+  d.x *= 0.975;
 
   return d;
 }
@@ -1311,7 +1311,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.75;
-      float specCo = 0.20;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
@@ -1336,7 +1336,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += pow(specCo * spec, 4.);
 
         // Ambient
-        lin += 0.15 * amb * diffuseColor;
+        lin += 0.05 * amb * diffuseColor;
         // dif += 0.000 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
