@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -958,7 +958,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float deScale = 1.;
   float foldLimitShrug = 1.;
 
-  for ( int i = 0; i < 18; i++ ) {
+  for ( int i = 0; i < 50; i++ ) {
     wQ = abs(wQ);
     vec4 z = vec4(wQ, 1.);
     z.xyz = clamp(z.xyz, -foldLimitShrug, foldLimitShrug) * 2. - z.xyz;
@@ -1310,7 +1310,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
+      float freCo = 1.00;
       float specCo = 0.70;
 
       float specAll = 0.0;
@@ -1318,7 +1318,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.50;
+        float diffMin = 0.35;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
