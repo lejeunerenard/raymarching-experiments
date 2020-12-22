@@ -948,12 +948,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   //     0.2 * abs(wQ.x),  0.3 * dot(wQ, vec3(1)),   0.1 * 0.,
   //     0.2 * 2. * wQ.x,  0.0 * sin(cosT),          0.1 * 1.);
 
-  wQ.y *= 0.8;
+  // wQ.y *= 0.8;
 
   wQ += warpScale * 0.250000 * cos( 3.10 * wQ.yzx + cosT);
   wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + sin(cosT));
   wQ += warpScale * 0.125000 * cos( 5.37 * wQ.yzx + cosT);
   wQ += warpScale * 0.062500 * cos( 9.89 * wQ.yzx + cosT);
+  wQ.yzx = twist(wQ.zyx, 1.0 * wQ.x + cos(cosT));
   wQ += warpScale * 0.031250 * cos(24. * wQ.yzx + cosT);
   wQ += warpScale * 0.015625 * cos(31. * wQ.yzx + cosT);
   wQ += warpScale * 0.007812 * cos(41. * wQ.yzx + cosT);
@@ -978,14 +979,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   // z = wQ;
 
-  float r = angle3C;
+  float r = angle3C + 0.50 * snoise3(q);
 
   vec3 o = vec3(length(q) - r, 0, minD);
   // o.x *= deScale;
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  d.x *= 0.35;
 
   return d;
 }
