@@ -926,7 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.zxy *= globalRot;
 
   // p.y += 0.075 * sin(cosT + 2. * p.y);
@@ -951,42 +951,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y *= 0.8;
 
   wQ += warpScale * 0.250000 * cos( 3.10 * wQ.yzx + cosT);
-  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + sin(cosT));
+  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + sin(cosT - 3. * length(wQ)));
   wQ += warpScale * 0.125000 * cos( 5.37 * wQ.yzx + cosT);
   wQ += warpScale * 0.062500 * cos( 9.89 * wQ.yzx + cosT);
   wQ.yzx = twist(wQ.zyx, 1.0 * wQ.x + cos(cosT));
   wQ += warpScale * 0.031250 * cos(24. * wQ.yzx + cosT);
   wQ += warpScale * 0.015625 * cos(31. * wQ.yzx + cosT);
-  wQ += warpScale * 0.007812 * cos(41. * wQ.yzx + cosT);
+  // wQ += warpScale * 0.007812 * cos(41. * wQ.yzx + cosT);
 
-  // float deScale = 1.;
-  // float foldLimitShrug = 1.;
+  float deScale = 1.;
+  float foldLimitShrug = 1.;
 
-  // for ( int i = 0; i < 50; i++ ) {
-  //   wQ = abs(wQ);
-  //   vec4 z = vec4(wQ, 1.);
-  //   z.xyz = clamp(z.xyz, -foldLimitShrug, foldLimitShrug) * 2. - z.xyz;
-  //   wQ.xyz = z.xyz;
+  for ( int i = 0; i < 10; i++ ) {
+    wQ = abs(wQ);
+    vec4 z = vec4(wQ, 1.);
+    z.xyz = clamp(z.xyz, -foldLimitShrug, foldLimitShrug) * 2. - z.xyz;
+    wQ.xyz = z.xyz;
 
-  //   // wQ.zxy = abs(wQ.xyz);
-  //   // wQ.yzw = (vec4(wQ.yzw, 1) * kifsM).xyz;
-  //   wQ.xyz = (vec4(wQ.xyz, 1) * kifsM).xyz;
-  //   deScale /= scale;
-  //   float trap = length(wQ.xy - vec2(-1.23435, 0.753) + vec2(0, sin(wQ.z + 0. * cosT))) - angle3C;
-  //   minD = min(minD, trap);
-  // }
+    // wQ.zxy = abs(wQ.xyz);
+    // wQ.yzw = (vec4(wQ.yzw, 1) * kifsM).xyz;
+    wQ.xyz = (vec4(wQ.xyz, 1) * kifsM).xyz;
+    deScale /= scale;
+    float trap = length(wQ.xy - vec2(-1.23435, 0.753) + vec2(0, sin(wQ.z + 0. * cosT))) - angle3C;
+    minD = min(minD, trap);
+  }
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = angle3C + 0.50 * snoise3(q);
+  float r = angle3C + 0.250 * snoise3(q);
 
   vec3 o = vec3(length(q) - r, 0, minD);
-  // o.x *= deScale;
+  o.x *= deScale;
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.35;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1076,7 +1076,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 0.613;
+float n2 = 2.417;
 const float amount = 0.25;
 
 float gM = 0.;
@@ -1113,8 +1113,8 @@ vec3 textures (in vec3 rd) {
   // dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.3 * pow(dNR, 3.);
 
-  dI += 0.25 * sin(TWO_PI * rd.x);
-  dI *= -0.7909;
+  // dI += 0.25 * sin(TWO_PI * rd.x);
+  dI *= 0.7909;
   dI += 0.268;
 
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
@@ -1208,7 +1208,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * snoise3(0.25 * pos);
   // dI += 0.15 * pow(dNR, 2.);
 
-  // dI += 0.2 * length(pos);
+  dI += 0.2 * length(pos);
   dI += 2. * pos.y;
 
   // dI += trap;
@@ -1217,11 +1217,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
+  // layerColor += 0.5 * (0.5 + 0.5 * cos(TWO_PI * (color + vec3(1) * dI + vec3(0, 0.33, 0.67))));
 
   color = layerColor;
 
-  color *= 0.55;
+  // color *= 0.55;
 
   gM = m;
 
@@ -1305,9 +1305,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.50;
+      float freCo = 1.00;
       float specCo = 0.80;
 
+      // SO beautiful!
+      // I love geotic's work
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
@@ -1354,7 +1356,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * reflection(pos, reflectionRd);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
