@@ -8,17 +8,17 @@ vec3 getBackground (in vec2 uv, in float universe) {
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
   // --- Gradient index ---
-  // float bgIndex = saturate(0.5 * (uv.y + 1.0));
-  float bgIndex = saturate(length(uv));
+  float bgIndex = saturate(0.5 * (uv.y + 1.0));
+  // float bgIndex = saturate(length(uv));
   // bgIndex = pow(bgIndex, 4.);
-  // bgIndex = 1. - bgIndex; // Flip
+  bgIndex = 1. - bgIndex; // Flip
 
   // --- Set colors / gradient ---
   // Gradients
   // vec3 color = mix(#1E505B, vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.07, 0.05, 0.05), vec3(0.0), bgIndex);
-  // vec3 color = mix(vec3(1.0, 0.7, 0.4), vec3(0.5), bgIndex);
-  vec3 color = mix(0.7 * vec3(0.4, 0.8, 1.0), vec3(0.60), bgIndex);
+  vec3 color = mix(vec3(0.6, 0.6, 0.65), vec3(0.2), bgIndex);
+  // vec3 color = mix(0.7 * vec3(0.4, 0.8, 1.0), vec3(0.60), bgIndex);
 
   // const vec3 bgColor = #F2900A;
   // vec3 color = mix(0.8 * bgColor, bgColor, bgIndex);
