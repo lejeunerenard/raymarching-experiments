@@ -45,18 +45,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.449,
-        y: 0.669,
-        z: -1.426
+        x: -2.695,
+        y: -3.138,
+        z: 3.044
       },
       d: 0.04,
-      scale: 1.1964,
-      rot2angle: [3.077, 1.968, 1.899],
+      scale: 3.9691,
+      rot2angle: [2.77, 2.73, 2.214],
       cameraAngles: [-0.918, 0.712, 0.286]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.84, 0.11, 1.89)
+    this.cameraRo = vec3.fromValues(3.61, 0.76, 1.68)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
@@ -75,9 +75,9 @@ export default class App {
 
     this.angle1C = 0.2069
     this.angle2C = -0.8
-    this.angle3C = 0.6
+    this.angle3C = 0.071
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -190,11 +190,20 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], 2.83, this.rot2angle[2]], 30 * 1000)
+      .to([2.755, 2.733, 2.248], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .to([2.734, 2.695, 2.212], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([...this.rot2angle], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // rotTween1.chain(rotTween2)
-    // rotTween2.chain(rotTween1)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween1)
 
     rotTween1.start(0)
 
