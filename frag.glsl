@@ -937,14 +937,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.25;
+  float warpScale = 0.1;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
   wQ += warpScale * 0.250000 * cos( 3.10 * wQ.yzx + cosT);
-  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + sin(cosT - 3. * length(wQ)));
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + sin(cosT - 2. * length(wQ)));
   wQ += warpScale * 0.125000 * cos( 5.37 * wQ.yzx + cosT);
   wQ += warpScale * 0.062500 * cos( 9.89 * wQ.yzx + cosT);
   wQ += warpScale * 0.031250 * cos(15.37 * wQ.yzx + cosT);
@@ -981,10 +981,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // z = wQ;
 
   float r = 0.8;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  float rScale = 1.732051 * 1.0125; // Needs to be the distance to the cube vertex to see all of the cube
+  float thisOrThat = 0.5 + 0.5 * cos(cosT + 0.5 * snoise3(0.75 * q) + 0.25 * PI);
+  float sqrR = r;
+  vec3 o = vec3(sdBox(q, vec3(sqrR)), 0, 0);
   // o.x *= deScale;
   mPos = q.xyz;
   d = dMin(d, o);
+
+  float sphR = mix(r, rScale * r, saturate(0.05 + 0.95 * (1. - thisOrThat)));
+  o = vec3(length(q) - sphR, 0, 0);
+  d = dMax(d, o);
 
   // vec3 trap = vec3(minD, 1, 0.);
   // d = dMin(d, trap);
@@ -1202,7 +1209,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(0);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1286,7 +1293,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 1.55;
+      float bumpsScale = 0.55;
       float bumpIntensity = 0.125;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
@@ -1310,14 +1317,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.60;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        float diffMin = 0.0;
+        float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1371,7 +1378,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.65);
+      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 0.65);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
