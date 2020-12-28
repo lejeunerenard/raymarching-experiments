@@ -937,7 +937,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.1;
+  float warpScale = 0.5;
 
   // Warp
   vec3 wQ = q;
@@ -981,17 +981,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // z = wQ;
 
   float r = 0.8;
-  float rScale = 1.732051 * 1.0125; // Needs to be the distance to the cube vertex to see all of the cube
-  float thisOrThat = 0.5 + 0.5 * cos(cosT + 0.5 * snoise3(0.75 * q) + 0.25 * PI);
-  float sqrR = r;
-  vec3 o = vec3(sdBox(q, vec3(sqrR)), 0, 0);
+  vec2 pol = vec2(
+      atan(q.z, q.x),
+      q.y);
+  r += 0.1 * r * abs(sin(pol.x + TWO_PI * pol.y));
+
+  vec3 o = vec3(length(q) - r, 0, 0);
   // o.x *= deScale;
   mPos = q.xyz;
   d = dMin(d, o);
-
-  float sphR = mix(r, rScale * r, saturate(0.05 + 0.95 * (1. - thisOrThat)));
-  o = vec3(length(q) - sphR, 0, 0);
-  d = dMax(d, o);
 
   // vec3 trap = vec3(minD, 1, 0.);
   // d = dMin(d, trap);
@@ -1210,7 +1208,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1293,7 +1290,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 0.55;
+      float bumpsScale = 0.75;
       float bumpIntensity = 0.125;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
@@ -1316,7 +1313,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.9;
       float specCo = 0.70;
 
       float specAll = 0.0;
@@ -1329,7 +1326,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.75;
+        float shadowMin = 0.50;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1365,7 +1362,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
+      reflectColor += 0.20 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
