@@ -926,7 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(0.2, 1, -0.1), PI * 0.25 * sin(cosT));
   // p.y += 0.05 * sin(cosT);
@@ -937,7 +937,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.5;
+  float warpScale = 1.2;
 
   // Warp
   vec3 wQ = q;
@@ -984,7 +984,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec2 pol = vec2(
       atan(q.z, q.x),
       q.y);
-  r += 0.1 * r * abs(sin(pol.x + TWO_PI * pol.y));
+  r += 0.1 * r * abs(sin(0.5 * TWO_PI * pol.y));
 
   vec3 o = vec3(length(q) - r, 0, 0);
   // o.x *= deScale;
@@ -994,7 +994,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 trap = vec3(minD, 1, 0.);
   // d = dMin(d, trap);
 
-  d.x *= 0.35;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1290,7 +1290,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 0.75;
+      float bumpsScale = 0.65;
       float bumpIntensity = 0.125;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
