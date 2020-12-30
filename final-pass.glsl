@@ -85,7 +85,7 @@ void main() {
   // Post process
   vec3 colorBefore = gl_FragColor.rgb;
   colorMap(gl_FragColor.rgb);
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.5);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.95);
 
   // gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.1));
 
@@ -93,6 +93,6 @@ void main() {
   // gl_FragColor.rgb = pow(gl_FragColor.rgb, gammaEnc);
 
   // 'Film' Noise
-  const float filmNoiseScale = 1.0;
+  const float filmNoiseScale = 1.5;
   gl_FragColor.rgb += 0.030 * (cnoise2(filmNoiseScale * 560. * uv + sin(uv + time)) + cnoise2(filmNoiseScale * 800. * uv + 253.5 * vec2(0., time)));
 }
