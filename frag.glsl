@@ -1954,66 +1954,69 @@ vec2 cCube (in vec2 q) {
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
+  vec2 d = vec2(maxDistance, 0.);
+  float n = 0.;
 
   vec2 q = uv;
-
-  float warpScale = 0.05;
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
   float localCosT = TWO_PI * t;
 
+  // Box times
+  float boxTLength = 0.7;
+  float boxTRemainder = 1. - boxTLength;
+  float boxTIncOffset = boxTRemainder / 4.;
+  float box1T = saturate((t - 1. * boxTIncOffset) / boxTLength);
+  float box2T = saturate((t - 2. * boxTIncOffset) / boxTLength);
+  float box3T = saturate((t - 3. * boxTIncOffset) / boxTLength);
+
+  const float warpScale = 0.05;
+
   vec2 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 3.283 * wQ.yx + localCosT );
-  wQ *= rotMat2(PI * 0.2 * sin(-3.0 * length(q) + localCosT + 2. * snoise2(wQ)));
-  wQ += warpScale * 0.05000 * cos( 7.182 * wQ.yx + localCosT );
-  wQ += warpScale * 0.02500 * cos(13.917 * wQ.yx + localCosT );
-  wQ *= rotMat2(PI * 0.2 * sin(-8.0 * length(q) + localCosT));
-  wQ += warpScale * 0.01250 * cos(19.382 * wQ.yx + localCosT );
-  wQ += warpScale * 0.00625 * cos(21.571 * wQ.yx + localCosT );
+  vec2 fourDim = vec2(0.275, 0.4);
+  float thickness = 0.33333 * fourDim.x;
 
-  q = wQ;
+  // Four bounding box
+  vec2 bound = vec2(sdBox(q, fourDim), 0.);
+  // d = dMin(d, bound);
 
-  // float n = dot(q, vec2(1));
-  // float n = sdTriPrism(vec3(q, 0), vec2(0.00, 0.4));
-  float n = length(q);
-  // float n = vfbmWarp(0.5 * q);
+  // Start Size
+  vec2 box1R = vec2(thickness, fourDim.y);
+  vec2 box2R = vec2(fourDim.x - thickness, thickness);
+  vec2 box3R = vec2(thickness, 0.5 * (fourDim.y - thickness));
 
-  // n = 1. - saturate(n);
-  // n = pow(n, 4.);
-  // n = sin( 7. * TWO_PI * n);
+  // End
+  box1R = mix(box1R,                                     fourDim.yx, box1T);
+  box2R = mix(box2R, vec2(0.5 * (fourDim.y - thickness), thickness), box2T);
+  box3R = mix(box3R,       vec2(0.5, 1.) * (fourDim.yx - thickness), box3T);
 
-  color = vec3(1);
+  // Start Position
+  vec2 box1Q = q - (fourDim - box1R);
+  vec2 box2Q = q - vec2(-(fourDim.x - box2R.x), 0.);
+  vec2 box3Q = q - vec2(-(fourDim.x - box3R.x), fourDim.y - box3R.y);
 
-  float stop = 0.225;
-  n = smoothstep(stop, stop + edge, n);
+  // End
+  box1Q = mix(box1Q, q, box1T);
+  box2Q = mix(box2Q, q - vec2(0, 0.5 * (fourDim.y + thickness)), quint(box2T));
+  box3Q = mix(box3Q, q - vec2(-(fourDim.x - 2. * thickness), -(fourDim.y - box3R.x)), quint(box3T));
 
-  // color *= n;
+  // Rotation
+  box1Q *= rotMat2(-0.5 * PI * bounceOut(box1T));
+  box2Q *= rotMat2(0.5 * PI * quint(box2T));
+  box3Q *= rotMat2(0.5 * PI * quart(box3T));
 
-  vec2 pol = vec2(
-      atan(q.y, q.x),
-      length(q));
+  // Boxes
+  float box1 = sdBox(box1Q, box1R);
+  n = mix(n, 1. - n, 1. - step(0., box1));
+  float box2 = sdBox(box2Q, box2R);
+  n = mix(n, 1. - n, 1. - step(0., box2));
+  float box3 = sdBox(box3Q, box3R);
+  n = mix(n, 1. - n, 1. - step(0., box3));
 
-  float noiseSpeed = 2.;
-  vec2 polCoef = vec2(1.5, 1.2);
-  float rNoise1 = vfbmWarp(polCoef * pol + vec2(0.4, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (0. + t));
-  float rNoise2 = vfbmWarp(polCoef * pol + vec2(0.4, 0) * sin(cosT) - vec2(0, 1) * noiseSpeed * (1. - t));
-  float transitionStart = 0.75;
-  float rNoise = mix(rNoise1, rNoise2, saturate(t - transitionStart) / (1. - transitionStart));
-
-  float r = 1.5 * (0.40 - (0.350 - 0.1 * length(uv)) * rNoise);
-  vec3 maskQ = vec3(uv.x, 0, uv.y);
-  maskQ *= rotationMatrix(vec3(1), PI * 1.0 * cos(localCosT));
-
-  // float mask = sdTriPrism(maskQ, vec2(0.3 * r, 0.4 * r));
-  // float mask = icosahedral(maskQ, 52., r);
-  float mask = sdBox(maskQ, vec3(1.00 * r, r, 1.125 * r));
-  mask = max(mask, -(length(maskQ) - 0.925 * r));
-  // float mask = sdTorus(maskQ, vec2(r, 0.25 * r));
-  mask = smoothstep(edge, 0., mask);
-  color *= mask;
-
+  color = vec3(n);
+  // color *= mix(vec3(1), vec3(0, 0, 1), t);
   return color.rgb;
 }
 
@@ -2045,7 +2048,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
