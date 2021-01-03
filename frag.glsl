@@ -1911,8 +1911,6 @@ vec2 cCube (in vec2 q) {
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
-  vec2 d = vec2(maxDistance, 0.);
-  float n = 0.;
 
   vec2 q = uv;
 
@@ -1921,59 +1919,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float localCosT = TWO_PI * t;
 
   // Box times
-  float boxTLength = 0.7;
-  float boxTRemainder = 1. - boxTLength;
-  float boxTIncOffset = boxTRemainder / 4.;
-  float box1T = saturate((t - 1. * boxTIncOffset) / boxTLength);
-  float box2T = saturate((t - 2. * boxTIncOffset) / boxTLength);
-  float box3T = saturate((t - 3. * boxTIncOffset) / boxTLength);
-
-  const float warpScale = 0.05;
+  const float warpScale = 0.;
+  const float size = 0.075;
 
   vec2 wQ = q;
 
-  vec2 fourDim = vec2(0.275, 0.4);
-  float thickness = 0.33333 * fourDim.x;
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + cosT );
+  wQ += warpScale * 0.0500 * cos( 9. * wQ.yx + cosT );
+  wQ += warpScale * 0.0250 * cos(15. * wQ.yx + cosT );
 
-  // Four bounding box
-  vec2 bound = vec2(sdBox(q, fourDim), 0.);
-  // d = dMin(d, bound);
+  vec2 c = pMod2(wQ, vec2(size));
 
-  // Start Size
-  vec2 box1R = vec2(thickness, fourDim.y);
-  vec2 box2R = vec2(fourDim.x - thickness, thickness);
-  vec2 box3R = vec2(thickness, 0.5 * (fourDim.y - thickness));
+  vec2 absC = abs(c);
+  float maxD = max(absC.x, absC.y);
+  float taxiD = dot(absC, vec2(1));
+  float d = 0.5 * taxiD;
 
-  // End
-  box1R = mix(box1R,                                     fourDim.yx, box1T);
-  box2R = mix(box2R, vec2(0.5 * (fourDim.y - thickness), thickness), box2T);
-  box3R = mix(box3R,       vec2(0.5, 1.) * (fourDim.yx - thickness), box3T);
+  float localT = 0.5 + 0.5 * cos(localCosT - 0.238 * PI * d);
 
-  // Start Position
-  vec2 box1Q = q - (fourDim - box1R);
-  vec2 box2Q = q - vec2(-(fourDim.x - box2R.x), 0.);
-  vec2 box3Q = q - vec2(-(fourDim.x - box3R.x), fourDim.y - box3R.y);
+  q = wQ;
+  q *= rotMat2(0.5 * PI * localT);
 
-  // End
-  box1Q = mix(box1Q, q, box1T);
-  box2Q = mix(box2Q, q - vec2(0, 0.5 * (fourDim.y + thickness)), quint(box2T));
-  box3Q = mix(box3Q, q - vec2(-(fourDim.x - 2. * thickness), -(fourDim.y - box3R.x)), quint(box3T));
-
-  // Rotation
-  box1Q *= rotMat2(-0.5 * PI * bounceOut(box1T));
-  box2Q *= rotMat2(0.5 * PI * quint(box2T));
-  box3Q *= rotMat2(0.5 * PI * quart(box3T));
-
-  // Boxes
-  float box1 = sdBox(box1Q, box1R);
-  n = mix(n, 1. - n, 1. - step(0., box1));
-  float box2 = sdBox(box2Q, box2R);
-  n = mix(n, 1. - n, 1. - step(0., box2));
-  float box3 = sdBox(box3Q, box3R);
-  n = mix(n, 1. - n, 1. - step(0., box3));
+  float n = dot(q, vec2(1));
+  float frequency = 35.;
+  n = sin(frequency * TWO_PI * n);
+  float stop = angle3C;
+  n = smoothstep(stop, stop + edge, n);
 
   color = vec3(n);
-  // color *= mix(vec3(1), vec3(0, 0, 1), t);
+
   return color.rgb;
 }
 
@@ -2005,7 +1979,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
@@ -2043,7 +2017,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   //   // layerColor = pow(layerColor, vec3(4 + slices));
 
   //   const float maxDelayLength = 0.200;
-  //   float mask = two_dimensional(uv, norT + maxDelayLength * (1.00 + 0.5 * sin(cosT + length(uv))) * fI / float(slices)).x;
+  //   float layerT = norT
+  //     + maxDelayLength * (1.00 + 0.5 * sin(cosT + length(uv))) * fI / float(slices);
+  //   float mask = two_dimensional(uv, layerT).x;
   //   layerColor *= mask;
   //   // if (i == 0) {
   //   //   color = layerColor;
