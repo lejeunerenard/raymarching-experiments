@@ -1933,13 +1933,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 absC = abs(c);
   float maxD = max(absC.x, absC.y);
   float taxiD = dot(absC, vec2(1));
-  float d = 0.5 * taxiD;
+  float dotD = dot(c, vec2(1));
+  float d = 0.5 * maxD;
 
-  float localT = 0.5 + 0.5 * cos(localCosT - 0.238 * PI * d);
+  float sn = 0.4 * (0.5 + 0.5 * cos(localCosT + 0.25 * PI)) * snoise2(c);
+  float localT = 0.5 + 0.5 * cos(localCosT - 0.238 * PI * d + sn);
 
   q = wQ;
   q *= rotMat2(0.5 * PI * localT);
 
+  q.x += 0.035 * size * cos(120. * PI * q.y + localCosT);
   float n = dot(q, vec2(1));
   float frequency = 35.;
   n = sin(frequency * TWO_PI * n);
