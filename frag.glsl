@@ -1928,26 +1928,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ += warpScale * 0.0500 * cos( 9. * wQ.yx + cosT );
   wQ += warpScale * 0.0250 * cos(15. * wQ.yx + cosT );
 
-  vec2 c = pMod2(wQ, vec2(size));
-
-  vec2 absC = abs(c);
-  float maxD = max(absC.x, absC.y);
-  float taxiD = dot(absC, vec2(1));
-  float dotD = dot(c, vec2(1));
-  float d = 0.5 * maxD;
-
-  float sn = 0.4 * (0.5 + 0.5 * cos(localCosT + 0.25 * PI)) * snoise2(c);
-  float localT = 0.5 + 0.5 * cos(localCosT - 0.238 * PI * d + sn);
-
-  q = wQ;
-  q *= rotMat2(0.5 * PI * localT);
-
-  q.x += 0.035 * size * cos(120. * PI * q.y + localCosT);
   float n = dot(q, vec2(1));
+  float sNoiseScale = 2.;
+  float sn = snoise2(sNoiseScale * q + t);
+  n += 0.05 * (0.5 + 0.5 * cos(localCosT + PI)) * sn;
   float frequency = 35.;
   n = sin(frequency * TWO_PI * n);
   float stop = angle3C;
-  n = smoothstep(stop, stop + edge, n);
+  n = smoothstep(stop, stop + 20. * edge, n);
 
   color = vec3(n);
 
