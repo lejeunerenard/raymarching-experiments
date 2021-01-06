@@ -944,15 +944,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = z;
 
   wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)));
-  wQ += warpScale * 0.250 * snoise3(1.3 * wQ);
-  wQ += warpScale * 0.125 * snoise3(2.3 * wQ);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+
+  // wQ += warpScale * 0.250 * snoise3(1.3 * wQ);
+  // wQ += warpScale * 0.125 * snoise3(2.3 * wQ);
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.6;
 
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   // o.x *= deScale;
   mPos = q.xyz;
   d = dMin(d, o);
@@ -1172,7 +1174,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1278,7 +1279,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.7;
+      float freCo = 2.0;
       float specCo = 0.65;
 
       float specAll = 0.0;
@@ -1340,7 +1341,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.5 * pow(1. - dot(nor, -rayDirection), 1.00);
+      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 1.00);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -1970,7 +1971,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
