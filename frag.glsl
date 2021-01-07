@@ -937,17 +937,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.50;
+  float warpScale = 0.25;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)));
+  wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)) + 0.2);
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-
-  // wQ += warpScale * 0.250 * snoise3(1.3 * wQ);
-  // wQ += warpScale * 0.125 * snoise3(2.3 * wQ);
+  wQ += warpScale * 0.500000 * cos( 2.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.250000 * cos( 5.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.125000 * cos( 9.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.062500 * cos(13.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.031250 * cos(29.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.015625 * cos(33.3 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
