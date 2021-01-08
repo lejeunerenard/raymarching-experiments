@@ -943,26 +943,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)) + 0.2);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.500000 * cos( 2.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.250000 * cos( 5.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.125000 * cos( 9.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.062500 * cos(13.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.031250 * cos(29.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.015625 * cos(33.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)) + 0.2);
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ += warpScale * 0.500000 * cos( 2.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.250000 * cos( 5.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.125000 * cos( 9.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.062500 * cos(13.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.031250 * cos(29.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.015625 * cos(33.3 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.6;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
-  // o.x *= deScale;
-  mPos = q.xyz;
-  d = dMin(d, o);
+  for (int i = 0; i < 6; i++) {
+    vec3 axis = offset;
+    axis *= rotationMatrix(vec3(1), angle3C * float(i) + cosT);
+    q *= rotationMatrix(axis, angle3C * float(i) + cosT);
+    vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+    // o.x *= deScale;
+    // o.x -= 0.010 * cellular(2. * q);
+    mPos = q.xyz;
+    // d = dMin(d, o);
+    d = dSMin(d, o, 0.20 * r);
+  }
 
-  d.x *= 0.3;
+  d.x *= 0.4;
 
   return d;
 }
@@ -1052,7 +1059,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = angle3C;
+float n2 = 0.95;
 const float amount = 0.25;
 
 float gM = 0.;
