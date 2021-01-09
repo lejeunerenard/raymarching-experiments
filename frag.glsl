@@ -926,7 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(0.2, 1, -0.1), PI * 0.25 * sin(cosT));
   // p.y += 0.05 * sin(cosT);
@@ -937,37 +937,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.25;
+  float warpScale = 0.125 * (0.5 + 0.5 * cos(cosT + dot(q, vec3(1))));
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
   // wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)) + 0.2);
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  // wQ += warpScale * 0.500000 * cos( 2.3 * wQ.yzx + cosT);
-  // wQ += warpScale * 0.250000 * cos( 5.3 * wQ.yzx + cosT);
-  // wQ += warpScale * 0.125000 * cos( 9.3 * wQ.yzx + cosT);
-  // wQ += warpScale * 0.062500 * cos(13.3 * wQ.yzx + cosT);
-  // wQ += warpScale * 0.031250 * cos(29.3 * wQ.yzx + cosT);
-  // wQ += warpScale * 0.015625 * cos(33.3 * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.500000 * cos( 2.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.250000 * cos( 5.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.125000 * cos( 9.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.062500 * cos(13.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.031250 * cos(29.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.015625 * cos(33.3 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.6;
 
-  for (int i = 0; i < 6; i++) {
-    vec3 axis = offset;
-    axis *= rotationMatrix(vec3(1), angle3C * float(i) + cosT);
-    q *= rotationMatrix(axis, angle3C * float(i) + cosT);
-    vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-    // o.x *= deScale;
-    // o.x -= 0.010 * cellular(2. * q);
-    mPos = q.xyz;
-    // d = dMin(d, o);
-    d = dSMin(d, o, 0.20 * r);
-  }
+  vec3 o = vec3(dodecahedral(q, 32., r), 0, 0);
+  mPos = q.xyz;
+  d = dMin(d, o);
 
   d.x *= 0.4;
 
@@ -1059,7 +1051,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float n1 = 1.;
-float n2 = 0.95;
+float n2 = angle3C;
 const float amount = 0.25;
 
 float gM = 0.;
@@ -1190,7 +1182,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.3 * pow(dNR, 3.0);
   dI += 0.2 * snoise3(0.25 * pos);
-  // dI += 0.15 * pow(dNR, 2.);
+  dI += 0.15 * pow(dNR, 2.);
 
   dI += 0.2 * length(pos);
   dI += 1. * pos.y;
