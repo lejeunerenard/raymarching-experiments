@@ -937,31 +937,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.125 * (0.5 + 0.5 * cos(cosT + dot(q, vec3(1))));
+  float warpScale = 0.125 * (0.5 + 0.5 * cos(cosT + dot(q, vec3(2))));
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
   // wQ += warpScale * 1.000 * snoise3(0.7 * wQ + 0.25 * sin(cosT + PI * vec3(0, 0.25, 0.5)) + 0.2);
+  wQ += warpScale * 0.500000 * cos( 4.3 * wQ.yzx + cosT);
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.500000 * cos( 2.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.250000 * cos( 5.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.125000 * cos( 9.3 * wQ.yzx + cosT);
-  wQ += warpScale * 0.062500 * cos(13.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.250000 * cos( 7.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.125000 * cos(10.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.062500 * cos(17.3 * wQ.yzx + cosT);
   wQ += warpScale * 0.031250 * cos(29.3 * wQ.yzx + cosT);
   wQ += warpScale * 0.015625 * cos(33.3 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.6;
+  float r = 1.0 + 0.5 * snoise3(q);
 
-  vec3 o = vec3(dodecahedral(q, 32., r), 0, 0);
+  vec3 o = vec3(vmax(abs(q)) + length(q) - r, 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.4;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1281,7 +1281,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.25;
       float specCo = 0.65;
 
       float specAll = 0.0;
@@ -1354,7 +1354,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
+      color *= saturate(exp(-d * 0.05));
       // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);

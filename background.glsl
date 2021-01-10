@@ -18,7 +18,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(#1E505B, vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.025), vec3(0.0), bgIndex);
   // vec3 color = 0.8 * mix(vec3(0.9, 0.90, 0.89), vec3(0.4), bgIndex);
-  vec3 color = 1.70 * mix(#56BBE8, #56E873, bgIndex);
+  vec3 color = 0.70 * mix(#56BBE8, #56E873, bgIndex);
 
   // const vec3 bgColor = #F2900A;
   // vec3 color = mix(0.8 * bgColor, bgColor, bgIndex);
