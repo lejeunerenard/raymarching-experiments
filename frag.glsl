@@ -926,11 +926,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
-
-  // p *= rotationMatrix(vec3(0.2, 1, -0.1), PI * 0.25 * sin(cosT));
-  // p.y += 0.05 * sin(cosT);
-
   vec3 q = p;
   vec4 z = vec4(q, 0.);
 
@@ -1927,15 +1922,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + cosT );
-  wQ += warpScale * 0.0500 * cos( 9. * wQ.yx + cosT );
-  wQ += warpScale * 0.0250 * cos(15. * wQ.yx + cosT );
+  float scaleFactor = 0.;
+  scaleFactor += sigmoid(length(3. * wQ) - 0.5);
+
+  wQ *= 1. + 0.7 * (0.5 + 0.5 * cos(cosT + length(q) + 5. * wQ.x)) * scaleFactor;
+  q = wQ;
 
   float n = dot(q, vec2(1));
-  float sNoiseScale = 2.;
-  float sn = snoise2(sNoiseScale * q + t);
-  n += 0.05 * (0.5 + 0.5 * cos(localCosT + PI)) * sn;
-  float frequency = 35.;
+  float frequency = 25.;
   n = sin(frequency * TWO_PI * n);
   float stop = angle3C;
   n = smoothstep(stop, stop + 20. * edge, n);
@@ -1973,7 +1967,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
