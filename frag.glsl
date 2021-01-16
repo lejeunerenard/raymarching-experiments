@@ -1925,49 +1925,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float localCosT = TWO_PI * t;
 
   // Box times
-  const float warpScale = 0.5;
-  const float size = 0.075;
+  const float warpScale = 0.25;
+  const float size = 0.1;
 
   vec2 wQ = q;
 
-  // wQ += warpScale * 0.10000 * cos( 4. * wQ.yx + localCosT );
-  // wQ *= rotMat2(4. * length(wQ) + 0.05 * PI * sin(localCosT));
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(17. * wQ.yx + localCosT );
-
-  float l = length(wQ);
-  wQ *= rotMat2(0.4 * PI * sin(localCosT - l));
-
-  wQ = vec2(
-      atan(wQ.y, wQ.x),
-      l);
-
-  // wQ.x += 0.0125 * snoise2(vec2(0.5, 50.) * wQ);
-  wQ.x += 0.035 * sin(10. * wQ.y + wQ.x);
+  wQ += warpScale * 0.10000 * cos( 4. * wQ.yx + localCosT );
+  wQ *= rotMat2(0.05 * PI * sin(localCosT));
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yx + localCosT );
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yx + localCosT );
+  wQ += warpScale * 0.01250 * cos(17. * wQ.yx + localCosT );
 
   q = wQ;
 
   // Lines
-  float n = dot(q, vec2(1, 0));
-  float frequency = 7.;
-  n = sin(frequency * n);
+  float n = dot(q, vec2(1));
+  float frequency = 150.;
+  n = sin(frequency * n + localCosT);
 
-  float stop = angle3C - (1. - 3.25 * l);
+  float stop = angle3C;
   n = smoothstep(stop, stop + 20. * edge, n);
 
   color = vec3(n);
 
-  float mask = 1. - step(0.4, q.y);
+  q = uv;
+  vec2 absQ = abs(q);
+  vec3 mQ = vec3(q, 0);
+  mQ *= rotationMatrix(vec3(1, 0.5, 0.2), localCosT);
+  float mask = 1. - step(0., sdBox(mQ, vec3(0.275)));
   color *= mask;
-
-  // q = uv;
-  // vec2 absQ = abs(q);
-  // float r = 0.375;
-  // float d = vmax(absQ) - r;
-  // float mask = smoothstep(edge, 0., d);
-
-  // color *= mask;
 
   return color.rgb;
 }
@@ -2019,7 +2005,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     dI += 0.3 * dot(uv, vec2(1));
     dI += 0.3 * snoise2(2. * uv);
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-    layerColor *= vec3(1.0, 0.6, 0.60);
+    layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.2);
     layerColor *= 1.2;
 
     // CYM
