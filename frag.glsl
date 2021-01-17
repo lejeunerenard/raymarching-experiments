@@ -1925,7 +1925,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float localCosT = TWO_PI * t;
 
   // Box times
-  const float warpScale = 0.25;
+  const float warpScale = 0.5;
   const float size = 0.1;
 
   vec2 wQ = q;
@@ -1936,10 +1936,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ += warpScale * 0.02500 * cos(13. * wQ.yx + localCosT );
   wQ += warpScale * 0.01250 * cos(17. * wQ.yx + localCosT );
 
+  wQ.x += 0.0150 * cos(30. * wQ.y);
+
   q = wQ;
 
   // Lines
-  float n = dot(q, vec2(1));
+  float n = dot(q, vec2(1, 0));
   float frequency = 150.;
   n = sin(frequency * n + localCosT);
 
@@ -1952,7 +1954,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 absQ = abs(q);
   vec3 mQ = vec3(q, 0);
   mQ *= rotationMatrix(vec3(1, 0.5, 0.2), localCosT);
-  float mask = 1. - step(0., sdBox(mQ, vec3(0.275)));
+  // mQ *= rotationMatrix(vec3(1), localCosT);
+
+  float pauseT = 0.20;
+  float numShapes = 3.;
+  float invNumShapes = 1. / numShapes;
+
+  float r = 0.275;
+  float triangleD = sdTriPrism(mQ, vec2(r, r));
+  float maskD = triangleD;
+  maskD = mix(maskD, sdBox(mQ, vec3(r)),  smoothstep(0. * invNumShapes + pauseT, 1. * invNumShapes, t));
+  maskD = mix(maskD, length(mQ) - r,      smoothstep(1. * invNumShapes + pauseT, 2. * invNumShapes, t));
+  maskD = mix(maskD, triangleD,           smoothstep(2. * invNumShapes + pauseT, 3. * invNumShapes, t));
+
+  float mask = 1. - step(0., maskD);
   color *= mask;
 
   return color.rgb;
