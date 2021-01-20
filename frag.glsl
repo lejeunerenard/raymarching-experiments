@@ -934,7 +934,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.1;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.5;
+  float warpScale = 0.125;
 
   // q.y *= 0.85;
 
@@ -953,13 +953,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.40;
+  float r = 0.50;
 
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(length(q - vec3(0, 1.6 * r, 0)) - r, 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.2;
+  o = vec3(length(q - vec3(r, 0., 0.)) - r, 1, 0);
+  mPos = q.xyz;
+  d = dMin(d, o);
+
+  o = vec3(length(q - vec3(-r, -0.1, 0.)) - r, 2, 0);
+  mPos = q.xyz;
+  d = dMin(d, o);
+
+  o = vec3(length(q - vec3(0.10, -1.9 * r, 0)) - r, 3, 0);
+  mPos = q.xyz;
+  d = dMin(d, o);
+
+  d.x *= 0.3;
 
   return d;
 }
@@ -1175,8 +1187,11 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5 * background);
-  return color;
+  vec3 color = #37B1EB;
+  color = mix(color, #EB6C42, isMaterialSmooth(m, 1.));
+  color = mix(color, #EBBC2A, isMaterialSmooth(m, 2.));
+  color = mix(color, vec3(0.8), isMaterialSmooth(m, 3.));
+  return 1.1 * color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1276,8 +1291,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.45;
+      float freCo = 2.0;
+      float specCo = 0.95;
 
       float specAll = 0.0;
 
@@ -1285,12 +1300,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.40;
+        float diffMin = 0.90;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.50;
+        float shadowMin = 0.75;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1326,20 +1341,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      reflectColor += 0.15 * reflection(pos, reflectionRd);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.15 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.15 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 1.00);
+      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
