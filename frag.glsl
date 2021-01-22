@@ -1924,14 +1924,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
+  vec2 absWQ = abs(wQ);
+  float d = vmax(absWQ);
+  // float d = length(wQ);
+  wQ *= 1. + 0.25 * sin(cosT - 8. * d);
+
   q = wQ;
 
   // Lines
   float n = 0.;
-  // Maybe just some pretty blobs then?
+  n = sin(TWO_PI * dot(q, 10. * vec2(1, 2.0)));
 
   float stop = angle3C;
   n = smoothstep(stop, stop + 20. * edge, n);
+
+  q = uv;
+  float mask = length(q) - 0.3;
+  mask = smoothstep(edge, 0., mask);
+  // n *= mask;
+
   color = vec3(n);
 
   return color.rgb;
@@ -1965,7 +1976,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
