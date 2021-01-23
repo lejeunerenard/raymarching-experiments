@@ -926,12 +926,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
   vec4 z = vec4(q, 0.);
 
-  const float size = 0.1;
+  const float size = 0.2 * PI;
   float t = mod(dT, 1.);
 
   float warpScale = 0.125;
@@ -942,13 +942,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.500000 * cos( 5.3 * wQ.zxy + cosT);
-  wQ += warpScale * 0.250000 * cos( 9.2 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.25 * PI * cos(cosT + 2. * wQ.y));
-  wQ += warpScale * 0.125000 * cos(13.8 * wQ.zxy + cosT);
-  wQ += warpScale * 0.062500 * cos(19.9 * wQ.yzx + cosT);
-  wQ += warpScale * 0.031250 * cos(23.1 * wQ.zxy + cosT);
-  wQ += warpScale * 0.015625 * cos(29.3 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.500000 * cos( 5.3 * wQ.zxy + cosT);
+  // wQ += warpScale * 0.250000 * cos( 9.2 * wQ.yzx + cosT);
+  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.25 * PI * cos(cosT + 2. * wQ.y));
+  // wQ += warpScale * 0.125000 * cos(13.8 * wQ.zxy + cosT);
+  // wQ += warpScale * 0.062500 * cos(19.9 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.031250 * cos(23.1 * wQ.zxy + cosT);
+  // wQ += warpScale * 0.015625 * cos(29.3 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
@@ -956,11 +956,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = 0.50;
 
   // vec3 o = vec3(length(q) - r, 0, 0);
-  vec3 o = vec3(icosahedral(q, 32., r), 0, 0);
+  vec3 o = vec3(sdCappedCylinder(q, vec2(r, 2.0)), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.3;
+  // Subtraction
+  vec3 cylQ = vec3(
+      atan(q.z, q.x),
+      1.5 * q.y,
+      length(q.xz));
+
+  float c = floor((cylQ.y + 0.5*size)/size);
+  // cylQ.x += 0.5 * size * mod(c, 2.);
+
+  cylQ *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
+  pMod2(cylQ.xy, vec2(size, size));
+
+  float cutScale = 0.35;
+  float cut = sdBox(cylQ, vec3(size * cutScale, size * cutScale, r * 2.));
+  float roundR = 0.2 * r + 0.05 * snoise3(5. * q);
+  d.x = fOpDifferenceRound(d.x, cut, roundR);
+
+  cut = sdCappedCylinder(q, vec2(0.3 * r, 2));
+  d.x = max(d.x, -cut);
+
+  d.x *= 0.4;
 
   return d;
 }
@@ -1177,7 +1197,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
-  return 1.1 * color;
+  // return 1.1 * color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1327,7 +1347,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * reflection(pos, reflectionRd);
+      reflectColor += 0.25 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1337,8 +1357,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.00);
       dispersionColor *= dispersionI;
@@ -1976,7 +1996,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
