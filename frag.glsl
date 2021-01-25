@@ -926,7 +926,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
   vec4 z = vec4(q, 0.);
@@ -934,30 +934,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.2 * PI;
   float t = mod(dT, 1.);
 
-  float warpScale = 0.5;
+  float warpScale = 0.15;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.500000 * cos( 5.3 * wQ.zxy + cosT);
+  wQ += warpScale * 0.500000 * cos( 5.7 * wQ.zxy + cosT);
   wQ += warpScale * 0.250000 * cos( 9.2 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.25 * PI * cos(cosT + 2. * wQ.y));
-  wQ += warpScale * 0.125000 * cos(13.8 * wQ.zxy + cosT);
-  wQ += warpScale * 0.062500 * cos(19.9 * wQ.yzx + cosT);
-  wQ += warpScale * 0.031250 * cos(27.8 * wQ.zxy + cosT);
-  wQ += warpScale * 0.015625 * cos(35.9 * wQ.yzx + cosT);
+  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.25 * PI * cos(cosT + 2. * wQ.y));
+  wQ += warpScale * 0.125000 * cos(13.1 * wQ.zxy + cosT);
+  wQ += warpScale * 0.062500 * cos(19.3 * wQ.yzx + cosT);
+  wQ += warpScale * 0.031250 * cos(27.9 * wQ.zxy + cosT);
+  wQ += warpScale * 0.015625 * cos(35.2 * wQ.yzx + cosT);
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.700;
+  r += 0.05 * r * abs(sin(20. * atan(q.z, q.x)));
 
   vec3 o = vec3(length(q) - r, 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.2;
+  d.x *= 0.35;
 
   return d;
 }
@@ -1323,7 +1324,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * reflection(pos, reflectionRd);
+      reflectColor += 0.40 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
