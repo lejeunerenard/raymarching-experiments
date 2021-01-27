@@ -1917,25 +1917,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Box times
   const float warpScale = 0.5;
-  const float size = 0.05;
+  const float size = 0.025;
 
   vec2 wQ = q;
   vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
-  float rotR = 0.35 * size;
-  q *= rotMat2(-length(c) + localCosT);
-  q.x -= rotR;
-  float n = length(q) - 0.125 * size;
+  vec2 absC = abs(c);
+  float i = -0.25 * dot(absC, vec2(1)) + localCosT;
+  float r = 0.0125 * size;
+
+  float rotR = 0.1 * size;
+  q *= rotMat2(i);
+  q += rotR;
+
+  // q *= rotMat2(i);
+  float n = sdBox(q, vec2(r, 0.3 * size));
   float stop = angle3C;
   n = smoothstep(stop, stop + edge, n);
   n = 1. - n;
 
   // Mask
   q = uv;
-  float mask = length(q) - 0.3;
+  float maskR = 16.;
+  float mask = dot(absC, vec2(1)) - maskR;
   mask = smoothstep(edge, 0., mask);
-  // n *= mask;
+  n *= mask;
+
+  // vec2 absQ = abs(q);
+  // float border = dot(absQ, vec2(1)) - (maskR + 1.5) * size;
+  // border = smoothstep(edge, 0., abs(border) - 0.00025);
+  // n += border;
 
   color = vec3(n);
 
@@ -1970,7 +1982,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec3 color = vec3(0);
 
