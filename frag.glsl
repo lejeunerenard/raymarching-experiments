@@ -1920,19 +1920,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float size = 0.025;
 
   vec2 wQ = q;
+  wQ *= rotMat2(0.25 * PI);
   vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
   vec2 absC = abs(c);
   float i = -0.25 * dot(absC, vec2(1)) + localCosT;
-  float r = 0.0125 * size;
+  i += (c != vec2(0)) ? 1.0 * sin(atan(c.y, c.x)) : 0.;
+  i += 0.3 * snoise2(c);
 
-  float rotR = 0.1 * size;
+  float r = 0.015 * size;
+
+  float rotR = 0.3 * size;
   q *= rotMat2(i);
   q += rotR;
 
   // q *= rotMat2(i);
-  float n = sdBox(q, vec2(r, 0.3 * size));
+  float n = length(q) - r;
   float stop = angle3C;
   n = smoothstep(stop, stop + edge, n);
   n = 1. - n;
@@ -1942,7 +1946,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float maskR = 16.;
   float mask = dot(absC, vec2(1)) - maskR;
   mask = smoothstep(edge, 0., mask);
-  n *= mask;
+  // n *= mask;
 
   // vec2 absQ = abs(q);
   // float border = dot(absQ, vec2(1)) - (maskR + 1.5) * size;
