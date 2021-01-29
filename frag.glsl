@@ -1921,15 +1921,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
   wQ *= rotMat2(0.25 * PI);
+  wQ *= 1. + 0.2 * sin(-2. * length(wQ) + cosT);
   vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
   vec2 absC = abs(c);
-  float i = -0.25 * dot(absC, vec2(1)) + localCosT;
-  i += (c != vec2(0)) ? 1.0 * sin(atan(c.y, c.x)) : 0.;
+  // float d = dot(absC, vec2(1));
+  float d = 25. * length(uv);
+  float i = -0.25 * d + localCosT;
+  // i += (c != vec2(0)) ? 2.0 * sin(atan(c.y, c.x)) : 0.;
   i += 0.3 * snoise2(c);
 
-  float r = 0.015 * size;
+  float r = 0.025 * size;
+  r += 2. * r * sin(2. * i);
 
   float rotR = 0.3 * size;
   q *= rotMat2(i);
@@ -1954,6 +1958,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n += border;
 
   color = vec3(n);
+
+  i = -0.125 * d + t;
+  i += 0.4 * snoise2(c);
+  color *= 0.5 + 0.5 * cos(TWO_PI * (1.0 * i + vec3(0, 0.33, 0.67)));
 
   return color.rgb;
 }
