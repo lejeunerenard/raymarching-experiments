@@ -1916,40 +1916,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float localCosT = TWO_PI * t;
 
   // Box times
-  const float warpScale = 0.5;
+  float warpScale = 0.35 + 0.1 * sin(localCosT);
   const float size = 0.025;
 
+	// vec2 c = floor((q + size*0.5)/size);
+  vec2 c = pMod2(q, vec2(size));
+
+  float s = snoise2(0.025 * c + 0.1 * sin(localCosT + vec2(0, 0.5 * PI)));
+  q *= rotMat2(TWO_PI * expo(-0.0065 * length(c) + t));
+
   vec2 wQ = q;
-  wQ *= rotMat2(0.25 * PI);
-  wQ *= 1. + 0.2 * sin(-2. * length(wQ) + cosT);
-  vec2 c = pMod2(wQ, vec2(size));
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + cosT);
+  // wQ += warpScale * 0.05000 * cos( 9. * wQ.yx + cosT);
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yx + cosT);
+  // wQ += warpScale * 0.01250 * cos(23. * wQ.yx + cosT);
   q = wQ;
 
-  vec2 absC = abs(c);
-  // float d = dot(absC, vec2(1));
-  float d = 25. * length(uv);
-  float i = -0.25 * d + localCosT;
-  // i += (c != vec2(0)) ? 2.0 * sin(atan(c.y, c.x)) : 0.;
-  i += 0.3 * snoise2(c);
+  // float n = sin(TWO_PI * dot(q, vec2(30)));
+  float n = sdBox(q, vec2(0.0125 * size, 0.35 * size));
 
-  float r = 0.025 * size;
-  r += 2. * r * sin(2. * i);
-
-  float rotR = 0.3 * size;
-  q *= rotMat2(i);
-  q += rotR;
-
-  // q *= rotMat2(i);
-  float n = length(q) - r;
   float stop = angle3C;
   n = smoothstep(stop, stop + edge, n);
   n = 1. - n;
 
   // Mask
-  q = uv;
-  float maskR = 16.;
-  float mask = dot(absC, vec2(1)) - maskR;
-  mask = smoothstep(edge, 0., mask);
+  // q = uv;
+  // vec2 absC = abs(c);
+  // float maskR = 8.;
+  // vec3 maskQ = vec3(c, 0);
+  // maskQ *= rotationMatrix(vec3(1), localCosT);
+  // float mask = icosahedral(0.4 * maskQ, 52., maskR);
+  // mask = smoothstep(edge, 0., mask);
   // n *= mask;
 
   // vec2 absQ = abs(q);
@@ -1958,10 +1955,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n += border;
 
   color = vec3(n);
-
-  i = -0.125 * d + t;
-  i += 0.4 * snoise2(c);
-  color *= 0.5 + 0.5 * cos(TWO_PI * (1.0 * i + vec3(0, 0.33, 0.67)));
 
   return color.rgb;
 }
@@ -1998,7 +1991,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 80;
+  const int slices = 10;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2009,9 +2002,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // );
 
     vec3 dI = vec3(fI / float(slices));
-    dI += 0.7 * uv.x;
     dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.3 * snoise2(2. * uv);
+    dI += 0.3 * snoise2(1. * uv);
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
     layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.2);
     layerColor *= 1.2;
