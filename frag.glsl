@@ -1923,7 +1923,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = pMod2(q, vec2(size));
 
   float s = snoise2(0.025 * c + 0.1 * sin(localCosT + vec2(0, 0.5 * PI)));
-  q *= rotMat2(TWO_PI * expo(-0.0065 * length(c) + t));
+  q *= rotMat2((-0.65 * length(c) + 2. * localCosT));
 
   vec2 wQ = q;
   // wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + cosT);
@@ -1933,21 +1933,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
 
   // float n = sin(TWO_PI * dot(q, vec2(30)));
-  float n = sdBox(q, vec2(0.0125 * size, 0.35 * size));
+  float n1 = sdBox(q, vec2(0.0125 * size, 0.35 * size));
+  float n2 = length(q) - 0.3 * size;
+  float n = mix(n1, n2, 0.5 + 0.5 * sin(localCosT + 0.03 * dot(c, vec2(1))));
 
   float stop = angle3C;
   n = smoothstep(stop, stop + edge, n);
   n = 1. - n;
 
   // Mask
-  // q = uv;
-  // vec2 absC = abs(c);
-  // float maskR = 8.;
-  // vec3 maskQ = vec3(c, 0);
-  // maskQ *= rotationMatrix(vec3(1), localCosT);
-  // float mask = icosahedral(0.4 * maskQ, 52., maskR);
-  // mask = smoothstep(edge, 0., mask);
-  // n *= mask;
+  q = uv;
+  vec2 absC = abs(c);
+  float maskR = 14.;
+  float mask = vmax(absC) - maskR;
+  mask = smoothstep(edge, 0., mask);
+  n *= mask;
 
   // vec2 absQ = abs(q);
   // float border = dot(absQ, vec2(1)) - (maskR + 1.5) * size;
