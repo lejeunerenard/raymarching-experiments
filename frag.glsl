@@ -1905,54 +1905,22 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-float shapes (in vec2 q, in float shapeI, in float self, in float t) {
-  float d = maxDistance;
-  float x = self;
-  float y = 1. - 2. * x;
+const float gSize = 0.0625;
+float gT = 0.;
+float shape (in vec2 q, in vec2 c) {
+  const float size = gSize;
 
-  float scale = 2.5;
+  float r = 0.15 * size; // * ( 0.5 + 0.5 * sin(TWO_PI * gT + dot(c, vec2(1))));
+  float rotR = 0.25 * size;
 
-  q *= scale;
+  q *= rotMat2(gT * TWO_PI - length(c));
+  q.x -= rotR;
+  // q -= rotR * cos(gT * TWO_PI + vec2(0, PI) - length(c));
 
-  float r = 0.1;
-  float rounded = 0.05 * r;
-  // float b = sdBox(q, r * vec2(0.1, 0.3)) - rounded;
-  // d = mix(min(d, b), d, x + y * isMaterialSmooth(shapeI, 0.));
-
-  // b = sdBox(q - vec2(0.4, 0.3), r * vec2(0.3, 0.1)) - rounded;
-  // d = mix(min(d, b), d, x + y * isMaterialSmooth(shapeI, 1.));
-
-  // b = sdBox(q - vec2(-0.3,-0.1), r * vec2(0.05)) - rounded;
-  // d = mix(min(d, b), d, x + y * isMaterialSmooth(shapeI, 2.));
-
-  // b = sdBox(q - vec2( 0.2,-0.2), r * vec2(0.1)) - rounded;
-  // d = mix(min(d, b), d, x + y * isMaterialSmooth(shapeI, 3.));
-
-  for (int i = 0; i < 20; i++) {
-    float fI = float(i);
-    float delta = PI * 0.25;
-    float a = 5.;
-    float b = 4.;
-
-    float dI = fI * 1.7;
-    vec2 pos = 6. * r * sin(vec2(a, b) * dI + vec2(delta, 0) + TWO_PI * t);
-
-    vec2 size = r * vec2(mod(fI, 2.) + 1., mod(fI, 3.) + 0.5);
-
-    float o = sdBox(q - pos, size) - rounded;
-    d = mix(min(d, o), d, x + y * isMaterialSmooth(shapeI, fI));
-  }
-
-  d /= scale;
-
-  return d;
+  return sdBox(q, vec2(r));
 }
 
-float shapes (in vec2 q, in float shapeI, in float self) {
-  return shapes (q, shapeI, self, 0.);
-}
-
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=map, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
   float d = maxDistance;
@@ -1964,39 +1932,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float localCosT = TWO_PI * t;
 
   // Box times
-  float warpScale = 0.35 + 0.1 * sin(localCosT);
-  const float size = 0.025;
+  float warpScale = 0.35;
+  const float size = gSize;
 
   vec2 wQ = q;
   q = wQ;
 
-  float lineFreq = 50.0;
-  float bufferLines = 2.;
-  float shapeOutlineThickness = bufferLines / lineFreq;
-  float maskBuffer = 0.25 * shapeOutlineThickness; // space between shapes
+  gT = t;
 
-  for (int i = 0; i < 20; i++) {
-  // int i = 0;
-    float fI = float(i);
-    float self = shapes(q, fI, 1., t);
-    d = min(d, self);
+  vec2 c = floor((q + size*0.5)/size);
+  float g = neighborGrid(q, vec2(size));
+  d = min(d, g);
 
-    float others = shapes(q, fI + 1., 1., t);
-    others -= 2.001 * shapeOutlineThickness + maskBuffer;
-    d = max(d, -others);
-  }
-
-  float n = sin(lineFreq * TWO_PI * d);
+  float lineFreq = 55.;
   // float n = d;
+  float n = sin(lineFreq * TWO_PI * d);
 
   float stop = angle3C;
   n = smoothstep(stop, stop + edge, n);
-  // n = 1. - n;
+  n = 1. - n;
 
   // Mask
-  float mask = saturate(abs(d) * lineFreq - bufferLines);
-  mask = smoothstep(edge, 0., mask);
-  n *= mask;
+  // float mask = saturate(abs(d) * lineFreq - bufferLines);
+  // mask = smoothstep(edge, 0., mask);
+  // n *= mask;
 
   color = vec3(n);
 
@@ -2031,11 +1990,11 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
-  // const int slices = 10;
+  // const int slices = 80;
   // for (int i = 0; i < slices; i++) {
   //   float fI = float(i);
   //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
