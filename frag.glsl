@@ -1905,7 +1905,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.0625;
+const float gSize = 0.03;
 float gT = 0.;
 float shape (in vec2 q, in vec2 c) {
   const float size = gSize;
@@ -1936,26 +1936,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float size = gSize;
 
   vec2 wQ = q;
+  vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
   gT = t;
 
-  vec2 c = floor((q + size*0.5)/size);
-  float g = neighborGrid(q, vec2(size));
-  d = min(d, g);
+  // float i = 0.5 + 0.5 * cos(localCosT - 0.5 * length(c));
+  // float i = 0.5 + 0.5 * cos(TWO_PI * 0.0075 * dot(c, vec2(1)) + localCosT);
+  // float thickness = mix(0.295, 0.95, i);
+  // float width = thickness * 1.5 * size;
+  // float n = sdBox(q + vec2(size, 0), vec2(width, 0.40 * size));
 
-  float lineFreq = 55.;
-  // float n = d;
-  float n = sin(lineFreq * TWO_PI * d);
+  float i = 0.5 + 0.5 * cos(TWO_PI * 0.0075 * dot(c, vec2(1)) + localCosT);
+  q *= rotMat2(i * 0.75 * PI);
+  float n = sdBox(q, vec2(0.0040 * size, 0.4 * size));
 
   float stop = angle3C;
   n = smoothstep(stop, stop + edge, n);
   n = 1. - n;
-
-  // Mask
-  // float mask = saturate(abs(d) * lineFreq - bufferLines);
-  // mask = smoothstep(edge, 0., mask);
-  // n *= mask;
 
   color = vec3(n);
 
