@@ -940,25 +940,44 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.500000 * cos( 5.7 * wQ.zxy + cosT);
-  wQ += warpScale * 0.250000 * cos( 9.2 * wQ.yzx + cosT);
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y - 5. * length(wQ.xz) + 0.25 * PI * cos(cosT + 2. * wQ.y + 0.5 * length(wQ.xz)));
-  wQ += warpScale * 0.125000 * cos(13.1 * wQ.zxy + cosT);
+  // wQ += warpScale * 0.500000 * cos( 5.7 * wQ.zxy + cosT);
+  // wQ += warpScale * 0.250000 * cos( 9.2 * wQ.yzx + cosT);
+  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y - 5. * length(wQ.xz) + 0.25 * PI * cos(cosT + 2. * wQ.y + 0.5 * length(wQ.xz)));
+  // wQ += warpScale * 0.125000 * cos(13.1 * wQ.zxy + cosT);
   // wQ += warpScale * 0.062500 * cos(19.3 * wQ.yzx + cosT);
   // wQ += warpScale * 0.031250 * cos(27.9 * wQ.zxy + cosT);
-  wQ += warpScale * 0.015625 * cos(35.2 * wQ.yzx + cosT);
+  // wQ += warpScale * 0.015625 * cos(35.2 * wQ.yzx + cosT);
+
+  wQ.xzy = wQ.xyz;
+
+  float r = 0.575;
+  // Rotate torus inside out
+  float a = atan(wQ.z, wQ.x);
+  float angle = cosT + 4. * a;
+
+  // Set point on x axis
+  wQ.xz *= rotMat2(-a);
+  wQ.x -= r; // Move to center
+  wQ.xy *= rotMat2(angle);
+  wQ.x += r; // Move to Ring radius
+  wQ.xz *= rotMat2(a); // Rotate back
 
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.400;
-  // r += 0.05 * r * abs(sin(10. * atan(q.z, q.x)));
-
-  vec3 o = vec3(length(q) - r, 0, 0);
+  float smallR = 0.3 * r;
+  vec3 o = vec3(sdTorus(q, vec2(r, smallR)), 0, 0);
+  // vec3 polIsh = vec3(length(q.xz), q.y, a / PI); // Hmm forgot about the discontinuity at +-PI
+  o.x -= 0.1 * cellular(1.0 * q);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.35;
+  // Lets cheat and not figure out the error in the math but instead use another torus to crop the rotated torus
+  q = p.xzy;
+  float crop = sdTorus(q, vec2(r, 3. * smallR));
+  d.x = max(d.x, crop);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -1988,7 +2007,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
