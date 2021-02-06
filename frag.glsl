@@ -922,6 +922,17 @@ vec3 sphericalCoords (in vec3 q) {
       length(q));
 }
 
+vec3 rotTorus (in vec3 q, in float angle, in float r) {
+  float a = atan(q.z, q.x);
+  q.xz *= rotMat2(-a);
+  q.x -= r; // Move to center
+  q.xy *= rotMat2(angle);
+  q.x += r; // Move to Ring radius
+  q.xz *= rotMat2(a); // Rotate back
+
+  return q;
+}
+
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
@@ -931,7 +942,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
   vec4 z = vec4(q, 0.);
 
-  const float size = 0.2 * PI;
+  const float size = 0.2;
   float t = mod(dT, 1.);
 
   float warpScale = 0.20;
@@ -953,22 +964,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = 0.575;
   // Rotate torus inside out
   float a = atan(wQ.z, wQ.x);
-  float angle = cosT + 4. * a;
-
-  // Set point on x axis
-  wQ.xz *= rotMat2(-a);
-  wQ.x -= r; // Move to center
-  wQ.xy *= rotMat2(angle);
-  wQ.x += r; // Move to Ring radius
-  wQ.xz *= rotMat2(a); // Rotate back
+  float angle = -cosT + 1.0 * a;
+  float show = smoothstep(0.5, 1., sin(angle));
+  wQ = rotTorus(wQ, angle, r);
+  // better
 
   q = wQ.xyz;
   // z = wQ;
 
   float smallR = 0.3 * r;
-  vec3 o = vec3(sdTorus(q, vec2(r, smallR)), 0, 0);
+  vec3 o = vec3(sdTorus82(q, vec2(r, smallR)), 0, 0);
   // vec3 polIsh = vec3(length(q.xz), q.y, a / PI); // Hmm forgot about the discontinuity at +-PI
-  o.x -= 0.1 * cellular(1.0 * q);
+  o.x -= show * 0.1 * gridBump(1.5 * q, size);
+  o.x -= 0.001 * snoise3(12. * q);
   mPos = q.xyz;
   d = dMin(d, o);
 
