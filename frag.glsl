@@ -791,6 +791,11 @@ mat3 rotOrtho (in float t) {
 }
 
 // Create multiple copies of an object - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
+float opRepLim( in float p, in float s, in float lim ) {
+  return p-s*clamp(floor(p/s + 0.5),-lim,lim);
+}
+
+// Create multiple copies of an object - http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
 vec2 opRepLim( in vec2 p, in float s, in vec2 lim ) {
   return p-s*clamp(floor(p/s + 0.5),-lim,lim);
 }
@@ -951,41 +956,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  // wQ += warpScale * 0.500000 * cos( 5.7 * wQ.zxy + cosT);
-  // wQ += warpScale * 0.250000 * cos( 9.2 * wQ.yzx + cosT);
-  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y - 5. * length(wQ.xz) + 0.25 * PI * cos(cosT + 2. * wQ.y + 0.5 * length(wQ.xz)));
-  // wQ += warpScale * 0.125000 * cos(13.1 * wQ.zxy + cosT);
-  // wQ += warpScale * 0.062500 * cos(19.3 * wQ.yzx + cosT);
-  // wQ += warpScale * 0.031250 * cos(27.9 * wQ.zxy + cosT);
-  // wQ += warpScale * 0.015625 * cos(35.2 * wQ.yzx + cosT);
+  wQ.z += 0.2 * sin(wQ.x);
 
-  wQ.xzy = wQ.xyz;
-
-  float r = 0.575;
-  // Rotate torus inside out
-  float a = atan(wQ.z, wQ.x);
-  float angle = -cosT + 1.0 * a;
-  float show = smoothstep(0.5, 1., sin(angle));
-  wQ = rotTorus(wQ, angle, r);
-  // better
-
+  float c = floor((wQ.z + 0.5 * size)/size);
+  wQ.z = opRepLim(wQ.z, size, 4.);
   q = wQ.xyz;
   // z = wQ;
 
-  float smallR = 0.3 * r;
-  vec3 o = vec3(sdTorus82(q, vec2(r, smallR)), 0, 0);
-  // vec3 polIsh = vec3(length(q.xz), q.y, a / PI); // Hmm forgot about the discontinuity at +-PI
-  o.x -= show * 0.1 * gridBump(1.5 * q, size);
-  o.x -= 0.001 * snoise3(12. * q);
+  q.z += 0.175 * size * sin(cosT + 0.25 * PI * c);
+  vec3 o = vec3(sdBox(q, vec3(0.5, 0.5, 0.25 * size)), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  // Lets cheat and not figure out the error in the math but instead use another torus to crop the rotated torus
-  q = p.xzy;
-  float crop = sdTorus(q, vec2(r, 3. * smallR));
-  d.x = max(d.x, crop);
-
-  d.x *= 0.5;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1203,6 +1186,10 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
+  color = mix(vec3(1), vec3(0, 0, 1), pos.y);
+
+  return color;
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
@@ -1301,8 +1288,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.5;
+      float freCo = 1.0;
+      float specCo = 0.75;
 
       float specAll = 0.0;
 
@@ -1310,7 +1297,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.50;
+        float diffMin = 0.65;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1351,7 +1338,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      reflectColor += 0.50 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1932,22 +1919,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.03;
-float gT = 0.;
-float shape (in vec2 q, in vec2 c) {
-  const float size = gSize;
-
-  float r = 0.15 * size; // * ( 0.5 + 0.5 * sin(TWO_PI * gT + dot(c, vec2(1))));
-  float rotR = 0.25 * size;
-
-  q *= rotMat2(gT * TWO_PI - length(c));
-  q.x -= rotR;
-  // q -= rotR * cos(gT * TWO_PI + vec2(0, PI) - length(c));
-
-  return sdBox(q, vec2(r));
-}
-
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
+// #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
   float d = maxDistance;
@@ -1960,27 +1932,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Box times
   float warpScale = 0.35;
-  const float size = gSize;
+  const float size = 0.1;
 
   vec2 wQ = q;
-  vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
-  gT = t;
-
-  // float i = 0.5 + 0.5 * cos(localCosT - 0.5 * length(c));
-  // float i = 0.5 + 0.5 * cos(TWO_PI * 0.0075 * dot(c, vec2(1)) + localCosT);
-  // float thickness = mix(0.295, 0.95, i);
-  // float width = thickness * 1.5 * size;
-  // float n = sdBox(q + vec2(size, 0), vec2(width, 0.40 * size));
-
-  float i = 0.5 + 0.5 * cos(TWO_PI * 0.0075 * dot(c, vec2(1)) + localCosT);
-  q *= rotMat2(i * 0.75 * PI);
-  float n = sdBox(q, vec2(0.0040 * size, 0.4 * size));
+  float n = 0.;
+  float freq = TWO_PI;
+  float amplitude = 0.5;
 
   float stop = angle3C;
-  n = smoothstep(stop, stop + edge, n);
-  n = 1. - n;
+  // n = smoothstep(stop, stop + edge, n);
+  // n = 1. - n;
 
   color = vec3(n);
 
