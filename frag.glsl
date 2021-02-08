@@ -1919,7 +1919,26 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-// #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
+const float gSize = 0.040;
+float shape (in vec2 q, in vec2 c) {
+  float d = maxDistance;
+
+  float ind = 0.2 * length(c);
+  float r = 0.35 * gSize;
+  r += 0.8 * r * cos(cosT - ind);
+
+  q *= rotMat2(0.25 * PI * cos(cosT + ind));
+  float s = sdBox(q, vec2(r));
+  s = abs(s) - 0.05 * r;
+  d = min(d, s);
+
+  vec2 absC = abs(c);
+  // d = mix(d, maxDistance, step(0., vmax(absC) - 8.));
+
+  return d;
+}
+
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
   float d = maxDistance;
@@ -1932,18 +1951,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Box times
   float warpScale = 0.35;
-  const float size = 0.1;
+  const float size = gSize;
 
   vec2 wQ = q;
+  wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
-  float n = 0.;
+  float n = neighborGrid(q, vec2(size));
   float freq = TWO_PI;
   float amplitude = 0.5;
 
   float stop = angle3C;
-  // n = smoothstep(stop, stop + edge, n);
-  // n = 1. - n;
+  n = smoothstep(stop, stop + edge, n);
+  n = 1. - n;
 
   color = vec3(n);
 
@@ -1978,7 +1998,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
