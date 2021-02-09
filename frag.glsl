@@ -381,6 +381,14 @@ float sdCone( vec3 p, vec2 c ) {
     return dot(c,vec2(q,p.z));
 }
 
+// IQ's 2D Line Segment SDF
+// Source: http://iquilezles.untergrund.net/www/articles/distfunctions2d/distfunctions2d.htm
+float sdSegment( in vec2 p, in vec2 a, in vec2 b ) {
+    vec2 pa = p-a, ba = b-a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h );
+}
+
 // Cone with correct distances to tip and base circle. Y is up, 0 is in the middle of the base.
 float fCone(vec3 p, float radius, float height) {
   vec2 q = vec2(length(p.xz), p.y);
@@ -1919,28 +1927,33 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.040;
-float shape (in vec2 q, in vec2 c) {
+const float gSize = 0.15;
+const float dotR = 0.065 * gSize;
+float pinShape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
-  float ind = 0.2 * length(c);
-  float r = 0.35 * gSize;
-  r += 0.8 * r * cos(cosT - ind);
+  float bigR = 0.5 * gSize;
 
-  q *= rotMat2(0.25 * PI * cos(cosT + ind));
-  float s = sdBox(q, vec2(r));
-  s = abs(s) - 0.05 * r;
-  d = min(d, s);
+  float dC = dot(c, vec2(1));
+  q *= rotMat2(norT * PI + PI * 0.5 * mod(dC, 2.));
 
-  vec2 absC = abs(c);
-  // d = mix(d, maxDistance, step(0., vmax(absC) - 8.));
+  // Mirror
+  q.x = abs(q.x);
+
+  float o = length(q - vec2(bigR, 0)) - dotR;
+  d = min(d, o);
+
+  // // Debug circle
+  // o = abs(length(q) - bigR) - 0.0125 * edge;
+  // d = min(d, o);
 
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
+#pragma glslify: pin = require(./modulo/neighbor-grid, map=pinShape, maxDistance=maxDistance, numberOfNeighbors=1.)
+// #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
   float d = maxDistance;
 
   vec2 q = uv;
@@ -1954,18 +1967,43 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float size = gSize;
 
   vec2 wQ = q;
-  wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
-  float n = neighborGrid(q, vec2(size));
-  float freq = TWO_PI;
-  float amplitude = 0.5;
+  // Dot
+  float pD = pin(q, vec2(size));
+  pD = smoothstep(edge, 0., pD);
+  color = mix(color, vec3(0.8, 0, 0), pD);
 
-  float stop = angle3C;
-  n = smoothstep(stop, stop + edge, n);
-  n = 1. - n;
+  // Wheel
+  q += 0.5 * size;
+  vec2 c = pMod2(q, vec2(size));
 
-  color = vec3(n);
+  // Rotate to emulate a pin coming in
+  vec2 pinRotOffset = vec2(0.5 * size);
+  vec2 pinLocation = vec2(0.5 * size, 0);
+
+  pinLocation -= pinRotOffset;
+  float pinRotIndex = smoothstep(0., 0.5, mod(norT - angle1C - 0.5 * mod(1. + dot(c, vec2(1)), 2.), 1.0));
+  pinRotIndex = pow(pinRotIndex, angle2C);
+  pinLocation *= rotMat2(-pinRotIndex * 0.5 * PI);
+  pinLocation += pinRotOffset;
+
+  float angle = atan(pinLocation.y, pinLocation.x);
+
+  q *= rotMat2(-angle);
+
+  q = abs(q);
+  q.xy = (q.y > q.x) ? q.yx : q.xy;
+
+  float wheel = length(q) - 0.45 * size;
+  // Crop pin area
+  float innerStopPoint = (sqrt(2.) - 1.) * (0.5 * size);
+  float pinArea = sdSegment(q, vec2(innerStopPoint, 0), vec2(size, 0)) - (dotR + 1.75 * edge);
+  wheel = max(wheel, -pinArea);
+
+  // wheel = abs(wheel) - 0.05 * edge;
+  wheel = smoothstep(edge, 0., wheel);
+  color = mix(color, vec3(0), wheel);
 
   return color.rgb;
 }
