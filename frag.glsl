@@ -1927,7 +1927,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.15;
+const float gSize = 0.025;
 const float dotR = 0.065 * gSize;
 float pinShape (in vec2 q, in vec2 c) {
   float d = maxDistance;
@@ -1967,43 +1967,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float size = gSize;
 
   vec2 wQ = q;
+
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + cosT);
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yx + cosT);
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yx + cosT);
+
+  vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
-  // Dot
-  float pD = pin(q, vec2(size));
-  pD = smoothstep(edge, 0., pD);
-  color = mix(color, vec3(0.8, 0, 0), pD);
+  float angle = 0.3 * PI * snoise2(0.125 * c + sin(cosT - 0.2 * length(c)));
 
-  // Wheel
-  q += 0.5 * size;
-  vec2 c = pMod2(q, vec2(size));
+  q *= rotMat2(angle);
 
-  // Rotate to emulate a pin coming in
-  vec2 pinRotOffset = vec2(0.5 * size);
-  vec2 pinLocation = vec2(0.5 * size, 0);
+  float n = sdBox(q, vec2(0.0075 * size, 0.25 * size));
+  d = min(d, n);
 
-  pinLocation -= pinRotOffset;
-  float pinRotIndex = smoothstep(0., 0.5, mod(norT - angle1C - 0.5 * mod(1. + dot(c, vec2(1)), 2.), 1.0));
-  pinRotIndex = pow(pinRotIndex, angle2C);
-  pinLocation *= rotMat2(-pinRotIndex * 0.5 * PI);
-  pinLocation += pinRotOffset;
-
-  float angle = atan(pinLocation.y, pinLocation.x);
-
-  q *= rotMat2(-angle);
-
-  q = abs(q);
-  q.xy = (q.y > q.x) ? q.yx : q.xy;
-
-  float wheel = length(q) - 0.45 * size;
-  // Crop pin area
-  float innerStopPoint = (sqrt(2.) - 1.) * (0.5 * size);
-  float pinArea = sdSegment(q, vec2(innerStopPoint, 0), vec2(size, 0)) - (dotR + 1.75 * edge);
-  wheel = max(wheel, -pinArea);
-
-  // wheel = abs(wheel) - 0.05 * edge;
-  wheel = smoothstep(edge, 0., wheel);
-  color = mix(color, vec3(0), wheel);
+  float stop = angle3C;
+  d = smoothstep(edge + stop, stop, d);
+  color = vec3(d);
 
   return color.rgb;
 }
