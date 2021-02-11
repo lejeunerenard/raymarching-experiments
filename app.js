@@ -22,8 +22,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 2
-const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 1.0
+const BLOOM_WET = 1
+const BLOOM_MIN_BRIGHTNESS = 1
 
 // Initialize shell
 export default class App {
@@ -40,7 +40,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const preset = {
@@ -52,18 +52,18 @@ export default class App {
       d: 0.04,
       scale: 3.9691,
       rot2angle: [2.77, 2.73, 2.214],
-      cameraAngles: [0.186, -0.005, 0.05]
+      cameraAngles: [-0.663, 0.032, 0.009]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 3, 0.1)
+    this.cameraRo = vec3.fromValues(-0.2, 2.43, 3.37)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.0295
-    this.angle2C = 0.797
-    this.angle3C = -0.0005
+    this.angle1C = 0.1795
+    this.angle2C = 0.356
+    this.angle3C = 0.393
 
     // this.setupAnimation(preset)
 
