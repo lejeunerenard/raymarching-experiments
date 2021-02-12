@@ -1930,31 +1930,34 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.025;
+const float gSize = 0.03;
 const float dotR = 0.065 * gSize;
-float pinShape (in vec2 q, in vec2 c) {
+float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
-  float bigR = 0.5 * gSize;
+  float odd = mod(dot(c, vec2(1)), 2.);
 
-  float dC = dot(c, vec2(1));
-  q *= rotMat2(norT * PI + PI * 0.5 * mod(dC, 2.));
+  // Set 1
+  vec2 set1Q = q;
+  set1Q *= rotMat2(odd * 0.5 * PI);
+  float set1 = sdBox(set1Q, vec2(0.03 * gSize, 0.6 * gSize));
 
-  // Mirror
-  q.x = abs(q.x);
+  // Set 2
+  vec2 set2Q = q;
+  set2Q *= rotMat2(mod(c.y, 2.) * 0.5 * PI);
+  float set21 = length(set2Q) - 0.2 * gSize;
+  float set22 = sdBox(set2Q, vec2(0.05 * gSize, 0.3 * gSize));
+  float set2 = odd == 1. ? set21 : set22;
 
-  float o = length(q - vec2(bigR, 0)) - dotR;
+  float t = norT - 0.0125 * dot(c, vec2(1));
+  t = mod(t, 1.);
+  float o = mix(set1, set2, smoothstep(0.2, 0.8, saturate(2. * abs(t - 0.5))));
   d = min(d, o);
-
-  // // Debug circle
-  // o = abs(length(q) - bigR) - 0.0125 * edge;
-  // d = min(d, o);
 
   return d;
 }
 
-#pragma glslify: pin = require(./modulo/neighbor-grid, map=pinShape, maxDistance=maxDistance, numberOfNeighbors=1.)
-// #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -1971,22 +1974,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yx + cosT);
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yx + cosT);
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yx + cosT);
-
-  vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
-  float angle = 0.3 * PI * snoise2(0.125 * c + sin(cosT - 0.2 * length(c)));
+  vec2 c = floor((q + size * 0.5) / size);
+  float o = neighborGrid(q, vec2(size));
+  d = min(d, o);
 
-  q *= rotMat2(angle);
-
-  float n = sdBox(q, vec2(0.0075 * size, 0.25 * size));
-  d = min(d, n);
+  // Mask
+  vec2 absC = abs(c);
+  float maskR = 13.;
+  // float mask = vmax(absC) - maskR;
+  float mask = dot(absC, vec2(1)) - maskR;
+  d = max(d, mask);
 
   float stop = angle3C;
-  d = smoothstep(edge + stop, stop, d);
+  d = smoothstep(0.5 * edge + stop, stop, d);
   color = vec3(d);
 
   return color.rgb;
@@ -2020,7 +2022,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
