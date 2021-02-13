@@ -1930,7 +1930,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.03;
+const float gSize = 0.025;
 const float dotR = 0.065 * gSize;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
@@ -1973,23 +1973,41 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float size = gSize;
 
   vec2 wQ = q;
-
+  vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
-  vec2 c = floor((q + size * 0.5) / size);
-  float o = neighborGrid(q, vec2(size));
-  d = min(d, o);
+  // float rotI = snoise3(vec3(0.03237 * c, 0.8 * cos(cosT)));
+  float rotI = sin(-0.12 * length(c) + cosT);
 
-  // Mask
-  vec2 absC = abs(c);
-  float maskR = 13.;
-  // float mask = vmax(absC) - maskR;
-  float mask = dot(absC, vec2(1)) - maskR;
-  d = max(d, mask);
+  rotI = mod(floor(8. * rotI), 8.); // 0..7 Starting 0 as vertical
+  bool isVertical = mod(rotI, 4.) == 0.;
+  bool isHorizonal = mod(rotI + 2., 4.) == 0.;
+  bool isOtherDiagonal = mod(rotI + 1., 4.) == 0.;
+
+  // Get stripes
+  vec2 axis = vec2(1);
+  if (isOtherDiagonal) axis = vec2(-1, 1);
+  float i = dot(q, axis);
+  // i *= 0.707107;
+  if (isVertical) i = q.x;
+  if (isHorizonal) i = q.y;
+
+  float n = sin(TWO_PI * 2. * i / size);
+
+  // // Mask
+  // vec2 absC = abs(c);
+  // float maskR = 13.;
+  // // float mask = vmax(absC) - maskR;
+  // float mask = dot(absC, vec2(1)) - maskR;
+  // d = max(d, mask);
 
   float stop = angle3C;
-  d = smoothstep(0.5 * edge + stop, stop, d);
-  color = vec3(d);
+  n = smoothstep(0.5 * edge + stop, stop, n);
+  color = vec3(n);
+
+  // if (rotI == 1.) color = vec3(1,0,0);
+  // if (rotI == 3.) color = vec3(0,1,0);
+  // if (rotI == 5.) color = vec3(0,0,1);
 
   return color.rgb;
 }
