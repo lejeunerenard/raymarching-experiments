@@ -1930,29 +1930,24 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.025;
+const float gSize = 0.0275;
 const float dotR = 0.065 * gSize;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
-  float odd = mod(dot(c, vec2(1)), 2.);
+  float thickness = 0.01 * gSize;
 
-  // Set 1
-  vec2 set1Q = q;
-  set1Q *= rotMat2(odd * 0.5 * PI);
-  float set1 = sdBox(set1Q, vec2(0.03 * gSize, 0.6 * gSize));
+  float t = cosT + 0.025 * dot(c, vec2(1));
+  q += 0.3 * gSize * (0.5 + 0.5 * cos(t)) * snoise2(0.513 * c + 0.1 * gSize * sin(t));
 
-  // Set 2
-  vec2 set2Q = q;
-  set2Q *= rotMat2(mod(c.y, 2.) * 0.5 * PI);
-  float set21 = length(set2Q) - 0.2 * gSize;
-  float set22 = sdBox(set2Q, vec2(0.05 * gSize, 0.3 * gSize));
-  float set2 = odd == 1. ? set21 : set22;
+  vec2 absQ = abs(q);
+  float cross = min(absQ.x, absQ.y) - thickness;
+  d = min(d, cross);
 
-  float t = norT - 0.0125 * dot(c, vec2(1));
-  t = mod(t, 1.);
-  float o = mix(set1, set2, smoothstep(0.2, 0.8, saturate(2. * abs(t - 0.5))));
-  d = min(d, o);
+  // Mask
+  float r = 0.2 * gSize;
+  float mask = sdBox(q, vec2(r));
+  d = max(d, mask);
 
   return d;
 }
@@ -1968,31 +1963,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
   float localCosT = TWO_PI * t;
 
-  // Box times
   float warpScale = 0.35;
   const float size = gSize;
 
   vec2 wQ = q;
-  vec2 c = pMod2(wQ, vec2(size));
   q = wQ;
 
-  // float rotI = snoise3(vec3(0.03237 * c, 0.8 * cos(cosT)));
-  float rotI = sin(-0.12 * length(c) + cosT);
-
-  rotI = mod(floor(8. * rotI), 8.); // 0..7 Starting 0 as vertical
-  bool isVertical = mod(rotI, 4.) == 0.;
-  bool isHorizonal = mod(rotI + 2., 4.) == 0.;
-  bool isOtherDiagonal = mod(rotI + 1., 4.) == 0.;
-
-  // Get stripes
-  vec2 axis = vec2(1);
-  if (isOtherDiagonal) axis = vec2(-1, 1);
-  float i = dot(q, axis);
-  // i *= 0.707107;
-  if (isVertical) i = q.x;
-  if (isHorizonal) i = q.y;
-
-  float n = sin(TWO_PI * 2. * i / size);
+  float n = neighborGrid(q, vec2(size));
 
   // // Mask
   // vec2 absC = abs(c);
@@ -2004,10 +1981,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float stop = angle3C;
   n = smoothstep(0.5 * edge + stop, stop, n);
   color = vec3(n);
-
-  // if (rotI == 1.) color = vec3(1,0,0);
-  // if (rotI == 3.) color = vec3(0,1,0);
-  // if (rotI == 5.) color = vec3(0,0,1);
 
   return color.rgb;
 }
