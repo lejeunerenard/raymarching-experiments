@@ -1930,24 +1930,25 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.0275;
-const float dotR = 0.065 * gSize;
+const float gSize = 0.05;
+float dotR = 0.005 * gSize;
+mat2 gridRot = mat2(1, 0, 0, 1);
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
-  float thickness = 0.01 * gSize;
+  vec2 heartC = c;
+  heartC *= rotMat2(-0.25 * PI);
+  heartC.x = abs(heartC.x);
+  float dI = sdLine(heartC * gSize, vec2(0.175, 0.2), vec2(0, -0.2));
 
-  float t = cosT + 0.025 * dot(c, vec2(1));
-  q += 0.3 * gSize * (0.5 + 0.5 * cos(t)) * snoise2(0.513 * c + 0.1 * gSize * sin(t));
+  float iT = (0.5 + 0.5 * sin(TWO_PI * dI - cosT));
+  dotR += 0.4 * gSize * iT;
 
-  vec2 absQ = abs(q);
-  float cross = min(absQ.x, absQ.y) - thickness;
-  d = min(d, cross);
+  q += 0.04 * gSize * iT * snoise2(c);
 
-  // Mask
-  float r = 0.2 * gSize;
-  float mask = sdBox(q, vec2(r));
-  d = max(d, mask);
+  float r = dotR;
+  float o = length(q) - r;
+  d = min(d, o);
 
   return d;
 }
@@ -1969,18 +1970,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
   q = wQ;
 
-  float n = neighborGrid(q, vec2(size));
+  q *= rotMat2(0.25 * PI);
 
-  // // Mask
-  // vec2 absC = abs(c);
-  // float maskR = 13.;
-  // // float mask = vmax(absC) - maskR;
-  // float mask = dot(absC, vec2(1)) - maskR;
-  // d = max(d, mask);
+  // float n = neighborGrid(q, vec2(size));
+  vec2 c = pMod2(q, vec2(size));
+  float n = shape(q, c);
 
   float stop = angle3C;
   n = smoothstep(0.5 * edge + stop, stop, n);
-  color = vec3(n);
+  // color = vec3(n);
+  color = mix(#F09897, #5C0706, n);
 
   return color.rgb;
 }
