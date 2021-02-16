@@ -45,13 +45,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -2.695,
-        y: -3.963,
-        z: 5
+        x: 1.331,
+        y: -0.764,
+        z: -1.095
       },
       d: 0.04,
-      scale: 3.9691,
-      rot2angle: [2.77, 2.73, 2.214],
+      scale: 1.3625,
+      rot2angle: [3.077, 2.246, 2.038],
       cameraAngles: [-0.663, 0.032, 0.009]
     }
 
@@ -73,11 +73,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.1795
+    this.angle1C = 3.077
     this.angle2C = 0.356
     this.angle3C = 0
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -190,11 +190,11 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([2.755, 2.733, 2.248], 5 * 1000)
+      .to([...this.rot2angle], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([2.734, 2.695, 2.212], 5 * 1000)
+      .to([2.638, this.rot2angle[1], this.rot2angle[2]], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween3 = new TWEEN.Tween(this.rot2angle)
     rotTween3
@@ -226,17 +226,22 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([ 0.672, this.offset[1], this.offset[2] ], 30 * 1000)
+      .to([ 4.5, this.offset[1], this.offset[2] ], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let offsetTween2 = new TWEEN.Tween(this.offset)
     offsetTween2
-      .to([ ...this.offset ], 30 * 1000)
+      .to([ 1.993, this.offset[1], -0.654 ], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let offsetTween3 = new TWEEN.Tween(this.offset)
+    offsetTween3
+      .to([ ...this.offset ], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     offsetTween1.chain(offsetTween2)
-    offsetTween2.chain(offsetTween1)
+    offsetTween2.chain(offsetTween3)
+    offsetTween3.chain(offsetTween1)
 
-    // offsetTween1.start(0)
+    offsetTween1.start(0)
 
     // Angle1C Tween
     let angle1CTween1 = new TWEEN.Tween(this)

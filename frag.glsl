@@ -1967,19 +1967,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.35;
   const float size = gSize;
 
-  vec2 wQ = q;
-  q = wQ;
+  q *= angle1C;
+  vec3 wQ = vec3(q, 0.);
 
-  q *= rotMat2(0.25 * PI);
+  float r = 0.4;
+  float thickness = 0.0125;
 
-  // float n = neighborGrid(q, vec2(size));
-  vec2 c = pMod2(q, vec2(size));
-  float n = shape(q, c);
+  for (int i = 0; i < 6; i++) {
+    wQ = abs(wQ);
 
+    wQ = (vec4(wQ, 1.) * kifsM).xyz;
+
+    if (i > 1) {
+      float c = length(wQ.xy) - r;
+      c = abs(c) - thickness;
+      d = min(d, c);
+    }
+  }
+
+  // q = wQ;
+
+  float n = d;
   float stop = angle3C;
   n = smoothstep(0.5 * edge + stop, stop, n);
-  // color = vec3(n);
-  color = mix(#F09897, #5C0706, n);
+  color = vec3(n);
+  // color = mix(#F09897, #5C0706, n);
 
   return color.rgb;
 }

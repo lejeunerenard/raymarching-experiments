@@ -6,7 +6,7 @@ import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 4
+const secondsLong = 30
 const capturing = false
 
 let app = new App()
@@ -114,8 +114,8 @@ if (capturing) {
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
 
   let angleCF = gui.addFolder('Angle Coefficients')
-  angleCF.add(app, 'angle1C', -2, 2).step(0.00001).listen()
-  angleCF.add(app, 'angle2C', -2, 2).step(0.001).listen()
+  angleCF.add(app, 'angle1C', -5, 5).step(0.00001).listen()
+  angleCF.add(app, 'angle2C', -5, 5).step(0.001).listen()
   angleCF.add(app, 'angle3C', -2, 2).step(0.001).listen()
 
   let rotationF = gui.addFolder('Rotation')
