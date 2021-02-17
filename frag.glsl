@@ -61,7 +61,7 @@ vec3 dNor = vec3(0.0);
 const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: import(./time)
 const float edge = 0.0025;
-const float thickness = 0.05;
+const float thickness = 0.01;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1930,30 +1930,22 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.05;
-float dotR = 0.005 * gSize;
-mat2 gridRot = mat2(1, 0, 0, 1);
+const float gSize = 0.10;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
-  vec2 heartC = c;
-  heartC *= rotMat2(-0.25 * PI);
-  heartC.x = abs(heartC.x);
-  float dI = sdLine(heartC * gSize, vec2(0.175, 0.2), vec2(0, -0.2));
-
-  float iT = (0.5 + 0.5 * sin(TWO_PI * dI - cosT));
-  dotR += 0.4 * gSize * iT;
-
-  q += 0.04 * gSize * iT * snoise2(c);
-
-  float r = dotR;
-  float o = length(q) - r;
+  float dC = dot(c, vec2(1));
+  // float t = (0.5 + 0.5 * cos(cosT + dC));
+  float t = norT + 0.2 * sin(cosT + angle1C * c.y);
+  q.x += 2. * gSize * t;
+  float o = sdBox(q, 0.5 * vec2(gSize, 0.25 * gSize) - 0.0025);
+  o += maxDistance * mod(dC, 2.);
   d = min(d, o);
 
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -1967,27 +1959,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.35;
   const float size = gSize;
 
-  q *= angle1C;
-  vec3 wQ = vec3(q, 0.);
+  vec2 wQ = q;
+  q = wQ;
 
-  float r = 0.4;
-  float thickness = 0.0125;
+  q *= rotMat2(-0.25 * PI);
+  float n = neighborGrid(q, vec2(size, 0.25 * size));
 
-  for (int i = 0; i < 6; i++) {
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1.) * kifsM).xyz;
-
-    if (i > 1) {
-      float c = length(wQ.xy) - r;
-      c = abs(c) - thickness;
-      d = min(d, c);
-    }
-  }
-
-  // q = wQ;
-
-  float n = d;
   float stop = angle3C;
   n = smoothstep(0.5 * edge + stop, stop, n);
   color = vec3(n);
