@@ -1,5 +1,5 @@
 // Needs:
-// - map(vec2 pos, vec2 size)
+// - map(vec2 pos, vec2 id)
 // - float numberOfNeighbors
 // - float maxDistance
 

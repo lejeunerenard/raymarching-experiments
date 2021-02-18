@@ -1930,22 +1930,82 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.10;
-float shape (in vec2 q, in vec2 c) {
-  float d = maxDistance;
-
-  float dC = dot(c, vec2(1));
-  // float t = (0.5 + 0.5 * cos(cosT + dC));
-  float t = norT + 0.2 * sin(cosT + angle1C * c.y);
-  q.x += 2. * gSize * t;
-  float o = sdBox(q, 0.5 * vec2(gSize, 0.25 * gSize) - 0.0025);
-  o += maxDistance * mod(dC, 2.);
-  d = min(d, o);
-
-  return d;
+float range (in float start, in float stop, in float t) {
+  return saturate((t - start) / (stop - start));
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
+const float gSize = 0.25;
+float shape (in vec2 q, in vec2 c) {
+  float n = 1.;
+
+  float odd = mod(dot(c, vec2(1)), 2.);
+  float even = 1. - odd;
+
+  float maxC = vmax(c);
+  vec2 threeGridID = vec2(floor((c + 1.5) / 3.));
+  float threeGridEven = mod(dot(threeGridID, vec2(1)), 2.);
+  float isErased = threeGridEven;
+
+  float size = gSize * 0.3333;
+
+  float r = 0.5 * size;
+
+  float t = norT;
+  float growStop = 0.5;
+  float layeringT = range(0., growStop, t);
+  float growT = range(growStop, 1., t);
+  float eraseT = range(0., 0.5, t);
+
+  float centerSize = mix(r, size * 0.5 * 3., layeringT);
+  float overlapSize = mix(r, size * 0.5 * 2., layeringT);
+  float leftOverSize = r;
+  float eraseCornersR = mix(r, 0.75 * size, eraseT);
+
+  vec2 overlapOff = mix(vec2(0), 0.5 * vec2( size,-size), layeringT);
+  vec2 eraseCorners = isErased * mix(vec2(0), 0.25 * vec2( size, size), eraseT);
+
+  if (isErased == 1.) {
+    overlapOff = vec2(0.);
+    overlapSize = eraseCornersR;
+    leftOverSize = eraseCornersR;
+  }
+
+  // float leftOverSize = mix(r, 0., growT);
+  // vec2 leftOverOff = mix(vec2(0), 0.5 * vec2( size, size), growT);
+
+  // Center
+  float o = sdBox(q, vec2(centerSize));
+  n = mix(n, 1. - n, step(0., o));
+
+  // Top Right
+  o = sdBox(q - vec2( size, size) + eraseCorners, vec2(leftOverSize));
+  n = mix(n, 1. - n, step(0., o));
+
+  // Top Left
+  o = sdBox(q - vec2(-size, size) - overlapOff - vec2(1, -1) * eraseCorners, vec2(overlapSize));
+  n = mix(n, 1. - n, step(0., o));
+
+  // Bottom Right
+  o = sdBox(q - vec2( size, -size) + overlapOff - vec2(-1, 1) * eraseCorners, vec2(overlapSize));
+  n = mix(n, 1. - n, step(0., o));
+
+  // Bottom Left
+  o = sdBox(q - vec2(-size, -size) - eraseCorners, vec2(leftOverSize));
+  n = mix(n, 1. - n, step(0., o));
+
+  if (t >= growStop && isErased == 0.) {
+    float growR = mix(r, size * 0.5 * 3., growT);
+    float o = sdBox(q, vec2(growR));
+    n = 1. - step(0., o);
+  }
+
+  // Initial Masking
+  n *= even;
+
+  return n;
+}
+
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -1962,11 +2022,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
   q = wQ;
 
-  q *= rotMat2(-0.25 * PI);
-  float n = neighborGrid(q, vec2(size, 0.25 * size));
+  q *= 1. + 2. * norT;
+
+  vec2 c = pMod2(q, vec2(size));
+
+  float n = shape(q, c);
 
   float stop = angle3C;
-  n = smoothstep(0.5 * edge + stop, stop, n);
+  n = smoothstep(stop, 0.5 * edge + stop, n);
   color = vec3(n);
   // color = mix(#F09897, #5C0706, n);
 
