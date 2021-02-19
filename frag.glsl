@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -68,6 +68,10 @@ const float thickness = 0.01;
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
+
+float range (in float start, in float stop, in float t) {
+  return saturate((t - start) / (stop - start));
+}
 
 // Math
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
@@ -955,7 +959,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
   vec4 z = vec4(q, 0.);
 
-  const float size = 0.4;
+  const float size = 0.1 * TWO_PI;
+  const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
   float warpScale = 0.20;
@@ -964,26 +969,40 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
+  float scale = (1. - 0.9 * range(-0.0, 1.0, pow(wQ.z, 1.5)));
+
   // To polar coordinates
   wQ = vec3(
-      atan(wQ.z, wQ.x),
-      wQ.y,
-      length(wQ.xz));
+      atan(wQ.y, wQ.x),
+      scale * length(wQ.xy),
+      wQ.z);
 
-  float c = floor((wQ.z + 0.5 * size)/size);
-  wQ.z = opRepLim(wQ.z, size, 8.);
-
-  wQ.y += 0.2 * sin(-cosT + 0.4 * c);
+  wQ.z += 2. * modSize.y * norT; // Push things down
 
   q = wQ.xyz;
   // z = wQ;
 
-  vec3 o = vec3(sdBox(q, vec3(TWO_PI, 0.125, 0.475 * size)), 0, 0);
-  o.x -= 0.005 * cellular(2. * q);
+  float r = 0.2;
+  float tunnelThickness = 0.01;
+  vec3 o = vec3(sdBox(q - vec3(0, r, 0), vec3(TWO_PI, tunnelThickness, 10.)), 0, 0);
   mPos = q.xyz;
   d = dMin(d, o);
 
-  d.x *= 0.5;
+	vec2 c = floor((q.xz + modSize*0.5)/modSize);
+  q.x += 0.5 * modSize.x * mod(c.y, 2.);
+  pMod2(q.xz, modSize);
+  vec3 boxR = vec3(0.4 * modSize.x, 0.0125, 0.4 * modSize.y);
+
+  vec3 b = vec3(
+      sdBox(q
+        - vec3(0, r - tunnelThickness - 2. * boxR.y, 0),
+      boxR), 0, 0);
+  b.x += 0.001 * cellular(2. * q);
+
+  d = dMin(d, b);
+
+  // d.x /= scale;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1199,7 +1218,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(0.05);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1299,8 +1319,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.75;
+      float freCo = 0.5;
+      float specCo = 0.85;
 
       float specAll = 0.0;
 
@@ -1308,12 +1328,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.3;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1349,7 +1369,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      reflectColor += 0.20 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1362,7 +1382,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.00);
+      float dispersionI = 4. * pow(1. - dot(nor, -rayDirection), 3.00);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -1930,10 +1950,6 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-float range (in float start, in float stop, in float t) {
-  return saturate((t - start) / (stop - start));
-}
-
 const float gSize = 0.25;
 float shape (in vec2 q, in vec2 c) {
   float n = 1.;
@@ -2064,7 +2080,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
