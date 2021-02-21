@@ -2025,16 +2025,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
   q = wQ;
 
-  q *= 1. + 2. * norT;
+  vec2 axis = vec2(1);
+  vec2 lineDirection = vec2(1, -1) * axis;
+  float lineT = dot(q, lineDirection);
+  float triangleAmount = 0.5 + 0.5 * cos(cosT + lineT);
+  q += triangleAmount * 0.15 * size * triangleWave(18. * lineT);
 
-  vec2 c = pMod2(q, vec2(size));
-
-  float n = shape(q, c);
+  float n = dot(q, axis);
+  n = sin(10. * TWO_PI * n);
 
   float stop = angle3C;
   n = smoothstep(stop, 0.5 * edge + stop, n);
   color = vec3(n);
-  // color = mix(#F09897, #5C0706, n);
 
   return color.rgb;
 }
@@ -2067,7 +2069,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
