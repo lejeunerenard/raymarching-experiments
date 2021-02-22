@@ -21,9 +21,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 2
+const BLOOM_PASSES = 4
 const BLOOM_WET = 1
-const BLOOM_MIN_BRIGHTNESS = 1
+const BLOOM_MIN_BRIGHTNESS = 0.8
 
 // Initialize shell
 export default class App {
@@ -75,7 +75,7 @@ export default class App {
 
     this.angle1C = 0.5591
     this.angle2C = 0.356
-    this.angle3C = 0.93
+    this.angle3C = 0.65
 
     this.setupAnimation(preset)
 
