@@ -1937,29 +1937,31 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const float gSize = 0.0175;
+const vec2 gSize = vec2(0.025, 0.0125);
 float shape (in vec2 q, in vec2 c) {
   float n = maxDistance;
 
   float odd = mod(dot(c, vec2(1)), 2.);
   float even = 1. - odd;
 
-  float size = gSize;
+  float size = gSize.y;
 
   float r = 0.1 * size;
 
   float t = norT;
 
-  const float warpScale = 5.;
+  float warpScale = 0.6 + 0.4 * sin(cosT + dot(c, vec2(0, 0.1)));
+  warpScale *= 4.;
 
   vec2 miniC = 0.05 * c;
-  q += size * warpScale * 0.10000 * cos( 2. * miniC.yx + cosT - 0.5 * length(c));
+  q += size * warpScale * 0.10000 * cos( 2. * miniC.yx + cosT);
   q += size * warpScale * 0.05000 * cos( 8. * miniC.yx + cosT);
-  q += size * warpScale * 0.20000 * snoise2(3. * miniC.yx);
+  q += size * warpScale * 0.20000 * snoise2(1.25 * vec2(1.25, 2.) * miniC.yx);
   q += size * warpScale * 0.02500 * cos(13. * miniC.yx + cosT);
   q += size * warpScale * 0.01250 * cos(21. * miniC.yx + cosT);
 
-  float d = length(q) - r;
+  // float d = length(q) - r;
+  float d = sdBox(q, vec2(r));
   n = min(n, d);
 
   return n;
@@ -1977,12 +1979,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float localCosT = TWO_PI * t;
 
   float warpScale = 0.35;
-  const float size = gSize;
+  const vec2 size = gSize;
 
   vec2 wQ = q;
   q = wQ;
 
-  float n = neighborGrid(q, vec2(size));
+  float n = neighborGrid(q, size);
 
   float stop = angle3C;
   n = smoothstep(stop, 0.5 * edge + stop, n);
