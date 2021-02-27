@@ -1942,7 +1942,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.1);
+const vec2 gSize = vec2(0.040);
 float shape (in vec2 q, in vec2 c) {
   float n = maxDistance;
 
@@ -1985,33 +1985,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float warpScale = 0.35;
   const vec2 size = gSize;
-  float r = 0.1 * size.x;
+  float r = 0.10 * size.x;
 
   vec2 wQ = q;
+  wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
   vec2 c = pMod2(q, vec2(size));
 
-  t -= 0.05 * length(c);
+  // t -= 0.05 * length(c);
+  t -= 0.05 * c.x + 0.0125 * c.y;
   t = mod(t, 1.);
-  float step1 = range(0.0, 0.2, t);
-  float step2 = range(0.2, 0.4, t);
-  float step3 = range(0.4, 0.6, t);
-  float step4 = range(0.6, 0.8, t);
-  float step5 = range(0.8, 1.0, t);
+  float step1 = range(0.0, 0.4, t);
+  float step2 = range(0.4, 1.0, t);
 
   // float rotAngle = cosT;
   // rotAngle -= length(c);
   // q *= rotMat2(rotAngle);
 
   // Bounce around
-  vec2 pos = vec2(0);
   float bounceR = 0.5 * size.x - r - 1.65 * edge;
-  pos = mix(pos, vec2( bounceR,        0), bounceOut(step1));
-  pos = mix(pos, vec2(       0, -bounceR), bounceOut(step2));
-  pos = mix(pos, vec2(-bounceR,        0), bounceOut(step3));
-  pos = mix(pos, vec2(       0,  bounceR), bounceOut(step4));
-  pos = mix(pos, vec2(       0,        0), bounceOut(step5));
+  vec2 pos = vec2(0, bounceR);
+  pos = mix(pos, vec2(       0,        0), expo(step1));
+  pos = mix(pos, vec2(       0,        bounceR), bounceOut(step2));
 
   vec2 bounceQ = q + pos;
 
@@ -2021,12 +2017,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float stop = angle3C;
   n = smoothstep(stop, edge + stop, n);
+  n = 1. - n;
   color = vec3(n);
-  if (c == vec2(0)) {
-    color = mix(vec3(0.8,0,0), vec3(1), n);
-  }
 
-  color *= 1. - step(0., vmax(abs(q)) - 0.475 * size.x);
+  // color *= 1. - step(0., vmax(abs(q)) - 0.475 * size.x);
 
   return color.rgb;
 }
