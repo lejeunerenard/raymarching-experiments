@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 2024
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -963,25 +963,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
-  float warpScale = 3.0;
+  float warpScale = 2.5;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  wQ += warpScale * 0.1000000 * cos( 2.43 * wQ.yzx + cosT );
+  wQ += warpScale * 0.1000000 * cos( 5.43 * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + cosT );
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ += warpScale * 0.0125000 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0062500 * cos(21. * wQ.yzx + cosT );
 
   q = wQ.xyz;
   // z = wQ;
 
   float r = 0.7;
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.125;
+  d.x *= 0.0625;
 
   return d;
 }
@@ -1360,7 +1363,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 4. * pow(1. - dot(nor, -rayDirection), 1.00);
+      float dispersionI = 4. * pow(1. - dot(nor, -rayDirection), 1.250);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
