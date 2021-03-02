@@ -1931,7 +1931,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.040);
+const vec2 gSize = vec2(0.020);
 float shape (in vec2 q, in vec2 c) {
   float n = maxDistance;
 
@@ -1944,24 +1944,18 @@ float shape (in vec2 q, in vec2 c) {
 
   float t = norT;
 
-  float warpScale = 0.6 + 0.4 * sin(cosT + dot(c, vec2(0, 0.1)));
-  warpScale *= 4.;
+  // q += 2. * size * normalize(c) * (1. - 0.4 * cos(cosT - 0.75 * length(c)));
+  q += 0.75 * size * normalize(c) * cos(cosT - 0.75 * length(c));
 
-  vec2 miniC = 0.05 * c;
-  q += size * warpScale * 0.10000 * cos( 2. * miniC.yx + cosT);
-  q += size * warpScale * 0.05000 * cos( 8. * miniC.yx + cosT);
-  q += size * warpScale * 0.20000 * snoise2(1.25 * vec2(1.25, 2.) * miniC.yx);
-  q += size * warpScale * 0.02500 * cos(13. * miniC.yx + cosT);
-  q += size * warpScale * 0.01250 * cos(21. * miniC.yx + cosT);
-
-  // float d = length(q) - r;
   float d = sdBox(q, vec2(r));
   n = min(n, d);
+
+  n = mix(n, maxDistance, step(0., vmax(abs(c)) - 15.));
 
   return n;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -1980,29 +1974,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
-  vec2 c = pMod2(q, vec2(size));
-
-  // t -= 0.05 * length(c);
-  t -= 0.05 * c.x + 0.0125 * c.y;
-  t = mod(t, 1.);
-  float step1 = range(0.0, 0.4, t);
-  float step2 = range(0.4, 1.0, t);
-
-  // float rotAngle = cosT;
-  // rotAngle -= length(c);
-  // q *= rotMat2(rotAngle);
-
-  // Bounce around
-  float bounceR = 0.5 * size.x - r - 1.65 * edge;
-  vec2 pos = vec2(0, bounceR);
-  pos = mix(pos, vec2(       0,        0), expo(step1));
-  pos = mix(pos, vec2(       0,        bounceR), bounceOut(step2));
-
-  vec2 bounceQ = q + pos;
-
-  // float n = dot(q, vec2(50));
-  // n = sin(TWO_PI * n);
-  float n = length(bounceQ) - r;
+  float n = neighborGrid(q, vec2(size));
 
   float stop = angle3C;
   n = smoothstep(stop, edge + stop, n);
@@ -2042,7 +2014,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
