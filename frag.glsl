@@ -984,12 +984,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   // z = wQ;
 
-  float r = 0.7;
-  vec3 o = vec3(length(q) - r, 0, 0);
+  const float baseR = 0.7;
+  float r = baseR + 0.1 * sin(TWO_PI * 1. * dot(q, vec3(1)));
+  // vec3 o = vec3(length(q) - r, 0, 0);
   // vec3 o = vec3(sdCappedCylinder(q, vec2(r, 1.2)), 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.75;
+  // q = p;
+  float crop = length(q) - baseR * 1.15;
+  d.x = max(d.x, crop);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -1218,11 +1224,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   vec3 layerColor= 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (color + 1. * dI + vec3(0,-0.412, 0.1))));
+  // layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (color + 1. * dI + vec3(0,-0.412, 0.1))));
 
   color = layerColor;
 
-  color *= 0.75;
+  // color *= 0.75;
 
   gM = m;
 
