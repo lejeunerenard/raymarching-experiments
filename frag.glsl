@@ -963,7 +963,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
-  float warpScale = 0.4;
+  float warpScale = 0.1;
 
   // Warp
   vec3 wQ = q;
@@ -972,7 +972,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ *= rotationMatrix(vec3(0, 1, 0), cosT);
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yxz + cosT);
 
-  float twistR = 0.2;
+  float twistR = 0.05;
   wQ.x += twistR;
   wQ.xzy = twist(wQ.xyz, 2. *wQ.y);
   wQ.x -= twistR;
@@ -984,16 +984,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   // z = wQ;
 
-  const float baseR = 0.7;
-  float r = baseR + 0.1 * sin(TWO_PI * 1. * dot(q, vec3(1)));
+  const float baseR = 0.6;
+  float r = baseR + 0.025 * sin(TWO_PI * 1. * dot(q, vec3(1)));
   // vec3 o = vec3(length(q) - r, 0, 0);
   // vec3 o = vec3(sdCappedCylinder(q, vec2(r, 1.2)), 0, 0);
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(octahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   // q = p;
-  float crop = length(q) - baseR * 1.15;
-  d.x = max(d.x, crop);
+  // float crop = length(q) - baseR * 1.15;
+  // d.x = max(d.x, crop);
 
   d.x *= 0.5;
 
@@ -1375,7 +1376,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2. * pow(1. - dot(nor, -rayDirection), 0.95);
+      float dispersionI = 3. * pow(1. - dot(nor, -rayDirection), 1.5);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
