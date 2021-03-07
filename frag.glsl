@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 2024
 #define maxDistance 10.0
-#define fogMaxDistance 3.25
+#define fogMaxDistance 8.0
 
 #define slowTime time * 0.2
 // v3
@@ -975,24 +975,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  vec3 c = floor((wQ + 0.5 * size) / size);
+  // wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
 
-  float step1T = range(0.10, 0.33, t);
-  float step2T = range(0.43, 0.66, t);
-  float step3T = range(0.76, 1.00, t);
+  float sinSize = 0.5;
+  vec3 c = floor((wQ + 0.5 * sinSize) / sinSize);
 
-  wQ.zyx = rotPlane(wQ.zyx, c.z, bounceOut(step3T));
-  wQ.yxz = rotPlane(wQ.yxz, c.y, bounceOut(step2T));
-  wQ = rotPlane(wQ.xyz, c.x, bounceOut(step1T));
+  wQ.y += 2. * mod(c.x, 2.) * sinSize * norT;
 
-  wQ = opRepLim(wQ, size, vec3(1));
+  c = floor((wQ + 0.5 * sinSize) / sinSize);
+  wQ.xy = sin(TWO_PI * wQ.xy) / TWO_PI;
+  // wQ = opRepLim(wQ, size, vec3(1));
 
   q = wQ.xyz;
   // z = wQ;
 
   mPos = q;
   float r = size * 0.3;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), mod(dot(c.xy, vec2(1)), 2.), 0);
   // vec3 o = vec3(octahedral(q, 52., 2.0 * r), 0, 0);
   d = dMin(d, o);
 
@@ -1229,6 +1230,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = layerColor;
 
+  color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
+
   // color *= 0.75;
 
   gM = m;
@@ -1322,12 +1325,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.4;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1373,10 +1376,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2. * pow(1. - dot(nor, -rayDirection), 1.5);
+      float dispersionI = 2.5 * pow(1. - dot(nor, -rayDirection), 1.5);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
