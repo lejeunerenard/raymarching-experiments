@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -62,6 +62,11 @@ const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: import(./time)
 const float edge = 0.0025;
 const float thickness = 0.01;
+
+// Dispersion parameters
+float n1 = 1.;
+float n2 = angle3C;
+const float amount = 0.25;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -969,32 +974,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
-  float warpScale = 1.0;
+  float warpScale = 0.6;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  // wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
-
-  float sinSize = 0.5;
-  vec3 c = floor((wQ + 0.5 * sinSize) / sinSize);
-
-  wQ.y += 2. * mod(c.x, 2.) * sinSize * norT;
-
-  c = floor((wQ + 0.5 * sinSize) / sinSize);
-  wQ.xy = sin(TWO_PI * wQ.xy) / TWO_PI;
-  // wQ = opRepLim(wQ, size, vec3(1));
+  wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 0.5 * PI * cos(wQ.y + cosT - 2.0 * length(wQ)));
+  wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
 
   q = wQ.xyz;
   // z = wQ;
 
   mPos = q;
-  float r = size * 0.3;
-  vec3 o = vec3(sdBox(q, vec3(r)), mod(dot(c.xy, vec2(1)), 2.), 0);
-  // vec3 o = vec3(octahedral(q, 52., 2.0 * r), 0, 0);
+  float r = 0.5;
+  // n2 = 0.75 + saturate(cnoise3(0.1 * q));
+  n2 = 0.5174 + 0.517 * saturate(vfbmWarp(angle3C * q));
+
+  vec3 o = vec3(length(q) - r, 0, 0);
+  // vec3 o = vec3(octahedral(q, 52., r), 0, 0);
+  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.5;
@@ -1085,10 +1086,6 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: rgb2hsv = require(./rgb2hsv.glsl)
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
-
-float n1 = 1.;
-float n2 = angle3C;
-const float amount = 0.25;
 
 float gM = 0.;
 vec3 textures (in vec3 rd) {
@@ -1226,11 +1223,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   vec3 layerColor= 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  layerColor += 1.0 * (0.5 + 0.5 * cos(TWO_PI * (color + 1. * dI + vec3(0,-0.412, 0.1))));
+  layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (color + 1. * dI + vec3(0,-0.412, 0.1))));
 
   color = layerColor;
 
-  color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
+  // color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
 
   // color *= 0.75;
 
@@ -1317,7 +1314,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.80;
-      float specCo = 0.90;
+      float specCo = 0.50;
 
       float specAll = 0.0;
 
@@ -1379,7 +1376,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.5 * pow(1. - dot(nor, -rayDirection), 1.5);
+      float dispersionI = 1.; // 2.5 * pow(1. - dot(nor, -rayDirection), 1.0);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
