@@ -965,7 +965,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
   vec4 z = vec4(q, 0.);
@@ -974,14 +974,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
-  float warpScale = 0.6;
+  float warpScale = 0.2;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
   wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 0.5 * PI * cos(wQ.y + cosT - 2.0 * length(wQ)));
+  wQ.xzy = twist(wQ.xyz, 0.25 * PI * cos(-4. * wQ.y + cosT - 2.0 * length(wQ) + 0.5 * PI));
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
 
@@ -990,15 +990,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
   float r = 0.5;
-  // n2 = 0.75 + saturate(cnoise3(0.1 * q));
-  n2 = 0.5174 + 0.517 * saturate(vfbmWarp(angle3C * q));
 
   vec3 o = vec3(length(q) - r, 0, 0);
   // vec3 o = vec3(octahedral(q, 52., r), 0, 0);
   // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  // Crop
+  // q = p;
+  // float crop = icosahedral(q, 52., 0.3 * r);
+  // float crop = sdBox(q, vec3(0.3 * r));
+  // float crop = 0.1 * cellular(0.8 * q);
+  float crop = cnoise3(1.5 * q + 1.415);
+  d.x = max(d.x, -crop);
+
+  d.x += 0.025000 * cellular(3. * q);
+
+  d.x *= 0.125;
 
   return d;
 }
@@ -1313,7 +1321,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.80;
+      float freCo = 1.00;
       float specCo = 0.50;
 
       float specAll = 0.0;
@@ -1327,7 +1335,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.4;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
