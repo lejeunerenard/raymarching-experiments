@@ -85,7 +85,7 @@ void main() {
   // Post process
   vec3 colorBefore = gl_FragColor.rgb;
   colorMap(gl_FragColor.rgb);
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.6);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.5);
 
   // gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.1));
 

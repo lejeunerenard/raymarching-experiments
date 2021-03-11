@@ -974,15 +974,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
-  float warpScale = 2.0;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
-  // wQ.x = abs(wQ.x);
   wQ += warpScale * 0.1000 * cos( 4. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 0.25 * PI * cos(-4. * wQ.y + cosT - 2.0 * length(wQ) + 0.5 * PI));
+  wQ.xzy = twist(wQ.xyz, 0.5 * PI * cos(-4. * wQ.y + cosT - 2.0 * length(wQ) + 0.5 * PI));
   wQ += warpScale * 0.0500 * cos(11. * wQ.yzx + cosT );
   wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + cosT );
 
@@ -990,29 +989,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // z = wQ;
 
   mPos = q;
-  float r = 0.5; // + 0.2 * snoise3(vec3(1, 0.5 + 0.5 * sin(q.xy)) * q);
+  float r = 0.25;
 
-  // float n = 3.;
-  // float lnD = dot(pow(q, vec3(n)), vec3(1));
-  // lnD = pow(lnD, 1. / n);
-
-  // vec3 o = vec3(lnD - r, 0, 0);
-  vec3 o = vec3(length(q) - r, 0, 0);
+  q.y += r * 0.75 * cos(cosT + 0.2523);
+  // vec3 o = vec3(length(q) - r, 0, 0);
   // vec3 o = vec3(octahedral(q, 52., r), 0, 0);
-  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(sdCapsule(q, vec3(0, 2. * r, 0), vec3(0, -2. * r, 0), r), 0, 0);
   d = dMin(d, o);
-
-  // Crop
-  // q = p;
-  // float crop = icosahedral(q, 52., 0.3 * r);
-  // float crop = sdBox(q, vec3(0.3 * r));
-  // float crop = 0.1 * cellular(0.8 * q);
-  float crop = cnoise3(1.5 * q + 1.415);
-  d.x = max(d.x, crop);
 
   // d.x += 0.025000 * cellular(3. * q);
 
-  d.x *= 0.0125;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1328,8 +1315,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.80;
-      float specCo = 0.50;
+      float freCo = 1.00;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
@@ -1342,7 +1329,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1378,7 +1365,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      reflectColor += 0.1  * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
