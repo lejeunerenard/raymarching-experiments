@@ -13,8 +13,8 @@
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
 // #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
-#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
 vec3 nsin (in vec3 t) {
