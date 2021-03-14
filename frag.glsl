@@ -1959,12 +1959,15 @@ float shape (in vec2 q, in vec2 c) {
   float t = norT;
 
   // q += 2. * size * normalize(c) * (1. - 0.4 * cos(cosT - 0.75 * length(c)));
-  q += 0.75 * size * normalize(c) * cos(cosT - 0.75 * length(c));
+  // q += 0.75 * size * normalize(c) * cos(cosT - 0.75 * length(c));
+  q -= 0.4 * size;
+  q *= rotMat2(cosT - 0.75 * length(c));
+  q += 0.4 * size;
 
-  float d = sdBox(q, vec2(r));
+  float d = length(q) - r;
   n = min(n, d);
 
-  n = mix(n, maxDistance, step(0., vmax(abs(c)) - 15.));
+  n = mix(n, maxDistance, step(0., vmax(abs(c)) - 20.));
 
   return n;
 }
@@ -1985,7 +1988,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10 * size.x;
 
   vec2 wQ = q;
-  wQ *= rotMat2(0.25 * PI);
+  // wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
   float n = neighborGrid(q, vec2(size));
@@ -2028,7 +2031,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
