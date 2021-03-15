@@ -1945,9 +1945,9 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.020);
+const vec2 gSize = vec2(0.1);
 float shape (in vec2 q, in vec2 c) {
-  float n = maxDistance;
+  float d = maxDistance;
 
   float odd = mod(dot(c, vec2(1)), 2.);
   float even = 1. - odd;
@@ -1958,21 +1958,40 @@ float shape (in vec2 q, in vec2 c) {
 
   float t = norT;
 
-  // q += 2. * size * normalize(c) * (1. - 0.4 * cos(cosT - 0.75 * length(c)));
-  // q += 0.75 * size * normalize(c) * cos(cosT - 0.75 * length(c));
-  q -= 0.4 * size;
-  q *= rotMat2(cosT - 0.75 * length(c));
-  q += 0.4 * size;
+  // q = abs(q);
 
-  float d = length(q) - r;
-  n = min(n, d);
+  vec2 oQ1 = q;
+  float offsetScale = 0.4;
+  oQ1 *= rotMat2(cosT - 0.4 * length(c));
+  oQ1 += offsetScale * size;
 
-  n = mix(n, maxDistance, step(0., vmax(abs(c)) - 20.));
+  // oQ1 += vec2(-0.1025, 0.089) * size;
 
-  return n;
+  float internalD = length(oQ1);
+  // internalD = mix(internalD, vmax(abs(oQ1)), 0.5 + 0.5 * cos(cosT + 0.1 * dot(c, vec2(1))));
+
+  // float o = abs(length(oQ1) - 0.3 * size);
+  // d = min(d, o);
+
+  float o = abs(internalD - 0.3 * size);
+  d = min(d, o);
+
+  // vec2 oQ2 = q;
+  // // oQ2 -= 0.4 * size;
+  // // oQ2 *= rotMat2(cosT - 0.75 * dot(c, vec2(1)));
+  // // oQ2 += 0.4 * size;
+  // oQ2 += 0.25 * cos(-0.5 * length(c) + cosT + vec2(0, PI)) * size;
+
+  // o = sdLine(oQ2, vec2(0), vec2(1, 0.5) * size);
+  // d = min(d, o);
+
+  // Mask
+  d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 4.));
+
+  return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=5.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -1988,17 +2007,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10 * size.x;
 
   vec2 wQ = q;
-  // wQ *= rotMat2(0.25 * PI);
+  // vec2 c = pMod2(wQ, vec2(size));
+  // wQ = abs(wQ);
   q = wQ;
 
-  float n = neighborGrid(q, vec2(size));
+  // vec2 oQ1 = q + vec2(-0.1025, 0.089) * size;
+  // float o = abs(length(oQ1) - 0.3 * size.x) - angle3C * size.x;
+  // d = min(d, o);
 
+  // vec2 oQ2 = q + vec2(angle1C, angle2C) * size.x;
+  // o = sdLine(oQ2, vec2(0), vec2(1, 0.5) * size.x);
+  // d = min(d, o);
+
+
+  d = neighborGrid(q, vec2(size));
+
+  float preD = d;
   float stop = angle3C;
-  n = smoothstep(stop, edge + stop, n);
-  n = 1. - n;
-  color = vec3(n);
-
-  // color *= 1. - step(0., vmax(abs(q)) - 0.475 * size.x);
+  d = smoothstep(stop, edge + stop, d);
+  d = 1. - d;
+  // color = vec3(d);
+  float highlightI = step(stop - 0.15 * angle3C, preD);
+  highlightI = 1. - highlightI;
+  color = mix(#5B8DBA, mix(#B37107, #FFAB24, highlightI), d);
 
   return color.rgb;
 }
