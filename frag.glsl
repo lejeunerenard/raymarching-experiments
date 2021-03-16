@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 2024
 #define maxDistance 10.0
-#define fogMaxDistance 3.3
+#define fogMaxDistance 3.5
 
 #define slowTime time * 0.2
 // v3
@@ -974,18 +974,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
 
-  float warpScale = 0.7;
+  float warpScale = 1.0;
 
   // Warp
   vec3 wQ = q;
   // vec4 wQ = z;
 
   wQ += warpScale * 0.100000 * cos( 4. * wQ.yzx );
-  wQ.xzy = twist(wQ.xyz, 0.5 * PI * cos(wQ.y + cosT - 3.0 * length(wQ) + 0.5 * PI));
+  wQ.xzy = twist(wQ.xyz, cosT + 0.5 * PI * cos(wQ.y - 3.0 * length(wQ) + 0.5 * PI));
   wQ += warpScale * 0.050000 * cos(11. * wQ.yzx + cosT );
-  wQ += warpScale * 0.025000 * cos(19. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(23. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(29. * wQ.yzx + cosT );
 
   q = wQ.xyz;
   // z = wQ;
@@ -993,10 +990,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
   float r = 0.5;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
-  // vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 oQ2 = q;
+
+  oQ2 += warpScale * 0.025000 * cos(15. * oQ2.yzx);
+  oQ2 += warpScale * 0.012500 * cos(17. * oQ2.yzx);
+  oQ2 += warpScale * 0.006250 * cos(23. * oQ2.yzx);
+
+  vec3 o = vec3(length(oQ2) - r, 0, 0);
   d = dMin(d, o);
+
+  vec3 oQ3 = q;
+
+  oQ3 += warpScale * 0.025000 * cos(13. * oQ3.yzx + PI);
+  oQ3 += warpScale * 0.012500 * cos(19. * oQ3.yzx + PI);
+  oQ3 += warpScale * 0.006250 * cos(25. * oQ3.yzx + PI);
+
+  vec3 o3 = vec3(length(oQ3) - r, 1, 0);
+  d = dMin(d, o3);
 
   // d.x += 0.025000 * cellular(2. * q);
 
@@ -1215,6 +1225,10 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(background);
+
+  color = mix(#FD2897, #C235FA, fragCoord.y);
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1314,7 +1328,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.10;
+      float freCo = 1.00;
       float specCo = 0.80;
 
       float specAll = 0.0;
@@ -1323,12 +1337,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.99;
+        float diffMin = 0.95;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.99;
+        float shadowMin = 0.69;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 3.));
         dif *= sha;
 
@@ -1364,7 +1378,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15  * reflection(pos, reflectionRd);
+      reflectColor += 0.25  * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2062,7 +2076,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
