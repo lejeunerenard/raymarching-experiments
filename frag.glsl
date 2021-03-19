@@ -961,11 +961,26 @@ vec3 rotPlane (in vec3 q, in float ind, in float t) {
   return q;
 }
 
+vec3 foldAcross45s (in vec3 q) {
+  q = abs(q);
+
+  // Mirror around y=x
+  if (q.y >= q.x) {
+    q.xy = q.yx;
+  }
+  // Mirror around z=x
+  if (q.z >= q.x) {
+    q.xz = q.zx;
+  }
+
+  return q;
+}
+
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
   vec4 z = vec4(q, 0.);
@@ -973,6 +988,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   const float size = 0.5;
   const vec2 modSize = vec2(size, 0.2 * size);
   float t = mod(dT, 1.);
+
+  float tSpread = 0.0075;
+  float t1 = t + 4. * tSpread;
+  t1 = mod(t1, 1.);
+  float t2 = t + 1. * tSpread;
+  t2 = mod(t2, 1.);
+  float t3 = t;
 
   float warpScale = 0.75;
 
@@ -990,14 +1012,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // z = wQ;
 
   mPos = q;
-  float r = 0.5;
+  float r = 0.4;
 
-  vec3 boxR = vec3(r, r, r);
-  boxR.y = r * (0.4 + 0.6 * expo(range(0., 0.75, t)));
-  boxR.y = mix(boxR.y, 0.4 * r, bounceOut(range(0.75, 1., t)));
-  vec3 o = vec3(sdBox(q, boxR), 0, 0);
-  o.x -= 0.005 * cellular(2. * q);
+  float totalAngle = 1.0 * PI;
+
+  vec3 o1Q = q;
+  o1Q *= rotationMatrix(vec3(0, 1, 0), totalAngle * bounceOut(t1));
+  o1Q = foldAcross45s(o1Q);
+
+  vec3 o = vec3(sdBox(o1Q, vec3(r)), 0, 0);
   d = dMin(d, o);
+
+  vec3 o2Q = q;
+  o2Q *= rotationMatrix(vec3(0, 1, 0), totalAngle * bounceOut(t2));
+  o2Q = foldAcross45s(o2Q);
+
+  vec3 o2 = vec3(sdBox(o2Q, vec3(1.5 * r, vec2(0.5 * r))), 0, 0);
+  d = dSMin(d, o2, 0.1 * r);
+
+  vec3 o3Q = q;
+  o3Q *= rotationMatrix(vec3(0, 1, 0), totalAngle * bounceOut(t3));
+  o3Q = foldAcross45s(o3Q);
+
+  vec3 o3 = vec3(sdBox(o3Q, vec3(2.0 * r, vec2(0.25 * r))), 0, 0);
+  d = dSMin(d, o3, 0.1 * r);
+  // d = dMin(d, o3);
 
   // d.x *= 0.35;
 
@@ -1216,7 +1255,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.4 * background);
+  vec3 color = vec3(0.1);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1316,8 +1356,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.00;
-      float specCo = 0.80;
+      float freCo = 0.90;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
@@ -1366,7 +1406,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25  * reflection(pos, reflectionRd);
+      reflectColor += 0.15  * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1379,7 +1419,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 4.0 * pow(1. - dot(nor, -rayDirection), 1.20);
+      float dispersionI = 5.0 * pow(1. - dot(nor, -rayDirection), 1.20);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
