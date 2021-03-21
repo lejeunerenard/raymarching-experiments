@@ -1987,7 +1987,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.075);
+const vec2 gSize = vec2(0.035);
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
@@ -2000,24 +2000,32 @@ float shape (in vec2 q, in vec2 c) {
 
   float t = norT;
 
-  // q = abs(q);
-
   vec2 oQ1 = q;
-  float offsetScale = 0.3;
-  oQ1 *= rotMat2(cosT - 0.4 * length(c));
-  oQ1 += offsetScale * size;
+  float offsetScale = 0.5;
+
+  // Move in circles & rotate
+  // oQ1 *= rotMat2(cosT - 0.4 * length(c));
+  // oQ1 += offsetScale * size;
+
+  // Move in circles (only)
+  oQ1 += offsetScale * size * sin(cosT - 0.4 * length(c) + vec2(0, 0.5 * PI));
+
+  oQ1 += 0.5 * size * vec2(
+      snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(cosT + length(c)))),
+      snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(cosT + length(c)))));
 
   float internalD = length(oQ1);
+  // float internalD = vmax(abs(oQ1));
   // internalD = mix(internalD, vmax(abs(oQ1)), 0.5 + 0.5 * cos(cosT + 0.1 * dot(c, vec2(1))));
 
-  float o = abs(internalD - 0.3 * size);
+  // float o = abs(internalD - 0.4 * size);
+  float o = abs(internalD - 0.4 * size);
+  o -= 0.025 * size;
   d = min(d, o);
 
-  o = internalD - 0.05 * size;
-  d = min(d, o);
-
-  // // Mask
+  // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 8.));
+  // d = mix(d, maxDistance, step(0., length(c) - 10.));
 
   return d;
 }
@@ -2038,7 +2046,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10 * size.x;
 
   vec2 wQ = q;
-  wQ *= rotMat2(0.25 * PI);
+  // wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
   d = neighborGrid(q, vec2(size));
@@ -2046,6 +2054,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float preD = d;
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
+  d = 1. - d;
   color = vec3(d);
 
   return color.rgb;
