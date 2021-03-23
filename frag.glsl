@@ -2002,16 +2002,23 @@ float shape (in vec2 q, in vec2 c) {
   vec2 oQ1 = q;
   float offsetScale = 0.5;
 
+  // <-- it kinda "stalls" with the white part to the left mostly
+  // Maybe I should offset everything?
+  float leftRight = -c.x * 0.4 + PI * 0.75;
+
   // Move in circles & rotate
   // oQ1 *= rotMat2(cosT - 0.4 * length(c));
   // oQ1 += offsetScale * size;
 
+  // Move as a wave offset left/right
+  oQ1.y += 0.3 * size * cos(cosT + leftRight);
+
   // Move in circles (only)
   // oQ1 += offsetScale * size * sin(cosT - 0.4 * length(c) + vec2(0, 0.5 * PI));
 
-  oQ1 += 0.45 * size * vec2(
-      snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(localCosT + length(c)))),
-      snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(localCosT + length(c)))));
+  oQ1 += 0.55 * size * vec2(
+      snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * leftRight))),
+      snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * leftRight))));
 
   float internalD = length(oQ1);
   // float internalD = vmax(abs(oQ1));
@@ -2019,14 +2026,15 @@ float shape (in vec2 q, in vec2 c) {
 
   // float o = abs(internalD - 0.4 * size);
   float r = 0.3 * size;
-  r += 0.1 * size * cos(localCosT - 0.4 * length(c));
+  r += 0.25 * size * cos(localCosT + leftRight);
+
   // float o = abs(internalD - r);
-  // o -= 0.025 * size;
+  // o -= 0.050 * size;
   float o = internalD - r;
   d = min(d, o);
 
   // Mask
-  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 8.));
+  d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 8.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
 
   return d;
@@ -2107,9 +2115,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     vec3 dI = vec3(fI / float(slices));
     dI += 0.3 * dot(uv, vec2(1));
     dI += 0.3 * snoise2(1. * uv);
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.3))));
     layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.4);
-    layerColor *= 1.3;
+    layerColor *= 1.25;
 
     // CYM
     // layerColor = vec3(0);
@@ -2157,7 +2165,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color = mix(color, color * layerColor, mask);
   }
 
-  color = pow(color, vec3(1.25));
+  color = pow(color, vec3(1.20));
   color /= float(slices);
 
   return vec4(color, 1.);
