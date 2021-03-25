@@ -1987,7 +1987,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.055);
+const vec2 gSize = vec2(0.06);
 float localCosT = cosT;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
@@ -2014,7 +2014,7 @@ float shape (in vec2 q, in vec2 c) {
   // Move in circles (only)
   // oQ1 += offsetScale * size * sin(cosT - 0.4 * length(c) + vec2(0, 0.5 * PI));
 
-  oQ1 += 0.55 * size * vec2(
+  oQ1 += 0.40 * size * vec2(
       snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))),
       snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))));
 
@@ -2023,7 +2023,7 @@ float shape (in vec2 q, in vec2 c) {
   // internalD = mix(internalD, vmax(abs(oQ1)), 0.5 + 0.5 * cos(cosT + 0.1 * dot(c, vec2(1))));
 
   // float o = abs(internalD - 0.4 * size);
-  float r = 0.2 * size;
+  float r = 0.4 * size;
   r += 0.20 * size * cos(localCosT + waveT);
 
   // float o = abs(internalD - r);
@@ -2032,10 +2032,10 @@ float shape (in vec2 q, in vec2 c) {
   d = min(d, o);
 
   // Mask
-  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 8.));
-  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
-  d = mix(d, maxDistance, step(0., sdBox(c, vec2(7, 10))));
-  // d = mix(d, maxDistance, step(0., length(c) - 10.));
+  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 5.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 3.));
+  // d = mix(d, maxDistance, step(0., sdBox(c, vec2(2, 5))));
+  d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
 
   return d;
 }
@@ -2056,7 +2056,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10 * size.x;
 
   vec2 wQ = q;
-  // wQ *= rotMat2(0.25 * PI);
+  wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
   d = neighborGrid(q, vec2(size));
@@ -2114,9 +2114,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     vec3 dI = vec3(fI / float(slices));
     dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.7 * snoise2(1. * uv);
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
-    layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.2, 0.5))));
+    dI += 0.4 * snoise2(1. * uv);
+    layerColor = 0.95 * (vec3(0.8, 0.5, 0.4) + vec3(0.2, 0.4, 0.2) * cos(TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25))));
+    // layerColor = 1.0 * (0.5 + 0.4 * cos(TWO_PI * (vec3(1, 0.7, 0.4) * dI + vec3(0, 0.15, 0.2))));
+    layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
     layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.6);
     // layerColor *= 1.25;
 
@@ -2135,7 +2136,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 4.5 * 0.075;
+    const float maxDelayLength = 5.5 * 0.075;
     float layerT = norT
       + maxDelayLength * (1.00 + 0.5 * sin(cosT + length(uv))) * fI / float(slices);
     float mask = two_dimensional(uv, layerT).x;
