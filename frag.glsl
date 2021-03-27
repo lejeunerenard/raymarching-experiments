@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 1024
 #define maxDistance 20.0
 #define fogMaxDistance 10.0
 
@@ -65,7 +65,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.5;
+float n2 = 2.1;
 const float amount = 0.25;
 
 // Utils
@@ -1003,7 +1003,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ2d *= scale;
 
   // Move rho so it 'zoom's
-  wQ2d.x -= norT * scale * 0.96;
+  float size = scale * 0.96 * 0.5;
+  wQ2d.x -= norT * 2. * size;
+  vec2 c = floor((wQ2d)/size);
+  wQ2d.y -= norT * size * mod(c.x, 3.);
 
   wQ2d = mod(wQ2d, 2.) - 1.0;
 
@@ -1015,14 +1018,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float sphereR = 0.3 * PI;
-  vec3 o = vec3(length(q) - sphereR, 0, 0);
+  float sphereR = 0.21 * PI;
+  vec3 o = vec3(icosahedral(q, 42., sphereR), 0, 0);
   d = dMin(d, o);
 
-  // vec3 f = vec3(sdPlane(q + sphereR, vec4(0, 1, 0, 0)), 0, 0);
-  // d = dMin(d, f);
-
   d.x *= invScale;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1239,7 +1240,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(0.);
+  return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1247,7 +1249,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   n = smoothstep(0., edge, n);
 
   // Add in fake radiosity
-  return mix(1.1 * background, vec3(1), mPos.y + 0.2);
+  return mix(1.1 * background, vec3(0.75), mPos.y + 0.2);
 
   vec3 dI = vec3(dNR);
 
@@ -1355,12 +1357,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.7;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.50;
+        float shadowMin = 1.00;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 0.25));
         dif *= sha;
 
@@ -1374,7 +1376,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
         // Ambient
         lin += 0.00 * amb * diffuseColor;
-        dif += 0.100 * amb;
+        // dif += 0.100 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -1394,10 +1396,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.03  * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.03  * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1406,13 +1408,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.5 * pow(1. - dot(nor, -rayDirection), 2.00);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.00);
+      dispersionColor *= dispersionI;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
