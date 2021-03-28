@@ -23,7 +23,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 2
 const BLOOM_WET = 1
-const BLOOM_MIN_BRIGHTNESS = 1.00
+const BLOOM_MIN_BRIGHTNESS = 0.90
 
 // Initialize shell
 export default class App {

@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 128
 #define maxDistance 20.0
 #define fogMaxDistance 10.0
 
@@ -980,50 +980,56 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT, 1.);
 
-  float warpScale = 1.;
+  float warpScale = 0.25;
 
   // Warp
   vec3 wQ = q;
 
-  // Spherical Mapping
-  // source: https://www.osar.fr/notes/logspherical/
-  float scale = floor(13.) / PI;
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yzx + cosT );
 
-  vec2 wQ2d = wQ.xz;
-  float r = length(wQ2d);
-  wQ2d = vec2(log(r), atan(wQ2d.y, wQ2d.x));
+  // // Spherical Mapping
+  // // source: https://www.osar.fr/notes/logspherical/
+  // float scale = floor(13.) / PI;
 
-  // Scale so it fits in [-pi, pi]
-  wQ2d *= scale;
+  // vec2 wQ2d = wQ.xz;
+  // float r = length(wQ2d);
+  // wQ2d = vec2(log(r), atan(wQ2d.y, wQ2d.x));
 
-  // Move rho so it 'zoom's
-  float size = scale * 0.96 * 0.5;
-  wQ2d.x -= norT * 2. * size;
-  vec2 c = floor((wQ2d)/size);
-  wQ2d.y -= norT * size * mod(c.x, 3.);
+  // // Scale so it fits in [-pi, pi]
+  // wQ2d *= scale;
 
-  wQ2d = mod(wQ2d, 2.) - 1.0;
+  // // Move rho so it 'zoom's
+  // float size = scale * 0.96 * 0.5;
+  // wQ2d.x -= norT * 2. * size;
+  // vec2 c = floor((wQ2d)/size);
+  // wQ2d.y -= norT * size * mod(c.x, 3.);
 
-  float invScale = r / scale;
-  wQ = vec3(wQ2d.x, wQ.y / invScale, wQ2d.y);
+  // wQ2d = mod(wQ2d, 2.) - 1.0;
+
+  // float invScale = r / scale;
+  // wQ = vec3(wQ2d.x, wQ.y / invScale, wQ2d.y);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  float sphereR = 0.21 * PI;
+  float sphereR = 0.31;
   vec3 o = vec3(icosahedral(q, 42., sphereR), 0, 0);
   d = dMin(d, o);
 
-  d.x *= invScale;
-  d.x *= 0.3;
+  // d.x *= invScale;
+  // d.x *= 0.3;
 
   return d;
 }
@@ -1362,7 +1368,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.00;
+        float shadowMin = 0.40;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 0.25));
         dif *= sha;
 
@@ -1398,7 +1404,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.03  * reflection(pos, reflectionRd);
+      // reflectColor += 0.30  * reflection(pos, reflectionRd);
       // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1476,10 +1482,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float i = saturate(t.z / (1.0 * float(maxSteps)));
-      vec3 glowColor = vec3(0);
+      float i = saturate(t.z / (0.6 * float(maxSteps)));
+      vec3 glowColor = vec3(1);
       const float stopPoint = 0.5;
-      color = mix(color, vec4(glowColor, 1.0), smoothstep(stopPoint, stopPoint + edge, i));
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.90);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
