@@ -1,4 +1,4 @@
-#define NEW_TECHNIQUE 1
+// #define NEW_TECHNIQUE 1
 // source: https://www.shadertoy.com/view/lsKcDD
 
 // Source: https://www.shadertoy.com/view/Xds3zN
@@ -11,6 +11,7 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
 
   for( int i=0; i<32; i++ ) {
     float h = map(ro + rd*t).x;
+    if( h<0.0001) return 0.;
 
 #ifdef NEW_TECHNIQUE
     float y = (i == 0) ? 0. : h * h / (2. * ph);
@@ -22,7 +23,6 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
     ph = h;
 
     t += h;
-    if( h<0.0001 || t>tmax ) break;
   }
 
   return clamp( res, 0.0, 1.0 );
