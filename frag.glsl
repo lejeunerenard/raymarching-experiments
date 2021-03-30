@@ -65,7 +65,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.3;
 const float amount = 0.25;
 
 // Utils
@@ -986,18 +986,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float t = mod(dT, 1.);
 
-  float warpScale = 0.25;
+  float warpScale = 0.5;
 
   // Warp
   vec3 wQ = q;
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
   wQ.xzy = twist(wQ.xyz, wQ.y);
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
   wQ += warpScale * 0.012500 * cos(23. * wQ.yzx + cosT );
   wQ += warpScale * 0.006250 * cos(27. * wQ.yzx + cosT );
+  wQ.xyz = twist(wQ.xzy, wQ.z);
   wQ += warpScale * 0.003125 * cos(31. * wQ.yzx + cosT );
+  wQ += warpScale * 0.001563 * cos(39. * wQ.yzx + cosT );
+  wQ += warpScale * 7.815e-4 * cos(46. * wQ.yzx + cosT );
 
   // // Spherical Mapping
   // // source: https://www.osar.fr/notes/logspherical/
@@ -1026,9 +1028,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float width = 0.20;
-  vec3 o = vec3(sdBox(q, vec3(width, 0.8, width)), 0, 0);
-  o.x -= 0.0150 * cellular(1. * q);
+  vec3 o = vec3(length(q) - 0.3, 0, 0);
+  // o.x -= 0.0150 * cellular(1. * q);
   d = dMin(d, o);
 
   // d.x *= invScale;
@@ -1127,7 +1128,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 9.));
+  float spread = 1.; // saturate(1.0 - 1.0 * pow(dNR, 9.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -1162,7 +1163,7 @@ vec3 textures (in vec3 rd) {
   dI += angle2C;
   dI += gPos;
 
-  dI *= 0.2;
+  dI *= 2.8;
 
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.1, 0.3) ) );
@@ -1250,6 +1251,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
+  return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1263,7 +1265,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  vec3 layerColor= 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  vec3 layerColor= 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3)));
   color = layerColor;
 
   gM = m;
@@ -1402,17 +1404,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.30 * reflection(pos, reflectionRd);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.10 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.10 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 0.80);
+      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 1.20);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -1477,7 +1479,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float i = saturate(t.z / (0.6 * float(maxSteps)));
+      float i = saturate(t.z / (0.5 * float(maxSteps)));
       vec3 glowColor = vec3(1);
       const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
