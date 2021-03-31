@@ -40,7 +40,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const preset = {
@@ -51,12 +51,12 @@ export default class App {
       },
       d: 0.04,
       scale: 1.3625,
-      rot2angle: [3.077, 2.246, 2.038],
-      cameraAngles: [0.639, 0, 0]
+      rot2angle: [0.483, 0, 0],
+      cameraAngles: [0.669, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1)
+    this.cameraRo = vec3.fromValues(0, -1.02, 1.05)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]
@@ -75,9 +75,9 @@ export default class App {
 
     this.angle1C = 0.5591
     this.angle2C = -0.985
-    this.angle3C = 0
+    this.angle3C = 0.395
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -156,20 +156,20 @@ export default class App {
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
       .delay(0 * 1000)
-      .to({ x: 0.6, y: self.cameraRo[1], z: self.cameraRo[2] }, 6 * 1000)
+      .to({ x: self.cameraRo[0], y: 0.06, z: self.cameraRo[2] }, 4 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     let cameraPosTween2 = new TWEEN.Tween(ob)
     cameraPosTween2
       .delay(0 * 1000)
-      .to({ x: -0.6, y: self.cameraRo[1], z: self.cameraRo[2] }, 6 * 1000)
+      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 4 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
-    // cameraPosTween.start(0)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -181,11 +181,18 @@ export default class App {
     let rotObj = [...this.cameraAngles]
     let camRotTween1 = new TWEEN.Tween(rotObj)
     camRotTween1
-      .to([0, 0, 0], 10 * 1000)
+      .to([-0.328, this.cameraAngles[1], this.cameraAngles[2]], 4 * 1000)
       .onUpdate(updateRot)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+      .easing(TWEEN.Easing.Linear.None)
+    let camRotTween2 = new TWEEN.Tween(rotObj)
+    camRotTween2
+      .to([...this.cameraAngles], 4 * 1000)
+      .onUpdate(updateRot)
+      .easing(TWEEN.Easing.Linear.None)
 
-    // camRotTween1.start(0)
+    camRotTween1.chain(camRotTween2)
+    camRotTween2.chain(camRotTween1)
+    camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)

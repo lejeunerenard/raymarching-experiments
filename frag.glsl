@@ -980,7 +980,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -991,45 +991,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(23. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(27. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, wQ.z);
-  wQ += warpScale * 0.003125 * cos(31. * wQ.yzx + cosT );
-  wQ += warpScale * 0.001563 * cos(39. * wQ.yzx + cosT );
-  wQ += warpScale * 7.815e-4 * cos(46. * wQ.yzx + cosT );
+  wQ.z += angle3C;
+  float bigR = 0.71;
+  wQ = vec3(
+      atan(wQ.y, wQ.x),
+      length(wQ.xy) - bigR,
+      wQ.z);
 
-  // // Spherical Mapping
-  // // source: https://www.osar.fr/notes/logspherical/
-  // float scale = floor(13.) / PI;
-
-  // vec2 wQ2d = wQ.xz;
-  // float r = length(wQ2d);
-  // wQ2d = vec2(log(r), atan(wQ2d.y, wQ2d.x));
-
-  // // Scale so it fits in [-pi, pi]
-  // wQ2d *= scale;
-
-  // // Move rho so it 'zoom's
-  // float size = scale * 0.96 * 0.5;
-  // wQ2d.x -= norT * 2. * size;
-  // vec2 c = floor((wQ2d)/size);
-  // wQ2d.y -= norT * size * mod(c.x, 3.);
-
-  // wQ2d = mod(wQ2d, 2.) - 1.0;
-
-  // float invScale = r / scale;
-  // wQ = vec3(wQ2d.x, wQ.y / invScale, wQ2d.y);
+  wQ.yz *= rotMat2(0.75 * wQ.x + cosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 o = vec3(length(q) - 0.3, 0, 0);
-  // o.x -= 0.0150 * cellular(1. * q);
+  float r = 0.2;
+  vec3 o = vec3(sdBox(q, vec3(PI, r, r)) - 0.3, 0, 0);
+  o.x -= 0.003 * cellular(3. * q);
   d = dMin(d, o);
 
   // d.x *= invScale;
@@ -1170,6 +1148,8 @@ vec3 textures (in vec3 rd) {
 
   color *= spread;
 
+  // color.r = pow(color.r, 0.2);
+
   // color = getBackground(rd.xy, 0.);
 
   return clamp(color, 0., 1.);
@@ -1251,7 +1231,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
-  return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1352,7 +1331,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.00;
-      float specCo = 0.30;
+      float specCo = 0.60;
 
       float specAll = 0.0;
 
@@ -1399,10 +1378,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.30 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1414,7 +1393,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 1.20);
+      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.20);
       dispersionColor *= dispersionI;
 
       color += saturate(dispersionColor);
@@ -1479,7 +1458,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float i = saturate(t.z / (0.5 * float(maxSteps)));
+      float i = saturate(t.z / (0.8 * float(maxSteps)));
       vec3 glowColor = vec3(1);
       const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
