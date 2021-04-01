@@ -986,19 +986,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float t = mod(dT, 1.);
 
-  float warpScale = 0.5;
+  float warpScale = 0.25;
 
   // Warp
   vec3 wQ = q;
 
   wQ.z += angle3C;
+
   float bigR = 0.71;
   wQ = vec3(
       atan(wQ.y, wQ.x),
       length(wQ.xy) - bigR,
       wQ.z);
 
-  wQ.yz *= rotMat2(0.75 * wQ.x + cosT);
+  wQ.yz *= rotMat2(1.5 * wQ.x + 1. * cosT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1006,8 +1007,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float r = 0.2;
+  r += warpScale * 0.100 * cos( 3. * wQ.x);
+  r += warpScale * 0.050 * cos( 7. * (r + wQ.x));
+  r += warpScale * 0.025 * cos(13. * (r + wQ.x));
+
   vec3 o = vec3(sdBox(q, vec3(PI, r, r)) - 0.3, 0, 0);
-  o.x -= 0.003 * cellular(3. * q);
   d = dMin(d, o);
 
   // d.x *= invScale;
@@ -1141,7 +1145,7 @@ vec3 textures (in vec3 rd) {
   dI += angle2C;
   dI += gPos;
 
-  dI *= 2.8;
+  // dI *= 2.8;
 
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.1, 0.3) ) );
@@ -1396,6 +1400,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.20);
       dispersionColor *= dispersionI;
 
+      dispersionColor.r = pow(dispersionColor.r, 0.6);
+
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
@@ -1458,7 +1464,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float i = saturate(t.z / (0.8 * float(maxSteps)));
+      float i = saturate(t.z / (0.6 * float(maxSteps)));
       vec3 glowColor = vec3(1);
       const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
