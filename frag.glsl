@@ -1995,24 +1995,26 @@ float shape (in vec2 q, in vec2 c) {
   // oQ1 *= rotMat2(cosT - 0.4 * length(c));
   // oQ1 += offsetScale * size;
 
-  // Move as a wave offset left/right
+  // Move as a wave offset
   oQ1.y += 0.3 * size * cos(cosT + waveT);
 
   // Move in circles (only)
   // oQ1 += offsetScale * size * sin(cosT - 0.4 * length(c) + vec2(0, 0.5 * PI));
 
-  // oQ1 += 0.40 * size * vec2(
-  //     snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))),
-  //     snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))));
+  oQ1 += 0.40 * size * vec2(
+      snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))),
+      snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))));
+  oQ1 += 0.05 * size * cos(5. * (localCosT + waveT));
 
   float internalD = length(oQ1);
   // float internalD = vmax(abs(oQ1));
   // internalD = mix(internalD, vmax(abs(oQ1)), 0.5 + 0.5 * cos(cosT + 0.1 * dot(c, vec2(1))));
 
   // float o = abs(internalD - 0.4 * size);
-  float r = 0.4 * size;
+  float r = 0.2 * size;
   r -= 0.10 * size * mod(dC, 2.);
-  r += 0.20 * size * cos(localCosT + waveT);
+  r += 0.10 * size * mod(dC, 3.);
+  // r += 0.20 * size * cos(localCosT + waveT);
 
   // float o = abs(internalD - r);
   // o -= 0.050 * size;
@@ -2021,9 +2023,10 @@ float shape (in vec2 q, in vec2 c) {
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 5.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 9.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 9.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(5))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
+  d = mix(d, maxDistance, step(0., length(c) - 10.));
 
   return d;
 }
