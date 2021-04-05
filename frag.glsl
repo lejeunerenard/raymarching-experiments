@@ -65,7 +65,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 0.846;
+float n2 = 2.1;
 const float amount = 0.25;
 
 // Utils
@@ -693,6 +693,18 @@ float sigmoid ( in float x ) {
   return L / ( 1.0 + exp(-k * (x - x0)) );
 }
 
+// Smooth polar mod by Paulo Falcao
+// source: https://www.shadertoy.com/view/NdS3Dh
+vec2 smoothPModPolar(in vec2 q, in float repetitions, in float smoothness, in float correction, in float displacement) {
+  repetitions *= 0.5;
+  float k = length(q);
+  float x = asin(sin(atan(q.x, q.y) * repetitions) * (1. - smoothness)) * k;
+  float ds = k * repetitions;
+  float y = mix(ds, 2. * ds - length(vec2(x, ds)), correction);
+  return vec2(x / repetitions, y / repetitions - displacement);
+}
+// Okay it compiles
+
 #define jTrap 14
 vec2 julia (in vec4 z, in vec4 c, in float t) {
   // Fractal General setup
@@ -980,7 +992,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -991,28 +1003,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + cosT );
-  float axisCCoe = 1.0;
-  vec3 axis = vec3(axisCCoe * cos(wQ.x + cosT), axisCCoe * sin(wQ.y + cosT), 0.3 * wQ.z);
-  // axis = mix(axis, vec3(1), 0.0);
-  axis = normalize(axis);
+  wQ = foldAcross45s(wQ);
+  wQ *= rotationMatrix(vec3(0, 1, 0), (1.25 + 0.4 * cos(cosT)) * PI);
 
-  wQ *= rotationMatrix(axis, dot(axis, vec3(1.0)));
-
-  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.0250 * cos(14. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0125 * cos(19. * wQ.yzx + cosT );
+  float a = atan(wQ.x, wQ.z);
+  wQ.xz = smoothPModPolar(wQ.xz, 4., 0.01, 0.8, 0.7);
+  wQ *= rotationMatrix(vec3(0, 0, 1), 1.0 * cos(1.0 * a));
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(0.6)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(0.8, 0.1, 0.025)), 0, 0);
   d = dMin(d, o);
 
-  // d.x *= invScale;
   d.x *= 0.5;
 
   return d;
@@ -1233,7 +1238,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
-  return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1342,12 +1346,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.0;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.00;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1381,10 +1385,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.30 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.30 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2089,7 +2093,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
