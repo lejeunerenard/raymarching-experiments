@@ -1003,22 +1003,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q;
 
-  wQ = foldAcross45s(wQ);
-  wQ *= rotationMatrix(vec3(0, 1, 0), (1.25 + 0.4 * cos(cosT)) * PI);
-
   float a = atan(wQ.x, wQ.z);
-  wQ.xz = smoothPModPolar(wQ.xz, 4., 0.01, 0.8, 0.7);
-  wQ *= rotationMatrix(vec3(0, 0, 1), 1.0 * cos(1.0 * a));
+  wQ.xz = smoothPModPolar(wQ.xz, 8., 0.01, 0.8, 0.7);
+  wQ *= rotationMatrix(vec3(0, 0, 1), 1.0 * cos((1. + cos(a + cosT)) * a));
+  wQ *= rotationMatrix(vec3(1, 0, 0), 1. * a);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(0.8, 0.1, 0.025)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(0.8, 0.15, 0.15)), 0, 0);
+  // o.x -= 0.02 * cellular(2. * q);
   d = dMin(d, o);
 
-  d.x *= 0.5;
+  d.x *= 0.25;
 
   return d;
 }
