@@ -992,7 +992,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1001,23 +1001,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpScale = 0.75;
 
   // Warp
-  vec3 wQ = q;
+  vec3 wQ = q.xzy;
+
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
 
   float a = atan(wQ.x, wQ.z);
-  wQ.xz = smoothPModPolar(wQ.xz, 8., 0.01, 0.8, 0.7);
-  wQ *= rotationMatrix(vec3(0, 0, 1), 1.0 * cos((1. + cos(a + cosT)) * a));
-  wQ *= rotationMatrix(vec3(1, 0, 0), 1. * a);
+  wQ.xz = smoothPModPolar(wQ.xz, 8., 0.01, 0.8, 0.75);
+  // wQ *= rotationMatrix(vec3(0, 0, 1), 1.0 * cos((1. + cos(a + cosT)) * a));
+  wQ *= rotationMatrix(vec3(1, 0, 0),-1. * a - cosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(0.8, 0.15, 0.15)), 0, 0);
-  // o.x -= 0.02 * cellular(2. * q);
+  vec3 o = vec3(sdBox(q, vec3(0.8, 0.5, 0.3)), 0, 0);
+  o.x -= 0.02 * cellular(2. * q);
   d = dMin(d, o);
 
-  d.x *= 0.25;
+  d.x *= 0.55;
 
   return d;
 }
@@ -1250,7 +1255,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  vec3 layerColor= 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3)));
+  vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  layerColor += 0.2 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
   color = layerColor;
 
   gM = m;
@@ -1350,7 +1356,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
