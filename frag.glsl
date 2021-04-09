@@ -1985,57 +1985,52 @@ float shape (in vec2 q, in vec2 c) {
   float odd = mod(dot(c, vec2(1)), 2.);
   float even = 1. - odd;
 
+  const float warpScale = 0.;
   float size = gSize.y;
-
-  float t = norT;
-
-  vec2 oQ1 = q;
-  float offsetScale = 0.5;
 
   float dC = dot(c, vec2(1));
 
-  oQ1 += 0.2 * size * vec2(
-       mod(dC, 2.),
-      -mod(dC, 3.));
-
+  float t = mod(norT, 1.);
   float waveT = -length(c) * 0.4;
 
-  // Move in circles & rotate
-  // oQ1 *= rotMat2(cosT - 0.4 * length(c));
-  // oQ1 += offsetScale * size;
+  // Default to going down
+  vec2 dir = vec2(0, -1);
 
-  // Move as a wave offset
-  oQ1.y += 0.3 * size * cos(cosT + waveT);
+  // Going left in bottom triangle
+  if (c.y <= 0. && ((-c.y >= c.x && c.x >= 0.) || (-c.y > -c.x && c.x <= 0.))) {
+    dir = vec2(-1, 0);
+  // Going up in left triangle
+  } else if (c.x <= 0. && ((c.y >= c.x && c.y <= 0.) || c.y < -c.x)) {
+    dir = vec2( 0, 1);
+  // Going right in top triangle
+  } else if (c.y > 0. && ((c.y >= -c.x && c.x <= 0.) || c.y > c.x)) {
+    dir = vec2( 1, 0);
+  }
 
-  // Move in circles (only)
-  // oQ1 += offsetScale * size * sin(cosT - 0.4 * length(c) + vec2(0, 0.5 * PI));
+  vec2 wQ = q - 1. * dir * size * t;
+  vec2 wC = c + dir * t;
 
-  oQ1 += 0.40 * size * vec2(
-      snoise2(0.5257 * c + 0.000 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))),
-      snoise2(0.5257 * c + 3.713 + 0.3 * (0.5 + 0.5 * cos(localCosT + 0. * waveT))));
-  oQ1 += 0.05 * size * cos(5. * (localCosT + waveT));
+  float a = atan(wC.y, wC.x);
 
-  float internalD = length(oQ1);
-  // float internalD = vmax(abs(oQ1));
-  // internalD = mix(internalD, vmax(abs(oQ1)), 0.5 + 0.5 * cos(cosT + 0.1 * dot(c, vec2(1))));
-
-  // float o = abs(internalD - 0.4 * size);
   float r = 0.2 * size;
-  r -= 0.10 * size * mod(dC, 2.);
-  r += 0.10 * size * mod(dC, 3.);
-  // r += 0.20 * size * cos(localCosT + waveT);
+  r += 0.1 * size * cos(2. * localCosT - a);
 
-  // float o = abs(internalD - r);
-  // o -= 0.050 * size;
+  // Remove center
+  if (c == vec2(0.)) {
+    r = -0.1;
+  }
+
+  // float internalD = length(q);
+  float internalD = vmax(abs(wQ));
   float o = abs(internalD - r) - 0.0125 * size;
   d = min(d, o);
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 5.));
-  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 9.));
+  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 9.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(5))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
-  d = mix(d, maxDistance, step(0., length(c) - 10.));
+  // d = mix(d, maxDistance, step(0., length(c) - 10.));
 
   return d;
 }
@@ -2098,7 +2093,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
