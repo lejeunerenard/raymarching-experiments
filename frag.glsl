@@ -1990,8 +1990,28 @@ float shape (in vec2 q, in vec2 c) {
 
   float dC = dot(c, vec2(1));
 
-  float t = mod(norT, 1.);
-  float waveT = -length(c) * 0.4;
+  float a = atan(c.y, c.x) / PI;
+  // Normalize to [0, 1]
+  a += 1.;
+  a *= 0.5;
+
+  const float secondOffsetT = 0.1;
+  const float maxAngleOffset = 0.075;
+  const float bufferMax = max(secondOffsetT, maxAngleOffset);
+  float t = mod(norT + maxAngleOffset * a, 1.);
+  float secondT = mod(t - secondOffsetT, 1.);
+
+  t = saturate(t);
+  secondT = saturate(secondT);
+
+  float jumpToZeroMask = (1.
+      // End mask
+      - step(1. - bufferMax, norT)
+      // Begging mask
+      - step(-bufferMax, -norT));
+  // Apply to both
+  t *= jumpToZeroMask;
+  secondT *= jumpToZeroMask;
 
   // Default to going down
   vec2 dir = vec2(0, -1);
@@ -2007,27 +2027,29 @@ float shape (in vec2 q, in vec2 c) {
     dir = vec2( 1, 0);
   }
 
-  vec2 wQ = q - 1. * dir * size * t;
+  vec2 wQ = q - dir * size * expo(t);
   vec2 wC = c + dir * t;
 
-  float a = atan(wC.y, wC.x);
-
   float r = 0.2 * size;
-  r += 0.1 * size * cos(2. * localCosT - a);
 
   // Remove center
   if (c == vec2(0.)) {
     r = -0.1;
   }
 
-  // float internalD = length(q);
-  float internalD = vmax(abs(wQ));
-  float o = abs(internalD - r) - 0.0125 * size;
+  float internalD = length(wQ);
+  // float internalD = vmax(abs(wQ));
+  float o = internalD - r;
   d = min(d, o);
+
+  // Second delayed circle
+  wQ = q - dir * size * expo(secondT); // * step(1. - secondOffsetT, t);
+  float delayedCircleD = length(wQ) - 0.825 * r;
+  d = fOpUnionRound(d, delayedCircleD, 1.2 * r);
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 5.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 9.));
+  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(5))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -2051,7 +2073,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10 * size.x;
 
   vec2 wQ = q;
-  // wQ *= rotMat2(0.25 * PI);
+  wQ *= rotMat2(0.25 * PI);
   q = wQ;
 
   d = neighborGrid(q, vec2(size));
