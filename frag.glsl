@@ -2068,127 +2068,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
   localCosT = TWO_PI * t;
 
-  q *= rotMat2(PI * t);
-
-  // Stages
-  // stage1 : expand 7 from center circle
-  // stage2 : -2 from annihilation, now 5, c4 & c7
-  // stage3 : -2 from annihilation, now 3, c2 & c6
-  // stage4 : -2 from annihilation, now 1, 1 moves to center simultaneously, c3 & c5
-  float stage1 =     sine(range(  0., 0.30, t));
-  float stage2 =    quart(range(0.30, 0.52, t));
-  float stage3 =    quart(range(0.52, 0.74, t));
-  float stage4 =    quart(range(0.74, 0.96, t));
-  float stage5 =          range(0.96, 1.00, t);
-
-  const float warpScale = 1.;
+  const float warpScale = 0.2;
   const vec2 size = gSize;
   float r = 0.10;
 
   vec2 wQ = q;
+
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + cosT );
+  wQ *= rotMat2(0.125 * PI * sin(1.0 * length(wQ) - cosT));
+  wQ += warpScale * 0.0500 * cos(11. * wQ.yx + cosT );
+  wQ += warpScale * 0.0250 * cos(23. * wQ.yx + cosT );
+
   q = wQ;
 
-  const float stage1Num = 7.;
-  const float stage2Num = 5.;
-  const float stage3Num = 3.;
-  float angle = TWO_PI / stage1Num;
-  float bigR = 3. * r;
-
-  const float furlOffset = 0.08;
-  const float furlLength = 1. - stage1Num * furlOffset;
-  float furlCount = 0.;
-  // Circle 1
-  vec2 c1Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(0. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c1Offset = mix(c1Offset, bigR * cos(0. * TWO_PI / stage2Num + vec2(0., 0.5 * PI)), stage2);
-  c1Offset = mix(c1Offset, vec2(0), stage4); // Annihilate
-  vec2 c1Q = q + c1Offset;
-  float c1 = length(c1Q) - r;
-  c1 = 1. - step(0., c1);
-  d = mix(d, 1. - d, c1);
-
-  // Circle 2
-  vec2 c2Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(1. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c2Offset = mix(c2Offset, bigR * cos(1. * TWO_PI / stage2Num + vec2(0., 0.5 * PI)), stage2);
-  c2Offset = mix(c2Offset, vec2(0), stage3); // Annihilate
-  vec2 c2Q = q + c2Offset;
-  float c2 = length(c2Q) - r;
-  // c2 = smoothstep(edge, 0., c2);
-  c2 = 1. - step(0., c2);
-  c2 *= 1. - step(1e-10, stage4); // Annihilate
-  d = mix(d, 1. - d, c2);
-
-  // Circle 3
-  vec2 c3Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(2. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c3Offset = mix(c3Offset, bigR * cos(2. * TWO_PI / stage2Num + vec2(0., 0.5 * PI)), stage2);
-  c3Offset = mix(c3Offset, bigR * cos(1. * TWO_PI / stage3Num + vec2(0., 0.5 * PI)), stage3);
-  c3Offset = mix(c3Offset, vec2(-2. * r, 0), stage4); // Annihilate
-  vec2 c3Q = q + c3Offset;
-  float c3 = length(c3Q) - r;
-  // c3 = smoothstep(edge, 0., c3);
-  c3 = 1. - step(0., c3);
-  c3 *= 1. - step(1e-10, stage5); // Annihilate
-  d = mix(d, 1. - d, c3);
-
-  // Circle 4
-  vec2 c4Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(3. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c4Offset = mix(c4Offset, vec2(0), stage2); // Annihilate
-  vec2 c4Q = q + c4Offset;
-  float c4 = length(c4Q) - r;
-  c4 = 1. - step(0., c4);
-  c4 *= 1. - step(1e-10, stage3); // Annihilate
-  d = mix(d, 1. - d, c4);
-
-  // Circle 5
-  vec2 c5Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(4. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c5Offset = mix(c5Offset, bigR * cos(3. * TWO_PI / stage2Num + vec2(0., 0.5 * PI)), stage2);
-  c5Offset = mix(c5Offset, bigR * cos(2. * TWO_PI / stage3Num + vec2(0., 0.5 * PI)), stage3);
-  c5Offset = mix(c5Offset, vec2(-2. * r, 0), stage4); // Annihilate
-  vec2 c5Q = q + c5Offset;
-  float c5 = length(c5Q) - r;
-  // c5 = smoothstep(edge, 0., c5);
-  c5 = 1. - step(0., c5);
-  c5 *= 1. - step(1e-10, stage5); // Annihilate
-  d = mix(d, 1. - d, c5);
-
-  // Circle 6
-  vec2 c6Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(5. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c6Offset = mix(c6Offset, bigR * cos(4. * TWO_PI / stage2Num + vec2(0., 0.5 * PI)), stage2);
-  c6Offset = mix(c6Offset, vec2(0), stage3); // Annihilate
-  vec2 c6Q = q + c6Offset;
-  float c6 = length(c6Q) - r;
-  // c6 = smoothstep(edge, 0., c6);
-  c6 = 1. - step(0., c6);
-  c6 *= 1. - step(1e-10, stage4); // Annihilate
-  d = mix(d, 1. - d, c6);
-
-  // Circle 7
-  vec2 c7Offset = quart(range(furlCount * furlOffset, furlCount * furlOffset + furlLength, stage1))
-    * bigR * cos(6. * angle + vec2(0., 0.5 * PI));
-  furlCount += 1.;
-  c7Offset = mix(c7Offset, vec2(0), stage2); // Annihilate
-  vec2 c7Q = q + c7Offset;
-  float c7 = length(c7Q) - r;
-  // c7 = smoothstep(edge, 0., c7);
-  c7 = 1. - step(0., c7);
-  c7 *= 1. - step(1e-10, stage3); // Annihilate
-  d = mix(d, 1. - d, c7);
+  float n = dot(q, vec2(1));
+  d = sin(TWO_PI * 15. * n);
 
   float stop = angle3C;
-  // d = smoothstep(stop, edge + stop, d);
-  // d = 1. - d;
+  d = smoothstep(stop, edge + stop, d);
   color = vec3(d);
+  float hue = 0.434;
+  vec3 col1 = hsv(vec3(noise(41. * vec2(0.23 + hue)), 1., 0.763));
+  vec3 col2 = hsv(vec3(noise(41. * vec2(0.83 + hue)), 1., 0.7));
+  color = mix(col1, col2, d);
 
   return color.rgb;
 }

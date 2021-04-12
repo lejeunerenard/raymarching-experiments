@@ -114,7 +114,7 @@ if (capturing) {
   gui.add(app, 'epsilon', 0.0000001, 0.05).step(0.0000001).listen()
 
   let angleCF = gui.addFolder('Angle Coefficients')
-  angleCF.add(app, 'angle1C', -5, 5).step(0.01).listen()
+  angleCF.add(app, 'angle1C', -5, 5).step(0.001).listen()
   angleCF.add(app, 'angle2C', -5, 5).step(0.001).listen()
   angleCF.add(app, 'angle3C', -2, 2).step(0.001).listen()
 
