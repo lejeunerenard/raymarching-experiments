@@ -2074,23 +2074,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + cosT );
-  wQ *= rotMat2(0.125 * PI * sin(1.0 * length(wQ) - cosT));
-  wQ += warpScale * 0.0500 * cos(11. * wQ.yx + cosT );
-  wQ += warpScale * 0.0250 * cos(23. * wQ.yx + cosT );
+  wQ *= rotMat2(0.25 * PI);
 
   q = wQ;
 
-  float n = dot(q, vec2(1));
-  d = sin(TWO_PI * 15. * n);
+  float n = vmax(abs(q));
+  n *= 2.;
+  n = mod(n, 1.);
+  n = bounceOut(n);
+  n -= norT;
+  d = sin(TWO_PI * 10. * n);
+
+  float mask = vmax(abs(q)) - 0.3;
+  mask = smoothstep(edge, 0., mask);
+  d *= mask;
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
   color = vec3(d);
-  float hue = 0.434;
-  vec3 col1 = hsv(vec3(noise(41. * vec2(0.23 + hue)), 1., 0.763));
-  vec3 col2 = hsv(vec3(noise(41. * vec2(0.83 + hue)), 1., 0.7));
-  color = mix(col1, col2, d);
 
   return color.rgb;
 }
