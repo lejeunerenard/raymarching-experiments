@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 1024
 #define maxDistance 20.0
-#define fogMaxDistance 10.0
+#define fogMaxDistance 5.0
 
 #define slowTime time * 0.2
 // v3
@@ -703,7 +703,19 @@ vec2 smoothPModPolar(in vec2 q, in float repetitions, in float smoothness, in fl
   float y = mix(ds, 2. * ds - length(vec2(x, ds)), correction);
   return vec2(x / repetitions, y / repetitions - displacement);
 }
-// Okay it compiles
+
+vec3 opElogate ( in vec3 q, in vec3 h, out float correction ) {
+   q = abs(q) - h;
+
+   correction = min(vmax(q), 0.);
+
+   return max(q, 0.);
+}
+
+float opExtrude ( in vec3 q, in float d, in float h ) {
+  vec2 w = vec2(d, abs(q.z) - h);
+  return min(max(w.x, w.y), 0.) + length(max(w, 0.));
+}
 
 #define jTrap 14
 vec2 julia (in vec4 z, in vec4 c, in float t) {
@@ -988,6 +1000,66 @@ vec3 foldAcross45s (in vec3 q) {
   return q;
 }
 
+float thingy (in vec2 q, in float t) {
+  float d = maxDistance;
+
+  vec2 uv = q;
+
+  float r = 0.08;
+  float thickness = 0.001;
+
+  const int steps = 5;
+  const float rotSpeed = 0.6;
+  const float reduce = 0.0075;
+
+  float nSpeed = 2. + 0.5 * cos(TWO_PI * t);
+  vec2 nOff = vec2(0., -0.83) + t * TWO_PI * 0.66666;
+  float lastR = 0.;
+  // float lastRot = 0.;
+  for (int i = 0; i < steps; i++) {
+    float fI = float(i);
+    float s1Rot = rotSpeed * noise(nSpeed * vec2(fI) + nOff);
+    float s1R = r - reduce * fI;
+    vec2 s1Q = q
+      // space already oriented around last square
+      + vec2(lastR)
+      // offset so this iterations corner matches the last
+      + vec2(s1R) * rotMat2(-s1Rot);
+    s1Q *= rotMat2(s1Rot);
+    float s = vmax(abs(s1Q)) - s1R;
+    d = min(d, s);
+    lastR = s1R;
+    // lastRot = s1Rot;
+    q = s1Q;
+  }
+
+  lastR = 0.;
+  nOff = vec2(-3.99, 7.1258) + t * TWO_PI * 0.66666;
+  q = uv;
+  // float lastRot = 0.;
+  for (int i = 0; i < steps; i++) {
+    float fI = float(i);
+    float s1Rot = rotSpeed * noise(nSpeed * vec2(fI) + nOff);
+    float s1R = r - reduce * fI;
+    vec2 s1Q = q
+      // space already oriented around last square
+      - vec2(lastR)
+      // offset so this iterations corner matches the last
+      - vec2(s1R) * rotMat2(-s1Rot);
+    s1Q *= rotMat2(s1Rot);
+    float s = vmax(abs(s1Q)) - s1R;
+    d = min(d, s);
+    lastR = s1R;
+    // lastRot = s1Rot;
+    q = s1Q;
+  }
+
+  // Outline
+  d = abs(d) - thickness;
+
+  return d;
+}
+
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
@@ -1001,28 +1073,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpScale = 0.25;
 
   // Warp
-  vec3 wQ = q.xzy;
-
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.0500 * cos( 9. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, wQ.y);
-  wQ += warpScale * 0.0250 * cos(13. * wQ.yzx + cosT );
-
-  float a = atan(wQ.x, wQ.z);
-  wQ.xz = smoothPModPolar(wQ.xz, 6., 0.8, 0.8, 0.25);
-  // wQ *= rotationMatrix(vec3(0, 0, 1), 1.0 * cos((1. + cos(a + cosT)) * a));
-  wQ *= rotationMatrix(vec3(1, 0, 0), -1. * a - cosT);
-
+  vec3 wQ = q.xyz;
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(0.8, 0.1, 0.1)), 0, 0);
-  o.x -= 0.02 * cellular(2. * q);
+  vec3 o = vec3(thingy(q.xy, norT + q.z), 0, 0);
+  o.x = opExtrude(q, o.x, 0.5);
   d = dMin(d, o);
 
-  d.x *= 0.85;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1243,6 +1304,8 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
+  return mix(background, vec3(2), saturate(pos.z + 0.3));
+
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1342,8 +1405,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.00;
-      float specCo = 0.70;
+      float freCo = 1.00;
+      float specCo = 0.50;
 
       float specAll = 0.0;
 
@@ -1351,7 +1414,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.5;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1392,7 +1455,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * reflection(pos, reflectionRd);
+      reflectColor += 0.10 * reflection(pos, reflectionRd);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1410,7 +1473,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       dispersionColor.r = pow(dispersionColor.r, 0.6);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2073,21 +2136,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10;
 
   vec2 wQ = q;
-
-  wQ *= rotMat2(0.25 * PI);
-
   q = wQ;
 
-  float n = vmax(abs(q));
-  n *= 2.;
-  n = mod(n, 1.);
-  n = bounceOut(n);
-  n -= norT;
-  d = sin(TWO_PI * 10. * n);
-
-  float mask = vmax(abs(q)) - 0.3;
-  mask = smoothstep(edge, 0., mask);
-  d *= mask;
+  d = thingy(q, norT);
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
@@ -2124,7 +2175,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
