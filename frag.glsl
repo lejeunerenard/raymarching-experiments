@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 20.0
-#define fogMaxDistance 5.0
+#define fogMaxDistance 4.0
 
 #define slowTime time * 0.2
 // v3
@@ -1000,58 +1000,33 @@ vec3 foldAcross45s (in vec3 q) {
   return q;
 }
 
+vec2 lissajous (in float bigA, in float bigB, in float a, in float b, in float delta, in float t) {
+  return vec2(bigA, bigB) * sin(vec2(a, b) * t + vec2(delta, 0));
+}
+
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
   vec2 uv = q;
 
-  float r = 0.08;
+  q *= rotMat2(TWO_PI * t);
+
+  float r = 0.14;
+  float bigRBase = 3.125 * r;
   float thickness = 0.001;
 
-  const int steps = 5;
-  const float rotSpeed = 0.6;
-  const float reduce = 0.0075;
+  const int num = 6;
 
-  float nSpeed = 2. + 0.5 * cos(TWO_PI * t);
-  vec2 nOff = vec2(0., -0.83) + t * TWO_PI * 0.66666;
-  float lastR = 0.;
-  // float lastRot = 0.;
-  for (int i = 0; i < steps; i++) {
-    float fI = float(i);
-    float s1Rot = rotSpeed * noise(nSpeed * vec2(fI) + nOff);
-    float s1R = r - reduce * fI;
-    vec2 s1Q = q
-      // space already oriented around last square
-      + vec2(lastR)
-      // offset so this iterations corner matches the last
-      + vec2(s1R) * rotMat2(-s1Rot);
+  float nOff = 0.3;
+  float angleInc = 0.317 * PI;
+  for (int i = 0; i < num; i++) {
+    float fI = float(i) + 1.5;
+    float n = snoise2(9.7238 * vec2(fI) + nOff);
+    float s1Rot = TWO_PI * 0.778 * n + 0.5 * PI * sin(TWO_PI * (n + t));
+    vec2 s1Q = q + lissajous(bigRBase, bigRBase, 3., 4., PI * 0.25, TWO_PI * t + fI * angle2C);
     s1Q *= rotMat2(s1Rot);
-    float s = vmax(abs(s1Q)) - s1R;
+    float s = vmax(abs(s1Q)) - r;
     d = min(d, s);
-    lastR = s1R;
-    // lastRot = s1Rot;
-    q = s1Q;
-  }
-
-  lastR = 0.;
-  nOff = vec2(-3.99, 7.1258) + t * TWO_PI * 0.66666;
-  q = uv;
-  // float lastRot = 0.;
-  for (int i = 0; i < steps; i++) {
-    float fI = float(i);
-    float s1Rot = rotSpeed * noise(nSpeed * vec2(fI) + nOff);
-    float s1R = r - reduce * fI;
-    vec2 s1Q = q
-      // space already oriented around last square
-      - vec2(lastR)
-      // offset so this iterations corner matches the last
-      - vec2(s1R) * rotMat2(-s1Rot);
-    s1Q *= rotMat2(s1Rot);
-    float s = vmax(abs(s1Q)) - s1R;
-    d = min(d, s);
-    lastR = s1R;
-    // lastRot = s1Rot;
-    q = s1Q;
   }
 
   // Outline
@@ -1079,8 +1054,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 o = vec3(thingy(q.xy, norT + q.z), 0, 0);
-  o.x = opExtrude(q, o.x, 0.5);
+  vec3 o = vec3(thingy(q.xy, norT + 0.2 * q.z), 0, 0);
+  o.x = opExtrude(q, o.x, 0.70);
   d = dMin(d, o);
 
   d.x *= 0.1;
@@ -1304,7 +1279,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
-  return mix(background, vec3(2), saturate(pos.z + 0.3));
+  return mix(background, vec3(2), saturate(pos.z + 0.7));
 
   float dNR = dot(nor, -rd);
 
@@ -1405,7 +1380,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.00;
+      float freCo = 2.00;
       float specCo = 0.50;
 
       float specAll = 0.0;
@@ -1414,7 +1389,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 1.0;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1453,10 +1428,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1465,13 +1440,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.05);
-      dispersionColor *= dispersionI;
+      // float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 1.05);
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.6);
+      // dispersionColor.r = pow(dispersionColor.r, 0.6);
 
       // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
