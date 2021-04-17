@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 20.0
-#define fogMaxDistance 5.0
+#define fogMaxDistance 3.5
 
 #define slowTime time * 0.2
 // v3
@@ -1009,7 +1009,8 @@ float thingy (in vec2 q, in float t) {
 
   vec2 uv = q;
 
-  q *= rotMat2(TWO_PI * t);
+  float localCosT = TWO_PI * t;
+  q *= rotMat2(localCosT);
 
   float r = 0.14;
   float bigRBase = 1.25 * r;
@@ -1017,20 +1018,18 @@ float thingy (in vec2 q, in float t) {
 
   const int num = 3;
 
-  float nOff = 0.3;
-  float angleInc = 0.317 * PI;
-  for (int i = 0; i < num; i++) {
-    float fI = float(i) + 1.5;
-    float n = snoise2(9.7238 * vec2(fI) + nOff);
-    float s1Rot = TWO_PI * 0.778 * n + 0.5 * PI * sin(TWO_PI * (n + t));
-    vec2 s1Q = q + lissajous(bigRBase, bigRBase, 3., 4., PI * 0.25, TWO_PI * t + fI * 1.115);
-    s1Q *= rotMat2(s1Rot);
-    float s = length(s1Q) - r;
-    d = min(d, s);
-  }
+  float c = pModPolar(q, 3.);
 
-  // Outline
-  d = abs(d) - thickness;
+  q.x -= 0.2;
+
+  vec3 q3 = vec3(q, 1.3 * r * sin(7. * localCosT + 0.218 * PI * c));
+  q3 *= rotationMatrix(vec3(1), 2. * localCosT);
+  float o = sdBox(q3, vec3(r)) - thickness;
+  // float o = length(q3) - r;
+  d = min(d, o);
+
+  // // Outline
+  // d = abs(d) - thickness;
 
   return d;
 }
@@ -1279,6 +1278,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
+  return vec3((pos.z + 0.7) * 1.3);
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1379,7 +1379,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 2.00;
-      float specCo = 0.80;
+      float specCo = 0.60;
 
       float specAll = 0.0;
 
@@ -1387,12 +1387,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.7;
+        float diffMin = 0.3;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1405,8 +1405,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += pow(specCo * spec, 4.);
 
         // Ambient
-        lin += 0.00 * amb * diffuseColor;
-        // dif += 0.100 * amb;
+        lin += 0.050 * amb * diffuseColor;
+        dif += 0.050 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -1438,15 +1438,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.7 * pow(1. - dot(nor, -rayDirection), 1.05);
-      dispersionColor *= dispersionI;
+      // float dispersionI = 0.7 * pow(1. - dot(nor, -rayDirection), 1.05);
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.6);
+      // dispersionColor.r = pow(dispersionColor.r, 0.6);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2293,7 +2293,7 @@ void main() {
 #endif
 
     // jitter
-    // rd.xy += 0.0001 * noise(2183. * uv);
+    // rd.xy += 0.001 * noise(2183. * uv);
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     rd = normalize(rd);
 #ifdef ORTHO
