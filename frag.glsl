@@ -1004,29 +1004,68 @@ vec2 lissajous (in float bigA, in float bigB, in float a, in float b, in float d
   return vec2(bigA, bigB) * sin(vec2(a, b) * t + vec2(delta, 0));
 }
 
+float baseR = 0.075;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
   vec2 uv = q;
 
   float localCosT = TWO_PI * t;
-  q *= rotMat2(localCosT);
+  // q *= rotMat2(localCosT);
 
-  float r = 0.14;
-  float bigRBase = 1.25 * r;
+  // float baseR = 0.075;
   float thickness = 0.004;
 
-  const int num = 3;
+  const int num = 17;
 
-  float c = pModPolar(q, 3.);
-
-  q.x -= 0.2;
-
-  vec3 q3 = vec3(q, 1.3 * r * sin(7. * localCosT + 0.218 * PI * c));
-  q3 *= rotationMatrix(vec3(1), 2. * localCosT);
-  float o = sdBox(q3, vec3(r)) - thickness;
-  // float o = length(q3) - r;
+  float o = length(q) - baseR;
+  // o = abs(o) - thickness; // debug...
   d = min(d, o);
+
+  float incAngle = TWO_PI / float(num);
+  // isosceles, find 3rd edge w/ opposing angle
+  float incRadius = baseR * sin(incAngle * 0.5);
+  float angle = 0.;
+  float prevR = 0.;
+  float prevAddAngle = 0.;
+  // Circles around edge
+  for (int i = 0; i < num - 1; i++) {
+    float fI = float(i);
+
+    float r = incRadius * (1. - 0.25 * snoise2(1039.7139 * vec2(fI) + sin(localCosT)));
+
+    vec2 localQ = q;
+    float addAngle = asin(r / baseR);
+    angle += prevAddAngle + addAngle;
+    localQ *= rotMat2(angle);
+    localQ.x += baseR;
+
+    float s = length(localQ) - r;
+    // Alternate adding & subtracting
+    if (mod(fI, 3.) == 0. || mod(fI, 5.) == 0.) {
+    // if (0. == mod(fI, 2.)) {
+      d = max(d, -s);
+    } else {
+      d = min(d, s);
+    }
+
+    prevR = r;
+    prevAddAngle = addAngle;
+    // // -- debug --
+    // s = abs(s) - thickness; // Show as outlines per circle
+    // d = min(d, s);
+  }
+
+  // Final circle to connect it all
+  angle += prevAddAngle;
+  vec2 localQ = q;
+  float angleRemainder = 0.5 * (TWO_PI - angle);
+  angle = angleRemainder + angle;
+  float r = 2. * baseR * sin(angleRemainder * 0.5);
+  localQ *= rotMat2(angle);
+  localQ.x += baseR;
+  float s = length(localQ) - r;
+  d = min(d, s);
 
   // // Outline
   // d = abs(d) - thickness;
@@ -2104,14 +2143,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float t = mod(generalT + 0.0, 1.);
   localCosT = TWO_PI * t;
 
+  float thickness = 0.0025;
   const float warpScale = 0.2;
   const vec2 size = gSize;
   float r = 0.10;
 
+  float baseRInc = 0.07;
   vec2 wQ = q;
   q = wQ;
 
-  d = thingy(q, norT);
+  baseR = 0.05;
+
+  d = thingy(q, t);
+  baseR += baseRInc;
+  d = abs(d) - thickness;
+  t = mod(t + 0.05, 1.);
+
+  for (int i = 0; i < 5; i++) {
+    q *= rotMat2(0.37 * PI);
+    float d2 = thingy(q, t);
+    baseR += baseRInc;
+    baseRInc *= 1.5;
+    d2 = abs(d2) - thickness;
+    d = min(d, d2);
+    t = mod(t + 0.05, 1.);
+  }
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
@@ -2148,7 +2204,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
