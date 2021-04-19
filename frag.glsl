@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 20.0
-#define fogMaxDistance 3.5
+#define fogMaxDistance 2.5
 
 #define slowTime time * 0.2
 // v3
@@ -1004,19 +1004,19 @@ vec2 lissajous (in float bigA, in float bigB, in float a, in float b, in float d
   return vec2(bigA, bigB) * sin(vec2(a, b) * t + vec2(delta, 0));
 }
 
-float baseR = 0.075;
+float baseR = 0.5;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
   vec2 uv = q;
 
   float localCosT = TWO_PI * t;
-  // q *= rotMat2(localCosT);
+  q *= rotMat2(localCosT);
 
   // float baseR = 0.075;
   float thickness = 0.004;
 
-  const int num = 17;
+  const int num = 15;
 
   float o = length(q) - baseR;
   // o = abs(o) - thickness; // debug...
@@ -1092,8 +1092,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 o = vec3(thingy(q.xy, norT + 0.2 * q.z), 0, 0);
+  baseR = 0.5;
+  vec3 o = vec3(thingy(q.xy, norT + 0.075 * q.z), 0, 0);
+  o.x = abs(o.x) - 0.005;
   o.x = opExtrude(q, o.x, 0.70);
+  d = dMin(d, o);
+
+  baseR = 0.25;
+  o = vec3(thingy(q.xy, norT + 0.075 * q.z + 0.2), 0, 0);
+  o.x = abs(o.x) - 0.005;
+  o.x = opExtrude(q, o.x, 0.60);
   d = dMin(d, o);
 
   d.x *= 0.1;
@@ -1317,7 +1325,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
-  return vec3((pos.z + 0.7) * 1.3);
+  return mix(background, vec3(2), (pos.z + 0.7) * 1.3);
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1417,8 +1425,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.00;
-      float specCo = 0.60;
+      float freCo = 1.00;
+      float specCo = 0.20;
 
       float specAll = 0.0;
 
@@ -1431,7 +1439,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.3;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1465,10 +1473,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.15 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2204,7 +2212,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
