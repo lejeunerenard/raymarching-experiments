@@ -1011,60 +1011,17 @@ float thingy (in vec2 q, in float t) {
   vec2 uv = q;
 
   float localCosT = TWO_PI * t;
-  q *= rotMat2(localCosT);
 
-  // float baseR = 0.075;
   float thickness = 0.004;
 
-  const int num = 15;
+  // q *= rotMat2(localCosT);
 
-  float o = length(q) - baseR;
-  // o = abs(o) - thickness; // debug...
-  d = min(d, o);
+  float c = pModPolar(q, 7.);
 
-  float incAngle = TWO_PI / float(num);
-  // isosceles, find 3rd edge w/ opposing angle
-  float incRadius = baseR * sin(incAngle * 0.5);
-  float angle = 0.;
-  float prevR = 0.;
-  float prevAddAngle = 0.;
-  // Circles around edge
-  for (int i = 0; i < num - 1; i++) {
-    float fI = float(i);
+  q *= rotMat2(0.25 * PI);
 
-    float r = incRadius * (1. - 0.25 * snoise2(1039.7139 * vec2(fI) + sin(localCosT)));
-
-    vec2 localQ = q;
-    float addAngle = asin(r / baseR);
-    angle += prevAddAngle + addAngle;
-    localQ *= rotMat2(angle);
-    localQ.x += baseR;
-
-    float s = length(localQ) - r;
-    // Alternate adding & subtracting
-    if (mod(fI, 3.) == 0. || mod(fI, 5.) == 0.) {
-    // if (0. == mod(fI, 2.)) {
-      d = max(d, -s);
-    } else {
-      d = min(d, s);
-    }
-
-    prevR = r;
-    prevAddAngle = addAngle;
-    // // -- debug --
-    // s = abs(s) - thickness; // Show as outlines per circle
-    // d = min(d, s);
-  }
-
-  // Final circle to connect it all
-  angle += prevAddAngle;
-  vec2 localQ = q;
-  float angleRemainder = 0.5 * (TWO_PI - angle);
-  angle = angleRemainder + angle;
-  float r = 2. * baseR * sin(angleRemainder * 0.5);
-  localQ *= rotMat2(angle);
-  localQ.x += baseR;
-  float s = length(localQ) - r;
+  float r = baseR;
+  float s = sdBox(q, vec2(r));
   d = min(d, s);
 
   // // Outline
@@ -1082,8 +1039,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float t = mod(dT, 1.);
+  float localCosT = TWO_PI * t;
 
   float warpScale = 0.25;
+  const float thickness = 0.01;
 
   // Warp
   vec3 wQ = q.xyz;
@@ -1092,19 +1051,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  baseR = 0.5;
+  baseR = 0.5 + 0.1 * cos(q.z + localCosT) + 0.0125 * snoise3(q);
   vec3 o = vec3(thingy(q.xy, norT + 0.075 * q.z), 0, 0);
-  o.x = abs(o.x) - 0.005;
+  o.x = abs(o.x) - thickness;
   o.x = opExtrude(q, o.x, 0.70);
   d = dMin(d, o);
 
   baseR = 0.25;
+  q.xy *= rotMat2(0.142857 * localCosT);
   o = vec3(thingy(q.xy, norT + 0.075 * q.z + 0.2), 0, 0);
-  o.x = abs(o.x) - 0.005;
+  o.x = abs(o.x) - thickness;
   o.x = opExtrude(q, o.x, 0.60);
   d = dMin(d, o);
 
-  d.x *= 0.1;
+  d.x -= 0.005 * cellular(vec3(5, 5, 0.1) * q);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -1323,9 +1285,10 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(0.5);
+  // return color;
 
-  return mix(background, vec3(2), (pos.z + 0.7) * 1.3);
+  // return mix(vec3(0), vec3(1.5), (pos.z + 0.7) * 1.3);
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1426,7 +1389,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.00;
-      float specCo = 0.20;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
@@ -1434,12 +1397,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.3;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.3;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1473,10 +1436,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.15 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.15 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1485,15 +1448,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.7 * pow(1. - dot(nor, -rayDirection), 1.05);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0 * pow(1. - dot(nor, -rayDirection), 1.05);
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.6);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2163,19 +2126,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   baseR = 0.05;
 
   d = thingy(q, t);
-  baseR += baseRInc;
-  d = abs(d) - thickness;
-  t = mod(t + 0.05, 1.);
-
-  for (int i = 0; i < 5; i++) {
-    q *= rotMat2(0.37 * PI);
-    float d2 = thingy(q, t);
-    baseR += baseRInc;
-    baseRInc *= 1.5;
-    d2 = abs(d2) - thickness;
-    d = min(d, d2);
-    t = mod(t + 0.05, 1.);
-  }
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
