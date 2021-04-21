@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 20.0
-#define fogMaxDistance 2.5
+#define fogMaxDistance 3.75
 
 #define slowTime time * 0.2
 // v3
@@ -1004,7 +1004,7 @@ vec2 lissajous (in float bigA, in float bigB, in float a, in float b, in float d
   return vec2(bigA, bigB) * sin(vec2(a, b) * t + vec2(delta, 0));
 }
 
-float baseR = 0.5;
+float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
@@ -1012,15 +1012,16 @@ float thingy (in vec2 q, in float t) {
 
   float localCosT = TWO_PI * t;
 
-  float thickness = 0.004;
+  float thickness = 0.007;
 
-  // q *= rotMat2(localCosT);
+  q *= rotMat2(localCosT);
 
   float c = pModPolar(q, 7.);
 
-  q *= rotMat2(0.25 * PI);
+  q.x -= baseR;
+  q *= rotMat2(0.25 * PI + localCosT + 0.123 * PI * c);
 
-  float r = baseR;
+  float r = 0.25 * baseR;
   float s = sdBox(q, vec2(r));
   d = min(d, s);
 
@@ -1051,20 +1052,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  baseR = 0.5 + 0.1 * cos(q.z + localCosT) + 0.0125 * snoise3(q);
-  vec3 o = vec3(thingy(q.xy, norT + 0.075 * q.z), 0, 0);
+  baseR = 0.8;
+  vec3 o = vec3(thingy(q.xz, norT + 0.075 * q.y), 0, 0);
   o.x = abs(o.x) - thickness;
-  o.x = opExtrude(q, o.x, 0.70);
+  o.x = opExtrude(q.xzy, o.x, 0.90);
   d = dMin(d, o);
 
-  baseR = 0.25;
-  q.xy *= rotMat2(0.142857 * localCosT);
-  o = vec3(thingy(q.xy, norT + 0.075 * q.z + 0.2), 0, 0);
-  o.x = abs(o.x) - thickness;
-  o.x = opExtrude(q, o.x, 0.60);
-  d = dMin(d, o);
-
-  d.x -= 0.005 * cellular(vec3(5, 5, 0.1) * q);
+  d.x -= 0.005 * cellular(vec3(5, 0.1, 5) * q);
 
   d.x *= 0.5;
 
