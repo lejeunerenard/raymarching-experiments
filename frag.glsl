@@ -8,7 +8,7 @@
 // #define debugMapMaxed
 // #define SS 2
 #define ORTHO 1
-// #define NO_MATERIALS 1
+#define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -1014,16 +1014,25 @@ float thingy (in vec2 q, in float t) {
 
   float thickness = 0.007;
 
-  q *= rotMat2(localCosT);
+  const int num = 10;
+  const float incAngle = TWO_PI / float(num);
 
-  float c = pModPolar(q, 7.);
+  for (int i = 0; i < num; i++) {
+    float fI = float (i);
+    vec2 localQ = q;
 
-  q.x -= baseR;
-  q *= rotMat2(0.25 * PI + localCosT + 0.123 * PI * c);
+    localQ *= rotMat2(incAngle * fI);
+    float phase = 0.03;
+    // float phase = 0.466667;
+    // float phase = 0.66667;
+    float myBigR = baseR * cos(localCosT + fI * phase * PI);
+    localQ.x += myBigR;
 
-  float r = 0.25 * baseR;
-  float s = sdBox(q, vec2(r));
-  d = min(d, s);
+    float r = 0.25 * baseR;
+    float s = length(localQ) - r;
+    s = abs(s) - thickness;
+    d = min(d, s);
+  }
 
   // // Outline
   // d = abs(d) - thickness;
@@ -1052,13 +1061,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  baseR = 0.8;
-  vec3 o = vec3(thingy(q.xz, norT + 0.075 * q.y), 0, 0);
-  o.x = abs(o.x) - thickness;
-  o.x = opExtrude(q.xzy, o.x, 0.90);
+  baseR = 0.6;
+  vec3 o = vec3(thingy(q.xy, norT + 0.3 * q.z), 0, 0);
+  // o.x = abs(o.x) - thickness;
+  o.x = opExtrude(q.xyz, o.x, 0.30);
   d = dMin(d, o);
-
-  d.x -= 0.005 * cellular(vec3(5, 0.1, 5) * q);
 
   d.x *= 0.5;
 
@@ -1280,9 +1287,8 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
-  // return color;
 
-  // return mix(vec3(0), vec3(1.5), (pos.z + 0.7) * 1.3);
+  return mix(background, vec3(1.0), pow((mPos.z + 0.3) * 1.666667, 2.0));
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1382,8 +1388,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.00;
-      float specCo = 0.70;
+      float freCo = 0.00;
+      float specCo = 0.00;
 
       float specAll = 0.0;
 
@@ -1396,7 +1402,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.5 * range(-0.7, 0.7, pos.z);
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1430,10 +1436,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * reflection(pos, reflectionRd);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.15 * reflection(pos, reflectionRd);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1442,15 +1448,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0 * pow(1. - dot(nor, -rayDirection), 1.05);
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0 * pow(1. - dot(nor, -rayDirection), 1.05);
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.6);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif

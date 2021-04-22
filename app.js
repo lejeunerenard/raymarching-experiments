@@ -21,9 +21,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 2
+const BLOOM_PASSES = 1
 const BLOOM_WET = 1
-const BLOOM_MIN_BRIGHTNESS = 0.90
+const BLOOM_MIN_BRIGHTNESS = 1.00
 
 // Initialize shell
 export default class App {
@@ -40,7 +40,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
 
     this.presets = {}
     const preset = {
@@ -52,11 +52,11 @@ export default class App {
       d: 0.04,
       scale: 1.3625,
       rot2angle: [0.483, 0, 0],
-      cameraAngles: [-0.429, 0.434, 0.162]
+      cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.61, 0.76, 1.24)
+    this.cameraRo = vec3.fromValues(0.62, 0.13, 1)
     // vec3.scale(this.cameraRo, this.cameraRo, 2.0)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
