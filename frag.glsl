@@ -2041,14 +2041,12 @@ float shape (in vec2 q, in vec2 c) {
   a += 1.;
   a *= 0.5;
 
-  const float secondOffsetT = 0.1;
-  const float maxAngleOffset = 0.075;
+  const float secondOffsetT = 0.0;
+  const float maxAngleOffset = 0.;
   const float bufferMax = max(secondOffsetT, maxAngleOffset);
   float t = mod(norT + maxAngleOffset * a, 1.);
-  float secondT = mod(t - secondOffsetT, 1.);
 
   t = saturate(t);
-  secondT = saturate(secondT);
 
   float jumpToZeroMask = (1.
       // End mask
@@ -2057,7 +2055,6 @@ float shape (in vec2 q, in vec2 c) {
       - step(-bufferMax, -norT));
   // Apply to both
   t *= jumpToZeroMask;
-  secondT *= jumpToZeroMask;
 
   // Default to going down
   vec2 dir = vec2(0, -1);
@@ -2073,29 +2070,24 @@ float shape (in vec2 q, in vec2 c) {
     dir = vec2( 1, 0);
   }
 
-  vec2 wQ = q - dir * size * expo(t);
+  // Keep center stationary
+  if (c == vec2(0)) {
+    dir = vec2(0);
+  }
+
+  vec2 wQ = q - dir * size * t;
   vec2 wC = c + dir * t;
 
   float r = 0.2 * size;
-
-  // Remove center
-  if (c == vec2(0.)) {
-    r = -0.1;
-  }
 
   float internalD = length(wQ);
   // float internalD = vmax(abs(wQ));
   float o = internalD - r;
   d = min(d, o);
 
-  // Second delayed circle
-  wQ = q - dir * size * expo(secondT); // * step(1. - secondOffsetT, t);
-  float delayedCircleD = length(wQ) - 0.825 * r;
-  d = fOpUnionRound(d, delayedCircleD, 1.2 * r);
-
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 5.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(5))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -2120,15 +2112,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.10;
 
   float baseRInc = 0.07;
+
   vec2 wQ = q;
   q = wQ;
 
-  baseR = 0.05;
-
-  d = thingy(q, t);
+  d = neighborGrid(q, size);
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
+  d = 1. - d;
   color = vec3(d);
 
   return color.rgb;
@@ -2162,7 +2154,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
