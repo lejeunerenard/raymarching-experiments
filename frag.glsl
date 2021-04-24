@@ -2025,6 +2025,7 @@ vec2 cCube (in vec2 q) {
 
 const vec2 gSize = vec2(0.04);
 float localCosT = cosT;
+float localT = norT;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
@@ -2036,57 +2037,19 @@ float shape (in vec2 q, in vec2 c) {
 
   float dC = dot(c, vec2(1));
 
-  float a = atan(c.y, c.x) / PI;
-  // Normalize to [0, 1]
-  a += 1.;
-  a *= 0.5;
+  float t = mod(localT - 0.0666667 * c.y + 0.04 * c.x, 1.);
 
-  const float secondOffsetT = 0.0;
-  const float maxAngleOffset = 0.;
-  const float bufferMax = max(secondOffsetT, maxAngleOffset);
-  float t = mod(norT + maxAngleOffset * a, 1.);
+  q.y -= 7. * size * expo(t);
 
-  t = saturate(t);
+  float r = saturate(0.5 - 0.5 * t) * size;
 
-  float jumpToZeroMask = (1.
-      // End mask
-      - step(1. - bufferMax, norT)
-      // Begging mask
-      - step(-bufferMax, -norT));
-  // Apply to both
-  t *= jumpToZeroMask;
-
-  // Default to going down
-  vec2 dir = vec2(0, -1);
-
-  // Going left in bottom triangle
-  if (c.y <= 0. && ((-c.y >= c.x && c.x >= 0.) || (-c.y > -c.x && c.x <= 0.))) {
-    dir = vec2(-1, 0);
-  // Going up in left triangle
-  } else if (c.x <= 0. && ((c.y >= c.x && c.y <= 0.) || c.y < -c.x)) {
-    dir = vec2( 0, 1);
-  // Going right in top triangle
-  } else if (c.y > 0. && ((c.y >= -c.x && c.x <= 0.) || c.y > c.x)) {
-    dir = vec2( 1, 0);
-  }
-
-  // Keep center stationary
-  if (c == vec2(0)) {
-    dir = vec2(0);
-  }
-
-  vec2 wQ = q - dir * size * t;
-  vec2 wC = c + dir * t;
-
-  float r = 0.2 * size;
-
-  float internalD = length(wQ);
+  float internalD = length(q);
   // float internalD = vmax(abs(wQ));
   float o = internalD - r;
   d = min(d, o);
 
   // Mask
-  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 5.));
+  d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 11.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(5))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
@@ -2095,7 +2058,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=10.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = 0.;
@@ -2105,13 +2068,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Global Timing
   float t = mod(generalT + 0.0, 1.);
   localCosT = TWO_PI * t;
+  localT = t;
 
   float thickness = 0.0025;
   const float warpScale = 0.2;
   const vec2 size = gSize;
   float r = 0.10;
-
-  float baseRInc = 0.07;
 
   vec2 wQ = q;
   q = wQ;
