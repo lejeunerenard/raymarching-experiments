@@ -8,7 +8,7 @@
 // #define debugMapMaxed
 // #define SS 2
 #define ORTHO 1
-#define NO_MATERIALS 1
+// #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
 // out, but it seems more than it is just screened or overlayed by the
@@ -1014,28 +1014,18 @@ float thingy (in vec2 q, in float t) {
 
   float thickness = 0.007;
 
-  const int num = 10;
-  const float incAngle = TWO_PI / float(num);
+  float c = pModPolar(q, 5. + 2. * (0.5 + 0.5 * cos(localCosT)));
+  q.x -= 0.4;
 
-  for (int i = 0; i < num; i++) {
-    float fI = float (i);
-    vec2 localQ = q;
+  q = abs(q);
+  q *= rotMat2(0.5 * localCosT);
 
-    localQ *= rotMat2(incAngle * fI);
-    float phase = 0.03;
-    // float phase = 0.466667;
-    // float phase = 0.66667;
-    float myBigR = baseR * cos(localCosT + fI * phase * PI);
-    localQ.x += myBigR;
+  float r = 0.2;
+  float s = sdBox(q, vec2(r));
+  d = min(d, s);
 
-    float r = 0.25 * baseR;
-    float s = length(localQ) - r;
-    s = abs(s) - thickness;
-    d = min(d, s);
-  }
-
-  // // Outline
-  // d = abs(d) - thickness;
+  // Outline
+  d = abs(d) - thickness;
 
   return d;
 }
@@ -1064,7 +1054,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   baseR = 0.6;
   vec3 o = vec3(thingy(q.xy, norT + 0.3 * q.z), 0, 0);
   // o.x = abs(o.x) - thickness;
-  o.x = opExtrude(q.xyz, o.x, 0.30);
+  o.x = opExtrude(q.xyz, o.x, 0.50);
   d = dMin(d, o);
 
   d.x *= 0.5;
@@ -1288,7 +1278,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.5);
 
-  return mix(background, vec3(1.0), pow((mPos.z + 0.3) * 1.666667, 2.0));
+  // return mix(background, vec3(1.0), pow((mPos.z + 0.3) * 1.666667, 2.0));
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1388,8 +1378,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.00;
-      float specCo = 0.00;
+      float freCo = 1.00;
+      float specCo = 0.80;
 
       float specAll = 0.0;
 
@@ -1436,10 +1426,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.15 * reflection(pos, reflectionRd);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.20 * reflection(pos, reflectionRd);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1449,14 +1439,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - dot(nor, -rayDirection), 1.05);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0 * pow(1. - dot(nor, -rayDirection), 1.05);
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.6);
+      dispersionColor.r = pow(dispersionColor.r, 0.6);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2122,77 +2112,77 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = vec3(0);
+  // vec3 color = vec3(0);
 
-  const int slices = 10;
-  for (int i = 0; i < slices; i++) {
-    float fI = float(i);
-    vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
-    // vec3 layerColor = vec3(
-    //     saturate(mod(fI + 0., 3.)),
-    //     saturate(mod(fI + 1., 3.)),
-    //     saturate(mod(fI + 2., 3.))
-    // );
+  // const int slices = 10;
+  // for (int i = 0; i < slices; i++) {
+  //   float fI = float(i);
+  //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+  //   // vec3 layerColor = vec3(
+  //   //     saturate(mod(fI + 0., 3.)),
+  //   //     saturate(mod(fI + 1., 3.)),
+  //   //     saturate(mod(fI + 2., 3.))
+  //   // );
 
-    vec3 dI = vec3(fI / float(slices));
-    dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.4 * snoise2(1. * uv);
-    layerColor = 0.95 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25))));
-    // layerColor = 1.0 * (0.5 + 0.4 * cos(TWO_PI * (vec3(1, 0.7, 0.4) * dI + vec3(0, 0.15, 0.2))));
-    layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
-    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.6);
-    // layerColor *= 1.25;
+  //   vec3 dI = vec3(fI / float(slices));
+  //   dI += 0.3 * dot(uv, vec2(1));
+  //   dI += 0.4 * snoise2(1. * uv);
+  //   layerColor = 0.95 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(2, 1, 1) * dI + vec3(0, 0.25, 0.25))));
+  //   // layerColor = 1.0 * (0.5 + 0.4 * cos(TWO_PI * (vec3(1, 0.7, 0.4) * dI + vec3(0, 0.15, 0.2))));
+  //   layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
+  //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.6);
+  //   // layerColor *= 1.25;
 
-    // CYM
-    // layerColor = vec3(0);
-    // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-    // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-    // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-    // layerColor *= 0.65;
-    // layerColor *= vec3(1.0, 0.6, 0.60);
+  //   // CYM
+  //   // layerColor = vec3(0);
+  //   // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+  //   // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+  //   // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+  //   // layerColor *= 0.65;
+  //   // layerColor *= vec3(1.0, 0.6, 0.60);
 
-    // layerColor *= 0.6;
+  //   // layerColor *= 0.6;
 
-    // Add black layer as first layer
-    // layerColor *= step(0.5, fI);
+  //   // Add black layer as first layer
+  //   // layerColor *= step(0.5, fI);
 
-    // layerColor = pow(layerColor, vec3(4 + slices));
+  //   // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 2.5 * 0.075;
-    float layerT = norT
-      + maxDelayLength * (1.00 + 0.5 * sin(cosT + length(uv))) * fI / float(slices);
-    float mask = two_dimensional(uv, layerT).x;
-    layerColor *= mask;
-    // if (i == 0) {
-    //   color = layerColor;
-    // } else {
-    //   color = overlay(color, layerColor);
-    // }
-    // color *= layerColor;
+  //   const float maxDelayLength = 2.5 * 0.075;
+  //   float layerT = norT
+  //     + maxDelayLength * (1.00 + 0.5 * sin(cosT + length(uv))) * fI / float(slices);
+  //   float mask = two_dimensional(uv, layerT).x;
+  //   layerColor *= mask;
+  //   // if (i == 0) {
+  //   //   color = layerColor;
+  //   // } else {
+  //   //   color = overlay(color, layerColor);
+  //   // }
+  //   // color *= layerColor;
 
-    // vec3 layerColorA = softLight2(color, layerColor);
-    // vec3 layerColorB = color * layerColor;
-    // layerColor = layerColorA + layerColorB;
-    // layerColor *= 0.85;
+  //   // vec3 layerColorA = softLight2(color, layerColor);
+  //   // vec3 layerColorB = color * layerColor;
+  //   // layerColor = layerColorA + layerColorB;
+  //   // layerColor *= 0.85;
 
-    // layerColor = overlay(color, layerColor);
-    // layerColor = screenBlend(color, layerColor);
-    // color = mix(color, layerColor, 0.3);
+  //   // layerColor = overlay(color, layerColor);
+  //   // layerColor = screenBlend(color, layerColor);
+  //   // color = mix(color, layerColor, 0.3);
 
-    // Add
-    color += layerColor;
+  //   // Add
+  //   color += layerColor;
 
-    // Multiply
-    // color *= layerColor;
+  //   // Multiply
+  //   // color *= layerColor;
 
-    // Pseudo Multiply
-    // color = mix(color, color * layerColor, mask);
-  }
+  //   // Pseudo Multiply
+  //   // color = mix(color, color * layerColor, mask);
+  // }
 
-  color = pow(color, vec3(1.20));
-  color /= float(slices);
+  // color = pow(color, vec3(1.20));
+  // color /= float(slices);
 
-  return vec4(color, 1.);
+  // return vec4(color, 1.);
 
   float time = norT;
   vec4 t = march(ro, rd, time);
