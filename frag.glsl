@@ -2013,7 +2013,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.08);
+const vec2 gSize = vec2(0.03);
 float localCosT = cosT;
 float localT = norT;
 float shape (in vec2 q, in vec2 c) {
@@ -2027,9 +2027,9 @@ float shape (in vec2 q, in vec2 c) {
 
   float dC = dot(c, vec2(1));
 
-  float t = mod(localT - 0.1 * c.y + 0.2 * snoise2(2. * c), 1.);
+  float t = mod(localT - 0.020 * c.y + 0.2 * snoise2(2. * c), 1.);
 
-  q.y -= 7. * size * cubicIn(t);
+  q.y -= 5. * size * cubicIn(t);
 
   float r = saturate(0.475 * (1.
         // Fade out as it 'evaporates'
@@ -2045,14 +2045,14 @@ float shape (in vec2 q, in vec2 c) {
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 7.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
-  d = mix(d, maxDistance, step(0., sdBox(c, vec2(5, 3))));
+  d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
 
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=10.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=5.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = 0.;
@@ -2110,7 +2110,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
