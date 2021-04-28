@@ -2025,17 +2025,18 @@ float shape (in vec2 q, in vec2 c) {
   const float warpScale = 0.;
   float size = gSize.y;
 
-  float dC = dot(c, vec2(1));
+  float dC = dot(abs(c), vec2(1));
+  // float dC = vmax(abs(c));
 
-  float t = mod(localT - 0.020 * c.y + 0.2 * snoise2(2. * c), 1.);
+  float t = mod(localT, 1.);
 
-  q.y -= 5. * size * cubicIn(t);
+  vec2 off = c * size;
 
-  float r = saturate(0.475 * (1.
-        // Fade out as it 'evaporates'
-        - expoIn(t)
-        // Fade in on creation
-        - (1. - range(0., 0.1, t)))) * size;
+  q += off;
+  q *= rotMat2(0.10 * PI * cos(localCosT + 0.4 * floor(dC * 0.25)));
+  q -= off;
+
+  float r = 0.3 * size;
 
   float internalD = length(q);
   // float internalD = vmax(abs(q));
@@ -2045,14 +2046,14 @@ float shape (in vec2 q, in vec2 c) {
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 7.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 8.));
-  d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
+  // d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
 
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=5.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = 0.;
