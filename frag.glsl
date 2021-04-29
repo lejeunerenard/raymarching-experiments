@@ -2013,7 +2013,7 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.03);
+const vec2 gSize = vec2(0.02);
 float localCosT = cosT;
 float localT = norT;
 float shape (in vec2 q, in vec2 c) {
@@ -2032,8 +2032,16 @@ float shape (in vec2 q, in vec2 c) {
 
   vec2 off = c * size;
 
+  vec2 cPol = c;
+  float cPolIndex = pModPolar(cPol, 6.);
+
   q += off;
-  q *= rotMat2(0.10 * PI * cos(localCosT + 0.4 * floor(dC * 0.25)));
+
+  float phase = floor((cPol.x - 0.181) * 0.25);
+  float i = cos(-localCosT + 0.4 * phase);
+  // q *= rotMat2(0.01 * PI * i);
+  q *= 1. + 0.225 * cos(i);
+
   q -= off;
 
   float r = 0.3 * size;
