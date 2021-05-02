@@ -1034,42 +1034,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
 
-  float warpScale = 0.25;
+  float warpScale = 0.75;
   const float thickness = 0.01;
 
   // Warp
   vec3 wQ = q.xyz;
+
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
+  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, -3. * wQ.y);
+  wQ *= 1. + 0.075 * cos(localCosT  - 1.5 * wQ.y);
+  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  float baseR = 0.8;
-  vec3 o = vec3(baseR - length(q.xy), 0, 0);
+  float r = 0.5;
+  // vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  // Sphere only warping
-  q *= rotationMatrix(vec3(0, 1, 0), localCosT);
-  q += warpScale * 0.1000 * cos( 3. * q.yzx + localCosT );
-  q += warpScale * 0.0500 * cos( 9. * q.yzx + localCosT );
-  q.xzy = twist(q.xyz, 2. * q.y);
-  q += warpScale * 0.0250 * cos(17. * q.yzx + localCosT );
-  q += warpScale * 0.0125 * cos(23. * q.yzx + localCosT );
-
-  float r = 0.5 * baseR;
-  o = vec3(length(q) - r, 1, 0);
-  o.x -= 0.010 * cellular(3. * q);
-  d = dMin(d, o);
-
-  // d.x *= 0.5;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1288,38 +1282,19 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(0.);
 
   float dNR = dot(nor, -rd);
 
-  float a = atan(pos.y, pos.x) / PI;
-  a += 1.;
-  a *= 0.5;
+  vec3 dI = vec3(dNR);
 
-  t = norT;
+  dI += 0.2 * snoise3(pos);
+  dI += 0.1 * pos.y;
 
-  vec2 size = vec2(0.032258, 5.0);
+  dI *= angle1C;
+  dI += angle2C;
 
-  vec2 cylinder = vec2(a, pos.z);
-
-  cylinder.x += 0.5 * size.x;
-  vec2 c = floor((cylinder + size*0.5)/size);
-
-  cylinder.y += 2. * size.y * t;
-  cylinder.y += 0.748387 * size.y * c.x;
-
-  vec2 c2 = pMod2(cylinder, size);
-
-  float n = sdBox(cylinder, vec2(0.3, 0.35) * size);
-  n = smoothstep(0.5 * edge, 0., n);
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (0.12739 * c.x + vec3(0, 0.33, 0.67)));
-  color *= n;
-
-  // color = mix(color, background, range(0., 7., -pos.z));
-
-  // Sphere
-  color = mix(color, vec3(0.5), isMaterialSmooth(m, 1.));
+  color = 0.5 + vec3(0.4, 0.6, 0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   gM = m;
 
@@ -1399,14 +1374,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Material Types
       float isWater = isMaterialSmooth(t.y, 1.);
-      float isCyl = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(2.00, 0., isCyl);
-      float specCo = mix(0.50, 0., isCyl);
+      float freCo = 1.50;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
@@ -1414,12 +1388,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = mix(0.0, 1., isCyl);
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = mix(0.3, 1., isCyl);
+        float shadowMin = 0.7;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1453,23 +1427,22 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += mix(0.65, 0., isCyl) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.10 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.20 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0 * pow(1.0 - dot(nor, -rayDirection), 1.0);
-      dispersionI *= (1. - isCyl);
+      float dispersionI = 3.0 * pow(1.0 - dot(nor, -rayDirection), 1.5);
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.45);
@@ -1479,11 +1452,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
