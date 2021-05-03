@@ -2034,18 +2034,19 @@ float shape (in vec2 q, in vec2 c) {
   vec2 off = c * size;
 
   vec2 cPol = c;
-  float cPolIndex = pModPolar(cPol, 6.);
+  // float cPolIndex = pModPolar(cPol, 6.);
 
   q += off;
 
   float phase = floor((cPol.x - 0.181) * 0.25);
   float i = cos(-localCosT + 0.4 * phase);
   // q *= rotMat2(0.01 * PI * i);
-  q *= 1. + 0.225 * cos(i);
+  q *= 1. + 0.25 * cos(i);
+  q.y += 0.025 * cos(-localCosT + 0.4 * phase);
 
   q -= off;
 
-  float r = 0.3 * size;
+  float r = 0.325 * size;
 
   float internalD = length(q);
   // float internalD = vmax(abs(q));
@@ -2062,7 +2063,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=10.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = 0.;
@@ -2120,7 +2121,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
