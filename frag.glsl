@@ -1034,14 +1034,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
 
-  float warpScale = 0.75;
+  float warpScale = 0.65;
   const float thickness = 0.01;
 
   // Warp
@@ -1049,7 +1049,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -3. * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, -3. * wQ.y);
   wQ *= 1. + 0.075 * cos(localCosT  - 1.5 * wQ.y);
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
 
@@ -1058,12 +1058,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float r = 0.5;
-  // vec3 o = vec3(length(q) - r, 0, 0);
-  vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
+  float r = mix(1.0, 0.17, range(0., -2., q.z));
+  vec3 o = vec3(r - length(q.xy), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.75;
+  // d.x *= 0.75;
 
   return d;
 }
@@ -1284,6 +1283,25 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
 
+  // I expected the previous attempt to 'act' like this. it was diagonal lines before, but it "follows" the camera.
+  vec2 uv = fragCoord.xy;
+  float size = 0.1;
+  // vec3 uv3 = vec3(uv, 0.5 * pos.z);
+  // vec3 c = pMod3(uv3, vec3(size));
+
+  vec2 uv3 = vec2(atan(pos.y, pos.x) / PI, 0.5 * pos.z);
+  uv3.x += 1.;
+  uv3.x *= 0.5;
+  uv3.y += 8. * size * t;
+	vec2 c = floor((uv3 + size*0.5)/size);
+  uv3.x += 0.25 * size * mod(c.y, 4.);
+  c = pMod2(uv3, vec2(size));
+
+  float n = length(uv3);
+  float r = 0.1 * size;
+  n = 5. * smoothstep(edge, 0., n - r);
+
+  return vec3(n);
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
@@ -1379,8 +1397,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.50;
-      float specCo = 0.70;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1388,12 +1406,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.7;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.7;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -1432,22 +1450,22 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
       // color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.20 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.20 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3.0 * pow(1.0 - dot(nor, -rayDirection), 1.5);
-      dispersionColor *= dispersionI;
+      // float dispersionI = 3.0 * pow(1.0 - dot(nor, -rayDirection), 1.5);
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.45);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2121,7 +2139,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
