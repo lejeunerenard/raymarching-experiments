@@ -1034,14 +1034,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
 
-  float warpScale = 0.65;
+  float warpScale = 0.5;
   const float thickness = 0.01;
 
   // Warp
@@ -1049,20 +1049,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
   wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, -3. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, -1. * wQ.y);
   wQ *= 1. + 0.075 * cos(localCosT  - 1.5 * wQ.y);
   wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
 
   // Commit warp
   q = wQ.xyz;
 
+  q.xzy = q.xyz;
+
   mPos = q;
 
-  float r = mix(1.0, 0.17, range(0., -2., q.z));
-  vec3 o = vec3(r - length(q.xy), 0, 0);
+  float eCorrection = 0.;
+  q = opElogate(q, vec3(0, 0.25, 0), eCorrection);
+
+  float r = 0.45;
+  // vec3 o = vec3(length(q) - r, 0, 0);
+  float oD = sdTorus(q, vec2(r, 0.5 * r));
+  vec3 o = vec3(oD, 0, 0);
   d = dMin(d, o);
 
-  // d.x *= 0.75;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1285,11 +1292,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // I expected the previous attempt to 'act' like this. it was diagonal lines before, but it "follows" the camera.
   vec2 uv = fragCoord.xy;
-  float size = 0.1;
+  float size = 0.025;
   // vec3 uv3 = vec3(uv, 0.5 * pos.z);
   // vec3 c = pMod3(uv3, vec3(size));
 
-  vec2 uv3 = vec2(atan(pos.y, pos.x) / PI, 0.5 * pos.z);
+  vec2 uv3 = vec2(atan(mPos.z, mPos.x) / PI, 0.5 * mPos.y);
   uv3.x += 1.;
   uv3.x *= 0.5;
   uv3.y += 8. * size * t;
