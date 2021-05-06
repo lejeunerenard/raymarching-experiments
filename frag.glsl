@@ -1056,20 +1056,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  q.xzy = q.xyz;
-
   mPos = q;
 
-  float eCorrection = 0.;
-  q = opElogate(q, vec3(0, 0.25, 0), eCorrection);
+  // float eCorrection = 0.;
+  // q = opElogate(q, vec3(0, 0.25, 0), eCorrection);
 
-  float r = 0.45;
-  // vec3 o = vec3(length(q) - r, 0, 0);
-  float oD = sdTorus(q, vec2(r, 0.5 * r));
-  vec3 o = vec3(oD, 0, 0);
+  float r = 0.6;
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.75;
+  // d.x *= 0.75;
 
   return d;
 }
@@ -1296,7 +1292,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // vec3 uv3 = vec3(uv, 0.5 * pos.z);
   // vec3 c = pMod3(uv3, vec3(size));
 
-  vec2 uv3 = vec2(atan(mPos.z, mPos.x) / PI, 0.5 * mPos.y);
+  vec2 uv3 = vec2(atan(mPos.z, mPos.x) / PI, 0.4 * mPos.y);
   uv3.x += 1.;
   uv3.x *= 0.5;
   uv3.y += 8. * size * t;
@@ -1304,10 +1300,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   uv3.x += 0.25 * size * mod(c.y, 4.);
   c = pMod2(uv3, vec2(size));
 
-  float n = length(uv3);
-  float r = 0.1 * size;
-  n = 5. * smoothstep(edge, 0., n - r);
+  vec2 absUV3 = abs(uv3);
+  float n = min(absUV3.x, absUV3.y);
+  float r = 0.05 * size;
+  n = step(0., r - n);
 
+  float mask = sdBox(uv3, vec2(0.3 * size));
+  n *= step(0., -mask);
+
+  return 1.2 * mix(#FAC011, pow(#113BFA, vec3(2.2)), n);
   return vec3(n);
   float dNR = dot(nor, -rd);
 
@@ -1404,7 +1405,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.1;
       float specCo = 0.0;
 
       float specAll = 0.0;
@@ -1418,7 +1419,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 

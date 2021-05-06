@@ -22,7 +22,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(vec3(0.5), vec3(1.2), bgIndex);
   // vec3 color = mix(#FD2897, #C235FA, bgIndex);
   // color = mix(color, vec3(1), 0.6);
-  vec3 color = vec3(0);
+  // vec3 color = vec3(0);
 
   // const vec3 bgColor = #F2900A;
   // vec3 color = mix(0.8 * bgColor, bgColor, bgIndex);
@@ -41,6 +41,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // Solid colors
   // vec3 color = vec3(0.5);
+  vec3 color = #FAC011;
 
   // -- Patterns --
   // // Grid
@@ -59,7 +60,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
   // float cutoff = -0.7;
   // n = 1. - smoothstep(cutoff, cutoff + edge, n);
-  // vec3 color = 0.8 * vec3(n);
+  // vec3 color = mix(#FAC011, #001FAD, n);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
