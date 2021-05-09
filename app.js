@@ -75,7 +75,7 @@ export default class App {
 
     this.angle1C = 0.669
     this.angle2C = 0.002
-    this.angle3C = -0.006
+    this.angle3C = 0
 
     // this.setupAnimation(preset)
 

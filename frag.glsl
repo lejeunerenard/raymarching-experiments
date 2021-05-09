@@ -712,6 +712,12 @@ vec3 opElogate ( in vec3 q, in vec3 h, out float correction ) {
    return max(q, 0.);
 }
 
+vec2 opElogateS ( in vec2 p, in vec2 h ) {
+   vec2 q = p - clamp(p, -h, h);
+
+   return q;
+}
+
 float opExtrude ( in vec3 q, in float d, in float h ) {
   vec2 w = vec2(d, abs(q.z) - h);
   return min(max(w.x, w.y), 0.) + length(max(w, 0.));
@@ -2096,6 +2102,44 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
+vec2 split (in vec2 q, in float angle, in float gap, in float start) {
+  vec2 axis = vec2(1, 0);
+  axis *= rotMat2(angle);
+
+  // Shape - extrude
+  vec2 shapeQ = q;
+
+  shapeQ += axis * start;
+
+  shapeQ *= rotMat2(-angle);
+  shapeQ = opElogateS( shapeQ, vec2(1, 0) * gap);
+  shapeQ *= rotMat2( angle);
+
+  shapeQ -= axis * start;
+
+  return shapeQ;
+}
+
+float splitMask (in vec2 q, in float angle, in float gap, in float start) {
+  vec2 axis = vec2(1, 0);
+  axis *= rotMat2(angle);
+
+  // Mask
+  return -abs(dot(q, axis) + start) + gap;
+}
+
+const float numBreaks = 8.;
+vec3 splitParams (in float i) {
+  const float nullBuffer = 0.1;
+  const float splitLength = (1. - 2. * nullBuffer) / numBreaks;
+  float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), triangleWave(norT + 0.5) );
+  float gap = 0.0075 * expo(localT);
+  float angle = snoise2(vec2(3.157143 * i)) * PI;
+  float start = 0.075 * cos(4.157143 * i + 0.1);
+
+  return vec3(angle, gap, start);
+}
+
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=7.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
@@ -2109,19 +2153,61 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float thickness = 0.0025;
-  const float warpScale = 0.2;
+  const float warpScale = 1.0;
   const vec2 size = gSize;
-  float r = 0.10;
+  float r = 0.20;
 
   vec2 wQ = q;
   q = wQ;
 
-  d = neighborGrid(q, size);
+  vec2 splitR = q;
+  float mask = -maxDistance;
+  const float maxIter = 8.;
+  vec3 debugColor = vec3(0);
+  vec3 splitPs = vec3(0);
+  for (float i = maxIter - 1.; i >= 0.; i--) {
+    // -- Reverse order mask --
+    vec2 maskQ = splitR;
+    splitPs = splitParams(i);
+    float localMask = splitMask(maskQ, splitPs.x, splitPs.y, splitPs.z);
+    mask = max(mask, localMask);
+    // Debug mask
+    if (i == 0.) {
+      debugColor.r = localMask;
+    } else if (i == 1.) {
+      debugColor.g = localMask;
+    } else if (i == 2.) {
+      debugColor.b = localMask;
+    }
+
+    // Build up domain modifications
+    splitPs = splitParams(i);
+    splitR = split(splitR.xy, splitPs.x, splitPs.y, splitPs.z);
+  }
+
+  // // Proof its being "applied to" a SDF
+  // splitR += warpScale * 0.10000 * cos( 3. * splitR.yx + cosT);
+  // splitR += warpScale * 0.05000 * cos( 7. * splitR.yx + cosT);
+  // splitR += warpScale * 0.02500 * cos(13. * splitR.yx + cosT);
+  // splitR += warpScale * 0.01250 * cos(23. * splitR.yx + cosT);
+
+  // The final sdf
+  splitR.xy *= rotMat2(0.37 * PI);
+  float shape = sdBox(splitR.xy, vec2(r));
+  d = min(d, shape);
+  d = max(d, mask);
 
   float stop = angle3C;
-  d = smoothstep(stop, edge + stop, d);
-  d = 1. - d;
+  // d = smoothstep(stop, edge + stop, d);
+  d = step(0., d);
+  // d = 1. - d;
   color = vec3(d);
+
+  // // Test extrude
+  // color.r = 0.5 * step(0., debugColor.r);
+  // color.g = 0.5 * step(0., debugColor.g);
+  // color.b = 0.5 * step(0., debugColor.b);
+  // color = mix(color, vec3(1), 1. - d);
 
   return color.rgb;
 }
