@@ -2102,7 +2102,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-vec2 split (in vec2 q, in float angle, in float gap, in float start) {
+vec2 split (in vec2 q, inout float mask, in float angle, in float gap, in float start) {
   vec2 axis = vec2(1, 0);
   axis *= rotMat2(angle);
 
@@ -2117,25 +2117,29 @@ vec2 split (in vec2 q, in float angle, in float gap, in float start) {
 
   shapeQ -= axis * start;
 
+  // Mask
+  float newMask = -abs(dot(q, axis) + start) + gap;
+  mask = max(mask, newMask);
   return shapeQ;
 }
 
-float splitMask (in vec2 q, in float angle, in float gap, in float start) {
-  vec2 axis = vec2(1, 0);
-  axis *= rotMat2(angle);
-
-  // Mask
-  return -abs(dot(q, axis) + start) + gap;
-}
-
-const float numBreaks = 8.;
+const float numBreaks = 32.;
 vec3 splitParams (in float i) {
-  const float nullBuffer = 0.1;
-  const float splitLength = (1. - 2. * nullBuffer) / numBreaks;
-  float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), triangleWave(norT + 0.5) );
-  float gap = 0.0075 * expo(localT);
+  const float nullBuffer = 0.05;
+  const float splitLength = (1. - nullBuffer) / numBreaks;
+
+  // Distinct times per crack
+  // float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), triangleWave(norT + 0.5) );
+
+  // Slight overlap in time
+  float localT = range( nullBuffer + splitLength * 0.45 * i, nullBuffer + splitLength * (i + 2.0), triangleWave(norT + 0.5) );
+
+  float gapAmount = 0.0120 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
+  float gap = gapAmount * expo(localT);
+
   float angle = snoise2(vec2(3.157143 * i)) * PI;
-  float start = 0.075 * cos(4.157143 * i + 0.1);
+
+  float start = 0.15 * (2. / (numBreaks * 0.5) * floor(i * 0.5) - 1.);
 
   return vec3(angle, gap, start);
 }
@@ -2143,7 +2147,7 @@ vec3 splitParams (in float i) {
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=7.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
-  float d = 0.;
+  float d = maxDistance;
 
   vec2 q = uv;
 
@@ -2162,52 +2166,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 splitR = q;
   float mask = -maxDistance;
-  const float maxIter = 8.;
-  vec3 debugColor = vec3(0);
-  vec3 splitPs = vec3(0);
-  for (float i = maxIter - 1.; i >= 0.; i--) {
-    // -- Reverse order mask --
-    vec2 maskQ = splitR;
-    splitPs = splitParams(i);
-    float localMask = splitMask(maskQ, splitPs.x, splitPs.y, splitPs.z);
-    mask = max(mask, localMask);
-    // Debug mask
-    if (i == 0.) {
-      debugColor.r = localMask;
-    } else if (i == 1.) {
-      debugColor.g = localMask;
-    } else if (i == 2.) {
-      debugColor.b = localMask;
-    }
+  const float maxIter = numBreaks;
 
-    // Build up domain modifications
-    splitPs = splitParams(i);
-    splitR = split(splitR.xy, splitPs.x, splitPs.y, splitPs.z);
+  // Split
+  for (float i = maxIter - 1.; i >= 0.; i--) {
+    vec3 splitPs = splitParams(i);
+    splitR = split(splitR, mask, splitPs.x, splitPs.y, splitPs.z);
   }
 
-  // // Proof its being "applied to" a SDF
-  // splitR += warpScale * 0.10000 * cos( 3. * splitR.yx + cosT);
-  // splitR += warpScale * 0.05000 * cos( 7. * splitR.yx + cosT);
-  // splitR += warpScale * 0.02500 * cos(13. * splitR.yx + cosT);
-  // splitR += warpScale * 0.01250 * cos(23. * splitR.yx + cosT);
-
   // The final sdf
-  splitR.xy *= rotMat2(0.37 * PI);
-  float shape = sdBox(splitR.xy, vec2(r));
+  float shape = length(splitR.xy) - r;
   d = min(d, shape);
   d = max(d, mask);
 
   float stop = angle3C;
-  // d = smoothstep(stop, edge + stop, d);
-  d = step(0., d);
+  d = smoothstep(stop, edge + stop, d);
   // d = 1. - d;
+
+  // Solid
   color = vec3(d);
 
-  // // Test extrude
-  // color.r = 0.5 * step(0., debugColor.r);
-  // color.g = 0.5 * step(0., debugColor.g);
-  // color.b = 0.5 * step(0., debugColor.b);
-  // color = mix(color, vec3(1), 1. - d);
+  // Textured
+  // vec3 foreground = vec3(vfbmWarp(2. * splitR));
+  // foreground = pow(foreground, vec3(1.5));
+  // color = mix(foreground, vec3(1), d);
 
   return color.rgb;
 }
