@@ -2123,23 +2123,25 @@ vec2 split (in vec2 q, inout float mask, in float angle, in float gap, in float 
   return shapeQ;
 }
 
-const float numBreaks = 32.;
+const float numBreaks = 10.;
 vec3 splitParams (in float i) {
   const float nullBuffer = 0.05;
-  const float splitLength = (1. - nullBuffer) / numBreaks;
+  const float splitLength = (1. - 2. * nullBuffer) / numBreaks;
 
   // Distinct times per crack
-  // float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), triangleWave(norT + 0.5) );
+  float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), triangleWave(norT + 0.5) );
 
   // Slight overlap in time
-  float localT = range( nullBuffer + splitLength * 0.45 * i, nullBuffer + splitLength * (i + 2.0), triangleWave(norT + 0.5) );
+  // float localT = range( nullBuffer + splitLength * 0.45 * i, nullBuffer + splitLength * (i + 2.0), triangleWave(norT + 0.5) );
+    // Collapse together
+    // * (1. - range(0.7 + 0.002 * i, 0.8 + 0.001 * i, norT));
 
-  float gapAmount = 0.0120 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
-  float gap = gapAmount * expo(localT);
+  float gapAmount = 0.0220 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
+  float gap = gapAmount * mix(bounceOut(localT), bounceIn(localT), step(0.5, norT));
 
-  float angle = snoise2(vec2(3.157143 * i)) * PI;
+  float angle = snoise2(vec2(3.157143 * i) + 8.482349) * PI;
 
-  float start = 0.15 * (2. / (numBreaks * 0.5) * floor(i * 0.5) - 1.);
+  float start = 0.15 * snoise2(vec2(10.8123 * i));
 
   return vec3(angle, gap, start);
 }
@@ -2175,12 +2177,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   }
 
   // The final sdf
-  float shape = length(splitR.xy) - r;
+  // float shape = length(splitR.xy) - r;
+  vec3 q3 = vec3(splitR, 0.);
+  q3 *= rotationMatrix(vec3(1), 0.2 * PI);
+  float shape = icosahedral(q3, 53., r);
   d = min(d, shape);
   d = max(d, mask);
 
+  // Outline
+  const float adjustment = 0.004;
+  d = abs(d - adjustment) - 0.75 * thickness;
+
   float stop = angle3C;
-  d = smoothstep(stop, edge + stop, d);
+  d = smoothstep(stop, 0.3 * edge + stop, d);
   // d = 1. - d;
 
   // Solid
