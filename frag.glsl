@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1010,6 +1010,50 @@ vec2 lissajous (in float bigA, in float bigB, in float a, in float b, in float d
   return vec2(bigA, bigB) * sin(vec2(a, b) * t + vec2(delta, 0));
 }
 
+vec2 split (in vec2 q, inout float mask, in float angle, in float gap, in float start) {
+  vec2 axis = vec2(1, 0);
+  axis *= rotMat2(angle);
+
+  // Shape - extrude
+  vec2 shapeQ = q;
+
+  shapeQ += axis * start;
+
+  shapeQ *= rotMat2(-angle);
+  shapeQ = opElogateS( shapeQ, vec2(1, 0) * gap);
+  shapeQ *= rotMat2( angle);
+
+  shapeQ -= axis * start;
+
+  // Mask
+  float newMask = -abs(dot(q, axis) + start) + gap;
+  mask = max(mask, newMask);
+  return shapeQ;
+}
+
+const float numBreaks = 15.;
+vec3 splitParams (in float i, in float t) {
+  const float nullBuffer = 0.10;
+  const float splitLength = (1. - 2. * nullBuffer) / numBreaks;
+
+  // Distinct times per crack
+  float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), t * (1. - smoothstep(0.8, 1., t)));
+
+  // Slight overlap in time
+  // float localT = range( nullBuffer + splitLength * 0.45 * i, nullBuffer + splitLength * (i + 2.0), triangleWave(t + 0.5) );
+    // Collapse together
+    // * (1. - range(0.7 + 0.002 * i, 0.8 + 0.001 * i, t));
+
+  float gapAmount = 0.0220 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
+  float gap = gapAmount * quart(localT);
+
+  float angle = snoise2(vec2(3.157143 * i) + 1.482349) * PI;
+
+  float start = 0.15 * snoise2(vec2(10.8123 * i));
+
+  return vec3(angle, gap, start);
+}
+
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -1020,18 +1064,30 @@ float thingy (in vec2 q, in float t) {
 
   float thickness = 0.007;
 
-  float c = pModPolar(q, 5. + 2. * (0.5 + 0.5 * cos(localCosT)));
-  q.x -= 0.4;
+  vec2 splitR = q;
+  float mask = -maxDistance;
+  const float maxIter = numBreaks;
 
-  q = abs(q);
-  q *= rotMat2(0.5 * localCosT);
+  // Split
+  for (float i = maxIter - 1.; i >= 0.; i--) {
+    vec3 splitPs = splitParams(i, t);
+    splitR = split(splitR, mask, splitPs.x, splitPs.y, splitPs.z);
+  }
 
-  float r = 0.2;
-  float s = sdBox(q, vec2(r));
-  d = min(d, s);
+  float r = 0.5;
+  // The final sdf
+  float shape = sdBox(splitR, vec2(r));
+  d = min(d, shape);
+  d = max(d, mask);
 
-  // Outline
-  d = abs(d) - thickness;
+  // // Outline
+  // const float adjustment = 0.004;
+  // d = abs(d - adjustment) - 0.75 * thickness;
+
+  float stop = angle3C;
+  // d = smoothstep(stop, 0.3 * edge + stop, d);
+  // d = 1. - d;
+
 
   return d;
 }
@@ -1040,7 +1096,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1053,25 +1109,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + cosT );
-  wQ += warpScale * 0.05000 * cos(11. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -1. * wQ.y);
-  wQ *= 1. + 0.075 * cos(localCosT  - 1.5 * wQ.y);
-  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + cosT );
-
   // Commit warp
   q = wQ.xyz;
 
+  // q.xzy = twist(q.xyz, 0.25 * localCosT + q.y);
+
+  q.xzy = q.xyz;
+
   mPos = q;
 
-  // float eCorrection = 0.;
-  // q = opElogate(q, vec3(0, 0.25, 0), eCorrection);
-
   float r = 0.6;
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(thingy(q.xy, norT + 0.15 * q.z), 0, 0);
+  o.x = opExtrude(q.xyz, o.x, 0.50);
   d = dMin(d, o);
 
-  // d.x *= 0.75;
+  d.x *= 0.80;
 
   return d;
 }
@@ -1290,7 +1342,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(1.75);
+
+  return color;
 
   // I expected the previous attempt to 'act' like this. it was diagonal lines before, but it "follows" the camera.
   vec2 uv = fragCoord.xy;
@@ -1411,8 +1465,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.1;
-      float specCo = 0.0;
+      float freCo = 0.8;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1420,12 +1474,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 1.0;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.95;
+        float shadowMin = 0.2;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00));
         dif *= sha;
 
@@ -2102,50 +2156,6 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-vec2 split (in vec2 q, inout float mask, in float angle, in float gap, in float start) {
-  vec2 axis = vec2(1, 0);
-  axis *= rotMat2(angle);
-
-  // Shape - extrude
-  vec2 shapeQ = q;
-
-  shapeQ += axis * start;
-
-  shapeQ *= rotMat2(-angle);
-  shapeQ = opElogateS( shapeQ, vec2(1, 0) * gap);
-  shapeQ *= rotMat2( angle);
-
-  shapeQ -= axis * start;
-
-  // Mask
-  float newMask = -abs(dot(q, axis) + start) + gap;
-  mask = max(mask, newMask);
-  return shapeQ;
-}
-
-const float numBreaks = 10.;
-vec3 splitParams (in float i) {
-  const float nullBuffer = 0.05;
-  const float splitLength = (1. - 2. * nullBuffer) / numBreaks;
-
-  // Distinct times per crack
-  float localT = range( nullBuffer + splitLength * i, nullBuffer + splitLength * (i + 1.), triangleWave(norT + 0.5) );
-
-  // Slight overlap in time
-  // float localT = range( nullBuffer + splitLength * 0.45 * i, nullBuffer + splitLength * (i + 2.0), triangleWave(norT + 0.5) );
-    // Collapse together
-    // * (1. - range(0.7 + 0.002 * i, 0.8 + 0.001 * i, norT));
-
-  float gapAmount = 0.0220 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
-  float gap = gapAmount * mix(bounceOut(localT), bounceIn(localT), step(0.5, norT));
-
-  float angle = snoise2(vec2(3.157143 * i) + 8.482349) * PI;
-
-  float start = 0.15 * snoise2(vec2(10.8123 * i));
-
-  return vec3(angle, gap, start);
-}
-
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=7.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
@@ -2172,7 +2182,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Split
   for (float i = maxIter - 1.; i >= 0.; i--) {
-    vec3 splitPs = splitParams(i);
+    vec3 splitPs = splitParams(i, t);
     splitR = split(splitR, mask, splitPs.x, splitPs.y, splitPs.z);
   }
 
@@ -2231,7 +2241,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
