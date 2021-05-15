@@ -1031,7 +1031,7 @@ vec2 split (in vec2 q, inout float mask, in float angle, in float gap, in float 
   return shapeQ;
 }
 
-const float numBreaks = 15.;
+const float numBreaks = 5.;
 vec3 splitParams (in float i, in float t) {
   const float nullBuffer = 0.10;
   const float splitLength = (1. - 2. * nullBuffer) / numBreaks;
@@ -1064,30 +1064,28 @@ float thingy (in vec2 q, in float t) {
 
   float thickness = 0.007;
 
-  vec2 splitR = q;
-  float mask = -maxDistance;
-  const float maxIter = numBreaks;
+  float r = 0.40;
 
-  // Split
-  for (float i = maxIter - 1.; i >= 0.; i--) {
-    vec3 splitPs = splitParams(i, t);
-    splitR = split(splitR, mask, splitPs.x, splitPs.y, splitPs.z);
-  }
+  q *= rotMat2(localCosT);
 
-  float r = 0.5;
-  // The final sdf
-  float shape = sdBox(splitR, vec2(r));
+  vec3 q3 = vec3(q, 0.);
+  vec3 axis = vec3(1);
+  q3 *= rotationMatrix(axis, localCosT);
+
+  float shape = icosahedral(q3, 52., r);
   d = min(d, shape);
-  d = max(d, mask);
 
-  // // Outline
-  // const float adjustment = 0.004;
-  // d = abs(d - adjustment) - 0.75 * thickness;
+  q = abs(q);
+  shape = length(q - vec2(1.30 * r)) - 0.5 * r;
+  d = min(d, shape);
+
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - 0.0125;
 
   float stop = angle3C;
   // d = smoothstep(stop, 0.3 * edge + stop, d);
   // d = 1. - d;
-
 
   return d;
 }
@@ -1103,7 +1101,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
 
-  float warpScale = 0.5;
+  float warpScale = 1.0;
   // const float thickness = 0.01;
 
   // Warp
@@ -1112,33 +1110,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  // q.xzy = twist(q.xyz, 0.25 * localCosT + q.y);
-
-  q.xzy = q.xyz;
-
   mPos = q;
 
-  // float r = 0.6;
-  float baseR = 0.33;
-  float sway = 0.5;
-  float swell = 1.0;
-  float thickness = baseR;
+  float exLength = 0.35;
+  q.z += 0.5 * exLength;
 
-  float bigR = baseR * (1. + swell * sin(localCosT));
-  vec3 localQ = q;
-  localQ.y -= sway * cos(localCosT);
-  vec3 o = vec3(sdTorus(localQ, vec2(bigR, thickness)), 0, 0);
+  float r = 0.8;
+  vec3 o = vec3(thingy(q.xy, t + 0.2 * q.z), 0, 0);
+  float correction = 0.;
+  o.x = opExtrude(q.xyz, o.x, exLength);
   d = dMin(d, o);
 
-  // Ring two
-  float phase = 1.0 * PI;
-  bigR = baseR * (1. + swell * sin(localCosT + phase));
-  localQ = q;
-  localQ.y -= sway * cos(localCosT + phase);
-  o = vec3(sdTorus(localQ, vec2(bigR, thickness)), 0, 0);
-  d = dMin(d, o);
-
-  d.x *= 0.80;
+  d.x *= 0.50;
 
   return d;
 }
@@ -1358,7 +1341,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1371,10 +1353,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + vec3(0.4, 0.6, 0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  float toWhite = dNR;
-  // toWhite = pow(toWhite, 1.);
-  color = mix(color, vec3(1.0), toWhite);
 
   gM = m;
 
@@ -1509,20 +1487,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.3 * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.10 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.10 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3. * pow(1. - dot(nor, -rayDirection), 3.0);
+      float dispersionI = pow(1. - dot(nor, -rayDirection), 1.0);
       dispersionColor *= dispersionI;
 
       dispersionColor.r = pow(dispersionColor.r, 0.45);
