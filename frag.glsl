@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1054,34 +1054,82 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
+const vec2 gSize = vec2(0.1);
+float localCosT = cosT;
+float localT = norT;
+float shape (in vec2 q, in vec2 c) {
+  float d = maxDistance;
+
+  float odd = mod(dot(c, vec2(1)), 2.);
+  float even = 1. - odd;
+
+  const float warpScale = 0.;
+  float size = gSize.y;
+
+  float dC = dot(abs(c), vec2(1));
+  // float dC = vmax(abs(c));
+
+  float t = mod(localT, 1.);
+
+  vec2 off = c * size;
+
+  vec2 cPol = c;
+  // float cPolIndex = pModPolar(cPol, 5.);
+
+  q += off;
+
+  float phase = floor((cPol.x) * 0.2);
+  float i = cos(-localCosT + 0.4 * phase + 0.0075 * cPol.y);
+  q += 2.5 * size * cos(localCosT - 0.67283 * dot(cPol, vec2(1)) + vec2(0, 0.5 * PI));
+
+  q -= off;
+
+  float r = 0.425 * size;
+
+  float mask = 1.;
+
+  float internalD = length(q);
+  // float internalD = vmax(abs(q));
+  // vec2 absQ = abs(q);
+  // float internalD = min(absQ.x, absQ.y);
+  // mask = sdBox(q, vec2(0.25 * size));
+  // mask = step(0., -mask);
+
+  float o = internalD - r;
+  d = min(d, o);
+
+  // Mask
+  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 7.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 3.));
+  d = mix(d, maxDistance, step(0., sdBox(c, vec2(3))));
+  // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
+  // d = mix(d, maxDistance, step(0., length(c) - 10.));
+
+  return d;
+}
+
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=5.)
+
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
   vec2 uv = q;
 
-  float localCosT = TWO_PI * t;
+  localCosT = TWO_PI * t;
+  localT = t;
+
 
   float thickness = 0.007;
 
   float r = 0.40;
 
-  q *= rotMat2(localCosT);
-
-  vec3 q3 = vec3(q, 0.);
-  vec3 axis = vec3(1);
-  q3 *= rotationMatrix(axis, localCosT);
-
-  float shape = icosahedral(q3, 52., r);
-  d = min(d, shape);
-
-  q = abs(q);
-  shape = length(q - vec2(1.30 * r)) - 0.5 * r;
+  float shape = neighborGrid(q, gSize);
   d = min(d, shape);
 
   // Outline
   const float adjustment = 0.0;
-  d = abs(d - adjustment) - 0.0125;
+  d = abs(d - adjustment) - 0.01;
 
   float stop = angle3C;
   // d = smoothstep(stop, 0.3 * edge + stop, d);
@@ -2072,63 +2120,6 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
-const vec2 gSize = vec2(0.02);
-float localCosT = cosT;
-float localT = norT;
-float shape (in vec2 q, in vec2 c) {
-  float d = maxDistance;
-
-  float odd = mod(dot(c, vec2(1)), 2.);
-  float even = 1. - odd;
-
-  const float warpScale = 0.;
-  float size = gSize.y;
-
-  float dC = dot(abs(c), vec2(1));
-  // float dC = vmax(abs(c));
-
-  float t = mod(localT, 1.);
-
-  vec2 off = c * size;
-
-  vec2 cPol = c;
-  // float cPolIndex = pModPolar(cPol, 5.);
-
-  q += off;
-
-  float phase = floor((cPol.x) * 0.2);
-  float i = cos(-localCosT + 0.4 * phase + 0.0075 * cPol.y);
-  q *= rotMat2(0.0475 * PI * i);
-  q *= 1. + 0.25 * cos(i);
-  q.x += 2.5 * size * pow(i, 3.);
-
-  q -= off;
-
-  float r = 0.425 * size;
-
-  float mask = 1.;
-
-  // float internalD = length(q);
-  float internalD = vmax(abs(q));
-  // vec2 absQ = abs(q);
-  // float internalD = min(absQ.x, absQ.y);
-  // mask = sdBox(q, vec2(0.25 * size));
-  // mask = step(0., -mask);
-
-  float o = internalD - r;
-  d = min(d, o);
-
-  // Mask
-  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 7.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 20.));
-  // d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
-  // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
-  // d = mix(d, maxDistance, step(0., length(c) - 10.));
-
-  return d;
-}
-
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=7.)
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
