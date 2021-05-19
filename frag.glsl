@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.15);
+const vec2 gSize = vec2(0.09);
 float localCosT = cosT;
 float localT = norT;
 float shape (in vec2 q, in vec2 c) {
@@ -1080,7 +1080,7 @@ float shape (in vec2 q, in vec2 c) {
 
   float phase = floor((cPol.x) * 0.2);
   float i = cos(-localCosT + 0.4 * phase + 0.0075 * cPol.y);
-  q += 0.5 * size * cos(localCosT - 0.67283 * dot(cPol, vec2(1)) + vec2(0, 0.5 * PI));
+  q += 0.5 * size * cos(localCosT - 0.67283 * dot(abs(cPol), vec2(1)) + vec2(0, 0.5 * PI));
 
   q -= off;
 
@@ -1088,21 +1088,25 @@ float shape (in vec2 q, in vec2 c) {
 
   float mask = 1.;
 
-  // float internalD = length(q);
+  float internalD = length(q);
   // float internalD = vmax(abs(q));
-  float internalD = sdBox(q, vec2(r));
+  // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // mask = sdBox(q, vec2(0.25 * size));
   // mask = step(0., -mask);
 
-  // float o = internalD - r;
-  float o = internalD;
+  float o = internalD - r;
+  // float o = internalD;
   d = min(d, o);
+
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - 0.005;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 20.));
-  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 3.));
+  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 6.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -1110,7 +1114,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -1129,9 +1133,9 @@ float thingy (in vec2 q, in float t) {
   float shape = neighborGrid(q, gSize);
   d = min(d, shape);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - 0.01;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - 0.01;
 
   float stop = angle3C;
   // d = smoothstep(stop, 0.3 * edge + stop, d);
@@ -1162,11 +1166,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float exLength = 0.35;
+  float exLength = 0.20;
   q.z += 0.5 * exLength;
 
   float r = 0.8;
-  vec3 o = vec3(thingy(q.xy, t + 0.2 * q.z), 0, 0);
+  vec3 o = vec3(thingy(q.xy, t), 0, 0);
   float correction = 0.;
   o.x = opExtrude(q.xyz, o.x, exLength);
   d = dMin(d, o);
@@ -1390,7 +1394,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
+  vec3 color = vec3(2.0);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1490,8 +1494,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.5;
+      float freCo = 0.5;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1499,7 +1503,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.0;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1551,12 +1555,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = pow(1. - dot(nor, -rayDirection), 1.0);
-      dispersionColor *= dispersionI;
+      // float dispersionI = pow(1. - dot(nor, -rayDirection), 1.0);
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.45);
+      // dispersionColor.r = pow(dispersionColor.r, 0.45);
 
       // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
