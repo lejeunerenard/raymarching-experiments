@@ -2145,21 +2145,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const vec2 size = gSize;
   float r = 0.40;
 
+  float vSize = 0.035;
+  float period = 20.;
+
   vec2 wQ = q;
+  float c = pMod1(wQ.y, vSize);
   q = wQ;
 
-  float shape = length(q) - r;
+  // q.x += generalT * c / period;
+  float shape = abs(triangleWave(period * q.x + generalT * c) - 2. / vSize * q.y);
   d = min(d, shape);
 
   float stop = angle3C;
   d = smoothstep(stop, 8. * edge + stop, d);
   d = 1. - d;
-
-  // Shades
-  float freq = mix(10., 30., pow(saturate((0.5 * (q.y / r + 1.))), 3.0));
-  float shades = sin(TWO_PI * (freq * q.y + 2. * t));
-  shades = smoothstep(stop, 0.3 * edge + stop, shades);
-  d *= shades;
 
   // Solid
   color = vec3(d);
@@ -2200,7 +2199,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
