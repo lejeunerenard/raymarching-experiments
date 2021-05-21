@@ -1054,11 +1054,13 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.09);
+const vec2 gSize = vec2(0.025);
 float localCosT = cosT;
 float localT = norT;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
+
+  vec2 uv = q;
 
   float odd = mod(dot(c, vec2(1)), 2.);
   float even = 1. - odd;
@@ -1069,22 +1071,22 @@ float shape (in vec2 q, in vec2 c) {
   float dC = dot(abs(c), vec2(1));
   // float dC = vmax(abs(c));
 
-  float t = mod(localT, 1.);
-
-  vec2 off = c * size;
+  // localT += 0.125 * dot(abs(c), vec2(1));
+  float t = mod(localT - 0.05 * dot(abs(c), vec2(1)), 1.);
 
   vec2 cPol = c;
-  // float cPolIndex = pModPolar(cPol, 5.);
+  cPol *= rotMat2(0.25 * PI);
+  float cPolIndex = pModPolar(cPol, 4.);
 
-  q += off;
+  vec2 dir = vec2(-1,-1);
+  dir *= rotMat2(0.5 * PI * cPolIndex);
+  q += size * dir * quart(t);
 
-  float phase = floor((cPol.x) * 0.2);
-  float i = cos(-localCosT + 0.4 * phase + 0.0075 * cPol.y);
-  q += 0.5 * size * cos(localCosT - 0.67283 * dot(abs(cPol), vec2(1)) + vec2(0, 0.5 * PI));
+  if (c == vec2(0)) {
+    q = uv;
+  }
 
-  q -= off;
-
-  float r = 0.425 * size;
+  float r = 0.1 * size;
 
   float mask = 1.;
 
@@ -1100,13 +1102,13 @@ float shape (in vec2 q, in vec2 c) {
   // float o = internalD;
   d = min(d, o);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - 0.005;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - 0.005;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 20.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 6.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 6.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -2145,19 +2147,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const vec2 size = gSize;
   float r = 0.40;
 
-  float vSize = 0.035;
-  float period = 20.;
-
   vec2 wQ = q;
-  float c = pMod1(wQ.y, vSize);
   q = wQ;
 
-  // q.x += generalT * c / period;
-  float shape = abs(triangleWave(period * q.x + generalT * c) - 2. / vSize * q.y);
+  float shape = neighborGrid(q, size);
   d = min(d, shape);
 
   float stop = angle3C;
-  d = smoothstep(stop, 8. * edge + stop, d);
+  d = smoothstep(stop, edge + stop, d);
   d = 1. - d;
 
   // Solid
