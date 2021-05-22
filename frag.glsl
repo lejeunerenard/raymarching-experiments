@@ -1054,7 +1054,13 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.025);
+const vec2 gSize = vec2(0.035);
+float microGrid ( in vec2 q ) {
+  vec2 cMini = pMod2(q, vec2(gSize * 0.10));
+
+  return mod(dot(cMini, vec2(1)), 2.);
+}
+
 float localCosT = cosT;
 float localT = norT;
 float shape (in vec2 q, in vec2 c) {
@@ -1072,34 +1078,20 @@ float shape (in vec2 q, in vec2 c) {
   // float dC = vmax(abs(c));
 
   // localT += 0.125 * dot(abs(c), vec2(1));
-  float t = mod(localT - 0.05 * dot(abs(c), vec2(1)), 1.);
+  float t = mod(localT, 1.);
 
-  vec2 cPol = c;
-  cPol *= rotMat2(0.25 * PI);
-  float cPolIndex = pModPolar(cPol, 4.);
-
-  vec2 dir = vec2(-1,-1);
-  dir *= rotMat2(0.5 * PI * cPolIndex);
-  q += size * dir * quart(t);
-
-  if (c == vec2(0)) {
-    q = uv;
-  }
+  q += 0.17 * size * snoise2(cos(TWO_PI * t + 0.123 * c));
 
   float r = 0.1 * size;
 
-  float mask = 1.;
-
-  float internalD = length(q);
+  // float internalD = length(q);
   // float internalD = vmax(abs(q));
   // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
-  // mask = sdBox(q, vec2(0.25 * size));
-  // mask = step(0., -mask);
 
-  float o = internalD - r;
-  // float o = internalD;
+  // float o = internalD - r;
+  float o = microGrid(q);
   d = min(d, o);
 
   // // Outline
@@ -1107,7 +1099,7 @@ float shape (in vec2 q, in vec2 c) {
   // d = abs(d - adjustment) - 0.005;
 
   // Mask
-  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 20.));
+  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 10.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 6.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
@@ -1116,7 +1108,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2150,12 +2142,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
   q = wQ;
 
+  vec2 c = floor((q + size * 0.5) / size);
   float shape = neighborGrid(q, size);
   d = min(d, shape);
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
-  d = 1. - d;
+  // d = 1. - d;
+
+  vec2 maskR = (7. + 0. * cos(localCosT + vec2(0, PI))) * size;
+  float mask = sdBox(q, maskR);
+  d *= step(0., mask);
+
+  // Bar masks
+  // float bar = mod(c.y, 2.);
+  // d *= mix(bar, 1., step(-0.85, cos(localCosT + 0.012 * (c.y + 3. * mod(c.y, 3.)))));
 
   // Solid
   color = vec3(d);
