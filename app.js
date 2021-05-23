@@ -21,9 +21,9 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 4
-const BLOOM_WET = 0.6
-const BLOOM_MIN_BRIGHTNESS = 0.75
+const BLOOM_PASSES = 1
+const BLOOM_WET = 1
+const BLOOM_MIN_BRIGHTNESS = 1
 
 // Initialize shell
 export default class App {
@@ -56,7 +56,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(-0.65, 0.33, 1.5)
+    this.cameraRo = vec3.fromValues(0, 0.075, 1.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [193, 199, 250]

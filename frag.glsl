@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.035);
+const vec2 gSize = vec2(0.15);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1148,6 +1148,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
+  float size = gSize.x;
 
   float warpScale = 1.0;
   // const float thickness = 0.01;
@@ -1155,21 +1156,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+  wQ.y = abs(wQ.y);
+  // wQ.x += 0.5 * size; // Make it not centered. hmmm. maybe not.
+  // ... didn't think about the infinite void / crevasse
+  wQ.z -= size * norT; // March forwards
+
+  vec2 c = pMod2(wQ.xz, vec2(size));
   // Commit warp
   q = wQ.xyz;
 
+  float r = 0.35 * size;
+  float rHeight = 0.3;
+
+  vec2 relC = c + vec2(0, norT);
+
+  // Shift from side to side
+  q.x += 0.05 * size * mix(snoise2(c), snoise2(c + vec2(0, 1)), norT);
+
+  float falloff = saturate(0.1 * relC.y);
+  q.y -= 0.025 * sin(TWO_PI * dot(relC, vec2(0.2378)));
+  q.y -= 0.5 * pow(falloff, 2.);
+  q.y -= rHeight * 1.10;
+
   mPos = q;
 
-  float exLength = 0.20;
-  q.z += 0.5 * exLength;
-
-  float r = 0.8;
-  vec3 o = vec3(thingy(q.xy, t), 0, 0);
-  float correction = 0.;
-  o.x = opExtrude(q.xyz, o.x, exLength);
+  vec3 o = vec3(sdBox(q, vec3(r, rHeight, r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.50;
+  d.x *= 0.250;
 
   return d;
 }
@@ -1388,7 +1402,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.0);
+  vec3 color = mix(background, vec3(1.0), saturate(-(mPos.y / 0.3)));
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1497,12 +1512,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.2;
+        float diffMin = 0.95;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -2197,7 +2212,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
