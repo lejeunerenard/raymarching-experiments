@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.15);
+const vec2 gSize = vec2(0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2154,24 +2154,32 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const vec2 size = gSize;
   float r = 0.40;
 
+  // Flip horizontally
+  q.x *= -1.;
+
   vec2 wQ = q;
+  vec2 c = pMod2(wQ, size);
+  float dC = dot(c, vec2(1));
   q = wQ;
 
-  vec2 c = floor((q + size * 0.5) / size);
-  float shape = neighborGrid(q, size);
-  d = min(d, shape);
+  float cellT = t;
+  cellT += 0.5 * mod(dC, 2.);
+  cellT += 0.010 * dC;
+
+  cellT = mod(cellT + 0.0, 1.);
+
+  float stage1T = range(0.1, 0.4, cellT);
+  float stage2T = range(0.6, 0.9, cellT);
+
+  float slideStop = 0.5 * size.x;
+  d  = step(mix(-slideStop, slideStop, bounceOut(stage1T)), q.x);
+  d += step(mix( slideStop,-slideStop, bounceOut(stage2T)),-q.x);
+
+  d = mix(d, maxDistance, step(0., sdBox(c, vec2(8))));
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
-  // d = 1. - d;
-
-  vec2 maskR = (7. + 0. * cos(localCosT + vec2(0, PI))) * size;
-  float mask = sdBox(q, maskR);
-  d *= step(0., mask);
-
-  // Bar masks
-  // float bar = mod(c.y, 2.);
-  // d *= mix(bar, 1., step(-0.85, cos(localCosT + 0.012 * (c.y + 3. * mod(c.y, 3.)))));
+  d = 1. - d;
 
   // Solid
   color = vec3(d);
@@ -2212,7 +2220,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
