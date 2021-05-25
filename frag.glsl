@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.05);
+const vec2 gSize = vec2(0.04);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2164,7 +2164,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float cellT = t;
   cellT += 0.5 * mod(dC, 2.);
-  cellT += 0.010 * dC;
+  cellT += 0.010 * length(c);
 
   cellT = mod(cellT + 0.0, 1.);
 
@@ -2175,7 +2175,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   d  = step(mix(-slideStop, slideStop, bounceOut(stage1T)), q.x);
   d += step(mix( slideStop,-slideStop, bounceOut(stage2T)),-q.x);
 
-  d = mix(d, maxDistance, step(0., sdBox(c, vec2(8))));
+  d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 11.));
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
