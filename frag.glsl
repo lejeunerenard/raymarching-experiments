@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 64
 #define maxDistance 60.0
 #define fogMaxDistance 8.0
 
@@ -66,7 +66,7 @@ const float thickness = 0.01;
 // Dispersion parameters
 float n1 = 1.;
 float n2 = 2.1;
-const float amount = 0.25;
+const float amount = 0.10;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1138,6 +1138,7 @@ float thingy (in vec2 q, in float t) {
   return d;
 }
 
+float gR = 0.35;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
@@ -1146,6 +1147,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
+  // dT = angle3C;
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
@@ -1155,35 +1157,48 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
-
-  wQ.y = abs(wQ.y);
-  // wQ.x += 0.5 * size; // Make it not centered. hmmm. maybe not.
-  // ... didn't think about the infinite void / crevasse
-  wQ.z -= size * norT; // March forwards
-
-  vec2 c = pMod2(wQ.xz, vec2(size));
   // Commit warp
   q = wQ.xyz;
 
-  float r = 0.35 * size;
-  float rHeight = 0.3;
+  // Animated turning
+  float steps = 8.;
+  float inc = 1. / steps;
+  float step1 = range(0. * inc, 1. * inc, t);
+  float step2 = range(1. * inc, 2. * inc, t);
+  float step3 = range(2. * inc, 3. * inc, t);
+  float step4 = range(3. * inc, 4. * inc, t);
+  float step5 = range(4. * inc, 5. * inc, t);
+  float step6 = range(5. * inc, 6. * inc, t);
+  float step7 = range(6. * inc, 7. * inc, t);
+  float step8 = range(7. * inc, 8. * inc, t);
 
-  vec2 relC = c + vec2(0, norT);
-
-  // Shift from side to side
-  q.x += 0.05 * size * mix(snoise2(c), snoise2(c + vec2(0, 1)), norT);
-
-  float falloff = saturate(0.1 * relC.y);
-  q.y -= 0.025 * sin(TWO_PI * dot(relC, vec2(0.2378)));
-  q.y -= 0.5 * pow(falloff, 2.);
-  q.y -= rHeight * 1.10;
+  float qPI = 0.5 * PI;
+  q.xz *= rotMat2(qPI * bounceOut(step1));
+  q.xy *= rotMat2(qPI * expo(step2));
+  q.yz *= rotMat2(qPI * bounceOut(step3));
+  q.xz *= rotMat2(qPI * expo(step4));
+  q.xy *= rotMat2(qPI * bounceOut(step5));
+  q.yz *= rotMat2(qPI * expo(step6));
+  q.xz *= rotMat2(qPI * bounceOut(step7));
+  q.xy *= rotMat2(qPI * expo(step8));
 
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(r, rHeight, r)), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(gR)), 0, 0);
+
+  // Trick cellular noise
+  // -y becomes +z
+  if (t > 0.625) {
+    vec3 trick = q;
+    trick.zx = trick.xz;
+    trick.zy = -1.0 * trick.yz;
+    q = mix(q, trick, smoothstep(-0.5, 0., -q.y - gR));
+  }
+  o.x -= 0.02 * cellular(3. * q);
+
   d = dMin(d, o);
 
-  d.x *= 0.250;
+  // d.x *= 0.250;
 
   return d;
 }
@@ -1402,9 +1417,32 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = mix(background, vec3(1.0), saturate(-(mPos.y / 0.3)));
+  vec3 color = vec3(0);
 
-  return color;
+  vec3 mNor = nor * globalRot;
+
+  vec3 face1 = mix(vec3(1, 0, 0), vec3(1), step(0.4, t));
+  vec3 face2 = mix(vec3(0, 0, 1), vec3(0), step(0.4, t));
+  vec3 face3 = vec3(0, 1, 0);
+  vec3 face4 = vec3(1, 1, 0);
+  vec3 face5 = vec3(1, 0, 1);
+  vec3 face6 = mix(vec3(0, 1, 1), vec3(0, 0, 1), step(0.5, t));
+
+  float maxCoord = vmax(abs(mPos));
+  vec3 dir = sign(mPos.x) * vec3(1, 0, 0);
+  dir = (maxCoord == abs(mPos.y)) ? sign(mPos.y) * vec3(0, 1, 0) : dir;
+  dir = (maxCoord == abs(mPos.z)) ? sign(mPos.z) * vec3(0, 0, 1) : dir;
+
+  float threshold = 1.0;
+  color = mix(face1, face2, step( threshold, dir.z));
+  color = mix(color, face3, step( threshold, dir.y));
+  color = mix(color, face4, step( threshold, dir.x));
+  color = mix(color, face5, step( threshold,-dir.z));
+  color = mix(color, face6, step( threshold,-dir.y));
+  // color = vec3(step( 0.99,-dir.y));
+  // return color;
+
+  color *= 0.8;
 
   float dNR = dot(nor, -rd);
 
@@ -1416,9 +1454,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + vec3(0.4, 0.6, 0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  color = mix(color, vec3(2), step(0.95, dot(nor, vec3(0, 0, 1))));
+  color += 0.5 * (0.5 + vec3(0.4, 0.6, 0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
 
   gM = m;
 
@@ -1512,7 +1548,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.95;
+        float diffMin = 0.9;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1563,15 +1599,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = pow(1. - dot(nor, -rayDirection), 1.0);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1. * pow(1. - dot(nor, -rayDirection), 1.0);
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.45);
+      dispersionColor.r = pow(dispersionColor.r, 0.45);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1632,13 +1668,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float i = saturate(t.z / (1.2 * float(maxSteps)));
-      vec3 glowColor = vec3(1);
-      const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.90);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float i = saturate(t.z / (1.2 * float(maxSteps)));
+      // vec3 glowColor = vec3(1);
+      // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // // i = pow(i, 0.90);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -2220,7 +2256,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
