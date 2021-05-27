@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.04);
+const vec2 gSize = vec2(0.03);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1074,24 +1074,31 @@ float shape (in vec2 q, in vec2 c) {
   const float warpScale = 0.;
   float size = gSize.y;
 
-  float dC = dot(abs(c), vec2(1));
   // float dC = vmax(abs(c));
 
   // localT += 0.125 * dot(abs(c), vec2(1));
   float t = mod(localT, 1.);
 
-  q += 0.17 * size * snoise2(cos(TWO_PI * t + 0.123 * c));
+  float shift = 0.;
+  vec2 localC = mix(c, c - shift, t);
+  float dC = dot(abs(localC), vec2(1));
 
-  float r = 0.1 * size;
+  q += 0.17 * size * snoise2(cos(TWO_PI * t + 0.123 * localC));
+  q += size * normalize(c) * 0.7 * cos(TWO_PI * t - 0.1 * dC);
+  q += shift * size * t;
+
+  float r = 0.02 * size;
 
   // float internalD = length(q);
   // float internalD = vmax(abs(q));
   // float internalD = sdBox(q, vec2(r));
-  // vec2 absQ = abs(q);
-  // float internalD = min(absQ.x, absQ.y);
+  vec2 absQ = abs(q);
+  float internalD = min(absQ.x, absQ.y);
+  float crossMask = sdBox(q, vec2(0.2 * size));
+  internalD = max(internalD, crossMask);
 
-  // float o = internalD - r;
-  float o = microGrid(q);
+  float o = internalD - r;
+  // float o = microGrid(q);
   d = min(d, o);
 
   // // Outline
@@ -1108,7 +1115,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2190,28 +2197,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const vec2 size = gSize;
   float r = 0.40;
 
-  // Flip horizontally
-  q.x *= -1.;
-
   vec2 wQ = q;
-  vec2 c = pMod2(wQ, size);
-  float dC = dot(c, vec2(1));
   q = wQ;
 
-  float cellT = t;
-  cellT += 0.5 * mod(dC, 2.);
-  cellT += 0.010 * length(c);
-
-  cellT = mod(cellT + 0.0, 1.);
-
-  float stage1T = range(0.1, 0.4, cellT);
-  float stage2T = range(0.6, 0.9, cellT);
-
-  float slideStop = 0.5 * size.x;
-  d  = step(mix(-slideStop, slideStop, bounceOut(stage1T)), q.x);
-  d += step(mix( slideStop,-slideStop, bounceOut(stage2T)),-q.x);
-
-  d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 11.));
+  float o = neighborGrid(q, size);
+  d = min(d, o);
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
@@ -2256,7 +2246,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
