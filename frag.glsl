@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.03);
+const vec2 gSize = vec2(0.02);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1188,6 +1188,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q.yz *= rotMat2(qPI * expo(step6));
   q.xz *= rotMat2(qPI * bounceOut(step7));
   q.xy *= rotMat2(qPI * expo(step8));
+
+  // what to do, what to do....
+  // I should do something quick because Ive been not sleeping at a normal time
+  // these days..
 
   mPos = q;
 
@@ -2194,13 +2198,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.0025;
   const float warpScale = 1.0;
-  const vec2 size = gSize;
+  vec2 size = gSize;
   float r = 0.40;
 
   vec2 wQ = q;
+
+  float cY = pMod1(wQ.y, size.y);
+  // better. the first was a bit boring
+  size.x = 1. / pow(5. + abs(abs(cY) - 10.), 0.7);
+  wQ.x += size.x * t;
+  float cX = pMod1(wQ.x, size.x);
+
   q = wQ;
 
-  float o = neighborGrid(q, size);
+  float o = sdBox(q, vec2(0.45, 0.3) * size);
   d = min(d, o);
 
   float stop = angle3C;
