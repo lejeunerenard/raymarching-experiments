@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 64
+#define maxSteps 110
 #define maxDistance 60.0
 #define fogMaxDistance 8.0
 
@@ -1160,56 +1160,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = gSize.x;
 
   float warpScale = 1.0;
-  // const float thickness = 0.01;
 
   // Warp
   vec3 wQ = q.xyz;
+
+  wQ.xy -= vec2(-0.07, 0.1);
+  wQ += warpScale * 0.100000 * cos( 7.712378 * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos(19.612305 * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 6. * wQ.y);
+  wQ += warpScale * 0.025000 * cos(24.123858 * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(31.912898 * wQ.yzx + cosT );
+
   // Commit warp
   q = wQ.xyz;
 
-  // Animated turning
-  float steps = 8.;
-  float inc = 1. / steps;
-  float step1 = range(0. * inc, 1. * inc, t);
-  float step2 = range(1. * inc, 2. * inc, t);
-  float step3 = range(2. * inc, 3. * inc, t);
-  float step4 = range(3. * inc, 4. * inc, t);
-  float step5 = range(4. * inc, 5. * inc, t);
-  float step6 = range(5. * inc, 6. * inc, t);
-  float step7 = range(6. * inc, 7. * inc, t);
-  float step8 = range(7. * inc, 8. * inc, t);
-
-  float qPI = 0.5 * PI;
-  q.xz *= rotMat2(qPI * bounceOut(step1));
-  q.xy *= rotMat2(qPI * expo(step2));
-  q.yz *= rotMat2(qPI * bounceOut(step3));
-  q.xz *= rotMat2(qPI * expo(step4));
-  q.xy *= rotMat2(qPI * bounceOut(step5));
-  q.yz *= rotMat2(qPI * expo(step6));
-  q.xz *= rotMat2(qPI * bounceOut(step7));
-  q.xy *= rotMat2(qPI * expo(step8));
-
-  // what to do, what to do....
-  // I should do something quick because Ive been not sleeping at a normal time
-  // these days..
-
   mPos = q;
 
-  vec3 o = vec3(sdBox(q, vec3(gR)), 0, 0);
+  float r = 0.4 + 0.3 * snoise3(vec3(0.3 , 5., 0.2) * q);
 
-  // Trick cellular noise
-  // -y becomes +z
-  if (t > 0.625) {
-    vec3 trick = q;
-    trick.zx = trick.xz;
-    trick.zy = -1.0 * trick.yz;
-    q = mix(q, trick, smoothstep(-0.5, 0., -q.y - gR));
-  }
-  o.x -= 0.02 * cellular(3. * q);
-
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  // d.x *= 0.250;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1430,42 +1402,18 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  vec3 mNor = nor * globalRot;
-
-  vec3 face1 = mix(vec3(1, 0, 0), vec3(1), step(0.4, t));
-  vec3 face2 = mix(vec3(0, 0, 1), vec3(0), step(0.4, t));
-  vec3 face3 = vec3(0, 1, 0);
-  vec3 face4 = vec3(1, 1, 0);
-  vec3 face5 = vec3(1, 0, 1);
-  vec3 face6 = mix(vec3(0, 1, 1), vec3(0, 0, 1), step(0.5, t));
-
-  float maxCoord = vmax(abs(mPos));
-  vec3 dir = sign(mPos.x) * vec3(1, 0, 0);
-  dir = (maxCoord == abs(mPos.y)) ? sign(mPos.y) * vec3(0, 1, 0) : dir;
-  dir = (maxCoord == abs(mPos.z)) ? sign(mPos.z) * vec3(0, 0, 1) : dir;
-
-  float threshold = 1.0;
-  color = mix(face1, face2, step( threshold, dir.z));
-  color = mix(color, face3, step( threshold, dir.y));
-  color = mix(color, face4, step( threshold, dir.x));
-  color = mix(color, face5, step( threshold,-dir.z));
-  color = mix(color, face6, step( threshold,-dir.y));
-  // color = vec3(step( 0.99,-dir.y));
-  // return color;
-
-  color *= 0.8;
-
   float dNR = dot(nor, -rd);
 
   vec3 dI = vec3(dNR);
 
+  dI += 0.2 * pow(dNR, 3.);
   dI += 0.2 * snoise3(pos);
   dI += 0.1 * pos.y;
 
   dI *= angle1C;
   dI += angle2C;
 
-  color += 0.5 * (0.5 + vec3(0.4, 0.6, 0.5) * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67))));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   gM = m;
 
@@ -1526,13 +1474,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      // float bumpsScale = 1.05;
-      // float bumpIntensity = 0.125;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 1.55;
+      float bumpIntensity = 0.105;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1598,10 +1546,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1610,10 +1558,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1. * pow(1. - dot(nor, -rayDirection), 1.0);
+      float dispersionI = 2. * pow(1. - dot(nor, -rayDirection), 1.0);
       dispersionColor *= dispersionI;
 
       dispersionColor.r = pow(dispersionColor.r, 0.45);
@@ -2257,7 +2205,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
