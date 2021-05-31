@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1159,64 +1159,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float size = gSize.x;
 
-  float layerL = 0.6;
-  float relocateL = 0.5 * (1. - layerL);
-  float jumpToOriginal = 1. - step(layerL + relocateL, t);
-  // // Wont collide
-  // float layer2 = jumpToOriginal * range(0.33 * layerL, 0.67 * layerL, t);
-  // float layer3 = jumpToOriginal * range(0.67 * layerL, 1.00 * layerL, t);
-  // float layer4 = jumpToOriginal * range(  0. * layerL, 0.33 * layerL, t);
-  // In order
-  float layer2 = jumpToOriginal * range(  0. * layerL, 0.33 * layerL, t);
-  float layer3 = jumpToOriginal * range(0.33 * layerL, 0.67 * layerL, t);
-  float layer4 = jumpToOriginal * range(0.67 * layerL, 1.00 * layerL, t);
-
-  float relocateT = range(layerL, layerL + relocateL, t);
-
   float warpScale = 1.0;
-
-  const float baseR = 0.125;
-  float r = baseR * (1. + jumpToOriginal * relocateT);
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ.xy += vec2(1, -1) * baseR * (1. - jumpToOriginal * relocateT);
+  wQ += warpScale * 0.100000 * cos( 4. * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 4. * wQ.y);
+  wQ += warpScale * 0.025000 * cos(18. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(24. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(26. * wQ.yzx + cosT );
+  wQ += warpScale * 0.003125 * cos(34. * wQ.yzx + cosT );
+
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  q.z = abs(q.z);
+  float r = 0.35;
 
-  // Center cube(s)
-  q.z -= r;
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  // Layer 2
-  q -= vec3(0,-r, r);
-  q.yz *= rotMat2(PI * (layer2 + 1.));
-  q += vec3(0,-r,-r);
-  o = vec3(sdBox(q, vec3(r)), 0, 0);
-  d = dMin(d, o);
-
-  // Layer 3
-  q -= vec3( r, 0, r);
-  q.xz *= rotMat2(-PI * (layer3 + 1.));
-  q += vec3( r, 0,-r);
-  o = vec3(sdBox(q, vec3(r)), 0, 0);
-  d = dMin(d, o);
-
-  // Layer 4
-  q -= vec3( 0,-r, r);
-  q.yz *= rotMat2(PI * (layer4 + 0.));
-  q += vec3( 0, r, r);
-  o = vec3(sdBox(q, vec3(r)), 1, 0);
-  d = dMin(d, o);
-
-  // d.x *= 0.05;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1435,9 +1402,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.5);
+  vec3 color = vec3(0.5);
   // color *= (pos.y + 0.1) * 2.;
-  return color;
+  // return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1450,7 +1417,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   gM = m;
 
@@ -1535,8 +1502,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
-      float specCo = 0.0;
+      float freCo = 0.7;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1546,10 +1513,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot;
         float diffMin = 0.3;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 64.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.3;
+        float shadowMin = 0.4;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
