@@ -65,8 +65,8 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
-const float amount = 0.10;
+float n2 = 2.14;
+const float amount = 0.05;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1150,7 +1150,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1164,13 +1164,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
-  wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT + 0.125 * PI * cos(localCosT + 1.0 * wQ.z));
-  wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, 3.5 * (0.5 + 0.5 * cos(localCosT)) * wQ.y);
+  // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
 
+  wQ.xzy = wQ.xyz;
   // Commit warp
   q = wQ.xyz;
 
@@ -1178,9 +1179,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.45;
 
-  vec3 o = vec3(-sdTriPrism(vec3(q.xy, 0), vec2(r)), 0, 0);
-  // o.x -= 0.001 * cellular(17. * q);
+  vec3 o = vec3(sdTriPrism(q, vec2(r)), 0, 0);
+  // o.x -= 0.001 * cellular(2. * q);
   d = dMin(d, o);
+
+  q *= rotationMatrix(vec3(0, 0, 1), 0.33 * PI);
+
+  float crop = sdTriPrism(q, vec2(1.333 * r));
+  d.x = max(d.x, crop);
+
+  q *= rotationMatrix(vec3(0, 1, 0), -0.19 * PI);
+  crop = sdBox(q - vec3(0, 0, 2.25 * r), vec3(2. * r));
+  crop += 0.05 * cellular(3. * q);
+  d.x = max(d.x, -crop);
+
 
   d.x *= 0.5;
 
@@ -1401,9 +1413,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.3);
+  vec3 color = vec3(0.8 * background);
   // color *= (pos.y + 0.1) * 2.;
-  // return color;
+  return color;
 
   float dNR = dot(nor, -rd);
 
@@ -1501,8 +1513,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 2.0;
+      float specCo = 0.9;
 
       float specAll = 0.0;
 
@@ -1510,9 +1522,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 1.0;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
-        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
+        float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 96.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         float shadowMin = 0.5;
@@ -1564,10 +1576,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3. * pow(1. - dot(nor, -rayDirection), 1.0);
+      float dispersionI = 2. * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.45);
+      // dispersionColor.r = pow(dispersionColor.r, 0.45);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
