@@ -1166,14 +1166,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
   // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, 3.5 * (0.5 + 0.5 * cos(localCosT)) * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 3.5 * (0.5 + 0.5 * cos(localCosT)) * wQ.y);
   // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
   // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
   // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
 
   // Split
-  wQ = abs(wQ);
-  wQ *= rotationMatrix(vec3(1), localCosT);
+  float c = 0.;
+  c = pModPolar(wQ.xz, 4.);
+  c = pModPolar(wQ.xy, 7.);
+  wQ *= rotationMatrix(vec3(-1), localCosT + 0.123 * PI * c);
 
   // // Noise size
   // size += 1.0 * size * snoise3(wQ);
@@ -1181,7 +1183,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Wave
   // wQ.y += size * sin(wQ.x / size + localCosT);
 
-  wQ = opRepLim(wQ, size, vec3(4.));
+  wQ = opRepLim(wQ, size, vec3(3.));
 
   wQ = abs(wQ);
 
@@ -1205,7 +1207,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // o.x -= 0.001 * cellular(2. * q);
   d = dMin(d, o);
 
-  d.x *= 0.25;
+  d.x *= 0.1;
 
   return d;
 }
