@@ -1150,7 +1150,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
+  p.y += 0.025 * cos(cosT);
 
   vec3 q = p;
 
@@ -1164,12 +1165,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
-  wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1180,10 +1181,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.5 * r;
 
-  vec3 o = vec3(abs(abs(abs(abs(length(q) - r) - thickness) - 0.5 * thickness) - 0.25 * thickness) - 0.125 * thickness, 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  float crop = sdBox(q - vec3(r), vec3(r));
+  q = abs(q);
+  float crop = length(q - vec3(r)) - r;
+  d.x = max(d.x, -crop);
+  float outwardR = r * 1.75;
+  crop = length(q - vec3(0, 0, outwardR)) - r;
+  d.x = max(d.x, -crop);
+  crop = length(q - vec3(0, outwardR, 0)) - r;
+  d.x = max(d.x, -crop);
+  crop = length(q - vec3(outwardR, 0, 0)) - r;
   d.x = max(d.x, -crop);
 
   d.x *= 0.4;
@@ -1413,7 +1422,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dNR);
 
   dI += 0.2 * pow(dNR, 3.);
-  dI += 0.2 * snoise3(pos);
+  dI += 0.2 * snoise3(abs(pos));
   dI += 0.1 * pos.y;
 
   dI *= angle1C;
@@ -1480,13 +1489,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      // float bumpsScale = 1.55;
-      // float bumpIntensity = 0.105;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 1.55;
+      float bumpIntensity = 0.105;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2301,7 +2310,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = 0.5 * PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
