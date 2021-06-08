@@ -1181,18 +1181,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.5 * r;
 
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
+  r = 0.7 * r;
   q = abs(q);
-  float crop = length(q - vec3(r)) - r;
+  q *= rotationMatrix(vec3(1), 2.125 * PI + cosT);
+  float crop = sdBox(q - vec3(1.5 * r), vec3(r));
   d.x = max(d.x, -crop);
-  float outwardR = r * 1.75;
-  crop = length(q - vec3(0, 0, outwardR)) - r;
+  float outwardR = r * 2.10;
+  crop = sdBox(q - vec3(0, 0, outwardR), vec3(r));
   d.x = max(d.x, -crop);
-  crop = length(q - vec3(0, outwardR, 0)) - r;
+  crop = sdBox(q - vec3(0, outwardR, 0), vec3(r));
   d.x = max(d.x, -crop);
-  crop = length(q - vec3(outwardR, 0, 0)) - r;
+  crop = sdBox(q - vec3(outwardR, 0, 0), vec3(r));
   d.x = max(d.x, -crop);
 
   d.x *= 0.4;
@@ -1489,13 +1491,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
-      float bumpsScale = 1.55;
-      float bumpIntensity = 0.105;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 1.55;
+      // float bumpIntensity = 0.105;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1513,8 +1515,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.6;
+      float freCo = 2.0;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -2310,7 +2312,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = 0.5 * PI * mod(time, totalT) / totalT;
+    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
