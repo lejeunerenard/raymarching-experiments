@@ -1177,17 +1177,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float r = 0.35;
+  float r = 0.43;
 
-  float thickness = 0.5 * r;
+  float thickness = 0.1 * r;
 
-  vec3 o = vec3(icosahedral(q, 42., r), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
+
+  // Crop
+  q.xzy = twist(q.xyz, -1. * q.y + cos(PI * q.x));
+  float c = pModPolar(q.xz, 16.);
+  float bigR = r * cos(atan(q.y, length(q.xz)));
+  float crop = sdCapsule(q - vec3(bigR, 0, 0), vec3(0, -r, 0), vec3(0, r, 0), thickness);
+  d.x = max(d.x, -crop);
+  // d = dMin(d, vec3(crop, 0, 0));
 
   r = 0.7 * r;
   q = abs(q);
-  float crop = length(q - vec3(1.5 * r)) - r;
-  d.x = max(d.x, -crop);
+  // crop = length(q - vec3(1.5 * r)) - r;
+  // d.x = max(d.x, -crop);
   float outwardR = r * 2.00;
   crop = length(q - vec3(0, 0, outwardR)) - r;
   d.x = max(d.x, -crop);
@@ -1429,6 +1437,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color += 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
 
   gM = m;
 
