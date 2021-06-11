@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1167,7 +1167,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
   // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
   // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
   // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
   // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
@@ -1181,30 +1181,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.1 * r;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  // Whoa. The reflections are amazing!
+  vec3 gyroidQ = 12. * q;
+  float gyroid = dot(sin(gyroidQ), cos(gyroidQ.yzx));
+  gyroid = abs(gyroid) - 0.1;
+  vec3 o = vec3(gyroid, 0, 0);
   d = dMin(d, o);
 
   // Crop
-  q.xzy = twist(q.xyz, -1. * q.y + cos(PI * q.x));
-  float c = pModPolar(q.xz, 16.);
-  float bigR = r * cos(atan(q.y, length(q.xz)));
-  float crop = sdCapsule(q - vec3(bigR, 0, 0), vec3(0, -r, 0), vec3(0, r, 0), thickness);
-  d.x = max(d.x, -crop);
-  // d = dMin(d, vec3(crop, 0, 0));
+  float crop = length(q) - 0.375;
+  d.x = max(d.x, crop);
 
-  r = 0.7 * r;
-  q = abs(q);
-  // crop = length(q - vec3(1.5 * r)) - r;
-  // d.x = max(d.x, -crop);
-  float outwardR = r * 2.00;
-  crop = length(q - vec3(0, 0, outwardR)) - r;
-  d.x = max(d.x, -crop);
-  crop = length(q - vec3(0, outwardR, 0)) - r;
-  d.x = max(d.x, -crop);
-  crop = length(q - vec3(outwardR, 0, 0)) - r;
-  d.x = max(d.x, -crop);
-
-  // d.x *= 0.4;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1437,7 +1425,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color += 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
 
   gM = m;
 
@@ -1585,7 +1573,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3. * pow(1. - dot(nor, -rayDirection), 0.75);
+      float dispersionI = 2.5 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.75);
@@ -1651,13 +1639,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // // Glow
-      // float i = saturate(t.z / (1.2 * float(maxSteps)));
-      // vec3 glowColor = vec3(1);
-      // const float stopPoint = 0.5;
-      // // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // // i = pow(i, 0.90);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      // Glow
+      // I like how you can still see the gyroid past the crop because of how it increases the step count
+      float stepScaleAdjust = 2.5;
+      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      vec3 glowColor = vec3(1, 0, 1);
+      const float stopPoint = 0.5;
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.90);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
