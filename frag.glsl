@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1167,10 +1167,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
   // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
   // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
   // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
   // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
+
+  // wQ = abs(wQ);
 
   // Commit warp
   q = wQ.xyz;
@@ -1181,18 +1183,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.1 * r;
 
-  // Whoa. The reflections are amazing!
-  vec3 gyroidQ = 12. * q;
-  float gyroid = dot(sin(gyroidQ), cos(gyroidQ.yzx));
-  gyroid = abs(gyroid) - 0.1;
-  vec3 o = vec3(gyroid, 0, 0);
+  // Sorry I was trying to look another equation I wanted to try, but i just remember an idea i had today
+  vec3 gyroidQ = 18. * q;
+  // float equation = dot(sin(gyroidQ), cos(gyroidQ.yzx));
+  float equation = dot(sin(gyroidQ + length(0.3 * gyroidQ)), vec3(1));
+  equation = abs(equation) - 0.2;
+  vec3 o = vec3(equation, 0, 0);
   d = dMin(d, o);
 
   // Crop
   float crop = length(q) - 0.375;
+  // float crop = sdBox(q, vec3(0.375));
   d.x = max(d.x, crop);
 
-  d.x *= 0.05;
+  d.x *= 0.0125;
 
   return d;
 }
@@ -1639,15 +1643,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      // I like how you can still see the gyroid past the crop because of how it increases the step count
-      float stepScaleAdjust = 2.5;
-      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(1, 0, 1);
-      const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.90);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float stepScaleAdjust = 2.5;
+      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // vec3 glowColor = vec3(1, 0, 1);
+      // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // // i = pow(i, 0.90);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
