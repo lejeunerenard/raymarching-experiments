@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 8192
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1167,7 +1167,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
   // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
   // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
   // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
   // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
@@ -1183,20 +1183,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.1 * r;
 
-  // Sorry I was trying to look another equation I wanted to try, but i just remember an idea i had today
-  vec3 gyroidQ = 18. * q;
-  // float equation = dot(sin(gyroidQ), cos(gyroidQ.yzx));
-  float equation = dot(sin(gyroidQ + length(0.3 * gyroidQ)), vec3(1));
-  equation = abs(equation) - 0.2;
+  // I'm going to try to recreate the isosurface with the most singletons with a degree of 6. It's based on this youtube video:
+  // https://www.youtube.com/watch?v=UVfR9u1TGW0&list=PL4MBr5ZhwjenT0DbINxT9L3zhvhnMqPyH&index=87
+  // quick break as I try to figure out the name of the shape before naming my daily
+  vec3 isosurfaceQ = q;
+  float a = 0.5; // 0.5 for standard equation (i think, 0.0 for "whoa" shape)
+  float equation =
+      dot(vec2(PHI, 1) * isosurfaceQ.xy, vec2(PHI, -1) * isosurfaceQ.xy) // PHI²x² - y²
+    * dot(vec2(PHI, 1) * isosurfaceQ.yz, vec2(PHI, -1) * isosurfaceQ.yz) // PHI²y² - z²
+    * dot(vec2(PHI, 1) * isosurfaceQ.zx, vec2(PHI, -1) * isosurfaceQ.zx) // PHI²z² - x²
+    - a * 0.5 * (1. + 2. * PHI) * pow(dot(isosurfaceQ, isosurfaceQ) - 1., 2.);
+  equation = abs(equation) + 0.084;
   vec3 o = vec3(equation, 0, 0);
   d = dMin(d, o);
 
   // Crop
-  float crop = length(q) - 0.375;
-  // float crop = sdBox(q, vec3(0.375));
+  float crop = length(q) - 2.75;
   d.x = max(d.x, crop);
 
-  d.x *= 0.0125;
+  d.x *= 0.0050;
 
   return d;
 }
@@ -1587,11 +1592,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.1));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.1));
+      // // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
