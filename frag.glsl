@@ -1150,7 +1150,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  p *= globalRot;
+  // p *= globalRot;
   p.y += 0.025 * cos(cosT);
 
   vec3 q = p;
@@ -1165,9 +1165,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+
   // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
   // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, -0.2 * wQ.y + 0.125 * PI * cos(cosT));
   // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
   // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
   // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
@@ -1187,18 +1188,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // https://www.youtube.com/watch?v=UVfR9u1TGW0&list=PL4MBr5ZhwjenT0DbINxT9L3zhvhnMqPyH&index=87
   // quick break as I try to figure out the name of the shape before naming my daily
   vec3 isosurfaceQ = q;
-  float a = 0.5; // 0.5 for standard equation (i think, 0.0 for "whoa" shape)
+  isosurfaceQ *= rotationMatrix(vec3(1), localCosT);
+  float a = 0.822;
   float equation =
-      dot(vec2(PHI, 1) * isosurfaceQ.xy, vec2(PHI, -1) * isosurfaceQ.xy) // PHI²x² - y²
-    * dot(vec2(PHI, 1) * isosurfaceQ.yz, vec2(PHI, -1) * isosurfaceQ.yz) // PHI²y² - z²
-    * dot(vec2(PHI, 1) * isosurfaceQ.zx, vec2(PHI, -1) * isosurfaceQ.zx) // PHI²z² - x²
-    - a * 0.5 * (1. + 2. * PHI) * pow(dot(isosurfaceQ, isosurfaceQ) - 1., 2.);
+      dot(vec2(PHI, 1) * isosurfaceQ.xy, vec2(1., -1) * isosurfaceQ.xy) // PHI²x² - y²
+    * dot(vec2(PHI, 1) * isosurfaceQ.yz, vec2(1., -1) * isosurfaceQ.yz) // PHI²y² - z²
+    * dot(vec2(PHI, 1) * isosurfaceQ.zx, vec2(1., -1) * isosurfaceQ.zx) // PHI²z² - x²
+    - a * 0.5 * (1. + 2. * PHI) * pow(dot(isosurfaceQ, isosurfaceQ) - 2., 2.);
   equation = abs(equation) + 0.084;
   vec3 o = vec3(equation, 0, 0);
   d = dMin(d, o);
 
+  // Inner dodecahedron
+  q *= rotationMatrix(vec3(1), cosT);
+  o = vec3(dodecahedral(q, 52., 0.6), 0, 0);
+  d = dMin(d, o);
+
   // Crop
-  float crop = length(q) - 2.75;
+  float crop = length(q) - 2.324;
   d.x = max(d.x, crop);
 
   d.x *= 0.0050;
