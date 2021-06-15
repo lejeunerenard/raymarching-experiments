@@ -1054,7 +1054,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.075);
+const vec2 gSize = vec2(0.055);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2180,20 +2180,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
+  wQ *= rotMat2(-0.35 * PI);
+
   float cY = pMod1(wQ.y, size.y);
-  // better. the first was a bit boring
-  size.x = 1. / pow(5. + abs(abs(cY) - 10.), 0.7);
-  wQ.x += size.x * t;
+  size.x = 0.175;
+  wQ.x += (1. + floor(snoise2(3.1283 * vec2(cY)) / 0.1)) * size.x * t + 0.12378 * cY;
   float cX = pMod1(wQ.x, size.x);
 
   q = wQ;
 
-  float o = sdBox(q, vec2(0.45, 0.3) * size);
+  float o = sdBox(q, vec2(0.425, 0.3) * size);
   d = min(d, o);
 
   float stop = angle3C;
   d = smoothstep(stop, edge + stop, d);
-  d = 1. - d;
+  // d = 1. - d;
 
   // Solid
   color = vec3(d);
@@ -2234,7 +2235,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
