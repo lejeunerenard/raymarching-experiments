@@ -2176,31 +2176,32 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.075;
-  float bigR = 3. * r;
+  float r = 0.0150;
+  float bigR = 0.225;
 
   // My goal is to create a set of 'planets' revolving around a center planet. and to apply this recursively
   vec2 wQ = q;
   q = wQ;
 
-  float o = length(q) - r;
+  float o = abs(length(q) - 7. * r) - 0.005;
   d = min(d, o);
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 2; i++) {
     q *= rotMat2(localCosT);
 
     // Ring
     float ring = abs(length(q) - bigR) - r * 0.03125;
-    d = min(d, ring);
+    // d = min(d, ring);
 
     float c = pModPolar(q, 4.);
     q.x -= bigR;
 
-    float reduce = 0.425;
-    r *= reduce;
+    float reduce = 0.350;
+    // r *= reduce;
     bigR *= reduce;
 
     float o = length(q) - r;
+    // float o = sdBox(q, vec2(r));
     d = min(d, o);
   }
 
@@ -2268,7 +2269,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1) * dI + vec3(0, 0.15, 0.2))));
     layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= 1.25;
+    layerColor *= 1.7;
 
     // CYM
     // layerColor = vec3(0);
