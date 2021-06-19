@@ -1165,15 +1165,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-
-  // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -0.2 * wQ.y + 0.125 * PI * cos(cosT));
-  // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
-
   // wQ = abs(wQ);
+
+  wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, -1.5 * wQ.y + 0.125 * PI * cos(cosT));
+  wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1184,31 +1183,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.1 * r;
 
-  // I'm going to try to recreate the isosurface with the most singletons with a degree of 6. It's based on this youtube video:
-  // https://www.youtube.com/watch?v=UVfR9u1TGW0&list=PL4MBr5ZhwjenT0DbINxT9L3zhvhnMqPyH&index=87
-  // quick break as I try to figure out the name of the shape before naming my daily
-  vec3 isosurfaceQ = q;
-  isosurfaceQ *= rotationMatrix(vec3(1), localCosT);
-  float a = 0.822;
-  float equation =
-      dot(vec2(PHI, 1) * isosurfaceQ.xy, vec2(1., -1) * isosurfaceQ.xy) // PHI²x² - y²
-    * dot(vec2(PHI, 1) * isosurfaceQ.yz, vec2(1., -1) * isosurfaceQ.yz) // PHI²y² - z²
-    * dot(vec2(PHI, 1) * isosurfaceQ.zx, vec2(1., -1) * isosurfaceQ.zx) // PHI²z² - x²
-    - a * 0.5 * (1. + 2. * PHI) * pow(dot(isosurfaceQ, isosurfaceQ) - 2., 2.);
-  equation = abs(equation) + 0.084;
-  vec3 o = vec3(equation, 0, 0);
-  d = dMin(d, o);
-
   // Inner dodecahedron
-  q *= rotationMatrix(vec3(1), cosT);
-  o = vec3(dodecahedral(q, 52., 0.6), 0, 0);
+  vec3 o = vec3(dodecahedral(q, 52., 0.6), 0, 0);
   d = dMin(d, o);
 
-  // Crop
-  float crop = length(q) - 2.324;
-  d.x = max(d.x, crop);
+  // // Crop
+  // float crop = length(q) - 2.324;
+  // d.x = max(d.x, crop);
 
-  d.x *= 0.0050;
+  d.x -= 0.01 * cellular(4. * q);
+
+  d.x *= 0.50;
 
   return d;
 }
@@ -1335,7 +1320,7 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.6207;
   // dI += 0.315;
   dI *= 0.25 + 0.1 * sin(dNR);
-  dI += angle2C;
+  dI += norT;
   dI += gPos;
 
   // dI *= 2.8;
@@ -1438,7 +1423,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.1 * pos.y;
 
   dI *= angle1C;
-  dI += angle2C;
+  dI += norT;
 
   color += 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
@@ -2250,77 +2235,77 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = vec3(0);
+  // vec3 color = vec3(0);
 
-  const int slices = 40;
-  for (int i = 0; i < slices; i++) {
-    float fI = float(i);
-    vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
-    // vec3 layerColor = vec3(
-    //     saturate(mod(fI + 0., 3.)),
-    //     saturate(mod(fI + 1., 3.)),
-    //     saturate(mod(fI + 2., 3.))
-    // );
+  // const int slices = 40;
+  // for (int i = 0; i < slices; i++) {
+  //   float fI = float(i);
+  //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+  //   // vec3 layerColor = vec3(
+  //   //     saturate(mod(fI + 0., 3.)),
+  //   //     saturate(mod(fI + 1., 3.)),
+  //   //     saturate(mod(fI + 2., 3.))
+  //   // );
 
-    vec3 dI = vec3(fI / float(slices));
-    dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.4 * snoise2(1. * uv);
-    // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1) * dI + vec3(0, 0.15, 0.2))));
-    layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
-    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= 1.7;
+  //   vec3 dI = vec3(fI / float(slices));
+  //   dI += 0.3 * dot(uv, vec2(1));
+  //   dI += 0.4 * snoise2(1. * uv);
+  //   // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
+  //   layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1) * dI + vec3(0, 0.15, 0.2))));
+  //   layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
+  //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+  //   layerColor *= 1.7;
 
-    // CYM
-    // layerColor = vec3(0);
-    // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-    // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-    // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-    // layerColor *= 0.65;
-    // layerColor *= vec3(1.0, 0.6, 0.60);
+  //   // CYM
+  //   // layerColor = vec3(0);
+  //   // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+  //   // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+  //   // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+  //   // layerColor *= 0.65;
+  //   // layerColor *= vec3(1.0, 0.6, 0.60);
 
-    // layerColor *= 0.6;
+  //   // layerColor *= 0.6;
 
-    // Add black layer as first layer
-    // layerColor *= step(0.5, fI);
+  //   // Add black layer as first layer
+  //   // layerColor *= step(0.5, fI);
 
-    // layerColor = pow(layerColor, vec3(4 + slices));
+  //   // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.5 * 0.075;
-    float layerT = norT
-      + maxDelayLength * (1.00 + 0.25 * sin(cosT + length(uv))) * fI / float(slices);
-    float mask = two_dimensional(uv, layerT).x;
-    layerColor *= mask;
-    // if (i == 0) {
-    //   color = layerColor;
-    // } else {
-    //   color = overlay(color, layerColor);
-    // }
-    // color *= layerColor;
+  //   const float maxDelayLength = 0.5 * 0.075;
+  //   float layerT = norT
+  //     + maxDelayLength * (1.00 + 0.25 * sin(cosT + length(uv))) * fI / float(slices);
+  //   float mask = two_dimensional(uv, layerT).x;
+  //   layerColor *= mask;
+  //   // if (i == 0) {
+  //   //   color = layerColor;
+  //   // } else {
+  //   //   color = overlay(color, layerColor);
+  //   // }
+  //   // color *= layerColor;
 
-    // vec3 layerColorA = softLight2(color, layerColor);
-    // vec3 layerColorB = color * layerColor;
-    // layerColor = layerColorA + layerColorB;
-    // layerColor *= 0.85;
+  //   // vec3 layerColorA = softLight2(color, layerColor);
+  //   // vec3 layerColorB = color * layerColor;
+  //   // layerColor = layerColorA + layerColorB;
+  //   // layerColor *= 0.85;
 
-    // layerColor = overlay(color, layerColor);
-    // layerColor = screenBlend(color, layerColor);
-    // color = mix(color, layerColor, 0.3);
+  //   // layerColor = overlay(color, layerColor);
+  //   // layerColor = screenBlend(color, layerColor);
+  //   // color = mix(color, layerColor, 0.3);
 
-    // Add
-    color += layerColor;
+  //   // Add
+  //   color += layerColor;
 
-    // Multiply
-    // color *= layerColor;
+  //   // Multiply
+  //   // color *= layerColor;
 
-    // Pseudo Multiply
-    // color = mix(color, color * layerColor, mask);
-  }
+  //   // Pseudo Multiply
+  //   // color = mix(color, color * layerColor, mask);
+  // }
 
-  color = pow(color, vec3(1.20));
-  color /= float(slices);
+  // color = pow(color, vec3(1.20));
+  // color /= float(slices);
 
-  return vec4(color, 1.);
+  // return vec4(color, 1.);
 
   float time = norT;
   vec4 t = march(ro, rd, time);
