@@ -1165,7 +1165,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ = abs(wQ);
+  wQ = abs(wQ);
 
   wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
   wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
@@ -1181,15 +1181,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.43;
 
-  float thickness = 0.1 * r;
-
-  // Inner dodecahedron
-  vec3 o = vec3(dodecahedral(q, 52., 0.6), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  // // Crop
-  // float crop = length(q) - 2.324;
-  // d.x = max(d.x, crop);
+
+  // Crop
+  q = abs(q); // mirror to do less work
+  float crop = length(q - vec3(r)) - r;
+  d.x = max(d.x, -crop);
+
+  // Crop face
+  float faceR = 1.0 * r;
+  float faceD = 1.7 * r;
+  vec3 cropQ = q;
+  if (abs(q.y) > abs(q.x)) {
+    cropQ.yx = cropQ.xy;
+  }
+  if (abs(q.z) > abs(q.x)) {
+    cropQ.zx = cropQ.xz;
+  }
+  crop = length(cropQ - vec3(faceD, 0, 0)) - faceR;
+  d.x = max(d.x, -crop);
+  crop = length(q - vec3(0, faceD, 0)) - faceR;
+  d.x = max(d.x, -crop);
 
   d.x -= 0.01 * cellular(4. * q);
 
