@@ -1166,13 +1166,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   wQ = abs(wQ);
+  wQ.xy -= 0.4 * r;
+  wQ *= rotationMatrix(vec3(1), 0.4 * PI * cos(localCosT));
+  wQ = abs(wQ);
 
-  wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
-  wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  wQ.xzy = twist(wQ.xyz, -1.5 * wQ.y + 0.125 * PI * cos(cosT));
-  wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
-  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
+  // wQ.xzy = twist(wQ.xyz, -1.5 * wQ.y + 0.125 * PI * cos(cosT));
+  // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
+  // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1181,31 +1184,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.43;
 
+  q.xy -= 0.4 * r;
+
+  q *= rotationMatrix(vec3(1), localCosT);
+
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
+  q *= rotationMatrix(vec3(1), 0.27 * PI + 0.07 * PI * cos(localCosT));
 
-  // Crop
-  q = abs(q); // mirror to do less work
-  float crop = length(q - vec3(r)) - r;
-  d.x = max(d.x, -crop);
+  o = vec3(sdBox(q, vec3(r)), 0, 0);
+  d = dMin(d, o);
 
-  // Crop face
-  float faceR = 1.0 * r;
-  float faceD = 1.7 * r;
-  vec3 cropQ = q;
-  if (abs(q.y) > abs(q.x)) {
-    cropQ.yx = cropQ.xy;
-  }
-  if (abs(q.z) > abs(q.x)) {
-    cropQ.zx = cropQ.xz;
-  }
-  crop = length(cropQ - vec3(faceD, 0, 0)) - faceR;
-  d.x = max(d.x, -crop);
-  crop = length(q - vec3(0, faceD, 0)) - faceR;
-  d.x = max(d.x, -crop);
-
-  d.x -= 0.01 * cellular(4. * q);
+  // d.x -= 0.01 * cellular(4. * q);
 
   d.x *= 0.50;
 
@@ -1539,7 +1530,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.20;
+        float shadowMin = 0.10;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1552,8 +1543,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += pow(specCo * spec, 4.);
 
         // Ambient
-        lin += 0.05 * amb * diffuseColor;
-        dif += 0.05 * amb;
+        // lin += 0.05 * amb * diffuseColor;
+        // dif += 0.05 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
