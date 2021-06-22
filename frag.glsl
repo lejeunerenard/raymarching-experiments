@@ -1165,24 +1165,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ = abs(wQ);
-  wQ.xy -= 0.4 * r;
+  wQ.xy *= rotMat2(0.5 * PI);
+
+  // wQ = abs(wQ);
+  pModPolar(wQ.xy, 3.);
+  wQ.y = abs(wQ.y);
+  wQ.xy -= 0.35 * r;
   wQ *= rotationMatrix(vec3(1), 0.4 * PI * cos(localCosT));
   wQ = abs(wQ);
 
-  // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, -1.5 * wQ.y + 0.125 * PI * cos(cosT));
-  // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
+  wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
+  wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
+  wQ.xzy = twist(wQ.xyz, -1.5 * wQ.y + 0.125 * PI * cos(cosT));
+  wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
+  wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
+  wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  float r = 0.43;
+  float r = 0.37;
 
   q.xy -= 0.4 * r;
 
@@ -1196,7 +1200,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  // d.x -= 0.01 * cellular(4. * q);
+  d.x -= 0.01 * cellular(4. * q);
 
   d.x *= 0.50;
 
@@ -1576,10 +1580,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.5 * pow(1. - dot(nor, -rayDirection), 0.75);
+      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.75);
