@@ -1079,23 +1079,24 @@ float shape (in vec2 q, in vec2 c) {
   // localT += 0.125 * dot(abs(c), vec2(1));
   float t = mod(localT, 1.);
 
-  float shift = 0.;
+  float shift = 4.;
   vec2 localC = mix(c, c - shift, t);
   float dC = dot(abs(localC), vec2(1));
 
-  q += 0.17 * size * snoise2(cos(TWO_PI * t + 0.123 * localC));
-  q += size * normalize(c) * 0.7 * cos(TWO_PI * t - 0.1 * dC);
+  q += 1. * size * cos(localCosT + vec2(0, PI) - 0.2 * length(localC));
+
+  q += 0.13 * size * snoise2(cos(TWO_PI * t + 0.103 * localC));
   q += shift * size * t;
 
   float r = 0.02 * size;
 
-  // float internalD = length(q);
+  float internalD = length(q);
   // float internalD = vmax(abs(q));
   // float internalD = sdBox(q, vec2(r));
-  vec2 absQ = abs(q);
-  float internalD = min(absQ.x, absQ.y);
-  float crossMask = sdBox(q, vec2(0.2 * size));
-  internalD = max(internalD, crossMask);
+  // vec2 absQ = abs(q);
+  // float internalD = min(absQ.x, absQ.y);
+  // float crossMask = sdBox(q, vec2(0.2 * size));
+  // internalD = max(internalD, crossMask);
 
   float o = internalD - r;
   // float o = microGrid(q);
@@ -1115,7 +1116,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=6.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2184,27 +2185,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
   q = wQ;
 
-  float o = abs(length(q) - 7. * r) - 0.005;
+  float o = neighborGrid(q, size);
   d = min(d, o);
-
-  for (int i = 0; i < 2; i++) {
-    q *= rotMat2(localCosT);
-
-    // Ring
-    float ring = abs(length(q) - bigR) - r * 0.03125;
-    // d = min(d, ring);
-
-    float c = pModPolar(q, 4.);
-    q.x -= bigR;
-
-    float reduce = 0.350;
-    // r *= reduce;
-    bigR *= reduce;
-
-    float o = length(q) - r;
-    // float o = sdBox(q, vec2(r));
-    d = min(d, o);
-  }
 
   float stop = angle3C;
   d = smoothstep(stop, 0.5 * edge + stop, d);
@@ -2249,7 +2231,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
