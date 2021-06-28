@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1162,62 +1162,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float size = gSize.x;
 
-  float warpScale = 0.70;
+  float warpScale = 0.30;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 8. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.050000 * cos(12. * wQ.yzx + cosT );
-  // wQ.xzy = twist(wQ.xyz, -1.5 * wQ.y + 0.125 * PI * cos(cosT));
-  // wQ += warpScale * 0.025000 * cos(21. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.012500 * cos(29. * wQ.yzx + cosT );
-  // wQ += warpScale * 0.006250 * cos(33. * wQ.yzx + cosT );
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
-
   mPos = q;
 
   float r = 0.6;
 
-  vec3 mountainQ = q;
-  mountainQ.yz *= rotMat2(0.25 * PI);
-  mountainQ.xy *= rotMat2(0.25 * PI);
-  vec3 o = vec3(sdBox(mountainQ, vec3(r)), 0, 0);
+  vec3 o = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  mountainQ = q;
-  mountainQ.x = abs(mountainQ.x);
-  mountainQ.xyz += vec3(-1.5 * r, 0.60 * r, -r);
-  mountainQ.yz *= rotMat2(0.25 * PI);
-  mountainQ.xy *= rotMat2(0.25 * PI);
-  o = vec3(sdBox(mountainQ, vec3(0.80 * r)), 0, 0);
+  q = p;
+
+  q *= rotationMatrix(vec3(1, 0.5, -0.2), localCosT);
+
+  float ringThick = 0.15 * r;
+  // o = vec3(sdTorus88(q, vec2(r + ringThick + 0.20, ringThick)), 1, 0);
+  o = vec3(sdTorus(q, vec2(r + ringThick + 0.30, ringThick)), 1, 0);
+  o.x -= 0.01 * cellular(2.5 * q);
   d = dMin(d, o);
 
-  d.x -= 0.004 * cellular(0.3 * q);
+  // d.x -= 0.004 * cellular(0.3 * q);
 
-  // "Floor"
-  vec3 floorQ = q;
-  floorQ.y -= 0.325;
-
-  floorQ += warpScale * 0.1000 * cos( 4. * floorQ.yzx + 0. * cosT );
-  floorQ += warpScale * 0.0500 * cos( 9. * floorQ.yzx + cosT );
-  floorQ += warpScale * 0.0250 * cos(16. * floorQ.yzx + cosT );
-
-  floorQ.yz *= rotMat2(-0.35);
-
-  vec3 f = vec3(sdPlane(floorQ, vec4(0, 1, 0, 0)), 1., 0.);
-
-  // crop to just foreground
-  float cropSize = 4.;
-  float floorCrop = sdBox(q - vec3(0, 0, cropSize), vec3(cropSize));
-  f.x = max(f.x, floorCrop);
-  // f.x -= 0.05 * cellular(vec3(1, 1, 4.2) * q);
-  f.x -= 0.05 * snoise2(vec2(1, 3.) * q.xz);
-  d = dMin(d, f);
-
-  d.x *= 0.70;
+  // d.x *= 0.70;
 
   return d;
 }
@@ -1449,22 +1425,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
+  dI *= 1. - 0.4 * isMaterialSmooth(m, 1.);
+  dI += 0.887 * isMaterialSmooth(m, 1.);
+
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
-
-  vec3 water = vec3(0);
-  // vec3 water = vec3(
-  //     snoise2(mPos.xy),
-  //     snoise2(mPos.yz),
-  //     snoise2(mPos.zx));
-  float waterI = snoise3(0.2 * mPos);
-  waterI += 0.2 * pow(dNR, 3.);
-
-  water = 0.5 + 0.5 * cos(TWO_PI * (waterI + vec3(0, 0.33, 0.67)));
-  water += 0.5 + 0.5 * cos(TWO_PI * (dNR + water + vec3(0, 0.33, 0.67)));
-  // water *= 0.8;
-
-  color = mix(color, water, isMaterialSmooth(m, 1.));
+  // color *= mix(0.5, 0.8, isMaterialSmooth(m, 0.));
+  color *= 0.8;
 
   gM = m;
 
@@ -1597,10 +1564,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.05 * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.15 * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1613,10 +1580,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
-      // dispersionI *= isMountain;
       dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.75);
+      // dispersionColor.r = pow(dispersionColor.r, 0.75);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
