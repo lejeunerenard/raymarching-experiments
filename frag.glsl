@@ -1151,9 +1151,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
   p.y += 0.05 * cos(cosT);
-  p.y += 0.1;
+  // p.y += 0.1;
 
   vec3 q = p;
 
@@ -1167,13 +1167,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
-  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
+  // wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
+  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1181,8 +1181,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.8;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
+
+  o = vec3(dodecahedral(q, 52., 0.95 * r), 0, 0);
+  d = dMin(d, o);
+
+  float crop = length(q) - 1.061 * r;
+  d.x = max(d.x, -crop);
 
   // d.x -= 0.004 * cellular(0.3 * q);
 
@@ -1569,8 +1575,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
