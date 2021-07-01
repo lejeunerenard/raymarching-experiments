@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1162,32 +1162,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float size = gSize.x;
 
-  float warpScale = 1.7;
+  float warpScale = 0.2;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  // wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
-  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
+  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, 0.3 * wQ.y);
+  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float r = 0.8;
+  float r = 0.55;
 
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  o = vec3(dodecahedral(q, 52., 0.95 * r), 0, 0);
+  o = vec3(octahedral(q, 52., 1.08 * r), 0, 0);
   d = dMin(d, o);
 
-  float crop = length(q) - 1.061 * r;
+  float crop = length(q) - 1.3 * r;
   d.x = max(d.x, -crop);
 
   // d.x -= 0.004 * cellular(0.3 * q);
@@ -1524,7 +1524,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.8;
+        float diffMin = 0.975;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
