@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1167,13 +1167,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
-  wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 0.3 * wQ.y);
-  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
+  // wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 0.3 * wQ.y);
+  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
+
+  float scale = 1.;
+  for (int i = 0; i < 4; i++) {
+    wQ = abs(wQ);
+    wQ = (vec4(wQ, 1.) * kifsM).xyz; // oops
+    // scale *= 0.8;
+  }
 
   // Commit warp
   q = wQ.xyz;
@@ -1184,15 +1191,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  o = vec3(octahedral(q, 52., 1.08 * r), 0, 0);
-  d = dMin(d, o);
+  // o = vec3(octahedral(q, 52., 1.08 * r), 0, 0);
+  // d = dMin(d, o);
 
-  float crop = length(q) - 1.3 * r;
-  d.x = max(d.x, -crop);
+  // float crop = length(q) - 1.3 * r;
+  // d.x = max(d.x, -crop);
 
   // d.x -= 0.004 * cellular(0.3 * q);
 
-  d.x *= 0.50;
+  // d.x *= 0.850;
 
   return d;
 }
