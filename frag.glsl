@@ -1176,7 +1176,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
 
   float scale = 1.;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     wQ = abs(wQ);
     wQ = (vec4(wQ, 1.) * kifsM).xyz; // oops
     // scale *= 0.8;
@@ -1199,7 +1199,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // d.x -= 0.004 * cellular(0.3 * q);
 
-  // d.x *= 0.850;
+  d.x *= 0.40;
 
   return d;
 }
