@@ -1152,6 +1152,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float minD = 1e19;
 
   p *= globalRot;
+  p.zy = p.yz;
   p.y += 0.05 * cos(cosT);
   // p.y += 0.1;
 
@@ -1167,20 +1168,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y);
-  // wQ += warpScale * 0.05000 * cos( 9. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.02500 * cos(17. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, 0.3 * wQ.y);
-  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00625 * cos(27. * wQ.yzx + localCosT );
-
-  float scale = 1.;
-  for (int i = 0; i < 5; i++) {
-    wQ = abs(wQ);
-    wQ = (vec4(wQ, 1.) * kifsM).xyz; // oops
-    // scale *= 0.8;
-  }
+  // Symmetry
+  wQ = abs(wQ);
 
   // Commit warp
   q = wQ.xyz;
@@ -1188,14 +1177,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.55;
 
-  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  // o = vec3(octahedral(q, 52., 1.08 * r), 0, 0);
-  // d = dMin(d, o);
+  // q = p;
+  pModPolar(q.xz, 8.);
+  q.x -= 1.1 * r;
+  q *= rotationMatrix(vec3(0, 0, 1), -0.654);
+  float crop = sdBox(q, vec3(0.1, 2, 2));
+  d.x = max(d.x, -crop);
 
-  // float crop = length(q) - 1.3 * r;
-  // d.x = max(d.x, -crop);
+  pModPolar(q.xz, 8.);
+  q.x -= -0.085 * r;
+  q *= rotationMatrix(vec3(0, 0, 1), 0.302);
+  crop = sdBox(q, vec3(0.1, 2, 2));
+  d.x = max(d.x, -crop);
+
+  q = p;
+  crop = sdBox(q, vec3(2, 0.5 * r, 2));
+  d.x = max(d.x,  crop);
 
   // d.x -= 0.004 * cellular(0.3 * q);
 
@@ -1522,8 +1522,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 2.0;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -1536,7 +1536,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.00;
+        float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1572,7 +1572,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.35 * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1588,7 +1588,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.75);
+      dispersionColor.r = pow(dispersionColor.r, 0.25);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
