@@ -1163,13 +1163,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float size = gSize.x;
 
-  float warpScale = 0.2;
+  float warpScale = 0.6;
 
   // Warp
   vec3 wQ = q.xyz;
 
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + localCosT );
+
   // Symmetry
-  wQ = abs(wQ);
+  // wQ = abs(wQ);
 
   // Commit warp
   q = wQ.xyz;
@@ -1180,22 +1184,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  // q = p;
-  pModPolar(q.xz, 8.);
-  q.x -= 1.1 * r;
-  q *= rotationMatrix(vec3(0, 0, 1), -0.654);
-  float crop = sdBox(q, vec3(0.1, 2, 2));
-  d.x = max(d.x, -crop);
+  float crop = 0.;
+  // // q = p;
+  // pModPolar(q.xz, 8.);
+  // q.x -= 1.1 * r;
+  // q *= rotationMatrix(vec3(0, 0, 1), -0.654);
+  // crop = sdBox(q, vec3(0.1, 2, 2));
+  // d.x = max(d.x, -crop);
 
-  pModPolar(q.xz, 8.);
-  q.x -= -0.085 * r;
-  q *= rotationMatrix(vec3(0, 0, 1), 0.302);
+  pModPolar(q.xz, 6.);
+  q.x -= r;
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + localCosT );
+  q *= rotationMatrix(vec3(0, 0, 1), 3.206);
   crop = sdBox(q, vec3(0.1, 2, 2));
   d.x = max(d.x, -crop);
 
-  q = p;
-  crop = sdBox(q, vec3(2, 0.5 * r, 2));
-  d.x = max(d.x,  crop);
+  // q = p;
+  // crop = sdBox(q, vec3(2, 0.5 * r, 2));
+  // d.x = max(d.x,  crop);
 
   // d.x -= 0.004 * cellular(0.3 * q);
 
@@ -1522,7 +1528,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.5;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -1572,7 +1578,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.35 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.55 * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
