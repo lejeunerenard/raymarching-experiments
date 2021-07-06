@@ -1152,8 +1152,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float minD = 1e19;
 
   p *= globalRot;
-  p.zy = p.yz;
-  p.y += 0.05 * cos(cosT);
+  // p.y += 0.05 * cos(cosT);
   // p.y += 0.1;
 
   vec3 q = p;
@@ -1168,12 +1167,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+  float c = pModPolar(wQ.xy, 5.);
+  wQ.y = abs(wQ.y);
+
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0500 * cos( 7. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0250 * cos(19. * wQ.yzx + localCosT );
-
-  // Symmetry
-  // wQ = abs(wQ);
 
   // Commit warp
   q = wQ.xyz;
@@ -1181,7 +1180,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float r = 0.55;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  q.x += 0.075 * r * cos(localCosT + 0.0 * PI * c);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   float crop = 0.;
@@ -1192,12 +1192,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // crop = sdBox(q, vec3(0.1, 2, 2));
   // d.x = max(d.x, -crop);
 
-  pModPolar(q.xz, 6.);
-  q.x -= r;
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + localCosT );
-  q *= rotationMatrix(vec3(0, 0, 1), 3.206);
-  crop = sdBox(q, vec3(0.1, 2, 2));
-  d.x = max(d.x, -crop);
+  // pModPolar(q.xz, 6.);
+  // q.x -= r;
+  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yzx + localCosT );
+  // q *= rotationMatrix(vec3(0, 0, 1), 3.206);
+  // crop = sdBox(q, vec3(0.1, 2, 2));
+  // d.x = max(d.x, -crop);
 
   // q = p;
   // crop = sdBox(q, vec3(2, 0.5 * r, 2));
@@ -1528,7 +1528,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 1.0;
       float specCo = 0.8;
 
       float specAll = 0.0;
