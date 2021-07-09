@@ -2164,6 +2164,55 @@ vec2 cCube (in vec2 q) {
       3. * q.x * q.x * q.y - q.y * q.y * q.y);  // complex
 }
 
+float star (in vec2 q, in float r, in float n) {
+  float d = maxDistance;
+  float angle = TWO_PI / n;
+  float c = pModPolar(q, n);
+  q.y = abs(q.y);
+
+  q *= rotMat2(0.5 * angle);
+
+  float line = abs(q.x - r);
+  d = min(d, line);
+  return d;
+}
+
+float rotateStarAngle (in float r0, in float r1, in float n) {
+  //  theta = top angle
+  // b|\ a
+  //  |/ c
+  float b = r0;
+  float c = r1;
+
+  float theta = PI / n;
+  float a = b * cos(theta) - sqrt(c * c - b * b * pow(sin(theta), 2.));
+
+  //  theta = top angle
+  // b|\ a
+  //  |- <- d
+  //  |/ c
+  // sin(theta) = d / a
+  float d = a * sin(theta);
+
+  //  theta = top angle
+  // b|\ a
+  //  |- <- d
+  //  |/ c
+  //  phi = bottom angle
+  float phi = asin(d / c);
+
+  // hmm closer..
+
+  // debug
+  // phi = theta;
+  // phi = a;
+  // phi = d;
+
+  // what. doubling it is close to perfect (might even be perfect). I dont know
+  // why. definitely breaks when it isn't n = 8
+  return 2.0 * phi;
+}
+
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -2178,15 +2227,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.0150;
-  float bigR = 0.225;
+  float r = 0.30;
 
   // My goal is to create a set of 'planets' revolving around a center planet. and to apply this recursively
   vec2 wQ = q;
   q = wQ;
 
-  float o = neighborGrid(q, size);
+  float o = star(q, r, 8.);
   d = min(d, o);
+
+  float n = 8.;
+  const int layerN = 25;
+  for (int i = 0; i < layerN; i++) {
+    float r0 = r;
+    float layerScale = (0.05 + 0.05 * float(i) / float(layerN)) * r;
+    r -= layerScale;
+    float angle = rotateStarAngle(r0, r, n);
+    q *= rotMat2(angle * cos(float(i) * 0.1 * PI + localCosT));
+    o = star(q, r, n);
+    d = min(d, o);
+  }
 
   float stop = angle3C;
   d = smoothstep(stop, 0.5 * edge + stop, d);
@@ -2231,7 +2291,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
