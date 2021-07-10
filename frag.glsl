@@ -2210,7 +2210,7 @@ float rotateStarAngle (in float r0, in float r1, in float n) {
 
   // what. doubling it is close to perfect (might even be perfect). I dont know
   // why. definitely breaks when it isn't n = 8
-  return 2.0 * phi;
+  return phi;
 }
 
 vec3 two_dimensional (in vec2 uv, in float generalT) {
@@ -2227,24 +2227,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.30;
+  float r = 0.80;
 
   // My goal is to create a set of 'planets' revolving around a center planet. and to apply this recursively
   vec2 wQ = q;
   q = wQ;
 
-  float o = star(q, r, 8.);
-  d = min(d, o);
-
-  float n = 8.;
-  const int layerN = 25;
+  float n = 6.;
+  const int layerN = 35;
   for (int i = 0; i < layerN; i++) {
     float r0 = r;
-    float layerScale = (0.05 + 0.05 * float(i) / float(layerN)) * r;
+    float layerScale = (0.05 + 0.120 * float(i) / float(layerN)) * r;
     r -= layerScale;
     float angle = rotateStarAngle(r0, r, n);
     q *= rotMat2(angle * cos(float(i) * 0.1 * PI + localCosT));
-    o = star(q, r, n);
+    float o = star(q, r, n);
     d = min(d, o);
   }
 
