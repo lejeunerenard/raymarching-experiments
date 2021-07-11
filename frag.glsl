@@ -2227,17 +2227,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.80;
+  float r = 0.84;
 
   // My goal is to create a set of 'planets' revolving around a center planet. and to apply this recursively
   vec2 wQ = q;
   q = wQ;
 
-  float n = 6.;
-  const int layerN = 35;
+  float n = 12.;
+  const int layerN = 30;
   for (int i = 0; i < layerN; i++) {
     float r0 = r;
-    float layerScale = (0.05 + 0.120 * float(i) / float(layerN)) * r;
+    float layerScale = (0.05 + 0.160 * float(i) / float(layerN)) * r;
     r -= layerScale;
     float angle = rotateStarAngle(r0, r, n);
     q *= rotMat2(angle * cos(float(i) * 0.1 * PI + localCosT));
