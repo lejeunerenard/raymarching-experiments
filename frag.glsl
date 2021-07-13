@@ -2233,14 +2233,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Ah i was just dumb
   wQ += t * 0.2 * vec2(0, 1) * rotMat2(0.15 * PI);
   wQ *= rotMat2(0.1 * PI * range(0.01, 0.8, t) * sin(t + cosT));
-  wQ += vec2(range(0.5, 1.0, t) * 0.2 * snoise2((1. + 1.0 * range(0.8, 1., t)) * wQ)) * rotMat2(cosT + t);
+
+  // warp
+  float pastWarp = 2. * t;
+
+  float pastWarpScale = 1.0 + 0.8 * range(0., 1., t);
+  wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT );
+  wQ += pastWarp * warpScale * 0.050000 * cos( 9. * pastWarpScale * wQ.yx + cosT );
+  wQ += pastWarp * warpScale * 0.025000 * cos(17. * pastWarpScale * wQ.yx + cosT );
+  wQ += pastWarp * warpScale * 0.012500 * cos(25. * pastWarpScale * wQ.yx + cosT );
+  wQ += pastWarp * warpScale * 0.006250 * cos(27. * pastWarpScale * wQ.yx + cosT );
+  wQ += pastWarp * warpScale * 0.003125 * cos(32. * pastWarpScale * wQ.yx + cosT );
+
+  wQ += range(0.5, 1.0, t) * 0.3
+    * vec2(snoise2((1. + 1.0 * range(0.8, 1., t)) * wQ))
+    * rotMat2(cosT + t);
+
   q = wQ;
 
-  const int layerN = 4;
+  const int layerN = 2;
   for (int i = 0; i < layerN; i++) {
     float localR = float(i + 1) / float(layerN + 1) * r;
-    // float o = length(q) - localR;
-    float o = sdBox(q, vec2(localR));
+    float o = length(q) - localR;
+    // float o = sdBox(q, vec2(localR));
     o = abs(o) - r * 0.5 * mix(0.01, 0.005, t);
     d = min(d, o);
   }
@@ -2360,7 +2375,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color = mix(color, color * layerColor, mask);
   }
 
-  color = pow(color, vec3(1.20));
+  color = pow(color, vec3(1.50));
   color /= float(slices);
 
   // Final layer
