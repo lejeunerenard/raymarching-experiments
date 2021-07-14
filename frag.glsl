@@ -2227,15 +2227,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.35;
+  float r = 0.52;
 
   vec2 wQ = q;
-  // Ah i was just dumb
+  wQ *= 1. + 1.7 * range(0.5, 1., t);
   wQ += t * 0.2 * vec2(0, 1) * rotMat2(0.15 * PI);
   wQ *= rotMat2(0.1 * PI * range(0.01, 0.8, t) * sin(t + cosT));
 
   // warp
-  float pastWarp = 2. * t;
+  float pastWarp = 3. * t;
 
   float pastWarpScale = 1.0 + 0.8 * range(0., 1., t);
   wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT );
@@ -2251,12 +2251,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q = wQ;
 
-  const int layerN = 2;
+  const int layerN = 1;
   for (int i = 0; i < layerN; i++) {
     float localR = float(i + 1) / float(layerN + 1) * r;
-    float o = length(q) - localR;
+    vec3 localQ = vec3(q, 0);
+    localQ *= rotationMatrix(vec3(1), cosT - localCosT);
+    // float o = length(q) - localR;
     // float o = sdBox(q, vec2(localR));
-    o = abs(o) - r * 0.5 * mix(0.01, 0.005, t);
+    float o = icosahedral(localQ, 52. , localR);
+    o = abs(o) - r * 0.3 * mix(0.01, 0.005, t);
     d = min(d, o);
   }
 
@@ -2324,10 +2327,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     dI += 0.3 * dot(uv, vec2(1));
     dI += 0.4 * snoise2(1. * uv);
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1) * dI + vec3(0, 0.33, 0.67))));
-    layerColor += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + dI + vec3(0, 0.33, 0.67))));
+    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.25, 0.67))));
+    layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= 1.7;
+    layerColor *= 2.2;
 
     // CYM
     // layerColor = vec3(0);
