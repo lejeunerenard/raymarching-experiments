@@ -149,20 +149,24 @@ float ncnoise3(in vec3 x) {
 }
 
 // 3D noise function (IQ)
-float noise(vec3 p) {
-  vec3 ip=floor(p);
-    p-=ip;
-    vec3 s=vec3(7,157,113);
-    vec4 h=vec4(0.,s.yz,s.y+s.z)+dot(ip,s);
-    p=p*p*(3.-2.*p);
-    h=mix(fract(sin(h)*43758.5),fract(sin(h+s.x)*43758.5),p.x);
-    h.xy=mix(h.xz,h.yw,p.y);
-    return mix(h.x,h.y,p.z);
-}
+// float noise(vec3 p) {
+//   vec3 ip=floor(p);
+//     p-=ip;
+//     vec3 s=vec3(7,157,113);
+//     vec4 h=vec4(0.,s.yz,s.y+s.z)+dot(ip,s);
+//     p=p*p*(3.-2.*p);
+//     h=mix(fract(sin(h)*43758.5),fract(sin(h+s.x)*43758.5),p.x);
+//     h.xy=mix(h.xz,h.yw,p.y);
+//     return mix(h.x,h.y,p.z);
+// }
 // source: https://www.shadertoy.com/view/lsl3RH
 float noise( in vec2 x ) {
   return sin(1.5*x.x)*sin(1.5*x.y);
 }
+float noise( in vec3 x ) {
+  return sin(1.5*x.x)*sin(1.5*x.y)*sin(1.5*x.z);
+}
+
 float sinoise3( in vec3 x ) {
   return sin(1.5 * x.x) * sin(1.51 * x.y) * sin(1.52 * x.z * x.x);
 }
@@ -2227,15 +2231,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.52;
+  float r = 0.68;
 
   vec2 wQ = q;
   wQ *= 1. + 1.7 * range(0.5, 1., t);
-  wQ += t * 0.2 * vec2(0, 1) * rotMat2(0.15 * PI);
+  wQ += t * 0.05 * vec2(0, 1) * rotMat2(0.15 * PI);
   wQ *= rotMat2(0.1 * PI * range(0.01, 0.8, t) * sin(t + cosT));
 
   // warp
-  float pastWarp = 3. * t;
+  float pastWarp = 2. * t;
 
   float pastWarpScale = 1.0 + 0.8 * range(0., 1., t);
   wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT );
@@ -2252,16 +2256,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
 
   const int layerN = 1;
-  for (int i = 0; i < layerN; i++) {
+  // for (int i = 0; i < layerN; i++) {
+  int i = 0;
     float localR = float(i + 1) / float(layerN + 1) * r;
-    vec3 localQ = vec3(q, 0);
-    localQ *= rotationMatrix(vec3(1), cosT - localCosT);
+    vec2 localQ = q;
+    // localQ *= rotMat2(0.1 * PI * cos(cosT - localCosT));
+    vec3 noiseQ = vec3(localQ, 0.);
+    noiseQ.z += 0.05 * cos(cosT - localCosT);
+
+    // vec3 localQ = vec3(q, 0);
+    // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
     // float o = length(q) - localR;
     // float o = sdBox(q, vec2(localR));
-    float o = icosahedral(localQ, 52. , localR);
-    o = abs(o) - r * 0.3 * mix(0.01, 0.005, t);
+    // float o = icosahedral(localQ, 52. , localR);
+    // float o = vfbm4(4. * noiseQ);
+    // float o = vfbmWarp(4. * noiseQ + 0.234);
+    vec3 s = vec3(0);
+    float o = fbmWarp(2. * noiseQ + 0.234, s) + 0.2;
+    o = abs(o) - r * 1.0 * mix(0.05, 0.025, t);
+    o = max(o, length(localQ) - localR);
     d = min(d, o);
-  }
+  // }
 
   float stop = angle3C;
   d = smoothstep(stop, 0.5 * edge + stop, d);
@@ -2330,7 +2345,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.25, 0.67))));
     layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= 2.2;
+    layerColor *= 2.0;
 
     // CYM
     // layerColor = vec3(0);
@@ -2381,8 +2396,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   color = pow(color, vec3(1.50));
   color /= float(slices);
 
-  // Final layer
-  color.rgb += two_dimensional(uv, 0.);
+  // // Final layer
+  // color.rgb += 0.2 * two_dimensional(uv, 0.);
 
   return vec4(color, 1.);
 
