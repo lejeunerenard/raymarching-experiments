@@ -2231,15 +2231,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.68;
+  float r = 0.60;
 
   vec2 wQ = q;
-  wQ *= 1. + 1.7 * range(0.5, 1., t);
-  wQ += t * 0.05 * vec2(0, 1) * rotMat2(0.15 * PI);
-  wQ *= rotMat2(0.1 * PI * range(0.01, 0.8, t) * sin(t + cosT));
+
+  // Move everything up
+  wQ.y -= 0.125;
+
+  // // Shrink the past
+  // wQ *= 1. + 1.7 * range(0.5, 1., t);
+
+  // Move past in a direction
+  wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.0 * PI);
+
+  // Spin past
+  wQ *= rotMat2(0.1 * PI * range(0.01, 0.8, t) * sin(-t + cosT));
 
   // warp
-  float pastWarp = 2. * t;
+  float pastWarp = 2.0 * t;
 
   float pastWarpScale = 1.0 + 0.8 * range(0., 1., t);
   wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT );
@@ -2261,20 +2270,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     float localR = float(i + 1) / float(layerN + 1) * r;
     vec2 localQ = q;
     // localQ *= rotMat2(0.1 * PI * cos(cosT - localCosT));
-    vec3 noiseQ = vec3(localQ, 0.);
-    noiseQ.z += 0.05 * cos(cosT - localCosT);
 
     // vec3 localQ = vec3(q, 0);
     // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
     // float o = length(q) - localR;
-    // float o = sdBox(q, vec2(localR));
+    float o = sdBox(q, vec2(localR, 0.001));
     // float o = icosahedral(localQ, 52. , localR);
+    // vec3 noiseQ = vec3(localQ, 0.);
+    // noiseQ.z += 0.05 * cos(cosT - localCosT);
     // float o = vfbm4(4. * noiseQ);
     // float o = vfbmWarp(4. * noiseQ + 0.234);
-    vec3 s = vec3(0);
-    float o = fbmWarp(2. * noiseQ + 0.234, s) + 0.2;
-    o = abs(o) - r * 1.0 * mix(0.05, 0.025, t);
-    o = max(o, length(localQ) - localR);
+    // vec3 s = vec3(0);
+    // float o = fbmWarp(2. * noiseQ + 0.234, s) + 0.2;
+
+    // Outline
+    // o = abs(o) - r * 1.0 * mix(0.05, 0.025, t);
+
+    // Crop
+    // o = max(o, length(localQ) - localR);
     d = min(d, o);
   // }
 
