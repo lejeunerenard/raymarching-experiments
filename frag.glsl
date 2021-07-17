@@ -2217,6 +2217,7 @@ float rotateStarAngle (in float r0, in float r1, in float n) {
   return phi;
 }
 
+vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
   float d = maxDistance;
@@ -2231,24 +2232,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.60;
+  float r = 0.30;
 
   vec2 wQ = q;
-
-  // Move everything up
-  wQ.y -= 0.125;
 
   // // Shrink the past
   // wQ *= 1. + 1.7 * range(0.5, 1., t);
 
-  // Move past in a direction
-  wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.0 * PI);
+  // // Move past in a direction
+  // wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.0 * PI);
 
   // Spin past
-  wQ *= rotMat2(0.1 * PI * range(0.01, 0.8, t) * sin(-t + cosT));
+  wQ *= rotMat2(-cosT);
+  wQ *= rotMat2(PI * range(0., 0.8, t) * (0.85 + 0.15 * sin(-t + cosT)));
+
+  // Move everything up
+  wQ.y -= 0.20;
 
   // warp
-  float pastWarp = 2.0 * t;
+  float pastWarp = 0.25 + 1.5 * t;
 
   float pastWarpScale = 1.0 + 0.8 * range(0., 1., t);
   wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT );
@@ -2273,8 +2275,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     // vec3 localQ = vec3(q, 0);
     // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
-    // float o = length(q) - localR;
-    float o = sdBox(q, vec2(localR, 0.001));
+    float o = length(q) - localR;
+    // float o = sdBox(q, vec2(localR, 0.001));
     // float o = icosahedral(localQ, 52. , localR);
     // vec3 noiseQ = vec3(localQ, 0.);
     // noiseQ.z += 0.05 * cos(cosT - localCosT);
@@ -2284,13 +2286,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // float o = fbmWarp(2. * noiseQ + 0.234, s) + 0.2;
 
     // Outline
-    // o = abs(o) - r * 1.0 * mix(0.05, 0.025, t);
+    o = abs(o) - r * 1.0 * mix(0.05, 0.025, t);
 
     // Crop
     // o = max(o, length(localQ) - localR);
     d = min(d, o);
   // }
 
+  mUv = q;
   float stop = angle3C;
   d = smoothstep(stop, 0.5 * edge + stop, d);
   d = 1. - d;
@@ -2299,7 +2302,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   color = vec3(d);
 
   // Soften tail
-  color *= 1. - range(0.6, 1.0, t);
+  color *= 1. - pow(range(0.6, 1.0, t), 0.5);
 
   // Textured
   // vec3 foreground = vec3(vfbmWarp(2. * splitR));
@@ -2339,7 +2342,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
 
   const int slices = 200;
   for (int i = 0; i < slices; i++) {
@@ -2353,12 +2356,13 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     vec3 dI = vec3(fI / float(slices));
     dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.4 * snoise2(1. * uv);
+    dI += 0.5 * snoise2(vec2(3, 1) * mUv);
+
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.25, 0.67))));
     layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= 2.0;
+    layerColor *= 1.6;
 
     // CYM
     // layerColor = vec3(0);
@@ -2399,10 +2403,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // Add
     color += layerColor;
 
-    // Multiply
+    // // Multiply
     // color *= layerColor;
 
-    // Pseudo Multiply
+    // // Pseudo Multiply
     // color = mix(color, color * layerColor, mask);
   }
 
@@ -2410,7 +2414,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   color /= float(slices);
 
   // // Final layer
-  // color.rgb += 0.2 * two_dimensional(uv, 0.);
+  // color.rgb += 0.25 * two_dimensional(uv, 0.);
 
   return vec4(color, 1.);
 
