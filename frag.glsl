@@ -2232,7 +2232,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.40;
+  float r = 0.12;
 
   vec2 wQ = q;
 
@@ -2268,18 +2268,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q = wQ;
 
-  const int layerN = 1;
-  // for (int i = 0; i < layerN; i++) {
-  int i = 0;
-    float localR = float(i + 1) / float(layerN + 1) * r;
+  const int layerN = 3;
+  for (int i = 0; i < layerN; i++) {
+  // int i = 0;
+    float fI = float(i);
+
+    // Proportional Rs
+    // float localR = float(i + 1) / float(layerN + 1) * r;
+    float localR = r;
     localR += 0.40 * r * snoise2(q + 0.5 * cos(cosT - t));
 
     vec2 localQ = q;
-    // localQ *= rotMat2(0.1 * PI * cos(cosT - localCosT));
+    localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
+    localQ.x += 2.0 * r;
 
     // vec3 localQ = vec3(q, 0);
     // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
-    float o = length(q) - localR;
+    float o = length(localQ) - localR;
     // float o = sdBox(q, vec2(localR, 0.001));
     // float o = icosahedral(vec3(localQ, 0.), 52., localR);
     // vec3 noiseQ = vec3(localQ, 0.);
@@ -2295,7 +2300,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // Crop
     // o = max(o, length(localQ) - localR);
     d = min(d, o);
-  // }
+  }
 
   mUv = q;
   float stop = 0.005; // angle3C;
@@ -2366,8 +2371,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.25, 0.67))));
     layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= vec3(0.3, 0.5, 1.);
-    layerColor *= 1.3;
+    layerColor *= colors1;
+    layerColor *= 1.4;
 
     // CYM
     // layerColor = vec3(0);
