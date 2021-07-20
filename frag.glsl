@@ -2232,15 +2232,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.12;
+  float r = 0.30;
 
   vec2 wQ = q;
 
   // // Shrink the past
   // wQ *= 1. + 1.7 * range(0.5, 1., t);
 
-  // // Move past in a direction
-  // wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.0 * PI);
+  // Move past in a direction
+  wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.0 * PI);
 
   // Hmmm. what to do...
 
@@ -2268,7 +2268,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q = wQ;
 
-  const int layerN = 3;
+  const int layerN = 1;
   for (int i = 0; i < layerN; i++) {
   // int i = 0;
     float fI = float(i);
@@ -2276,15 +2276,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // Proportional Rs
     // float localR = float(i + 1) / float(layerN + 1) * r;
     float localR = r;
-    localR += 0.40 * r * snoise2(q + 0.5 * cos(cosT - t));
+    localR += 0.40 * r * snoise2(1.2 * q + 0.5 * cos(cosT - t));
 
     vec2 localQ = q;
-    localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
-    localQ.x += 2.0 * r;
+    // localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
+    // localQ.x += 2.0 * r;
 
     // vec3 localQ = vec3(q, 0);
     // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
-    float o = length(localQ) - localR;
+
+    // Circle
+    // float o = length(localQ) - localR;
+
+    // Lp space metric
+    float p = 1. + 8. * (0.5 + 0.5 * cos(cosT - t));
+    float o = pow(dot(vec2(1), pow(localQ, vec2(p))), 1.0 / p) - localR;
+
     // float o = sdBox(q, vec2(localR, 0.001));
     // float o = icosahedral(vec3(localQ, 0.), 52., localR);
     // vec3 noiseQ = vec3(localQ, 0.);
@@ -2365,7 +2372,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     vec3 dI = vec3(fI / float(slices));
     dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.5 * snoise2(vec2(3, 1) * mUv);
+    dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.25, 0.67))));
