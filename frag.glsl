@@ -2232,7 +2232,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.30;
+  float r = 0.20;
 
   vec2 wQ = q;
 
@@ -2240,7 +2240,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= 1. + 1.7 * range(0.5, 1., t);
 
   // Move past in a direction
-  wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.0 * PI);
+  wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.1 * PI * sin(cosT - t));
 
   // Hmmm. what to do...
 
@@ -2276,7 +2276,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // Proportional Rs
     // float localR = float(i + 1) / float(layerN + 1) * r;
     float localR = r;
-    localR += 0.40 * r * snoise2(1.2 * q + 0.5 * cos(cosT - t));
+    localR += 0.60 * r * snoise2(1.2 * q + 0.5 * cos(cosT - t));
 
     vec2 localQ = q;
     // localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
@@ -2286,11 +2286,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
 
     // Circle
-    // float o = length(localQ) - localR;
+    float o = length(localQ) - localR;
 
-    // Lp space metric
-    float p = 1. + 8. * (0.5 + 0.5 * cos(cosT - t));
-    float o = pow(dot(vec2(1), pow(localQ, vec2(p))), 1.0 / p) - localR;
+    // // Lp space metric
+    // float p = 1. + 8. * (0.5 + 0.5 * cos(cosT - t));
+    // float o = pow(dot(vec2(1), pow(localQ, vec2(p))), 1.0 / p) - localR;
 
     // float o = sdBox(q, vec2(localR, 0.001));
     // float o = icosahedral(vec3(localQ, 0.), 52., localR);
@@ -2432,6 +2432,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // Final layer
   color.rgb += 1.0 * two_dimensional(uv, 0.);
+
+  // Color manipulation
+  color.rgb = 1. - color.rgb;
 
   return vec4(color, 1.);
 
