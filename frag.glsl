@@ -2232,7 +2232,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.20;
+  float r = 0.09;
 
   vec2 wQ = q;
 
@@ -2276,9 +2276,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // Proportional Rs
     // float localR = float(i + 1) / float(layerN + 1) * r;
     float localR = r;
-    localR += 0.60 * r * snoise2(1.2 * q + 0.5 * cos(cosT - t));
+    localR += 0.60 * r * snoise2(1.1 * q + 0.5 * cos(cosT - t) + 9.123);
 
     vec2 localQ = q;
+    vec2 c = pMod2(localQ, vec2(3.5 * r));
     // localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
     // localQ.x += 2.0 * r;
 
@@ -2292,7 +2293,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // float p = 1. + 8. * (0.5 + 0.5 * cos(cosT - t));
     // float o = pow(dot(vec2(1), pow(localQ, vec2(p))), 1.0 / p) - localR;
 
-    // float o = sdBox(q, vec2(localR, 0.001));
+    // float o = sdBox(localQ, vec2(localR));
     // float o = icosahedral(vec3(localQ, 0.), 52., localR);
     // vec3 noiseQ = vec3(localQ, 0.);
     // noiseQ.z += 0.05 * cos(cosT - localCosT);
