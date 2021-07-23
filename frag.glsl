@@ -2225,14 +2225,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
 
   // Global Timing
-  float t = mod(generalT + 0.0, 1.);
+  float t = mod(generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
 
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.09;
+  float r = 0.33;
 
   vec2 wQ = q;
 
@@ -2240,27 +2240,25 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= 1. + 1.7 * range(0.5, 1., t);
 
   // Move past in a direction
-  wQ += t * 0.25 * vec2(0, 1) * rotMat2(0.1 * PI * sin(cosT - t));
-
-  // Hmmm. what to do...
+  wQ += t * 1.00 * vec2(0, 1) * rotMat2(0.01 * PI * sin(cosT - t));
 
   // // Spin past
   // wQ *= rotMat2(-cosT);
   // wQ *= rotMat2(PI * range(0., 0.8, t) * (0.85 + 0.15 * sin(-t + cosT)));
 
-  // // Move everything up
-  // wQ.y -= 0.20;
+  // Move everything up
+  wQ.y -= 0.60;
 
   // warp
-  float pastWarp = 0.25 + 0.5 * t;
+  vec2 pastWarp = (0.35 + 0.4 * t) * vec2(0.3, 1);
 
-  float pastWarpScale = 1.0 + 0.8 * range(0., 1., t);
-  wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT + t );
-  wQ += pastWarp * warpScale * 0.050000 * cos( 9. * pastWarpScale * wQ.yx + cosT + t );
-  wQ += pastWarp * warpScale * 0.025000 * cos(17. * pastWarpScale * wQ.yx + cosT + t );
-  wQ += pastWarp * warpScale * 0.012500 * cos(25. * pastWarpScale * wQ.yx + cosT + t );
-  wQ += pastWarp * warpScale * 0.006250 * cos(27. * pastWarpScale * wQ.yx + cosT + t );
-  wQ += pastWarp * warpScale * 0.003125 * cos(32. * pastWarpScale * wQ.yx + cosT + t );
+  float pastWarpScale = 1.0 + 2.8 * range(0., 1., t);
+  wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.050000 * cos( 9. * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.025000 * cos(17. * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.012500 * cos(25. * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.006250 * cos(27. * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.003125 * cos(32. * pastWarpScale * wQ.yx + cosT - t );
 
   // wQ += range(0.5, 1.0, t) * 0.3
   //   * vec2(snoise2((1. + 1.0 * range(0.8, 1., t)) * wQ))
@@ -2276,10 +2274,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // Proportional Rs
     // float localR = float(i + 1) / float(layerN + 1) * r;
     float localR = r;
-    localR += 0.60 * r * snoise2(1.1 * q + 0.5 * cos(cosT - t) + 9.123);
+    localR += 0.40 * r * snoise2(1.1 * q + 0.5 * cos(cosT - t) + 9.123);
 
     vec2 localQ = q;
-    vec2 c = pMod2(localQ, vec2(3.5 * r));
     // localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
     // localQ.x += 2.0 * r;
 
@@ -2287,13 +2284,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // localQ *= rotationMatrix(vec3(1), cosT - localCosT);
 
     // Circle
-    float o = length(localQ) - localR;
+    // float o = length(localQ) - localR;
 
     // // Lp space metric
     // float p = 1. + 8. * (0.5 + 0.5 * cos(cosT - t));
     // float o = pow(dot(vec2(1), pow(localQ, vec2(p))), 1.0 / p) - localR;
 
-    // float o = sdBox(localQ, vec2(localR));
+    float o = sdBox(localQ, vec2(localR, 0.0025));
     // float o = icosahedral(vec3(localQ, 0.), 52., localR);
     // vec3 noiseQ = vec3(localQ, 0.);
     // noiseQ.z += 0.05 * cos(cosT - localCosT);
@@ -2318,8 +2315,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Solid
   color = vec3(d);
 
-  // Soften tail
-  color *= 1. - pow(range(0.6, 1.0, t), 0.5);
+  // // Soften tail
+  // color *= 1. - pow(range(0.6, 1.0, t), 0.5);
 
   // Textured
   // vec3 foreground = vec3(vfbmWarp(2. * splitR));
@@ -2361,7 +2358,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(1);
 
-  const int slices = 100;
+  const int slices = 200;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2373,14 +2370,15 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     vec3 dI = vec3(fI / float(slices));
     dI += 0.3 * dot(uv, vec2(1));
-    dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+    // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.25, 0.67))));
     layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
     layerColor *= colors1;
-    layerColor *= 1.4;
+    layerColor *= 3.0;
+    // layerColor = vec3(5.0);
 
     // CYM
     // layerColor = vec3(0);
@@ -2432,10 +2430,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   color /= float(slices);
 
   // Final layer
-  color.rgb += 1.0 * two_dimensional(uv, 0.);
+  color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // Color manipulation
-  color.rgb = 1. - color.rgb;
+  // // Color manipulation
+  // color.rgb = 1. - color.rgb;
 
   return vec4(color, 1.);
 
