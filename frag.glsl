@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.03);
+const vec2 gSize = vec2(0.2);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2232,7 +2232,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.33;
+  float r = 0.30 * size.x;
 
   vec2 wQ = q;
 
@@ -2240,7 +2240,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= 1. + 1.7 * range(0.5, 1., t);
 
   // Move past in a direction
-  wQ += t * 1.00 * vec2(0, 1) * rotMat2(0.01 * PI * sin(cosT - t));
+  wQ += t * 0.5 * vec2(0, 1) * rotMat2(0.01 * PI * sin(cosT - t));
 
   // // Spin past
   // wQ *= rotMat2(-cosT);
@@ -2250,15 +2250,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ.y -= 0.60;
 
   // warp
-  vec2 pastWarp = (0.35 + 0.4 * t) * vec2(0.3, 1);
+  vec2 pastWarp = (0.55 + 0.4 * t) * vec2(0.3, 1);
 
   float pastWarpScale = 1.0 + 2.8 * range(0., 1., t);
-  wQ += pastWarp * warpScale * 0.100000 * cos( 3. * pastWarpScale * wQ.yx + cosT - t );
-  wQ += pastWarp * warpScale * 0.050000 * cos( 9. * pastWarpScale * wQ.yx + cosT - t );
-  wQ += pastWarp * warpScale * 0.025000 * cos(17. * pastWarpScale * wQ.yx + cosT - t );
-  wQ += pastWarp * warpScale * 0.012500 * cos(25. * pastWarpScale * wQ.yx + cosT - t );
-  wQ += pastWarp * warpScale * 0.006250 * cos(27. * pastWarpScale * wQ.yx + cosT - t );
-  wQ += pastWarp * warpScale * 0.003125 * cos(32. * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.100000 * cos( 2.5 * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.050000 * cos( 9.0 * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.025000 * cos(17.0 * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.012500 * cos(25.0 * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.006250 * cos(27.0 * pastWarpScale * wQ.yx + cosT - t );
+  wQ += pastWarp * warpScale * 0.003125 * cos(32.0 * pastWarpScale * wQ.yx + cosT - t );
 
   // wQ += range(0.5, 1.0, t) * 0.3
   //   * vec2(snoise2((1. + 1.0 * range(0.8, 1., t)) * wQ))
@@ -2274,9 +2274,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // Proportional Rs
     // float localR = float(i + 1) / float(layerN + 1) * r;
     float localR = r;
-    localR += 0.40 * r * snoise2(1.1 * q + 0.5 * cos(cosT - t) + 9.123);
+    localR += 0.10 * r * snoise2(1.1 * q + 0.5 * cos(cosT - t) + 9.123);
 
     vec2 localQ = q;
+    vec2 c = floor((localQ + size*0.5)/size);
+    localQ.x += 0.50 * size.x * mod(dot(c, vec2(1)), 2.);
+    pMod2(localQ, size);
     // localQ *= rotMat2(fI * TWO_PI / float(layerN) + cosT - t);
     // localQ.x += 2.0 * r;
 
@@ -2290,7 +2293,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // float p = 1. + 8. * (0.5 + 0.5 * cos(cosT - t));
     // float o = pow(dot(vec2(1), pow(localQ, vec2(p))), 1.0 / p) - localR;
 
-    float o = sdBox(localQ, vec2(localR, 0.0025));
+    // float o = sdBox(localQ, vec2(localR, 0.0025));
+    float o = abs(dot(localQ, vec2(0, 1)));
+    o = max(o, sdBox(localQ, 0.1 * size));
+
     // float o = icosahedral(vec3(localQ, 0.), 52., localR);
     // vec3 noiseQ = vec3(localQ, 0.);
     // noiseQ.z += 0.05 * cos(cosT - localCosT);
@@ -2300,7 +2306,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // float o = fbmWarp(2. * noiseQ + 0.234, s) + 0.2;
 
     // Outline
-    o = abs(o) - r * 0.125 * mix(0.05, 0.025, t);
+    // o = abs(o) - r * 0.125 * mix(0.05, 0.025, t);
 
     // Crop
     // o = max(o, length(localQ) - localR);
@@ -2308,7 +2314,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   }
 
   mUv = q;
-  float stop = 0.005; // angle3C;
+  float stop = angle3C;
   d = smoothstep(stop, 0.5 * edge + stop, d);
   d = 1. - d;
 
