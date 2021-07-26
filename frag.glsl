@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.05);
+const vec2 gSize = vec2(0.10);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1081,23 +1081,22 @@ float shape (in vec2 q, in vec2 c) {
 
   // float dC = vmax(abs(c));
 
-  // localT += 0.125 * dot(abs(c), vec2(1));
-  float t = mod(localT, 1.);
+  // Create a copy so there is no cross talk in neighborGrid
+  float locallocalT = localT;
+  locallocalT += 0.075 * dot(c, vec2(0.25, 1));
+  float t = mod(locallocalT, 1.);
+  t = expo(t);
 
-  float shift = 0.;
-  vec2 localC = mix(c, c - shift, t);
+  // undo position
+  q -= c * size;
+
+  float shift = 2.;
+  vec2 localC = mix(c, c - vec2(0, shift), t);
   float dC = dot(abs(localC), vec2(1));
 
+  q += localC * size;
+
   float r = 0.40 * size;
-  // whoa. im getting scintillation right now in the cross spots at the corners.
-  // i guess this is a hermann grid illusion at the moment
-  // what is i add the circles
-  // there we go
-  // the brain is so weird. i guess there was some theory about firing
-  // too many neurons or something? in the end it was not likely
-  // correct because they said wavy lines ruined it. lets find out.
-  //
-  // still works for me! weird. thats what I get for not reading correctly.
 
   // float internalD = length(q);
   // float internalD = vmax(abs(q));
@@ -1111,13 +1110,6 @@ float shape (in vec2 q, in vec2 c) {
   // float o = internalD - r;
   // float o = microGrid(q);
   d = min(d, o);
-
-  // Add corner circles
-  vec2 cornerQ = q;
-  cornerQ = abs(cornerQ);
-  cornerQ -= 0.5 * size;
-  float corner = length(cornerQ) - 1.0 * (size * 0.5 - r);
-  second = min(second, corner);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1133,7 +1125,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=6.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2248,8 +2240,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.30 * size.x;
 
   vec2 wQ = q;
-  wQ *= rotMat2(0.25 * localCosT);
-
   // wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + 0. * localCosT );
   // wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + 0. * localCosT );
   // wQ += warpScale * 0.0250 * cos(13. * wQ.yx + 0. * localCosT );
@@ -2261,18 +2251,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   d = min(d, o);
 
   mUv = q;
-  float stop = angle3C;
+  float stop = 0.; // angle3C;
   d = smoothstep(stop, 0.5 * edge + stop, d);
-  // d = 1. - d;
+  d = 1. - d;
 
   // Solid
-  color = mix(vec3(0), vec3(0.5), d);
-
-  // Add second
-  stop = 0.;
-  second = smoothstep(stop, 0.5 * edge + stop, second);
-  second = 1. - second;
-  color = mix(color, vec3(1.0), second);
+  // color = vec3(d);
+  color = mix(vec3(0, 0, 0.15), vec3(1), d);
 
   return color.rgb;
 }
