@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.10);
+const vec2 gSize = vec2(0.025);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1083,7 +1083,8 @@ float shape (in vec2 q, in vec2 c) {
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  locallocalT += 0.075 * dot(c, vec2(0.25, 1));
+  float flip = mod(c.x, 2.);
+  locallocalT += (-1. + 2. * flip) * 0.075 * dot(c, vec2(0.50, 1));
   float t = mod(locallocalT, 1.);
   t = expo(t);
 
@@ -1091,7 +1092,7 @@ float shape (in vec2 q, in vec2 c) {
   q -= c * size;
 
   float shift = 2.;
-  vec2 localC = mix(c, c - vec2(0, shift), t);
+  vec2 localC = mix(c, c - (-1. + 2. * flip) * vec2(0, shift), t);
   float dC = dot(abs(localC), vec2(1));
 
   q += localC * size;
@@ -2257,7 +2258,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Solid
   // color = vec3(d);
-  color = mix(vec3(0, 0, 0.15), vec3(1), d);
+  color = mix(vec3(0.125), vec3(1), d);
 
   return color.rgb;
 }
