@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 // @TODO Why is dispersion shitty on lighter backgrounds? I can see it blowing
@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.025);
+const vec2 gSize = vec2(0.10);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1081,23 +1081,52 @@ float shape (in vec2 q, in vec2 c) {
 
   // float dC = vmax(abs(c));
 
+  // repeat every group of four (that's the objective)
+  // imagine the group is starting at 0 aka 0,1 then 0,1 again in a direction
+  // hmm i guess whether it is [0,1] or [-1, 1] might be an important question...
+  // I guess i can just map it later
+  // Also just realized that the current c mod centers the image on 0 and so is
+  // not even condusive. aka a set of 4 will be not on the middle line. I can
+  // fix that before the neighborhoodGrid is applied.
+
+  // Assume [0,1] range per dimension
+  vec2 bigSize = vec2(2);
+  vec2 bigC = floor(abs(c) / bigSize);
+  vec2 miniC = mod(c, bigSize);
+
+  // second = abs(bigC.x);
+  // second = mod(second, 2.);
+
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  float flip = mod(c.x, 2.);
-  locallocalT += (-1. + 2. * flip) * 0.075 * dot(c, vec2(0.50, 1));
+  locallocalT -= 0.25 * dot(abs(bigC), vec2(1));
   float t = mod(locallocalT, 1.);
-  t = expo(t);
+  // t = expo(t);
 
+  // okay now to figure out the blank spots
   // undo position
-  q -= c * size;
+  q -= miniC * size;
 
-  float shift = 2.;
-  vec2 localC = mix(c, c - (-1. + 2. * flip) * vec2(0, shift), t);
+  float shift = 1.;
+  vec2 shiftDir = vec2(0);
+
+  // Figure it out manually
+  if (miniC == vec2( 0, 0)) {
+    shiftDir = vec2( 0, 1); // up
+  } else if (miniC == vec2( 0, 1)) {
+    shiftDir = vec2( 1, 0); // right
+  } else if (miniC == vec2( 1, 1)) {
+    shiftDir = vec2( 0,-1); // down
+  } else if (miniC == vec2( 1, 0)) {
+    shiftDir = vec2(-1, 0); // left
+  }
+
+  vec2 localC = mix(miniC, miniC + shift * shiftDir, t);
   float dC = dot(abs(localC), vec2(1));
 
   q += localC * size;
 
-  float r = 0.40 * size;
+  float r = 0.20 * size;
 
   // float internalD = length(q);
   // float internalD = vmax(abs(q));
@@ -1126,7 +1155,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=1.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -1156,7 +1185,7 @@ float thingy (in vec2 q, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 1.5;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
@@ -1179,38 +1208,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ.xz *= rotMat2(PI * expo(range(0.1, 0.9, t)));
-  wQ.xy *= rotMat2(0.25 * PI);
-
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00312 * cos(31. * wQ.yzx + localCosT );
-  // vec2 c = floor((wQ.xy + size*0.5)/size);
-  // wQ.z -= num * size * snoise2(c);
-  // wQ.xy = opRepLim(wQ.xy, size, vec2(num));
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.00312 * cos(31. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  for (int x = -num; x < num + 1; x++)
-  for (int y = -num; y < num + 1; y++) {
-    vec2 c = vec2(x, y);
-    vec3 localQ = q - size * vec3(c, (float(num) + 0.5) * snoise2(c));
-    vec3 o = vec3(sdBox(localQ, vec3(r)), 0, 0);
-    if (o.x < d.x) {
-      mPos = localQ;
-    }
-    d = dMin(d, o);
-  }
+  vec3 o = vec3(length(q) - r, 0, 0);
+  d = dMin(d, o);
 
-  // d.x *= 0.5;
-
-  // float crop = sdBox(q, vec3((float(num) + 0.5) * size));
-  // d.x = max(d.x, crop);
+  d.x += 0.01 * cellular(5. * q);
 
   // d.x *= 0.5;
 
@@ -1434,10 +1447,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
-
-  float isFace = step(gR - 0.015, abs(mPos.z));
-  return mix(background + 0.05, vec3(1), isFace);
-
   vec3 dI = vec3(dNR);
 
   // dI += 0.2 * pow(dNR, 3.);
@@ -1447,11 +1456,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.33, 0.67)));
-  color *= 0.4;
-  color = mix(color, vec3(0), saturate(pow(dNR, 6.)));
-  // color = vec3(1.8);
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.33, 0.67)));
+  // color *= 0.7;
 
   gM = m;
 
@@ -1536,8 +1543,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.;
-      float specCo = 0.;
+      float freCo = 1.;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1545,12 +1552,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 1.0;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1584,10 +1591,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.25 * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.25 * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1596,15 +1603,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 0.75);
-      // dispersionColor *= dispersionI;
+      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 0.75);
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.25);
+      dispersionColor.r = pow(dispersionColor.r, 0.25);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1635,8 +1642,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 shaded = color;
       // color = mix(midColor, highlightColor, step(0.55, shaded.x));
       // color = mix(color, shadowColor, step(0.7, 1. - shaded.x));
-
-      color = diffuseColor;
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
@@ -2231,6 +2236,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 q = uv;
 
   // Global Timing
+  generalT = angle3C;
   float t = mod(generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
@@ -2259,6 +2265,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Solid
   // color = vec3(d);
   color = mix(vec3(0.125), vec3(1), d);
+  // color = vec3(second);
 
   return color.rgb;
 }
@@ -2291,7 +2298,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(1);
 
