@@ -1213,6 +1213,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, wQ.y);
   wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + localCosT );
   wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
   wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + localCosT );
   wQ += warpScale * 0.00312 * cos(31. * wQ.yzx + localCosT );
 
@@ -1220,12 +1221,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
-  d.x += 0.01 * cellular(5. * q);
+  d.x += 0.01 * cellular(3. * q);
 
-  // d.x *= 0.5;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1453,6 +1454,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * snoise3(abs(pos));
   dI += 0.5 * pos.y;
 
+  for (int i = 0; i < 5; i++) {
+    dI = abs(dI);
+    dI = (vec4(dI, 1.) * kifsM).rgb;
+  }
+
   dI *= angle1C;
   dI += angle2C;
 
@@ -1543,8 +1549,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.;
-      float specCo = 0.6;
+      float freCo = 0.8;
+      float specCo = 0.3;
 
       float specAll = 0.0;
 
@@ -1552,12 +1558,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.8;
+        float diffMin = 0.65;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.9;
+        float shadowMin = 0.6;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
