@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 8192
+#define maxSteps 1024
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1185,12 +1185,12 @@ float thingy (in vec2 q, in float t) {
   return d;
 }
 
-float gR = 1.5;
+float gR = 0.25;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
 
-  // p *= globalRot;
+  p *= globalRot;
   // p.y += 0.05 * cos(cosT);
   // p.y += 0.1;
 
@@ -1203,30 +1203,40 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.0 * r;
   const int num = 5;
 
-  float warpScale = 1.0;
+  float warpScale = 0.25;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 1. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 5. * wQ.yzx + localCosT );
   wQ.xzy = twist(wQ.xyz, wQ.y);
-  wQ += warpScale * 0.02500 * cos(19. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  wQ += warpScale * 0.00625 * cos(29. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.00312 * cos(31. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.02500 * cos(11. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
+  float firstWave = length(q.xy) - t;
+  firstWave = sin(TWO_PI * 3. * firstWave);
+
+  vec3 o = vec3(firstWave, 0, 0);
+  
+  q *= rotationMatrix(vec3(1), localCosT);
+  float secondWave = length(q - vec3(0.2)) + t;
+  // float secondWave = sdBox(q - vec3(0.2), vec3(r)) + t;
+  secondWave = sin(TWO_PI * 1. * secondWave);
+  o.x += secondWave;
+
   d = dMin(d, o);
 
-  d.x += 0.01 * cellular(3. * q);
+  // Crop
+  float crop = length(q) - 0.7;
+  d.x = max(d.x, crop);
 
-  d.x *= 0.5;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1454,10 +1464,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 0.2 * snoise3(abs(pos));
   dI += 0.5 * pos.y;
 
-  for (int i = 0; i < 5; i++) {
-    dI = abs(dI);
-    dI = (vec4(dI, 1.) * kifsM).rgb;
-  }
+  // for (int i = 0; i < 5; i++) {
+  //   dI = abs(dI);
+  //   dI = (vec4(dI, 1.) * kifsM).rgb;
+  // }
 
   dI *= angle1C;
   dI += angle2C;
@@ -1612,7 +1622,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 0.75);
+      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
       dispersionColor.r = pow(dispersionColor.r, 0.25);
@@ -1678,14 +1688,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // // Glow
-      // float stepScaleAdjust = 2.5;
-      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // vec3 glowColor = vec3(1, 0, 1);
-      // const float stopPoint = 0.5;
-      // // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // // i = pow(i, 0.90);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      // Glow
+      float stepScaleAdjust = 0.5;
+      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      vec3 glowColor = vec3(1, 0, 1);
+      const float stopPoint = 0.5;
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.90);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
