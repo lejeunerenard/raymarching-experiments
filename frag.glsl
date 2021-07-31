@@ -1219,24 +1219,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float firstWave = length(q.xy) - t;
-  firstWave = sin(TWO_PI * 3. * firstWave);
+  float firstWave = vmax(q) - t;
+  firstWave = 1. / (sin(TWO_PI * 2. * firstWave) + 1.2) - 0.1;
 
   vec3 o = vec3(firstWave, 0, 0);
-  
-  q *= rotationMatrix(vec3(1), localCosT);
-  float secondWave = length(q - vec3(0.2)) + t;
+
+  // q *= rotationMatrix(vec3(1), localCosT);
+  float secondWave = length(q + sin(PI * q) - vec3(0.2, 0.2, 0)) + t;
   // float secondWave = sdBox(q - vec3(0.2), vec3(r)) + t;
-  secondWave = sin(TWO_PI * 1. * secondWave);
+  secondWave = sin(TWO_PI * 1. * secondWave) - 0.05;
   o.x += secondWave;
 
   d = dMin(d, o);
 
+  d.x *= 0.020;
+
   // Crop
   float crop = length(q) - 0.7;
+  crop *= 0.030;
   d.x = max(d.x, crop);
-
-  d.x *= 0.05;
 
   return d;
 }
@@ -1461,7 +1462,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dNR);
 
   // dI += 0.2 * pow(dNR, 3.);
-  dI += 0.2 * snoise3(abs(pos));
+  dI += 0.2 * snoise3(abs(mPos));
   dI += 0.5 * pos.y;
 
   // for (int i = 0; i < 5; i++) {
@@ -1559,8 +1560,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.3;
+      float freCo = 1.0;
+      float specCo = 0.7;
 
       float specAll = 0.0;
 
@@ -1622,10 +1623,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.0 * pow(1. - dot(nor, -rayDirection), 0.75);
+      float dispersionI = 3.0 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.25);
+      dispersionColor.b = pow(dispersionColor.b, 0.5);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
@@ -1691,7 +1692,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Glow
       float stepScaleAdjust = 0.5;
       float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(1, 0, 1);
+      vec3 glowColor = vec3(0.3, 0., 1);
       const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
       // i = pow(i, 0.90);
