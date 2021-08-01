@@ -1225,7 +1225,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 o = vec3(firstWave, 0, 0);
 
   // q *= rotationMatrix(vec3(1), localCosT);
-  float secondWave = length(q + sin(PI * q) - vec3(0.2, 0.2, 0)) + t;
+  // float secondWave = length(q + sin(PI * q) - vec3(0.2, 0.2, 0)) + t;
+  q.xzy = twist(q.xyz, 3. * q.y);
+  float secondWave = dot(q, vec3(1, -1, -1) * q);
   // float secondWave = sdBox(q - vec3(0.2), vec3(r)) + t;
   secondWave = sin(TWO_PI * 1. * secondWave) - 0.05;
   o.x += secondWave;
@@ -1456,7 +1458,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.05);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1560,8 +1563,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 1.25;
+      float specCo = 1.1;
 
       float specAll = 0.0;
 
@@ -1610,7 +1613,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1628,7 +1631,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       dispersionColor.b = pow(dispersionColor.b, 0.5);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1690,9 +1693,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float stepScaleAdjust = 0.5;
+      float stepScaleAdjust = 0.8;
       float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(0.3, 0., 1);
+      vec3 glowColor = vec3(1., 0.2, 0.);
       const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
       // i = pow(i, 0.90);
