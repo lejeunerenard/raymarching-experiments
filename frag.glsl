@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1194,7 +1194,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p.y += 0.05 * cos(cosT);
   // p.y += 0.1;
 
-  vec3 q = p;
+  float scale = 1.2;
+  vec3 q = scale * p;
 
   // dT = angle3C;
   float t = mod(dT, 1.);
@@ -1203,7 +1204,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.0 * r;
   const int num = 5;
 
-  float warpScale = 0.25;
+  float warpScale = 1.75;
 
   // Warp
   vec3 wQ = q.xyz;
@@ -1219,8 +1220,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float firstWave = vmax(q) - t;
-  firstWave = 1. / (sin(TWO_PI * 2. * firstWave) + 1.2) - 0.1;
+  float firstWave = dot(q, vec3(1, 0.33, -1) * q) - t + sin(q.z - q.y);
+  firstWave = sin(TWO_PI * 2. * firstWave);
 
   vec3 o = vec3(firstWave, 0, 0);
 
@@ -1229,17 +1230,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q.xzy = twist(q.xyz, 3. * q.y);
   float secondWave = dot(q, vec3(1, -1, -1) * q);
   // float secondWave = sdBox(q - vec3(0.2), vec3(r)) + t;
-  secondWave = sin(TWO_PI * 1. * secondWave) - 0.05;
+  secondWave = sin(TWO_PI * 1. * secondWave);
   o.x += secondWave;
+
+  // "Radius"
+  o.x -= 0.1;
 
   d = dMin(d, o);
 
   d.x *= 0.020;
+  d.x /= scale;
 
+  q = p;
   // Crop
-  float crop = length(q) - 0.7;
-  crop *= 0.030;
+  float cropR = 0.7;
+  // float crop = sdBox(q, vec3(cropR));
+  float crop = length(q) - cropR;
+  // float crop = tetrahedron(q, 0.8 * cropR);
+  crop *= 0.750;
   d.x = max(d.x, crop);
+
+  d.x -= 0.010 * cellular(3. * q);
 
   return d;
 }
@@ -1458,8 +1469,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.05);
-  return color;
+  vec3 color = vec3(0);
+  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1563,8 +1574,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.25;
-      float specCo = 1.1;
+      float freCo = 0.80;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1577,7 +1588,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.6;
+        float shadowMin = 0.2;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1613,7 +1624,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.3 * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1631,7 +1642,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       dispersionColor.b = pow(dispersionColor.b, 0.5);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1692,14 +1703,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float stepScaleAdjust = 0.8;
-      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(1., 0.2, 0.);
-      const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.90);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float stepScaleAdjust = 1.;
+      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // vec3 glowColor = vec3(1., 0.2, 0.);
+      // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // // i = pow(i, 0.90);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
