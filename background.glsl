@@ -8,7 +8,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
 
   // --- Gradient index ---
-  float bgIndex = saturate(0.5 * (3. * uv.y + 1.0));
+  float bgIndex = saturate(0.5 * (1. * uv.y + 1.0));
   // float bgIndex = saturate(length(uv));
   // bgIndex = pow(bgIndex, 4.);
   // bgIndex += 0.1 * dot(sin(6. * uv), vec2(1));
@@ -36,7 +36,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(rainbowValue * rainbow, vec3(0.0), bgIndex);
 
   // Hex color
-  vec3 color = mix(#0BA354, #41F094, saturate(1. * bgIndex));
+  vec3 color = mix(#34A0E0, #60E083, saturate(1. * bgIndex));
 
   // Solid colors
   // vec3 color = vec3(0.5);

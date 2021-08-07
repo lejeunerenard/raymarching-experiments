@@ -1191,9 +1191,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float minD = 1e19;
 
   p *= globalRot;
-  // p.y += 0.05 * cos(cosT);
+  p.y += 0.1 * cos(cosT);
 
-  float scale = 2.0;
+  float scale = 3.0;
   vec3 q = scale * p;
 
   q.y *= 0.7;
@@ -1212,27 +1212,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.x = abs(wQ.x);
 
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
   wQ.xzy = twist(wQ.xyz, 0.25 * wQ.y);
-  // wQ += warpScale * 0.02500 * cos(11. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(17. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.02500 * cos(11. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q.xzy = q.xyz;
-  float qx2 = q.x * q.x;
-  float qy2 = q.y * q.y;
-  float qz2 = q.z * q.z;
+  float firstWave = dot(sin(q), q);
 
-  float firstWave =
-    2. * q.y * (qy2 - 3. * qx2) * (1. - qz2)
-    + pow(qx2 + qy2, 2.) - (9. * qz2 - 1.) * (1. - qz2);
-
-  // firstWave = sin(TWO_PI * 0.0625 * firstWave); // Convert to wave
+  firstWave = sin(TWO_PI * 1. * firstWave); // Convert to wave
 
   vec3 o = vec3(firstWave, 0, firstWave);
 
@@ -1251,14 +1244,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x *= 0.01;
   d.x /= scale;
 
-  q = p;
+  // q = p;
+  q /= scale;
   // Crop
-  float cropR = 1.325;
+  float cropR = 0.8;
   // float crop = sdBox(q, vec3(0.7 * cropR));
   float crop = length(q) - cropR;
   // float crop = tetrahedron(q, 0.8 * cropR);
-  // crop *= 0.250;
+  crop *= 0.250;
   d.x = max(d.x, crop);
+
+  d.x = mix(d.x, crop, 0.5 + 0.5 * cos(localCosT + dot(q, vec3(-1))));
 
   // d.x -= 0.010 * cellular(3. * q);
 
@@ -1479,8 +1475,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = #FF6E5E;
+  vec3 color = #E03F43;
   color *= 1.5;
+  color = pow(color, vec3(2.2));
   return color;
 
   float dNR = dot(nor, -rd);
