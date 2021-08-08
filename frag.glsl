@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1185,7 +1185,7 @@ float thingy (in vec2 q, in float t) {
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.5;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   float minD = 1e19;
@@ -1193,10 +1193,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= globalRot;
   p.y += 0.1 * cos(cosT);
 
-  float scale = 3.0;
+  float scale = 1.0;
   vec3 q = scale * p;
-
-  q.y *= 0.7;
 
   // dT = angle3C;
   float t = mod(dT, 1.);
@@ -1205,58 +1203,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.0 * r;
   const int num = 5;
 
-  float warpScale = 1.0;
+  float warpScale = 1.6;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ.x = abs(wQ.x);
+  // wQ = abs(wQ);
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
   wQ.xzy = twist(wQ.xyz, 0.25 * wQ.y);
-  wQ += warpScale * 0.02500 * cos(11. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.01250 * cos(17. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.00625 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0015625 * cos(33. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float firstWave = dot(sin(q), q);
-
-  firstWave = sin(TWO_PI * 1. * firstWave); // Convert to wave
-
-  vec3 o = vec3(firstWave, 0, firstWave);
-
-  // // float secondWave = length(q + sin(PI * q) - vec3(0.2, 0.2, 0)) + t;
-  // q.xzy = twist(q.xyz, 1. * q.y);
-  // float secondWave = dot(sin(q), sin(q.yzx)) - sin(q.x - q.y * q.z);
-  // // float secondWave = sdBox(q - vec3(0.2), vec3(r)) + t;
-  // secondWave = sin(TWO_PI * 1. * secondWave);
-  // o.x += secondWave;
-
-  // // "Radius"
-  // o.x -= angle3C;
-
+  vec3 o = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, o);
 
-  d.x *= 0.01;
-  d.x /= scale;
+  q *= rotationMatrix(vec3(1), 0.3 * PI);
+  o = vec3(sdBox(q, vec3(r)), 0, 0);
+  d = dMin(d, o);
 
-  // q = p;
-  q /= scale;
-  // Crop
-  float cropR = 0.8;
-  // float crop = sdBox(q, vec3(0.7 * cropR));
-  float crop = length(q) - cropR;
-  // float crop = tetrahedron(q, 0.8 * cropR);
-  crop *= 0.250;
-  d.x = max(d.x, crop);
+  d.x -= 0.040 * cellular(3. * q);
 
-  d.x = mix(d.x, crop, 0.5 + 0.5 * cos(localCosT + dot(q, vec3(-1))));
-
-  // d.x -= 0.010 * cellular(3. * q);
+  d.x *= 0.5;
 
   return d;
 }
@@ -1640,7 +1616,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.50 * pow(1. - dot(nor, -rayDirection), 0.75);
+      float dispersionI = 2.00 * pow(1. - dot(nor, -rayDirection), 0.75);
       dispersionColor *= dispersionI;
 
       dispersionColor.b = pow(dispersionColor.b, 0.4);
