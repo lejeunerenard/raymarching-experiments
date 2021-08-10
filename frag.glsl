@@ -1081,14 +1081,15 @@ float shape (in vec2 q, in vec2 c) {
 
   // float dC = vmax(abs(c));
 
-  // Assume [0,1] range per dimension
-  vec2 bigSize = vec2(2);
-  vec2 bigC = floor(abs(c) / bigSize);
-  vec2 miniC = mod(c, bigSize);
+  // // Assume [0,1] range per dimension
+  // vec2 bigSize = vec2(2);
+  // vec2 bigC = floor(abs(c) / bigSize);
+  // vec2 miniC = mod(c, bigSize);
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  locallocalT -= 0.015625 * dot(abs(c), vec2(1));
+  // locallocalT -= 0.015625 * dot(abs(c), vec2(1));
+  locallocalT -= 0.015625 * length(c);
   float t = mod(locallocalT, 1.);
   // t = expo(t);
   t = quart(t);
@@ -1100,25 +1101,31 @@ float shape (in vec2 q, in vec2 c) {
   // vec2 localC = mix(miniC, miniC + shift * shiftDir, t);
 
   // Vanilla cell coordinate
-  vec2 localC = miniC;
+  vec2 localC = c;
+
+  q += localC * size;
 
   float dC = dot(abs(localC), vec2(1));
 
   float r = 0.125 * size;
 
-  q.y -= size;
-  q += 2. * size * sin(TWO_PI * t + vec2(0, 0.5 * PI));
+  // q.y -= size;
+  // q += 2. * size * sin(TWO_PI * t + vec2(0, 0.5 * PI));
+  q *= 1. - 0.125 * sin(PI * t);
+  q *= rotMat2(0.5 * PI * t);
 
-  // float internalD = length(q);
+  q -= localC * size;
+
+  float internalD = length(q);
   // float internalD = vmax(abs(q));
-  float internalD = sdBox(q, vec2(r));
+  // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.2 * size));
   // internalD = max(internalD, crossMask);
 
-  float o = internalD;
-  // float o = internalD - r;
+  // float o = internalD;
+  float o = internalD - r;
   // float o = microGrid(q);
   d = min(d, o);
 
@@ -1136,7 +1143,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=24.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2226,22 +2233,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
+  vec2 c = floor((q + size*0.5)/size);
+
   // Global Timing
   // generalT = angle3C;
+  // generalT -= 0.015625 * length(c);
   float t = mod(generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
+  t = quart(t);
 
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.30 * size.x;
+  // float r = 0.30 * size.x;
 
   vec2 wQ = q;
   q = wQ;
 
-  float o = neighborGrid(q, size);
+  q *= 1. - 0.125 * sin(PI * t);
+  q *= rotMat2(0.5 * PI * t);
+
+  vec2 c2 = pMod2(q, size);
+
+  float r = 0.125 * size.x;
+
+  float o = length(q) - r;
   d = min(d, o);
+  d = mix(d, maxDistance, step(0., vmax(abs(c2)) - 13.));
+
+  // float o = neighborGrid(q, size);
+  // d = min(d, o);
 
   mUv = q;
   float stop = 0.; // angle3C;
@@ -2284,9 +2306,9 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
 
-  const int slices = 20;
+  const int slices = 300;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2305,7 +2327,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
     layerColor *= colors1;
-    layerColor *= 1.5;
+    layerColor *= 1.2;
     // layerColor = vec3(5.0);
 
     // CYM
