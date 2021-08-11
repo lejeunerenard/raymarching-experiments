@@ -2252,7 +2252,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
 
   q *= 1. - 0.125 * sin(PI * t);
-  q *= rotMat2(0.5 * PI * t);
+  // q *= rotMat2(0.5 * PI * t);
+  q += 2. * vec2(1, 2) * size * t;
 
   vec2 c2 = pMod2(q, size);
 
@@ -2260,7 +2261,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float o = length(q) - r;
   d = min(d, o);
-  d = mix(d, maxDistance, step(0., vmax(abs(c2)) - 13.));
+  float mask = -0.01; // sdTriPrism(vec3(c2, 0), vec2(13.));
+  // d = mask;
+  d = mix(d, maxDistance, step(0., mask));
 
   // float o = neighborGrid(q, size);
   // d = min(d, o);
