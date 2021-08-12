@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.025);
+const vec2 gSize = vec2(0.045);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1088,33 +1088,28 @@ float shape (in vec2 q, in vec2 c) {
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  // locallocalT -= 0.015625 * dot(abs(c), vec2(1));
-  locallocalT -= 0.015625 * length(c);
+  locallocalT -= 0.2 * c.y;
   float t = mod(locallocalT, 1.);
-  // t = expo(t);
-  t = quart(t);
 
-  //// Local C that transitions from one cell to another
-  // float shift = 1.;
-  // vec2 shiftDir = vec2(0);
+  // Local C that transitions from one cell to another
+  float shift = 1.;
+  vec2 shiftDir = vec2(0);
 
-  // vec2 localC = mix(miniC, miniC + shift * shiftDir, t);
+  vec2 localC = mix(c, c + shift * shiftDir, t);
 
-  // Vanilla cell coordinate
-  vec2 localC = c;
+  // // Vanilla cell coordinate
+  // vec2 localC = c;
 
-  q += localC * size;
+  float transLength = 0.5;
+  q += 2. * vec2(-1, 1) * size * range(0., 0.5 * transLength, t);
+  q += 2. * vec2( 1, 1) * size * range(0.5 * transLength, 1.0 * transLength, t);
 
   float dC = dot(abs(localC), vec2(1));
 
   float r = 0.125 * size;
 
-  // q.y -= size;
-  // q += 2. * size * sin(TWO_PI * t + vec2(0, 0.5 * PI));
-  q *= 1. - 0.125 * sin(PI * t);
-  q *= rotMat2(0.5 * PI * t);
-
-  q -= localC * size;
+  // q *= 1. - 0.125 * sin(PI * t);
+  // q *= rotMat2(0.5 * PI * t);
 
   float internalD = length(q);
   // float internalD = vmax(abs(q));
@@ -1135,7 +1130,7 @@ float shape (in vec2 q, in vec2 c) {
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 10.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 13.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 13.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -1143,7 +1138,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=24.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2237,11 +2232,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Global Timing
   // generalT = angle3C;
-  // generalT -= 0.015625 * length(c);
+  // generalT -= 0.123 * c.y;
   float t = mod(generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
-  t = quart(t);
+  // t = quart(t);
 
   float thickness = 0.0025;
   const float warpScale = 1.0;
@@ -2251,13 +2246,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 wQ = q;
   q = wQ;
 
-  q *= 1. - 0.125 * sin(PI * t);
-  // q *= rotMat2(0.5 * PI * t);
-  q += 2. * vec2(1, 2) * size * t;
+  // q *= 1. - 0.125 * sin(PI * t);
+  q *= rotMat2(0.5 * PI * t);
+  q += 1. * vec2(-1, 1) * size * expo(range(0., 0.25, t));
+  q += 1. * vec2( 1, 1) * size * sine(range(0.25, 0.5, t));
+  q += 1. * vec2( 1,-1) * size * quint(range(0.5, 0.75, t));
+  q += 1. * vec2(-1,-1) * size * range(0.75, 1.0, t);
 
   vec2 c2 = pMod2(q, size);
 
-  float r = 0.125 * size.x;
+  float r = 0.20 * size.x;
 
   float o = length(q) - r;
   d = min(d, o);
@@ -2311,7 +2309,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 300;
+  const int slices = 8;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2330,7 +2328,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
     layerColor *= colors1;
-    layerColor *= 1.2;
+    layerColor *= 1.8;
     // layerColor = vec3(5.0);
 
     // CYM
@@ -2348,7 +2346,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.15;
+    const float maxDelayLength = 0.075;
     float layerT = norT
       + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
     float mask = two_dimensional(uv, layerT).x;
