@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.045);
+const vec2 gSize = vec2(0.0215);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2228,8 +2228,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 q = uv;
 
-  vec2 c = floor((q + size*0.5)/size);
-
   // Global Timing
   // generalT = offset.y;
   float t = mod(generalT + 0.0, 1.0);
@@ -2239,37 +2237,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.03125 * size.x;
+  float r = 0.25 * size.x;
 
   vec2 wQ = q;
 
-  for (int i = 0; i < 8; i++) {
-    wQ = abs(wQ);
-
-    wQ *= rotMat2(angle3C);
-
-    wQ += vec2(
-        angle1C,
-        angle2C);
-
-    wQ *= scale;
-
-    // float o = length(wQ) - r / (0.2 * float(i + 1));
-    // d = min(d, o);
-
-    vec2 localQ = wQ;
-
-    // Animate
-    localQ.x += 2. * size.x * t;
-
-    vec2 c2 = pMod2(localQ, size);
-
-    float o = length(localQ) - r / (0.175 * float(i + 1));
-    d = min(d, o);
-  }
+  vec2 c = pMod2(wQ, size);
 
   q = wQ;
 
+  q *= rotMat2(PI * cos(localCosT - 0.5 * snoise2(0.07 * c) - 0.1 * dot(abs(c), vec2(1))));
+
+  float o = sdBox(q, vec2(0.2 * r, r));
+  d = min(d, o);
 
   // float o = length(q) - 0.1 * r;
   // d = min(d, o);
