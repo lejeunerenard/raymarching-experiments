@@ -2221,15 +2221,63 @@ float rotateStarAngle (in float r0, in float r1, in float n) {
   return phi;
 }
 
+vec2 factorCenter (in vec2 q, in float num, in float r) {
+  pModPolar(q, num);
+
+  // okay so r needs to be such that it creates a side with length 2 * r.
+  //    /b __  
+  // x / |\  x 
+  //  /r | \ | 
+  // //_\|_a\  
+  // a  2r   
+  //
+  // θ = b / 2
+  // sin(θ) = r / x
+  // x = r / sin(θ)
+  q.x -= r / sin(TWO_PI / num * 0.5);
+
+  return q;
+}
+
+float factor (in vec2 q, in float num, in float r) {
+  float d = maxDistance;
+
+  q = factorCenter(q, num, r);
+
+  float c = length(q) - r;
+  d = min(d, c);
+
+  return d;
+}
+
+vec3 factorColor (in float layerI, in float totalLayers, in vec2 uv) {
+  vec3 color = vec3(0);
+
+  float percent = layerI / totalLayers;
+
+  // percent *= angle1C;
+  // percent += angle2C;
+
+  // color = 0.5 + 0.5 * cos(TWO_PI * (0.2 * vec3(uv, 0) + percent + vec3(0, 0.33, 0.67)));
+  // color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (0.2 * vec3(uv, 0) + color + vec3(0, 0.33, 0.67))));
+  // color *= 0.8;
+
+  // Greyscale
+  color = vec3(percent);
+
+  color = pow(color, vec3(1.5));
+
+  return color;
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1);
-  float d = maxDistance;
+  vec3 color = vec3(0.5);
+  vec2 d = vec2(maxDistance, 0.);
 
   vec2 q = uv;
 
   // Global Timing
-  // generalT = offset.y;
   float t = mod(generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
@@ -2237,40 +2285,77 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.25 * size.x;
+  float r = 0.125;
 
   vec2 wQ = q;
-
-  vec2 c = pMod2(wQ, size);
-
   q = wQ;
 
-  q *= rotMat2(PI * cos(localCosT - 0.5 * snoise2(0.07 * c) - 0.1 * dot(abs(c), vec2(1))));
+  float stop = 0.;
 
-  float o = sdBox(q, vec2(0.2 * r, r));
-  d = min(d, o);
+  // Derive a new r from the old r
+  // num = repetitions for new r
+  // oldR = r + r / sin(TWO_PI / num * 0.5)
+  // oldR = r * (1 + 1 / sin(TWO_PI / num * 0.5))
+  // r = oldR / (1 + 1 / sin(TWO_PI / num * 0.5))
 
-  // float o = length(q) - 0.1 * r;
-  // d = min(d, o);
+  float num = 315.;
+  float oldNum = 0.;
 
-  // vec2 c2 = pMod2(q, size);
+  float totalLayers = 4.;
+  float layerI = 0.;
+  float newR = r;
+  float oldR = r;
 
-  // float o = length(q) - r;
-  // d = min(d, o);
-  // float mask = -0.01; // sdTriPrism(vec3(c2, 0), vec2(13.));
-  // // d = mask;
-  // d = mix(d, maxDistance, step(0., mask));
+  // Factor #1 : 5
+  num = 7.;
+  layerI++;
+  q *= rotMat2(localCosT / num);
+  vec2 o = vec2(factor(q, num, r), 0.);
+  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
+  d = dMin(d, o);
 
-  // float o = neighborGrid(q, size);
-  // d = min(d, o);
+  oldNum = num;
+  num = 5.;
+  layerI++;
+  oldR = r;
+  newR = oldR / (1. + 1. / sin(TWO_PI / num * 0.5));
+  q = factorCenter(q, oldNum, oldR);
+  q *= rotMat2(localCosT / num);
+  o = vec2(factor(q, num, newR), 1.);
+  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
+  d = dMin(d, o);
+
+  // Layer #3
+  oldNum = num;
+  num = 3.;
+  layerI++;
+  oldR = newR;
+  newR = oldR / (1. + 1. / sin(TWO_PI / num * 0.5));
+  q = factorCenter(q, oldNum, oldR);
+  q *= rotMat2(localCosT / num);
+  o = vec2(factor(q, num, newR), 1.);
+  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
+  d = dMin(d, o);
+
+  // Layer #4
+  oldNum = num;
+  num = 3.;
+  layerI++;
+  oldR = newR;
+  newR = oldR / (1. + 1. / sin(TWO_PI / num * 0.5));
+  q = factorCenter(q, oldNum, oldR);
+  q *= rotMat2(localCosT / num);
+  o = vec2(factor(q, num, newR), 1.);
+  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
+  d = dMin(d, o);
 
   mUv = q;
-  float stop = 0.; // angle3C;
-  d = smoothstep(stop, 0.125 * edge + stop, d);
-  d = 1. - d;
+  // float stop = 0.;
+  // d.x = smoothstep(stop, 0.125 * edge + stop, d.x);
+  // d.x = 1. - d.x;
 
-  // Solid
-  color = vec3(d);
+  // // Solid
+  // color = vec3(d.y);
 
   return color.rgb;
 }
@@ -2305,86 +2390,86 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(0);
+  vec3 color = vec3(0);
 
-  // const int slices = 8;
-  // for (int i = 0; i < slices; i++) {
-  //   float fI = float(i);
-  //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
-  //   // vec3 layerColor = vec3(
-  //   //     saturate(mod(fI + 0., 3.)),
-  //   //     saturate(mod(fI + 1., 3.)),
-  //   //     saturate(mod(fI + 2., 3.))
-  //   // );
+  const int slices = 8;
+  for (int i = 0; i < slices; i++) {
+    float fI = float(i);
+    vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = vec3(
+    //     saturate(mod(fI + 0., 3.)),
+    //     saturate(mod(fI + 1., 3.)),
+    //     saturate(mod(fI + 2., 3.))
+    // );
 
-  //   vec3 dI = vec3(fI / float(slices));
-  //   dI += 0.3 * dot(uv, vec2(1));
-  //   // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+    vec3 dI = vec3(fI / float(slices));
+    dI += 0.3 * dot(uv, vec2(1));
+    // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
-  //   // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-  //   layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
-  //   // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-  //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-  //   layerColor *= colors1;
-  //   layerColor *= 1.8;
-  //   // layerColor = vec3(5.0);
+    // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
+    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
+    // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
+    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+    layerColor *= colors1;
+    layerColor *= 1.8;
+    // layerColor = vec3(5.0);
 
-  //   // CYM
-  //   // layerColor = vec3(0);
-  //   // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-  //   // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-  //   // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-  //   // layerColor *= 0.65;
-  //   // layerColor *= vec3(1.0, 0.6, 0.60);
+    // CYM
+    // layerColor = vec3(0);
+    // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+    // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+    // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+    // layerColor *= 0.65;
+    // layerColor *= vec3(1.0, 0.6, 0.60);
 
-  //   // layerColor *= 0.6;
+    // layerColor *= 0.6;
 
-  //   // Add black layer as first layer
-  //   // layerColor *= step(0.5, fI);
+    // Add black layer as first layer
+    // layerColor *= step(0.5, fI);
 
-  //   // layerColor = pow(layerColor, vec3(4 + slices));
+    // layerColor = pow(layerColor, vec3(4 + slices));
 
-  //   const float maxDelayLength = 0.075;
-  //   float layerT = norT
-  //     + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
-  //   float mask = two_dimensional(uv, layerT).x;
-  //   layerColor *= mask;
-  //   // if (i == 0) {
-  //   //   color = layerColor;
-  //   // } else {
-  //   //   color = overlay(color, layerColor);
-  //   // }
-  //   // color *= layerColor;
+    const float maxDelayLength = 0.150;
+    float layerT = norT
+      + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
+    float mask = two_dimensional(uv, layerT).x;
+    layerColor *= mask;
+    // if (i == 0) {
+    //   color = layerColor;
+    // } else {
+    //   color = overlay(color, layerColor);
+    // }
+    // color *= layerColor;
 
-  //   // vec3 layerColorA = softLight2(color, layerColor);
-  //   // vec3 layerColorB = color * layerColor;
-  //   // layerColor = layerColorA + layerColorB;
-  //   // layerColor *= 0.85;
+    // vec3 layerColorA = softLight2(color, layerColor);
+    // vec3 layerColorB = color * layerColor;
+    // layerColor = layerColorA + layerColorB;
+    // layerColor *= 0.85;
 
-  //   // layerColor = overlay(color, layerColor);
-  //   // layerColor = screenBlend(color, layerColor);
-  //   // color = mix(color, layerColor, 0.3);
+    // layerColor = overlay(color, layerColor);
+    // layerColor = screenBlend(color, layerColor);
+    // color = mix(color, layerColor, 0.3);
 
-  //   // Add
-  //   color += layerColor;
+    // Add
+    color += layerColor;
 
-  //   // // Multiply
-  //   // color *= layerColor;
+    // // Multiply
+    // color *= layerColor;
 
-  //   // // Pseudo Multiply
-  //   // color = mix(color, color * layerColor, mask);
-  // }
+    // // Pseudo Multiply
+    // color = mix(color, color * layerColor, mask);
+  }
 
-  // color = pow(color, vec3(1.50));
-  // color /= float(slices);
+  color = pow(color, vec3(1.50));
+  color /= float(slices);
 
-  // // // Final layer
-  // // color.rgb += 0.3 * two_dimensional(uv, 0.);
+  // // Final layer
+  // color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // // // Color manipulation
-  // // color.rgb = 1. - color.rgb;
+  // // Color manipulation
+  // color.rgb = 1. - color.rgb;
 
-  // return vec4(color, 1.);
+  return vec4(color, 1.);
 
   float time = norT;
   vec4 t = march(ro, rd, time);
