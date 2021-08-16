@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.0215);
+const vec2 gSize = vec2(0.125);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2273,7 +2273,7 @@ vec3 factorColor (in float layerI, in float totalLayers, in vec2 uv) {
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0.5);
-  vec2 d = vec2(maxDistance, 0.);
+  float d = maxDistance;
 
   vec2 q = uv;
 
@@ -2285,77 +2285,33 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0025;
   const float warpScale = 1.0;
   vec2 size = gSize;
-  float r = 0.125;
+  float r = 0.35 * size.x;
 
   vec2 wQ = q;
+
+  vec2 c = pMod2(wQ, size);
+
   q = wQ;
 
-  float stop = 0.;
+  // Modulate r
+  // I'm going to experiment with changing not only each cell's time but have an
+  // offset within the cell via changing the r.
+  float incellOffset = dot(q, vec2(45));
+  // Ooo I like it already. makes the grid feel jelly
+  r += 0.20 * r * cos(localCosT + incellOffset);
+  r += 0.15 * r * cos(localCosT - 1.0 * length(c));
 
-  // Derive a new r from the old r
-  // num = repetitions for new r
-  // oldR = r + r / sin(TWO_PI / num * 0.5)
-  // oldR = r * (1 + 1 / sin(TWO_PI / num * 0.5))
-  // r = oldR / (1 + 1 / sin(TWO_PI / num * 0.5))
-
-  float num = 315.;
-  float oldNum = 0.;
-
-  float totalLayers = 4.;
-  float layerI = 0.;
-  float newR = r;
-  float oldR = r;
-
-  // Factor #1 : 5
-  num = 7.;
-  layerI++;
-  q *= rotMat2(localCosT / num);
-  vec2 o = vec2(factor(q, num, r), 0.);
-  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
-  d = dMin(d, o);
-
-  oldNum = num;
-  num = 5.;
-  layerI++;
-  oldR = r;
-  newR = oldR / (1. + 1. / sin(TWO_PI / num * 0.5));
-  q = factorCenter(q, oldNum, oldR);
-  q *= rotMat2(localCosT / num);
-  o = vec2(factor(q, num, newR), 1.);
-  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
-  d = dMin(d, o);
-
-  // Layer #3
-  oldNum = num;
-  num = 3.;
-  layerI++;
-  oldR = newR;
-  newR = oldR / (1. + 1. / sin(TWO_PI / num * 0.5));
-  q = factorCenter(q, oldNum, oldR);
-  q *= rotMat2(localCosT / num);
-  o = vec2(factor(q, num, newR), 1.);
-  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
-  d = dMin(d, o);
-
-  // Layer #4
-  oldNum = num;
-  num = 3.;
-  layerI++;
-  oldR = newR;
-  newR = oldR / (1. + 1. / sin(TWO_PI / num * 0.5));
-  q = factorCenter(q, oldNum, oldR);
-  q *= rotMat2(localCosT / num);
-  o = vec2(factor(q, num, newR), 1.);
-  color = mix(color, factorColor(layerI, totalLayers, uv), 1. - smoothstep(stop, 0.125 * edge + stop, o.x));
-  d = dMin(d, o);
+  float o = length(q) - r;
+  o = abs(o) - 0.025 * r;
+  d = min(d, o);
 
   mUv = q;
-  // float stop = 0.;
-  // d.x = smoothstep(stop, 0.125 * edge + stop, d.x);
-  // d.x = 1. - d.x;
+  float stop = 0.;
+  d = smoothstep(stop, 0.125 * edge + stop, d);
+  d = 1. - d;
 
-  // // Solid
-  // color = vec3(d.y);
+  // Solid
+  color = vec3(d);
 
   return color.rgb;
 }
