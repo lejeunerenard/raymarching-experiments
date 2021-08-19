@@ -1058,7 +1058,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.125);
+const vec2 gSize = vec2(0.075);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1102,22 +1102,23 @@ float shape (in vec2 q, in vec2 c) {
 
   float dC = dot(abs(localC), vec2(1));
 
-  float r = 0.3 * size;
+  float r = 1.10 * size;
 
   // q *= 1. - 0.125 * sin(PI * t);
-  // q *= rotMat2(0.25 * PI);
+  // q *= rotMat2(0.5 * PI * t);
 
   // Modulate r
   // I'm going to experiment with changing not only each cell's time but have an
   // offset within the cell via changing the r.
   float incellOffset = dot(q, vec2(45));
   // Ooo I like it already. makes the grid feel jelly
-  r += 0.10 * r * cos(localCosT + incellOffset);
-  r += 0.10 * r * cos(localCosT - 1.0 * length(c));
+  // r += 0.10 * r * cos(localCosT + incellOffset);
+  r += 0.40 * r * cos(localCosT - 1.0 * length(c));
 
   // float internalD = length(q);
   // float internalD = vmax(abs(q));
-  float internalD = sdBox(q, vec2(r));
+  float internalD = dot(abs(q), vec2(1));
+  // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.2 * size));
@@ -1130,11 +1131,11 @@ float shape (in vec2 q, in vec2 c) {
 
   // Outline
   const float adjustment = 0.0;
-  d = abs(d - adjustment) - 0.0025;
+  d = abs(d - adjustment) - r * 0.0250;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 10.));
-  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 13.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 3.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -2361,7 +2362,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 8;
+  const int slices = 15;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
