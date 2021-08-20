@@ -1102,10 +1102,18 @@ float shape (in vec2 q, in vec2 c) {
 
   float dC = dot(abs(localC), vec2(1));
 
-  float r = 1.10 * size;
+  float r = 0.50 * size;
 
   // q *= 1. - 0.125 * sin(PI * t);
   // q *= rotMat2(0.5 * PI * t);
+
+  float a = atan(c.y, c.x);
+  if (c == vec2(0)) {
+    a = 0.;
+  } else {
+    q -= 1.5 * size * normalize(c) * quart(0.5 + 0.5 * cos(localCosT + a + 0.3 * length(c)));
+    // There we go
+  }
 
   // Modulate r
   // I'm going to experiment with changing not only each cell's time but have an
@@ -1113,29 +1121,29 @@ float shape (in vec2 q, in vec2 c) {
   float incellOffset = dot(q, vec2(45));
   // Ooo I like it already. makes the grid feel jelly
   // r += 0.10 * r * cos(localCosT + incellOffset);
-  r += 0.40 * r * cos(localCosT - 1.0 * length(c));
+  // r += 0.40 * r * cos(localCosT - 1.0 * length(c));
 
   // float internalD = length(q);
   // float internalD = vmax(abs(q));
-  float internalD = dot(abs(q), vec2(1));
-  // float internalD = sdBox(q, vec2(r));
+  // float internalD = dot(abs(q), vec2(1));
+  float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.2 * size));
   // internalD = max(internalD, crossMask);
 
-  // float o = internalD;
-  float o = internalD - r;
+  float o = internalD;
+  // float o = internalD - r;
   // float o = microGrid(q);
   d = min(d, o);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - r * 0.0250;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - r * 0.0250;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 10.));
-  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 3.));
+  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 4.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -2362,7 +2370,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 15;
+  const int slices = 10;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2399,7 +2407,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.150;
+    const float maxDelayLength = 0.175;
     float layerT = norT
       + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
     float mask = two_dimensional(uv, layerT).x;
@@ -2436,8 +2444,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // // Final layer
   // color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // // Color manipulation
-  // color.rgb = 1. - color.rgb;
+  // Color manipulation
+  color.rgb = 1. - color.rgb;
 
   return vec4(color, 1.);
 
