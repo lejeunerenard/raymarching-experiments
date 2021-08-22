@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 250
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -962,6 +962,31 @@ float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
   return max(b, -crop);
 }
 
+vec2 sdBoxWEdges (in vec3 q, in vec3 r, in float thickness) {
+  float b = sdBox(q, r);
+  float m = 0.;
+
+  // crop inners
+  vec3 cropR = r - thickness;
+  vec3 cropQ = q;
+  float crop = sdBox(cropQ, vec3(30, cropR.y, cropR.z));
+
+  if (abs(q.y) > abs(q.x)) {
+    cropQ.yx = cropQ.xy;
+  }
+  crop = min(crop, sdBox(cropQ, vec3(30, cropR.x, cropR.z)));
+
+  if (abs(q.z) > abs(q.x)) {
+    cropQ.zx = cropQ.xz;
+  }
+  crop = min(crop, sdBox(cropQ, vec3(30, cropR.x, cropR.y)));
+
+  if (-crop > b) {
+    m = 1.;
+  }
+  return vec2(b, m);
+}
+
 float gridBump ( in vec3 q, float size ) {
   vec3 c = pMod3(q, vec3(size));
 
@@ -1184,9 +1209,9 @@ float thingy (in vec2 q, in float t) {
 float gR = 0.25;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
-  float minD = 1e19;
+  vec2 minD = vec2(1e19, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.y += 0.1 * cos(cosT);
 
   float scale = 1.0;
@@ -1216,25 +1241,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.0015625 * cos(33. * wQ.yzx + localCosT );
   // no idea what to do. again true. but i'm just going to slap on a fractal space folding onto this.
 
-  for (int i = 0; i < 14; i++) {
+  for (int i = 0; i < 12; i++) {
     wQ.xy = abs(wQ.xy);
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
-    float trap = sdBox(wQ - vec3(1.1 * r, 0, 0), vec3(vec2(0.01), 0.4));
-    minD = min(minD, trap);
+    float smallSide = 0.01;
+    vec2 trap = sdBoxWEdges(wQ - vec3(1.1 * r, 0, 0), vec3(vec2(smallSide), 0.4), 0.3 * smallSide);
+    // hmm. not sure if my normal technique for deciding material will work...
+    minD = dMin(minD, trap);
   }
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 o = vec3(length(q) - r, 0, 0);
-  // o.x /= scale;
+  // vec3 o = vec3(sdBoxWEdges(q, vec3(r), r * 0.1), 0);
+  // // o.x /= scale;
   // d = dMin(d, o);
 
   // Trap
-  vec3 trap = vec3(minD, 1, 0);
+  vec3 trap = vec3(minD, 0);
   d = dMin(d, trap);
 
   // float boxR = 1.5 * r;
@@ -1259,7 +1286,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   //   d = dMin(d, b);
   // }
 
-  d.x *= 0.75;
+  // d.x *= 0.75;
 
   return d;
 }
@@ -1478,9 +1505,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.8);
+  vec3 color = vec3(0);
 
-  color = mix(color, vec3(1.9), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(2.0), isMaterialSmooth(m, 1.));
 
   return color;
 
