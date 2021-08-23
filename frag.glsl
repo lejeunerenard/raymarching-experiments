@@ -1206,12 +1206,13 @@ float thingy (in vec2 q, in float t) {
   return d;
 }
 
+
 float gR = 0.25;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   // p.y += 0.1 * cos(cosT);
 
   float scale = 1.0;
@@ -1241,15 +1242,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.0015625 * cos(33. * wQ.yzx + localCosT );
   // no idea what to do. again true. but i'm just going to slap on a fractal space folding onto this.
 
-  for (int i = 0; i < 12; i++) {
-    wQ.xy = abs(wQ.xy);
+  for (int i = 0; i < 10; i++) {
+    wQ = abs(wQ);
+    // // Box fold
+    // wQ.xyz = clamp(wQ.xyz, -foldLimit, foldLimit) * 2. - wQ.xyz;
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
-    float smallSide = 0.01;
-    vec2 trap = sdBoxWEdges(wQ - vec3(1.1 * r, 0, 0), vec3(vec2(smallSide), 0.4), 0.3 * smallSide);
-    // hmm. not sure if my normal technique for deciding material will work...
-    minD = dMin(minD, trap);
+    float smallSide = 0.05;
+    float trap = sdBox(wQ - vec3(1.1 * r, 0, 0), vec3(vec2(smallSide), 0.4));
+    if (trap <= minD.x) {
+      mPos = wQ;
+    }
+    minD.x = min(minD.x, trap);
   }
 
   // Commit warp
@@ -1507,7 +1512,10 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  color = mix(color, vec3(2.0), isMaterialSmooth(m, 1.));
+  float n = dot(mPos, vec3(1));
+  n = sin(TWO_PI * 24. * n);
+  n = step(0., n);
+  color = vec3(4. * n);
 
   return color;
 
@@ -1608,7 +1616,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.40;
+      float freCo = 0.80;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -1617,12 +1625,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.8;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 

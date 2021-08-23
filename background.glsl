@@ -39,9 +39,10 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(#34A0E0, #60E083, saturate(1. * bgIndex));
   // vec3 color = mix(#34A0E0, 2.5 * #34A0E0, saturate(1. * bgIndex));
   // color *= 1.5;
+  vec3 color = #ff8c81;
 
   // Solid colors
-  vec3 color = vec3(0.5);
+  // vec3 color = vec3(0.5);
   // vec3 color = vec3(1);
   // vec3 color = vec3(0);
 
