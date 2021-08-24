@@ -1240,9 +1240,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
   // wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
   // wQ += warpScale * 0.0015625 * cos(33. * wQ.yzx + localCosT );
-  // no idea what to do. again true. but i'm just going to slap on a fractal space folding onto this.
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 4; i++) {
     wQ = abs(wQ);
     // // Box fold
     // wQ.xyz = clamp(wQ.xyz, -foldLimit, foldLimit) * 2. - wQ.xyz;
@@ -1250,7 +1249,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
     float smallSide = 0.05;
-    float trap = sdBox(wQ - vec3(1.1 * r, 0, 0), vec3(vec2(smallSide), 0.4));
+    vec3 localQ = wQ;
+    localQ *= rotationMatrix(vec3(1), localCosT);
+    float trap = sdHollowBox(localQ - vec3(1.1 * r, 0, 0), vec3(0.4), 0.1);
     if (trap <= minD.x) {
       mPos = wQ;
     }
@@ -1261,8 +1262,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 o = vec3(sdBoxWEdges(q, vec3(r), r * 0.1), 0);
-  // // o.x /= scale;
+  // vec3 o = vec3(length(q) - r, 0, 0);
+  // o.x /= scale;
   // d = dMin(d, o);
 
   // Trap
@@ -1510,12 +1511,12 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.25);
 
-  float n = dot(mPos, vec3(1));
-  n = sin(TWO_PI * 24. * n);
-  n = step(0., n);
-  color = vec3(4. * n);
+  // float n = dot(mPos, vec3(1));
+  // n = sin(TWO_PI * 24. * n);
+  // n = step(0., n);
+  // color = vec3(4. * n);
 
   return color;
 
@@ -1616,8 +1617,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.80;
-      float specCo = 0.4;
+      float freCo = 1.60;
+      float specCo = 0.7;
 
       float specAll = 0.0;
 
@@ -1625,12 +1626,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
         // lightPos *= globalLRot;
-        float diffMin = 0.7;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, normalize(lightPos)));
         float spec = pow(clamp( dot(ref, normalize(lightPos)), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.9;
+        float shadowMin = 0.1;
         float sha = max(shadowMin, softshadow(pos, normalize(lightPos), 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1664,10 +1665,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.05 * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.20 * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
