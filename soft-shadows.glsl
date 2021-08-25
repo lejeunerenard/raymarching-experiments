@@ -14,7 +14,11 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float
     if( h<0.0001) return 0.;
 
 #ifdef NEW_TECHNIQUE
+    // Skip first iteration if you are getting artifact on the first iteration,
+    // or unroll the first iteration out of the loop
     float y = (i == 0) ? 0. : h * h / (2. * ph);
+    // float y = h * h / (2. * ph); // Standard version
+
     float d = sqrt(h * h - y * y);
     res = min( res, k * d / max(0., t - y) );
 #else
@@ -25,7 +29,12 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float
     t += h;
   }
 
-  return clamp( res, 0.0, 1.0 );
+  res = clamp( res, 0.0, 1.0 );
+
+  // Found this in iq's example implementations. Why it's there, I have no
+  // clue. I don't notice a difference.
+  res = res * res * (3. - 2. * res);
+  return res;
 }
 
 float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax ) {
