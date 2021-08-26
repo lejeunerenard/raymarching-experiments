@@ -1225,15 +1225,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.0 * r;
   const int num = 5;
 
-  float warpScale = 2.0;
+  float warpScale = 0.75;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // Anyways.... now for the main show. A cloud? hopefully...
-  // definitely not a cloud, ha
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ, 2. * wQ.y);
   wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
@@ -1243,10 +1242,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.25;
+
+  d.x -= 0.005 * cellular(4. * q);
 
   return d;
 }
@@ -1373,6 +1374,7 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.6207;
   // dI += 0.315;
   dI *= 0.25 + 0.1 * sin(dNR);
+  dI *= 2.5;
   dI += norT;
   // dI += gPos;
 
@@ -1465,9 +1467,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.25);
-
-  return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
@@ -1480,7 +1480,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.33, 0.67)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.33, 0.67)));
   // color *= 0.7;
 
   gM = m;
@@ -1566,8 +1566,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
-      float specCo = 0.1;
+      float freCo = 0.2;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1634,10 +1634,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float dispersionI = 1.00;
       dispersionColor *= dispersionI;
 
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
 
       color += saturate(dispersionColor);
-      color = saturate(dispersionColor);
+      // color = saturate(dispersionColor);
 
 #endif
 
