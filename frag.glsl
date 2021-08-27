@@ -1083,7 +1083,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.075);
+const vec2 gSize = vec2(0.035);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1096,6 +1096,7 @@ float second = maxDistance;
 float shape (in vec2 q, in vec2 c) {
   float d = maxDistance;
 
+  // nice. trippy already
   vec2 uv = q;
 
   float odd = mod(dot(c, vec2(1)), 2.);
@@ -1105,6 +1106,7 @@ float shape (in vec2 q, in vec2 c) {
   float size = gSize.y;
 
   // float dC = vmax(abs(c));
+  float dC = dot(c, vec2(1));
 
   // // Assume [0,1] range per dimension
   // vec2 bigSize = vec2(2);
@@ -1113,7 +1115,7 @@ float shape (in vec2 q, in vec2 c) {
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  // locallocalT -= 0.2 * c.y;
+  // locallocalT += 0.15 * length(c);
   float t = mod(locallocalT, 1.);
 
   // // Local C that transitions from one cell to another
@@ -1125,7 +1127,9 @@ float shape (in vec2 q, in vec2 c) {
   // Vanilla cell coordinate
   vec2 localC = c;
 
-  float dC = dot(abs(localC), vec2(1));
+  // float dC = dot(abs(localC), vec2(1));
+
+  q *= rotMat2(0.25 * PI * sin(TWO_PI * t - 0.30 * length(c)));
 
   float r = 0.50 * size;
 
@@ -1133,29 +1137,15 @@ float shape (in vec2 q, in vec2 c) {
   // q *= rotMat2(0.5 * PI * t);
 
   float a = atan(c.y, c.x);
-  if (c == vec2(0)) {
-    a = 0.;
-  } else {
-    q -= 1.5 * size * normalize(c) * quart(0.5 + 0.5 * cos(localCosT + a + 0.3 * length(c)));
-    // There we go
-  }
-
-  // Modulate r
-  // I'm going to experiment with changing not only each cell's time but have an
-  // offset within the cell via changing the r.
-  float incellOffset = dot(q, vec2(45));
-  // Ooo I like it already. makes the grid feel jelly
-  // r += 0.10 * r * cos(localCosT + incellOffset);
-  // r += 0.40 * r * cos(localCosT - 1.0 * length(c));
 
   // float internalD = length(q);
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  float internalD = sdBox(q, vec2(r));
-  // vec2 absQ = abs(q);
-  // float internalD = min(absQ.x, absQ.y);
-  // float crossMask = sdBox(q, vec2(0.2 * size));
-  // internalD = max(internalD, crossMask);
+  // float internalD = sdBox(q, vec2(0.125 * r, r));
+  vec2 absQ = abs(q);
+  float internalD = min(absQ.x, absQ.y);
+  float crossMask = sdBox(q, vec2(0.35 * size));
+  internalD = max(internalD, crossMask);
 
   float o = internalD;
   // float o = internalD - r;
@@ -1168,7 +1158,7 @@ float shape (in vec2 q, in vec2 c) {
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 10.));
-  d = mix(d, maxDistance, step(0., vmax(abs(c)) - 4.));
+  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 4.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 10.));
@@ -1176,7 +1166,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -1230,13 +1220,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ, 2. * wQ.y);
-  wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ, 2. * wQ.y);
+  // wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -2329,7 +2319,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   mUv = q;
   float stop = 0.;
-  d = smoothstep(stop, 0.125 * edge + stop, d);
+  d = smoothstep(stop, edge + stop, d);
   d = 1. - d;
 
   // Solid
@@ -2366,7 +2356,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
