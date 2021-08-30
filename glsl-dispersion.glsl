@@ -10,10 +10,11 @@
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
 #pragma glslify: cnoise3 = require(glsl-noise/classic/3d)
+#pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
-#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
@@ -97,30 +98,38 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // color += mix(#FF0000, #00FFFF, hue) * scene(iorRefract, ior);
 
     #else
-    // color += hsv(vec3(hue, 1.0, 1.0)) * scene(iorRefract, ior);
 
-    // float dI = dot(nor, -eye);
-    float dI = 0.5 * cnoise3(2.0 * nor);
-
-    vec3 sceneResult = scene(iorRefract, ior);
-    vec3 mixI = clamp(0.5 + 0.5 * sin(2.5 * dI + sin(nor)), 0.0, 1.0);
-    // float mixI = dI + cnoise3(1.0 * nor);
-
+    // -- Get Hue for given ior --
     vec3 thisColor = vec3(0);
 
+    // Index into Cosine palette
+    float dI = 0.5 * snoise3(1.0 * nor);
+    vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
+    mixI += 0.1 * hue;
+
+    // Cosine Palette based Hue
     vec3 cosOffset = vec3(0, 0.1, 0.3);
 
     thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
-    thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
-    thisColor *= 0.5;
+    // // Secondary cosine palette warp
+    // thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
+    // thisColor *= 0.5;
+
+    // // HSV based hue
+    // thisColor += hsv(vec3(hue, 1.0, 1.0));
+
+    // thisColor *= 0.8;
+
+    // -- Apply Scene Coloring --
+    vec3 sceneResult = scene(iorRefract, ior);
     thisColor *= sceneResult;
 
-    color = thisColor;
-    // color += thisColor * (0.5 + 0.5 * cos(TWO_PI * (mixI + vec3(0., 0.3, 0.6) + dot(nor, -eye))));
+    // color = thisColor;
+    color += thisColor;
     #endif
   }
 
-  // color *= pow(hueStep, 0.8);
+  color *= pow(hueStep, 1.0);
 
   float R = color.r;
   float G = color.g;

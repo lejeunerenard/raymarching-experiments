@@ -1217,49 +1217,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.0 * r;
   const int num = 5;
 
-  float warpScale = 0.75;
+  float warpScale = 1.25;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ, 2. * wQ.y);
-  // wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
-
-  float accumScale = 1.;
-  for (int i = 0; i < 4; i++) {
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-
-    float o1 = sdBox(wQ, vec3(r));
-    float o2 = sdHollowBox(wQ, vec3(r), 0.1 * r);
-    o1 = mix(o1, o2, range(0., 0.5, t) * range(1.0, 0.5, t));
-    // o1 = o2;
-
-    if (o1 < minD.x) {
-      mPos = wQ;
-    }
-
-    minD.x = min(minD.x, o1);
-    accumScale *= scale;
-  }
-
-  // i feel like im missing something...
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ, 2. * wQ.y);
+  wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 o = vec3(minD.x, 0, 0);
-  // o.x /= accumScale;
+  // vec3 o = vec3(sdCappedCylinder(q, vec2(r, 0.4)), 0, 0);
+  vec3 o = vec3(length(q) - r, 0, 0);
   d = dMin(d, o);
 
-  // d.x *= 0.5;
+  d.x *= 0.5;
 
   // d.x -= 0.005 * cellular(4. * q);
 
@@ -1394,7 +1373,10 @@ vec3 textures (in vec3 rd) {
   // dI *= 2.8;
 
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
-  color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.1, 0.3) ) );
+
+  // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.1, 0.3) ) );
+
+  color = mix(#F585E6, #6CF5EA, 0.5 + 0.5 * cos(TWO_PI * dI.x));
 
   color *= spread;
 
@@ -1402,6 +1384,13 @@ vec3 textures (in vec3 rd) {
 
   // color = getBackground(rd.xy, 0.);
 
+  // // Identity scene color
+  // color = vec3(1);
+
+  // // Unbounded
+  // return color;
+
+  // Clamped
   return clamp(color, 0., 1.);
 }
 
@@ -1481,6 +1470,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
@@ -1579,8 +1569,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
-      float specCo = 0.3;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1628,11 +1618,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
-
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
       // refractColor += 0.10 * textures(refractionRd);
@@ -1643,8 +1628,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 0.80);
-      // float dispersionI = 1.00;
+      // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 0.80);
+      float dispersionI = 1.00;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);

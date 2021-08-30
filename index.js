@@ -6,7 +6,7 @@ import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 8 // desynced from time.glsl because animation in app.js is twice as long.
+const secondsLong = 4
 const capturing = false
 
 let app = new App()
