@@ -102,21 +102,27 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // -- Get Hue for given ior --
     vec3 thisColor = vec3(0);
 
-    // Index into Cosine palette
-    float dI = 0.5 * snoise3(1.0 * nor);
-    vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
-    mixI += 0.1 * hue;
+    // // Index into Cosine palette
+    // vec3 dI = vec3(dot(nor, eye));
+    // vec3 mixI = vec3(dI);
+    // vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
+    // mixI += 0.2 * hue;
 
-    // Cosine Palette based Hue
-    vec3 cosOffset = vec3(0, 0.1, 0.3);
+    // // Cosine Palette based Hue
+    // vec3 cosOffset = vec3(0, 0.33, 0.67);
 
-    thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
+    // thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
     // // Secondary cosine palette warp
     // thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
     // thisColor *= 0.5;
 
     // // HSV based hue
     // thisColor += hsv(vec3(hue, 1.0, 1.0));
+
+    // Composite color
+    thisColor += #bb4444 * (0.5 + 0.5 * sin(nor));
+    thisColor += #44bbbb * (0.5 + 0.5 * sin(eye));
+    thisColor += #bb44bb * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
 
     // thisColor *= 0.8;
 
