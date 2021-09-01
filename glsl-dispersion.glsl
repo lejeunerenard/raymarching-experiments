@@ -120,9 +120,9 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // thisColor += hsv(vec3(hue, 1.0, 1.0));
 
     // Composite color
-    thisColor += #bb4444 * (0.5 + 0.5 * sin(nor));
-    thisColor += #44bbbb * (0.5 + 0.5 * sin(eye));
-    thisColor += #bb44bb * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
+    thisColor += #BBBB44 * (0.5 + 0.5 * sin(nor));
+    thisColor += #44BBBB * (0.5 + 0.5 * sin(eye));
+    thisColor += #BB44BB * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
 
     // thisColor *= 0.8;
 
