@@ -1198,7 +1198,7 @@ float thingy (in vec2 q, in float t) {
 }
 
 
-float gR = 0.5;
+float gR = 0.75;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1217,7 +1217,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 2.0 * r;
   const int num = 5;
 
-  float warpScale = 1.;
+  float warpScale = 0.5;
 
   // Warp
   vec3 wQ = q.xyz;
@@ -1235,15 +1235,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float a = atan(q.z, q.x);
-  r += 0.5 * r * abs(sin(4. * a));
+  // r += 0.5 * r * abs(sin(4. * a));
 
-  vec3 o = vec3(sdCappedCylinder(q, vec2(r, 0.8)), 0, 0);
-  // vec3 o = vec3(length(q) - r, 0, 0);
+  vec3 o = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, o);
 
   d.x *= 0.25;
 
-  // d.x -= 0.005 * cellular(4. * q);
+  q = p;
+  q.xzy = twist(q, 0.5 * q.y);
+  q *= rotationMatrix(vec3(1), 0.4 * PI);
+
+  o = vec3(sdTorus(q, vec2(r * 1.75, r * 0.15)), 1, 0);
+  d = dMin(d, o);
+
+  // d.x -= 0.005 * cellular(2. * q);
 
   return d;
 }
@@ -1364,7 +1370,7 @@ vec3 textures (in vec3 rd) {
 
   vec3 dI = vec3(dNR);
   // dI += 0.2 * snoise3(0.1 * rd);
-  dI += 0.3 * pow(dNR, 3.);
+  dI += 0.5 * pow(dNR, 3.);
 
   // dI += 0.25 * sin(TWO_PI * rd.x);
   // dI *= 0.6207;
@@ -1474,8 +1480,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.05);
-  return color;
+  vec3 color = vec3(0.0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
@@ -1488,8 +1493,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.33, 0.67)));
-  // color *= 0.7;
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.33, 0.67)));
+  color *= 0.2;
+
+  color = mix(color, vec3(0.8), isMaterialSmooth(m, 1.));
 
   gM = m;
 
@@ -1568,14 +1575,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      // float isFloor = isMaterialSmooth(t.y, 0.);
+      float isRing = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.8;
+      float freCo = mix(0.9, 0.5, isRing);
+      float specCo = mix(0.8, 0.2, isRing);
 
       float specAll = 0.0;
 
@@ -1585,7 +1592,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.0;
+        float diffMin = mix(0.0, 1.0, isRing);
         float dif = max(diffMin, diffuse(nor, nLightPos));
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1638,7 +1645,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 5.00);
+      float dispersionI = (1. - isRing) * 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 5.00);
       // float dispersionI = 0.20;
       dispersionColor *= dispersionI;
 
