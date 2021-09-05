@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -659,6 +659,8 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: sine = require(glsl-easings/sine-in-out)
 #pragma glslify: sineOut = require(glsl-easings/sine-out)
 #pragma glslify: quart = require(glsl-easings/quadratic-in-out)
+#pragma glslify: quartIn = require(glsl-easings/quadratic-in)
+#pragma glslify: quartOut = require(glsl-easings/quadratic-out)
 #pragma glslify: quint = require(glsl-easings/quintic-in-out)
 #pragma glslify: quintIn = require(glsl-easings/quintic-in)
 #pragma glslify: quintOut = require(glsl-easings/quintic-out)
@@ -1206,20 +1208,32 @@ float sdHalfDome (in vec3 q, in float r, in float thickness) {
   return d;
 }
 
+// A box hollow on one side
+float sdBin (in vec3 q, in vec3 r, in float thickness) {
+  float b = sdBox(q, r);
+
+  // crop
+  vec2 innerR = r.xy - thickness;
+  float longR = 2.5 * r.z;
+  float crop = sdBox(q - vec3(0, 0, longR), vec3(innerR, longR));
+  b = max(b, -crop);
+
+  return b;
+}
+
 float gR = 0.6;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= rotationMatrix(vec3(-2.97, -4.073, 2.214), 0.89);
-  p *= globalRot;
+  // p *= globalRot;
   // p.y += 0.09 * cos(cosT);
 
   // float scale = 1.0;
   vec3 q = scale * p;
 
-  // dT = angle3C;
-  dT += 0.4;
+  // dT = angle3C; // Control time
+  // dT += 0.4;
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
@@ -1230,6 +1244,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+  // my idea is to have a series of boxes containing other boxes for infinity
   // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
   // wQ.xzy = twist(wQ, 2. * wQ.y);
@@ -1240,26 +1255,44 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
-  mPos = q;
 
-  float a = atan(q.z, q.x);
+  // Times
+  float turnT = quart(range(0., 0.5, t));
+  float driftT = range(0.5, 1.0, t);
+  float driftRotT = quart(range(0.5, 0.95, t));
 
-  // vec3 o = vec3(icosahedral(q, 52., r), 1, 0);
-  const int num = 6;
-  float radiusIncrement = r / float(num);
-  float thickness = min(0.1 * r, 0.32 * radiusIncrement);
-  vec3 axis = vec3(0, 1, 0.5);
-  for (int i = 0; i < num; i++) {
-    // vec3 localQ = q;
-    q *= rotationMatrix(axis, localCosT);
-    vec3 o = vec3(sdHalfDome(q, r, thickness), 1, 0);
-    d = dMin(d, o);
-    r -= radiusIncrement;
-    axis *= rotationMatrix(vec3(1), 8.3 * PI * float(i + 1) / float(num));
+  // Sizes
+  float bigBoxRInitial = 0.45;
+  float littleBoxR = mix(0.4 * bigBoxRInitial, bigBoxRInitial, driftT);
+  float bigBoxR = 2.5 * littleBoxR;
+
+  // Initial turn
+  q.xyz = vec3(1, 1, -1) * q.zyx;
+
+  // "The" Turn
+  q *= rotationMatrix(vec3(0, 1, 0), -0.5 * PI * turnT);
+
+  // Camera rotation
+  q *= rotationMatrix(vec3(1, 0, 0), 0.5 * PI * driftRotT);
+
+  // 3.4 * coefficient is enough but more is needed for shadows
+  float getOutOfFrame = 5.0 * littleBoxR;
+
+  vec3 driftDown = driftT * vec3(0, 0, bigBoxR + littleBoxR + getOutOfFrame);
+  vec3 b = vec3(sdBin(q + driftDown, vec3(bigBoxR), 0.4 * bigBoxR) - 0.05 * bigBoxR, 0, 0);
+  if (d.x > b.x) {
+    mPos = q + driftDown;
   }
+  d = dMin(d, b);
 
-  // d.x *= 0.125;
+  vec3 littleBoxQ = vec3( 1, 1,-1) * q.zyx;
+  vec3 littleBox = vec3(sdBin(littleBoxQ, vec3(littleBoxR), 0.4 * littleBoxR) - 0.05 * littleBoxR, 0, 0);
+  if (d.x > littleBox.x) {
+    mPos = littleBoxQ;
+  }
+  d = dMin(d, littleBox);
 
+  d.x *= 0.4;
 
   return d;
 }
@@ -1490,7 +1523,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.75);
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1535,7 +1569,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     };
 
     const int NUM_OF_LIGHTS = 3;
-    const float repNUM_OF_LIGHTS = 0.33333;
+    const float repNUM_OF_LIGHTS = 0.333333;
 
     light lights[NUM_OF_LIGHTS];
 
@@ -1548,13 +1582,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    // float dNR = dot()
-    // lights[0] = light(normalize(vec3(  0.15, 0.25, 1.0)), #FFFFFF, 1.0);
-    lights[0] = light(vec3(-1.0, 1.21, 1.0), #FFFFFF, 1.00);
-    lights[1] = light(vec3( 1.5, 1.2,  1.0), #FFDDDD, 2.00);
-    lights[2] = light(vec3(-0.9, 1.0, -1.0), #FFFFFF, 0.75);
-    // lights[3] = light(vec3( 0.3, 0.8, -0.4), #FFFFFF, 1.0);
-    // lights[4] = light(vec3(-0.4, -.2, -1.0), #FFFFFF, 1.0);
+    lights[0] = light(vec3(-1.0, 1.2, 1.0), #BBFFFF, 1.0);
+    lights[1] = light(vec3( 1.5, 1.2, 1.0), #FFBBC0, 1.0);
+    lights[2] = light(vec3( 0.1, angle3C, 0.9), #FFFFFF, 0.8);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1568,7 +1598,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.5 * t.x, generalT);
-      // float bumpsScale = 1.55;
+      // float bumpsScale = 0.8;
       // float bumpIntensity = 0.105;
       // nor += bumpIntensity * vec3(
       //     cnoise3(bumpsScale * 490.0 * mPos),
@@ -1592,7 +1622,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
+      float freCo = 0.5;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -1603,7 +1633,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.8;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1620,8 +1650,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec;
 
         // Ambient
-        // lin += 0.05 * amb * diffuseColor;
-        // dif += 0.05 * amb;
+        // lin += 0.15 * amb * diffuseColor;
+        // dif += 0.15 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
