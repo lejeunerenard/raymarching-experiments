@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 384
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1226,7 +1226,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
   // p.y += 0.09 * cos(cosT);
 
   // float scale = 1.0;
@@ -1244,55 +1244,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // my idea is to have a series of boxes containing other boxes for infinity
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ, 2. * wQ.y);
-  // wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ,-4. * wQ.y);
+  wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
-  // Times
-  float turnT = quart(range(0., 0.5, t));
-  float driftT = range(0.5, 1.0, t);
-  float driftRotT = quart(range(0.5, 0.95, t));
-
-  // Sizes
-  float bigBoxRInitial = 0.45;
-  float littleBoxR = mix(0.4 * bigBoxRInitial, bigBoxRInitial, driftT);
-  float bigBoxR = 2.5 * littleBoxR;
-
-  // Initial turn
-  q.xyz = vec3(1, 1, -1) * q.zyx;
-
-  // "The" Turn
-  q *= rotationMatrix(vec3(0, 1, 0), -0.5 * PI * turnT);
-
-  // Camera rotation
-  q *= rotationMatrix(vec3(1, 0, 0), 0.5 * PI * driftRotT);
-
-  // 3.4 * coefficient is enough but more is needed for shadows
-  float getOutOfFrame = 5.0 * littleBoxR;
-
-  vec3 driftDown = driftT * vec3(0, 0, bigBoxR + littleBoxR + getOutOfFrame);
-  vec3 b = vec3(sdBin(q + driftDown, vec3(bigBoxR), 0.4 * bigBoxR) - 0.05 * bigBoxR, 0, 0);
-  if (d.x > b.x) {
-    mPos = q + driftDown;
-  }
+  vec3 b = vec3(cnoise3(3.3 * q), 0, 0);
   d = dMin(d, b);
 
-  vec3 littleBoxQ = vec3( 1, 1,-1) * q.zyx;
-  vec3 littleBox = vec3(sdBin(littleBoxQ, vec3(littleBoxR), 0.4 * littleBoxR) - 0.05 * littleBoxR, 0, 0);
-  if (d.x > littleBox.x) {
-    mPos = littleBoxQ;
-  }
-  d = dMin(d, littleBox);
+  vec3 crop = vec3(length(p) - 0.6, 1, 0);
+  d = dMax(d, crop);
 
-  d.x *= 0.4;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1616,7 +1585,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isRing = isMaterialSmooth(t.y, 1.);
+      float isInner = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1683,17 +1652,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 5.00);
-      // float dispersionI = 1.00;
+      float dispersionI = 1.00 * isInner;
       // float dispersionI = 0.20;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
