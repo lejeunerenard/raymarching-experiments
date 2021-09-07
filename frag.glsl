@@ -1246,22 +1246,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ,-4. * wQ.y);
+  wQ.xzy = twist(wQ,-2. * wQ.y);
   wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
-  vec3 b = vec3(cnoise3(3.3 * q), 0, 0);
+  vec3 b = vec3(cnoise3(4.3 * q), 0, 0);
+  b.x *= 0.05;
+  b.x += 0.075 * cellular(2. * q);
   d = dMin(d, b);
 
-  vec3 crop = vec3(length(p) - 0.6, 1, 0);
+  // vec3 crop = vec3(length(p) - 0.6, 1, 0);
+  vec3 crop = vec3(icosahedral(p, 52., 0.6), 1, 0);
   d = dMax(d, crop);
-
-  d.x *= 0.05;
 
   return d;
 }
@@ -1492,7 +1493,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.75);
+  vec3 color = vec3(0.125);
 
   return color;
 
@@ -1656,7 +1657,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 5.00);
-      float dispersionI = 1.00 * isInner;
+      float dispersionI = 0.90 * isInner;
       // float dispersionI = 0.20;
       dispersionColor *= dispersionI;
 
