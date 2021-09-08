@@ -1239,30 +1239,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 2.0 * r;
 
-  float warpScale = 0.5;
+  float warpScale = 0.2;
 
   // Warp
   vec3 wQ = q.xyz;
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ,-2. * wQ.y);
+  wQ.xzy = twist(wQ,-3. * wQ.y);
   wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0062500 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0031250 * cos(27. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
-  vec3 b = vec3(cnoise3(4.3 * q), 0, 0);
-  b.x *= 0.05;
-  b.x += 0.075 * cellular(2. * q);
+  float cellScale = 1.; // + 1. * saturate(1. - length(q) / r);
+  vec3 b = vec3(cellular(cellScale * q) - 0.01, 0, 0);
+  b.x *= 0.04;
+  b.x += 0.025 * cellular((cellScale + 4.) * q + 9.1238);
+  b.x -= 0.001;
   d = dMin(d, b);
 
-  // vec3 crop = vec3(length(p) - 0.6, 1, 0);
-  vec3 crop = vec3(icosahedral(p, 52., 0.6), 1, 0);
+  vec3 crop = vec3(length(q) - r, 1, 0);
+  // vec3 crop = vec3(sdBox(p, vec3(r)), 1, 0);
+  // vec3 crop = vec3(icosahedral(p, 52., 0.6), 1, 0);
   d = dMax(d, crop);
+
+  // crop = vec3(length(p) - 0.80 * r, 1, 0);
+  // d = dMax(d, -crop);
+
+  d.x *= 0.9;
 
   return d;
 }
@@ -1493,7 +1499,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.125);
+  vec3 color = vec3(0.5);
 
   return color;
 
@@ -1552,9 +1558,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-1.0, 1.2, 1.0), #BBFFFF, 1.0);
-    lights[1] = light(vec3( 1.5, 1.2, 1.0), #FFBBC0, 1.0);
-    lights[2] = light(vec3( 0.1, angle3C, 0.9), #FFFFFF, 0.8);
+    lights[0] = light(vec3(-1.0, 1.2, 1.0), #FFFFBB, 1.0);
+    lights[1] = light(vec3( 1.5, 1.2, 1.0), #BBFFFF, 1.0);
+    lights[2] = light(vec3( 0.1, angle3C, 0.9), #FFBBFF, 0.8);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1592,7 +1598,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.9;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -1603,7 +1609,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 1.0;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, nLightPos));
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1653,17 +1659,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 5.00);
-      float dispersionI = 0.90 * isInner;
+      // float dispersionI = 0.90 * isInner;
       // float dispersionI = 0.20;
-      dispersionColor *= dispersionI;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
