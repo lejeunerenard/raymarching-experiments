@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1254,14 +1254,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
 
   float cellScale = 1.; // + 1. * saturate(1. - length(q) / r);
-  vec3 b = vec3(cellular(cellScale * q) - 0.01, 0, 0);
-  b.x *= 0.04;
-  b.x += 0.025 * cellular((cellScale + 4.) * q + 9.1238);
-  b.x -= 0.001;
+
+  float s = cellular(cellScale * q) - 0.01;
+  s *= 0.08;
+  s -= 0.002; // Add thickness
+  s += 0.025 * cellular((cellScale + 4.) * q + 9.1238);
+  s -= 0.002; // Add thickness again
+
+  vec3 b = vec3(s, 0, 0);
   d = dMin(d, b);
 
-  vec3 crop = vec3(length(q) - r, 1, 0);
-  // vec3 crop = vec3(sdBox(p, vec3(r)), 1, 0);
+  // vec3 crop = vec3(length(q) - r, 1, 0);
+  vec3 crop = vec3(sdBox(q, vec3(r, 2. * r, r)), 1, 0);
   // vec3 crop = vec3(icosahedral(p, 52., 0.6), 1, 0);
   d = dMax(d, crop);
 
@@ -1558,9 +1562,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-1.0, 1.2, 1.0), #FFFFBB, 1.0);
-    lights[1] = light(vec3( 1.5, 1.2, 1.0), #BBFFFF, 1.0);
-    lights[2] = light(vec3( 0.1, angle3C, 0.9), #FFBBFF, 0.8);
+    lights[0] = light(vec3(-1.0, 1.2, 1.0), #FFBBBB, 1.0);
+    lights[1] = light(vec3( 1.5, 1.2, 1.0), #BBFFBB, 1.0);
+    lights[2] = light(vec3( 0.1, angle3C, 0.9), #BBBBFF, 0.8);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
