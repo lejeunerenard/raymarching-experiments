@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1246,33 +1246,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ,-3. * wQ.y);
+  wQ.xzy = twist(wQ,-2. * wQ.y);
   wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
   wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
-  float cellScale = 1.; // + 1. * saturate(1. - length(q) / r);
+  float cellScale = 2.; // + 1. * saturate(1. - length(q) / r);
 
   float s = cellular(cellScale * q) - 0.01;
   s *= 0.08;
   s -= 0.002; // Add thickness
-  s += 0.025 * cellular((cellScale + 4.) * q + 9.1238);
-  s -= 0.002; // Add thickness again
+  s += 0.025 * cellular((cellScale + 3.) * q + 9.1238);
+  s -= 0.003; // Add thickness again
 
   vec3 b = vec3(s, 0, 0);
   d = dMin(d, b);
 
   // vec3 crop = vec3(length(q) - r, 1, 0);
-  vec3 crop = vec3(sdBox(q, vec3(r, 2. * r, r)), 1, 0);
-  // vec3 crop = vec3(icosahedral(p, 52., 0.6), 1, 0);
+  // vec3 crop = vec3(sdBox(p, vec3(r)), 1, 0);
+  vec3 crop = vec3(icosahedral(p, 52., r), 1, 0);
   d = dMax(d, crop);
+
+  // crop = vec3(sdBox(p, vec3(r * 0.75)), 1, 0);
+  crop = vec3(icosahedral(p, 52., r * 0.60), 1, 0);
+  d = dMax(d, -crop);
 
   // crop = vec3(length(p) - 0.80 * r, 1, 0);
   // d = dMax(d, -crop);
 
-  d.x *= 0.9;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1503,7 +1507,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(1);
 
   return color;
 
@@ -1563,8 +1567,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     lights[0] = light(vec3(-1.0, 1.2, 1.0), #FFBBBB, 1.0);
-    lights[1] = light(vec3( 1.5, 1.2, 1.0), #BBFFBB, 1.0);
-    lights[2] = light(vec3( 0.1, angle3C, 0.9), #BBBBFF, 0.8);
+    lights[1] = light(vec3( 1.5, 1.2, 1.0), #BBBBFF, 1.0);
+    lights[2] = light(vec3( 0.1, 0.3, 0.9), #FFFFFF, 0.8);
 
     const float universe = 0.;
     background = getBackground(uv, universe);

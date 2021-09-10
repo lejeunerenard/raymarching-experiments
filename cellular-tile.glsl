@@ -13,14 +13,15 @@
 float drawSphere(in vec3 p){
 
     // Anything that wraps the domain will suffice, so any of the following will work.
-    // p = cos(p*3.14159)*0.5;
-    // p = abs(cos(p*3.14159)*0.5);
-    // p = fract(p)-.5;
-    // return dot(p, p);
 
-    // Other metrics to try.
-    p = abs(fract(p)-.5);
-    return dot(p, vec3(.5));
+    p = cos(p*3.14159)*0.5;
+    p = abs(cos(p*3.14159)*0.5);
+    p = fract(p)-.5;
+    return dot(p, p);
+
+    // // Other metrics to try.
+    // p = abs(fract(p)-.5);
+    // return dot(p, vec3(.5));
 
     // p = abs(fract(p)-.5);
     // return max(max(p.x, p.y), p.z);
@@ -30,6 +31,7 @@ float drawSphere(in vec3 p){
     p = abs(cos(p*3.14159)*0.5);
     return max(max(p.x - p.y, p.y - p.z), p.z - p.x);
     // return min(min(p.x - p.y, p.y - p.z), p.z - p.x);
+
 }
 float drawSphere(in vec4 p){
 
