@@ -1255,11 +1255,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float cellScale = 2.; // + 1. * saturate(1. - length(q) / r);
 
-  float s = cellular(cellScale * q) - 0.01;
-  s *= 0.08;
-  s -= 0.002; // Add thickness
-  s += 0.025 * cellular((cellScale + 3.) * q + 9.1238);
-  s -= 0.003; // Add thickness again
+  float s = cellular(cellScale * q) - 0.1;
+  s *= 0.025;
+  // s -= 0.002; // Add thickness
+  // s += 0.025 * cellular((cellScale + 3.) * q + 9.1238);
+  // s -= 0.003; // Add thickness again
 
   vec3 b = vec3(s, 0, 0);
   d = dMin(d, b);
@@ -1268,10 +1268,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 crop = vec3(sdBox(p, vec3(r)), 1, 0);
   vec3 crop = vec3(icosahedral(p, 52., r), 1, 0);
   d = dMax(d, crop);
-
-  // crop = vec3(sdBox(p, vec3(r * 0.75)), 1, 0);
-  crop = vec3(icosahedral(p, 52., r * 0.60), 1, 0);
-  d = dMax(d, -crop);
 
   // crop = vec3(length(p) - 0.80 * r, 1, 0);
   // d = dMax(d, -crop);
