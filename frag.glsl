@@ -1244,19 +1244,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ,-2. * wQ.y);
-  wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ,-2. * wQ.y);
+  // wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
+  mPos = q;
   vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  vec3 crop = vec3(length(q) - 1.05 * r, 1, 0);
+  vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
   d = dMax(d, -crop);
 
   d.x *= 0.5;
@@ -1492,6 +1493,11 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
+  float n = dot(mPos, vec3(0, 1, 0));
+  n = sin(TWO_PI * 30. * n);
+  n = smoothstep(0., edge, n);
+  return vec3(n);
+
   // return color;
 
   float dNR = dot(nor, -rd);
@@ -1589,8 +1595,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.8;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1605,7 +1611,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1675,7 +1681,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
 #ifdef NO_MATERIALS
