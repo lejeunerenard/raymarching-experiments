@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
-// #define ORTHO 1
+// #define SS 2
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -1221,15 +1221,15 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.55;
+float gR = 0.75;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= globalRot;
-  p.y += 0.04 * cos(cosT);
+  // p *= globalRot;
+  // p.y += 0.04 * cos(cosT);
 
-  // float scale = 1.0;
+  // float scale = 1. + 0.2 * cos(dot(p, vec3(5)) + cosT);
   vec3 q = scale * p;
 
   // dT = angle3C; // Control time
@@ -1239,27 +1239,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 2.0 * r;
 
-  float warpScale = 0.2;
+  float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ,-2. * wQ.y);
-  // wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ,-3. * wQ.y);
+  wQ += warpScale * 0.0250000 * cos(11. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0125000 * cos(17. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
+  // not sure what to do....
   mPos = q;
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
-  d = dMax(d, -crop);
+  // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
+  // d = dMax(d, -crop);
 
+  d.x /= scale;
   d.x *= 0.5;
 
   return d;
@@ -1493,8 +1495,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float n = dot(mPos, vec3(0, 1, 0));
-  n = sin(TWO_PI * 30. * n);
+  float size = 0.2;
+  vec3 q = pos;
+
+  vec3 c = pMod3(q, vec3(size));
+
+  float n = length(q) - 0.4 * size;
+  // n = sin(TWO_PI * 30. * n);
   n = smoothstep(0., edge, n);
   return vec3(n);
 

@@ -57,13 +57,23 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // n = 1. - step(0.0, n);
   // vec3 color = 0.8 * vec3(n);
 
-  // Stripes
-  float dI = dot(uv, vec2(0, 1));
-  float n = sin(54. * TWO_PI * dI);
+  // // Stripes
+  // float dI = dot(uv, vec2(0, 1));
+  // float n = sin(54. * TWO_PI * dI);
+  // // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
+  // float cutoff = 0.;
+  // n = 1. - smoothstep(cutoff, cutoff + edge, n);
+  // vec3 color = vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
+
+  // Dots
+  float size = 0.075;
+  vec2 c = pMod2(uv, vec2(size));
+  float n = length(uv) - 0.3 * size;
+  // n = sin(54. * TWO_PI * dI);
   // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
   float cutoff = 0.;
-  n = 1. - smoothstep(cutoff, cutoff + edge, n);
-  vec3 color = vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
+  n = smoothstep(cutoff, cutoff + edge, n);
+  vec3 color = vec3(1.00 * n);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
