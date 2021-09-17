@@ -20,7 +20,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(vec3(0.36, 0.25, 0.30), vec3(0.030, 0.035, 0.035), bgIndex);
   // vec3 color = 1.20 * mix(vec3(0.82, 0.900, 1), vec3(0.65, 0.45, 0.55), bgIndex);
   // vec3 color = mix(vec3(0.875), vec3(0.5), bgIndex);
-  // vec3 color = mix(#CE81F8, #958AF0, bgIndex);
+  vec3 color = mix(#CE81F8, #958AF0, bgIndex);
   // color = mix(color, vec3(1), 0.30);
 
   // const vec3 bgColor = #F2900A;
@@ -65,15 +65,15 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // n = 1. - smoothstep(cutoff, cutoff + edge, n);
   // vec3 color = vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
 
-  // Dots
-  float size = 0.075;
-  vec2 c = pMod2(uv, vec2(size));
-  float n = length(uv) - 0.3 * size;
-  // n = sin(54. * TWO_PI * dI);
-  // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
-  float cutoff = 0.;
-  n = smoothstep(cutoff, cutoff + edge, n);
-  vec3 color = vec3(1.00 * n);
+  // // Dots
+  // float size = 0.075;
+  // vec2 c = pMod2(uv, vec2(size));
+  // float n = length(uv) - 0.3 * size;
+  // // n = sin(54. * TWO_PI * dI);
+  // // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
+  // float cutoff = 0.;
+  // n = smoothstep(cutoff, cutoff + edge, n);
+  // vec3 color = vec3(1.00 * n);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
