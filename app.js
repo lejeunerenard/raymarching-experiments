@@ -59,7 +59,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, 3.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [134, 170, 255]
+    this.colors1 = [190, 115, 177]
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
