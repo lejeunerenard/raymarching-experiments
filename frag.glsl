@@ -2338,6 +2338,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float d = maxDistance;
 
   vec2 q = uv;
+  float ovf = angle3C;
+  // q -= vec2(ovf);
+  // q.x = abs(q.x);
+  // q += vec2(ovf);
 
   // Global Timing
   float t = mod(generalT + 0.0, 1.0);
@@ -2352,15 +2356,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
 
   vec2 mPos = q;
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 5; i++) {
     float fI = float(i);
     float r = 0.25 * (0.875 + 0.125 * cos(localCosT + fI * 1.3 * PI + 0.1));
     vec2 localQ = q;
     localQ *= rotMat2(localCosT + PI * fI);
-    localQ = localQ - vec2(0.85 * (0.75 + 0.25 * cos(localCosT + fI * 0.21 * PI)) * r, 0.);
+    localQ = localQ - vec2(1.25 * (0.75 + 0.25 * cos(localCosT + fI * 0.21 * PI)) * r, 0.);
     // float o = length(localQ) - r;
+    // float o = tetrahedron(vec3(localQ, 0), r);
     float o = sdBox(localQ, vec2(r));
-    // o = abs(o) - 0.05 * (0.75 + 0.25 * cos(localCosT + fI * 0.123 * PI));
+    o = abs(o) - 0.00625 * (0.75 + 0.25 * cos(localCosT + fI * 0.123 * PI));
     if (o < d) {
       mPos = localQ;
     }
@@ -2373,7 +2378,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   mUv = q;
   float stop = 0.;
   d = smoothstep(stop, edge + stop, d);
-  // d = 1. - d;
+  d = 1. - d;
 
   // Solid
   color = vec3(d * (1. - 1.0 * pow(mPos.x, 0.75)));
@@ -2413,7 +2418,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 20;
+  const int slices = 120;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2432,7 +2437,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
     layerColor *= colors1;
-    layerColor *= 1.2;
+    layerColor *= 2.3;
     // layerColor = vec3(5.0);
 
     // CYM
