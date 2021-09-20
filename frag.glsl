@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1230,7 +1230,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p.y += 0.04 * cos(cosT);
 
   // float scale = 1. + 0.2 * cos(dot(p, vec3(5)) + cosT);
-  vec3 q = scale * p;
+  vec3 q = p;
 
   // dT = angle3C; // Control time
   // dT += 0.4;
@@ -1244,27 +1244,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 1. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 3. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ, -1.5 * wQ.y);
-  wQ += warpScale * 0.0250000 * cos(7. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0125000 * cos(11. * wQ.yzx + localCosT );
-
   // Commit warp
   q = wQ.xyz;
 
-  // not sure what to do....
-  mPos = q;
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // b.x = 0.01 * cellular(0.25 * q);
-  d = dMin(d, b);
+
+  float thickness = 0.34;
+
+  const int num = 17;
+  const float halfNum = float(num) * 0.5;
+  for (int i = 0; i < num; i++) {
+    float fI = float(i);
+    vec3 localQ = q - vec3(0, 0, 2. * thickness * (fI - halfNum));
+    localQ *= rotationMatrix(vec3(0, 0, 1), 0.1 * fI + localCosT);
+
+    float localR = 0.5 * thickness + r * (0.08 + range(0., 3. + halfNum, fI));
+
+    vec3 b = vec3(sdBox(localQ, vec3(localR, localR, thickness)), 0, 0);
+    float inner = sdBox(localQ, vec3(vec2(localR - thickness), 4. * thickness));
+    b.x = max(b.x, -inner);
+    if (b.x < d.x) {
+      mPos = localQ;
+    }
+    d = dMin(d, b);
+  }
+
+  // what the crap
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
   // d = dMax(d, -crop);
 
-  d.x /= scale;
-  d.x *= 0.135;
+  // d.x /= scale;
+
+  // d.x *= 0.135;
 
   return d;
 }
@@ -1497,14 +1508,12 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  // return color;
-
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
 
   dI += 0.2 * pow(dNR, 3.);
-  dI += 0.3 * snoise3(abs(mPos));
-  dI += 0.5 * pos.y;
+  dI += 0.2 * snoise3(abs(mPos));
+  dI += 0.5 * mPos.y;
 
   dI *= angle1C;
   dI += angle2C;
@@ -1590,7 +1599,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Material Types
       float isInner = isMaterialSmooth(t.y, 1.);
 
-      float occ = calcAO(pos, nor);
+      float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
@@ -1605,12 +1614,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.8;
+        float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.9;
+        float shadowMin = 0.8;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1655,16 +1664,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
-      float dispersionI = 1.0;
+      // float dispersionI = 1.0;
       // dispersionColor *= dispersionI;
 
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2416,86 +2425,86 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(two_dimensional(uv, norT), 1);
 
-  vec3 color = vec3(0);
+  // vec3 color = vec3(0);
 
-  const int slices = 120;
-  for (int i = 0; i < slices; i++) {
-    float fI = float(i);
-    vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
-    // vec3 layerColor = vec3(
-    //     saturate(mod(fI + 0., 3.)),
-    //     saturate(mod(fI + 1., 3.)),
-    //     saturate(mod(fI + 2., 3.))
-    // );
+  // const int slices = 120;
+  // for (int i = 0; i < slices; i++) {
+  //   float fI = float(i);
+  //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+  //   // vec3 layerColor = vec3(
+  //   //     saturate(mod(fI + 0., 3.)),
+  //   //     saturate(mod(fI + 1., 3.)),
+  //   //     saturate(mod(fI + 2., 3.))
+  //   // );
 
-    vec3 dI = vec3(fI / float(slices));
-    dI += 0.3 * dot(uv, vec2(1));
-    // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+  //   vec3 dI = vec3(fI / float(slices));
+  //   dI += 0.3 * dot(uv, vec2(1));
+  //   // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
-    // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
-    // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-    layerColor *= colors1;
-    layerColor *= 2.3;
-    // layerColor = vec3(5.0);
+  //   // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
+  //   layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
+  //   // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
+  //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+  //   layerColor *= colors1;
+  //   layerColor *= 2.3;
+  //   // layerColor = vec3(5.0);
 
-    // CYM
-    // layerColor = vec3(0);
-    // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-    // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-    // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-    // layerColor *= 0.65;
-    // layerColor *= vec3(1.0, 0.6, 0.60);
+  //   // CYM
+  //   // layerColor = vec3(0);
+  //   // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+  //   // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+  //   // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+  //   // layerColor *= 0.65;
+  //   // layerColor *= vec3(1.0, 0.6, 0.60);
 
-    // layerColor *= 0.6;
+  //   // layerColor *= 0.6;
 
-    // Add black layer as first layer
-    // layerColor *= step(0.5, fI);
+  //   // Add black layer as first layer
+  //   // layerColor *= step(0.5, fI);
 
-    // layerColor = pow(layerColor, vec3(4 + slices));
+  //   // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.5;
-    float layerT = norT
-      + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
-    float mask = two_dimensional(uv, layerT).x;
-    layerColor *= mask;
-    // if (i == 0) {
-    //   color = layerColor;
-    // } else {
-    //   color = overlay(color, layerColor);
-    // }
-    // color *= layerColor;
+  //   const float maxDelayLength = 0.5;
+  //   float layerT = norT
+  //     + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
+  //   float mask = two_dimensional(uv, layerT).x;
+  //   layerColor *= mask;
+  //   // if (i == 0) {
+  //   //   color = layerColor;
+  //   // } else {
+  //   //   color = overlay(color, layerColor);
+  //   // }
+  //   // color *= layerColor;
 
-    // vec3 layerColorA = softLight2(color, layerColor);
-    // vec3 layerColorB = color * layerColor;
-    // layerColor = layerColorA + layerColorB;
-    // layerColor *= 0.85;
+  //   // vec3 layerColorA = softLight2(color, layerColor);
+  //   // vec3 layerColorB = color * layerColor;
+  //   // layerColor = layerColorA + layerColorB;
+  //   // layerColor *= 0.85;
 
-    // layerColor = overlay(color, layerColor);
-    // layerColor = screenBlend(color, layerColor);
-    // color = mix(color, layerColor, 0.3);
+  //   // layerColor = overlay(color, layerColor);
+  //   // layerColor = screenBlend(color, layerColor);
+  //   // color = mix(color, layerColor, 0.3);
 
-    // Add
-    color += layerColor;
+  //   // Add
+  //   color += layerColor;
 
-    // // Multiply
-    // color *= layerColor;
+  //   // // Multiply
+  //   // color *= layerColor;
 
-    // // Pseudo Multiply
-    // color = mix(color, color * layerColor, mask);
-  }
+  //   // // Pseudo Multiply
+  //   // color = mix(color, color * layerColor, mask);
+  // }
 
-  color = pow(color, vec3(1.50));
-  color /= float(slices);
+  // color = pow(color, vec3(1.50));
+  // color /= float(slices);
 
-  // // Final layer
-  // color.rgb += 0.3 * two_dimensional(uv, 0.);
+  // // // Final layer
+  // // color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // // Color manipulation
-  // color.rgb = 1. - color.rgb;
+  // // // Color manipulation
+  // // color.rgb = 1. - color.rgb;
 
-  return vec4(color, 1.);
+  // return vec4(color, 1.);
 
   float time = norT;
   vec4 t = march(ro, rd, time);

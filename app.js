@@ -56,7 +56,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 5.5)
+    this.cameraRo = vec3.fromValues(0, 0, 7.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [190, 115, 177]
@@ -73,8 +73,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.457
-    this.angle2C = -1.316
+    this.angle1C = 1.111
+    this.angle2C = 1.111
     this.angle3C = 0.587
 
     // this.setupAnimation(preset)
