@@ -45,12 +45,12 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -5,
-        y: -5,
-        z: -2.749
+        x: -0.254,
+        y: -0.633,
+        z: -0.405
       },
       d: 0.04,
-      scale: 0.9827,
+      scale: 1.7971,
       rot2angle: [0.79, 1.622, 0],
       cameraAngles: [0, 0, 0]
     }
@@ -59,7 +59,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, 7.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [190, 115, 177]
+    this.colors1 = [99, 111, 200]
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
@@ -73,8 +73,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 1.111
-    this.angle2C = 1.111
+    this.angle1C = -3.015
+    this.angle2C = -0.267
     this.angle3C = 0.587
 
     // this.setupAnimation(preset)
