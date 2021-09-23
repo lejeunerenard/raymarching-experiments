@@ -2367,9 +2367,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float warpScale = 1.0;
   vec2 size = gSize;
 
+  // Goal is to orbit trap some striped squares
+
   vec2 wQ = q;
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 8; i++) {
     wQ = abs(wQ);
     wQ += offset.xy;
     wQ *= rotMat2(offset.z);
@@ -2377,10 +2379,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     vec2 localQ = wQ;
     localQ.y = abs(localQ.y);
-    localQ.y -= 0.1;
+    // localQ.y -= 0.1;
 
-    localQ.y += 0.025 / abs(localQ.x + 0.001) * sin(10. * PI * localQ.x + localCosT);
-    d = min(d, abs(localQ.y) - 0.0125);
+    // localQ.y += 0.025 / abs(localQ.x + 0.001) * sin(10. * PI * localQ.x + localCosT);
+    float trap = sdBox(localQ, vec2(0.1));
+    if (trap < d) {
+      mUv = localQ;
+    }
+    d = min(d, trap);
   }
 
   q = wQ;
@@ -2393,13 +2399,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Solid
   float dI = d;
-  dI *= angle1C;
-  dI += angle2C;
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3)));
+  // dI *= angle1C;
+  // dI += angle2C;
+  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.3)));
   // d = 1. - d;
   d = saturate(d);
-  color *= d;
-  color = vec3(length(color));
+  // color *= d;
+  // color = vec3(length(color));
+
+  float stripes = smoothstep(0., edge, sin(TWO_PI * 3. * mUv.y));
+
+  color = vec3(stripes);
+  // color = vec3(d);
+  // color *= stripes;
 
   return color.rgb;
 }
@@ -2432,7 +2444,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   vec3 color = vec3(0);
 
