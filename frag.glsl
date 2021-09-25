@@ -2371,7 +2371,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 8; i++) {
     wQ = abs(wQ);
     wQ += offset.xy;
     wQ *= rotMat2(offset.z);
@@ -2381,9 +2381,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // localQ.y = abs(localQ.y);
     // localQ.y -= 0.1;
 
-    localQ.y += 0.025 / (pow(abs(localQ.x), 2.) + 0.1) * sin(10. * PI * localQ.x + localCosT);
-    // float trap = sdBox(localQ, vec2(0.1));
-    float trap = abs(localQ.y) - 0.01;
+    // localQ.y += 0.025 / (pow(abs(localQ.x), 2.) + 0.1) * sin(10. * PI * localQ.x + localCosT);
+    float trap = sdBox(localQ, vec2(0.1));
+    // float trap = abs(localQ.y) - 0.01;
+    trap = abs(trap) - 0.005;
     if (trap < d) {
       mUv = localQ;
     }
@@ -2393,28 +2394,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  // float stop = 0.;
-  // d = smoothstep(stop, edge + stop, d);
-  // d = 1. - d;
-  // d = saturate(d);
+  float stop = 0.;
+  d = smoothstep(stop, edge + stop, d);
+  d = 1. - d;
+  d = saturate(d);
 
   // Solid
   float dI = d;
   dI *= angle1C;
   dI += angle2C;
 
-  color = vec3(0.8, 0.4, 0.5) + vec3(0.3, 0.8, 0.5) * cos(TWO_PI * (vec3(0.9, 0.8, 1.2) * dI + vec3(0, 0.1, 0.3)));
-  color *= colors1;
-  d = 1. - pow(d, 0.85);
-  d = saturate(d);
-  color *= d;
+  // color = vec3(0.8, 0.4, 0.5) + vec3(0.3, 0.8, 0.5) * cos(TWO_PI * (vec3(0.9, 0.8, 1.2) * dI + vec3(0, 0.1, 0.3)));
+  // color *= colors1;
+  // d = 1. - pow(d, 0.85);
+  // d = saturate(d);
+  // color *= d;
 
   // color = vec3(length(color));
 
   // float stripes = smoothstep(0., edge, sin(TWO_PI * 3. * mUv.y));
 
   // color = vec3(stripes);
-  // color = vec3(d);
+  color = vec3(d);
   // color *= stripes;
 
   return color.rgb;

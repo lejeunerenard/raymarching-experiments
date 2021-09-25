@@ -45,9 +45,9 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.355,
-        y: -0.223,
-        z: -0.625
+        x: -0.033,
+        y: -0.323,
+        z: 0
       },
       d: 0.04,
       scale: 1.5216,
@@ -77,7 +77,7 @@ export default class App {
     this.angle2C = 0.449
     this.angle3C = 0.587
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -238,7 +238,7 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([ this.offset[0], -1.834, this.offset[2] ], 30 * 1000)
+      .to([ this.offset[0], this.offset[1], Math.PI ], 30 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let offsetTween2 = new TWEEN.Tween(this.offset)
     offsetTween2
