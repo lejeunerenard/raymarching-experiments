@@ -2361,34 +2361,45 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float thickness = 0.0025;
-  const float warpScale = 0.5;
+  const float warpScale = 0.25;
   vec2 size = gSize;
 
   // Goal is to orbit trap some striped squares
 
   vec2 wQ = q;
+
+  wQ *= 1. + 0.1 * sin(localCosT - 9. * length(wQ));
+
   wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + localCosT );
   wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + localCosT );
   wQ *= rotMat2(1.5 * length(wQ));
   wQ += warpScale * 0.0250 * cos(15. * wQ.yx + localCosT );
   wQ += warpScale * 0.0125 * cos(23. * wQ.yx + localCosT );
+
   q = wQ;
   mUv = q;
 
   float n = dot(q, vec2(1));
-  n = sin(TWO_PI * 25. * n + 2. * localCosT);
+  // float n = vmax(abs(q));
+  // float n = length(q);
+  n = sin(TWO_PI * 30. * n + 2. * localCosT);
   d = n;
 
   float stop = 0.;
-  d = smoothstep(stop, 2. * edge + stop, d);
-  d = 1. - d;
-  d = saturate(d);
+  float mask = smoothstep(stop, 2. * edge + stop, d);
+  mask = saturate(mask);
 
   q = uv;
-  float crop = sdBox(q, vec2(0.35));
-  d *= step(0., -crop);
+  // float crop = sdBox(q, vec2(0.35));
+  float crop = length(q) - 0.40;
+  mask *= step(0., -crop);
 
   color = vec3(d);
+  d *= angle1C;
+  d += angle2C;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (d + vec3(0.0, 0.1, 0.2)));
+  color *= mask;
 
   return color.rgb;
 }
