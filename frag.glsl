@@ -1086,7 +1086,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.035);
+const vec2 gSize = vec2(0.01125);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1118,8 +1118,9 @@ float shape (in vec2 q, in vec2 c) {
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  // locallocalT += 0.15 * length(c);
+  locallocalT -= 0.05 * length(c);
   float t = mod(locallocalT, 1.);
+  float localCosT = TWO_PI * t;
 
   // // Local C that transitions from one cell to another
   // float shift = 1.;
@@ -1130,29 +1131,30 @@ float shape (in vec2 q, in vec2 c) {
   // Vanilla cell coordinate
   vec2 localC = c;
 
-  // float dC = dot(abs(localC), vec2(1));
-
   // q *= rotMat2(0.25 * PI * sin(TWO_PI * t - 0.30 * length(c)));
 
-  float r = 0.3 * size;
+  float r = 0.25 * size;
 
-  q += 0.4 * normalize(c) * size * cos(TWO_PI * t - 0.15 * length(c));
+  // Make grid look like random placement
+  q += 3.0 * size * mix(vec2(1) * snoise2(1.317 * c + 23.17123), vec2(1) * snoise2(0.123 * c), triangleWave(t));
+
+  // q += 0.4 * normalize(c) * size * cos(TWO_PI * t - 0.15 * length(c)); // Move outward?
   // q *= 1. - 0.125 * sin(PI * t);
   // q *= rotMat2(0.5 * PI * t);
 
   float a = atan(c.y, c.x);
 
-  // float internalD = length(q);
+  float internalD = length(q);
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  float internalD = sdBox(q, vec2(r));
+  // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
 
-  float o = internalD;
-  // float o = internalD - r;
+  // float o = internalD;
+  float o = internalD - r;
   // float o = microGrid(q);
   d = min(d, o);
 
@@ -1161,16 +1163,18 @@ float shape (in vec2 q, in vec2 c) {
   // d = abs(d - adjustment) - r * 0.0250;
 
   // Mask
-  d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
+  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
-  // d = mix(d, maxDistance, step(0., length(c) - 10.));
+  d = mix(d, maxDistance, step(0., length(c) - 33.));
+  // Convert circle into torus
+  d = mix(d, maxDistance, step(0., -(length(c) - 13.)));
 
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2361,44 +2365,48 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float thickness = 0.0025;
-  const float warpScale = 0.25;
+  const float warpScale = 0.0625;
   vec2 size = gSize;
 
   // Goal is to orbit trap some striped squares
 
   vec2 wQ = q;
 
-  wQ *= 1. + 0.1 * sin(localCosT - 9. * length(wQ));
+  // wQ *= 1. + 0.1 * sin(localCosT - 9. * length(wQ));
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + localCosT );
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + localCosT );
-  wQ *= rotMat2(1.5 * length(wQ));
-  wQ += warpScale * 0.0250 * cos(15. * wQ.yx + localCosT );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + localCosT );
+  // wQ *= rotMat2(1.5 * length(wQ));
+  // wQ += warpScale * 0.0250 * cos(15. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.0125 * cos(23. * wQ.yx + localCosT );
 
   q = wQ;
   mUv = q;
 
-  float n = dot(q, vec2(1));
-  // float n = vmax(abs(q));
-  // float n = length(q);
-  n = sin(TWO_PI * 30. * n + 2. * localCosT);
-  d = n;
+  // float n = dot(q, vec2(1));
+  // n = sin(TWO_PI * 30. * n + 2. * localCosT);
+  // d = n;
 
-  float stop = 0.;
-  float mask = smoothstep(stop, 2. * edge + stop, d);
-  mask = saturate(mask);
+  float n = neighborGrid(q, gSize);
+  d = min(d, n);
+
+  float mask = 1.;
+  // float stop = 0.;
+  // float mask = smoothstep(stop, 2. * edge + stop, d);
+  // mask = saturate(mask);
 
   q = uv;
+
   // float crop = sdBox(q, vec2(0.35));
-  float crop = length(q) - 0.40;
-  mask *= step(0., -crop);
+  // float crop = length(q) - 0.40;
+  // mask *= step(0., -crop);
+
+  // Set to black or white
+  float stop = 0.;
+  d = smoothstep(stop, edge + stop, d);
+  d = 1. - d;
 
   color = vec3(d);
-  d *= angle1C;
-  d += angle2C;
-
-  color = 0.5 + 0.5 * cos(TWO_PI * (d + vec3(0.0, 0.1, 0.2)));
   color *= mask;
 
   return color.rgb;
