@@ -1086,7 +1086,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.01125);
+const vec2 gSize = vec2(0.0125);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1118,7 +1118,8 @@ float shape (in vec2 q, in vec2 c) {
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
-  locallocalT -= 0.05 * length(c);
+  // locallocalT -= 0.05 * length(c);
+  locallocalT -= 0.05 * dC;
   float t = mod(locallocalT, 1.);
   float localCosT = TWO_PI * t;
 
@@ -1133,10 +1134,11 @@ float shape (in vec2 q, in vec2 c) {
 
   // q *= rotMat2(0.25 * PI * sin(TWO_PI * t - 0.30 * length(c)));
 
-  float r = 0.25 * size;
+  float r = 0.15 * size;
 
   // Make grid look like random placement
-  q += 3.0 * size * mix(vec2(1) * snoise2(1.317 * c + 23.17123), vec2(1) * snoise2(0.123 * c), triangleWave(t));
+  float nT = triangleWave(t);
+  q += 3.0 * size * mix(vec2(1, -1) * snoise2(1.317 * c + 23.17123), vec2(1) * snoise2(0.123 * c), nT);
 
   // q += 0.4 * normalize(c) * size * cos(TWO_PI * t - 0.15 * length(c)); // Move outward?
   // q *= 1. - 0.125 * sin(PI * t);
@@ -1167,14 +1169,14 @@ float shape (in vec2 q, in vec2 c) {
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
-  d = mix(d, maxDistance, step(0., length(c) - 33.));
+  // d = mix(d, maxDistance, step(0., length(c) - 33.));
   // Convert circle into torus
-  d = mix(d, maxDistance, step(0., -(length(c) - 13.)));
+  // d = mix(d, maxDistance, step(0., -(length(c) - 13.)));
 
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
