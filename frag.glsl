@@ -2367,30 +2367,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float thickness = 0.0025;
-  const float warpScale = 0.0625;
+  const float warpScale = 0.125;
   vec2 size = gSize;
 
   // Goal is to orbit trap some striped squares
 
   vec2 wQ = q;
 
-  // wQ *= 1. + 0.1 * sin(localCosT - 9. * length(wQ));
+  wQ *= 1. + 0.15 * sin(localCosT - 11. * length(wQ));
 
-  // wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + localCosT );
-  // wQ *= rotMat2(1.5 * length(wQ));
-  // wQ += warpScale * 0.0250 * cos(15. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.0125 * cos(23. * wQ.yx + localCosT );
+  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + localCosT );
+  wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + localCosT );
+  wQ *= rotMat2(1.5 * length(wQ));
+  wQ += warpScale * 0.0250 * cos(15. * wQ.yx + localCosT );
+  wQ += warpScale * 0.0125 * cos(23. * wQ.yx + localCosT );
 
   q = wQ;
   mUv = q;
 
-  // float n = dot(q, vec2(1));
-  // n = sin(TWO_PI * 30. * n + 2. * localCosT);
-  // d = n;
+  vec2 horizontalAxis = vec2(1);
+  float n = dot(q, horizontalAxis);
+  n = sin(TWO_PI * 30. * n + 2. * localCosT);
+  // Moving line
+  vec2 verticalAxis = horizontalAxis * rotMat2(0.5 * PI);
+  float vertN = dot(q, verticalAxis);
+  vertN = sin(TWO_PI * 6. * vertN + 2. * localCosT);
 
-  float n = neighborGrid(q, gSize);
-  d = min(d, n);
+  vertN = sign(vertN) * pow(vertN, 5.);
+
+  n *= vertN;
+
+  d = n;
 
   float mask = 1.;
   // float stop = 0.;
@@ -2400,13 +2407,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = uv;
 
   // float crop = sdBox(q, vec2(0.35));
-  // float crop = length(q) - 0.40;
-  // mask *= step(0., -crop);
+  float crop = length(q) - 0.40;
+  // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
+  mask *= step(0., -crop);
 
   // Set to black or white
   float stop = 0.;
   d = smoothstep(stop, edge + stop, d);
-  d = 1. - d;
+  // d = 1. - d;
 
   color = vec3(d);
   color *= mask;
