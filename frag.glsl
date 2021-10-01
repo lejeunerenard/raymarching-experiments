@@ -2367,35 +2367,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float thickness = 0.0025;
-  const float warpScale = 0.125;
-  vec2 size = gSize;
+  const float warpScale = 0.5;
+  vec2 size = vec2(0.025, 0.15);
 
   // Goal is to orbit trap some striped squares
 
   vec2 wQ = q;
 
-  wQ *= 1. + 0.15 * sin(localCosT - 11. * length(wQ));
+  // wQ *= 1. + 0.15 * sin(localCosT - 11. * length(wQ));
 
-  wQ += warpScale * 0.1000 * cos( 3. * wQ.yx + localCosT );
-  wQ += warpScale * 0.0500 * cos( 7. * wQ.yx + localCosT );
-  wQ *= rotMat2(1.5 * length(wQ));
-  wQ += warpScale * 0.0250 * cos(15. * wQ.yx + localCosT );
-  wQ += warpScale * 0.0125 * cos(23. * wQ.yx + localCosT );
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
+  wQ *= rotMat2(2.5 * length(wQ));
+  wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
+  wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
+  wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
+  wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
+
+  vec2 c = floor((wQ + size*0.5)/size);
+  wQ.y += (3. + 1. * mod(c.x, 3.)) * size.y * localT;
+  wQ.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
+  wQ.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
+
+  c = pMod2(wQ, vec2(size));
 
   q = wQ;
   mUv = q;
 
-  vec2 horizontalAxis = vec2(1);
-  float n = dot(q, horizontalAxis);
-  n = sin(TWO_PI * 30. * n + 2. * localCosT);
-  // Moving line
-  vec2 verticalAxis = horizontalAxis * rotMat2(0.5 * PI);
-  float vertN = dot(q, verticalAxis);
-  vertN = sin(TWO_PI * 6. * vertN + 2. * localCosT);
-
-  vertN = sign(vertN) * pow(vertN, 5.);
-
-  n *= vertN;
+  // q += size * mod(dot(c, vec2(1, 0)), 2.);
+  float n = sdBox(q, vec2(0.0125, 0.40) * size);
 
   d = n;
 
@@ -2406,15 +2406,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q = uv;
 
-  // float crop = sdBox(q, vec2(0.35));
-  float crop = length(q) - 0.40;
+  float crop = sdBox(q, vec2(0.35, 0.40));
+  // float crop = length(q) - 0.40;
   // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
   mask *= step(0., -crop);
 
   // Set to black or white
   float stop = 0.;
   d = smoothstep(stop, edge + stop, d);
-  // d = 1. - d;
+  d = 1. - d;
 
   color = vec3(d);
   color *= mask;
