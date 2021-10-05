@@ -1245,23 +1245,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 2.0 * r;
 
-  float warpScale = 2.6;
+  float warpScale = 2.0;
 
   // Warp
   vec3 wQ = q.xyz;
 
+  wQ *= 1. + 0.2 * cos(-2.5 * length(wQ) + localCosT);
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
   wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
+  wQ.xzy = wQ.xyz;
+
   // Commit warp
   q = wQ.xyz;
 
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdTorus(q, vec2(r, 0.2 * r)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
+
+  q.z -= 0.75 * r;
+  q *= rotationMatrix(vec3(0, 0, 1), 0.5 * PI);
+  vec3 b2 = vec3(sdTorus(q, vec2(r, 0.2 * r)), 1, 0);
+  d = dMin(d, b2);
+
+  q = p;
+  mPos = q;
+  float baseSize = 0.3 * r;
+  vec3 s = vec3(sdBox(q, vec3(baseSize, 2. * r, baseSize)), 2, 0);
+  d = dMin(d, s);
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
   // d = dMax(d, -crop);
@@ -1503,6 +1518,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.0);
 
+  float n = dot(pos, vec3(1));
+  n = sin(TWO_PI * 15. * n);
+  n = 2. * smoothstep(0., edge, n);
+
+  color = mix(color, vec3(0, 0, 1.2), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(n), isMaterialSmooth(m, 2.));
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1664,16 +1686,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
-      // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0 * (1. - isMaterialSmooth(t.y, 2.));
+      dispersionColor *= dispersionI;
 
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
