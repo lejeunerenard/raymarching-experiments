@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -1227,12 +1227,12 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.75;
+float gR = 0.30;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.y += 0.04 * cos(cosT);
 
   // float scale = 1. + 0.2 * cos(dot(p, vec3(5)) + cosT);
@@ -1243,47 +1243,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  float size = 2.0 * r;
+  float size = 1.5 * r;
 
-  float warpScale = 2.0;
+  float warpScale = 0.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ *= 1. + 0.2 * cos(-2.5 * length(wQ) + localCosT);
+  wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
   wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
   wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.25 * PI * cos(wQ.y + localCosT));
   wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
   wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
-  wQ.xzy = wQ.xyz;
-
   // Commit warp
   q = wQ.xyz;
+  q.xz = opRepLim(q.xz, size, vec2(1.));
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(sdTorus(q, vec2(r, 0.2 * r)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, b);
-
-  q.z -= 0.75 * r;
-  q *= rotationMatrix(vec3(0, 0, 1), 0.5 * PI);
-  vec3 b2 = vec3(sdTorus(q, vec2(r, 0.2 * r)), 1, 0);
-  d = dMin(d, b2);
-
-  q = p;
   mPos = q;
-  float baseSize = 0.3 * r;
-  vec3 s = vec3(sdBox(q, vec3(baseSize, 2. * r, baseSize)), 2, 0);
-  d = dMin(d, s);
+  vec3 b = vec3(sdCapsule(q, vec3(0, 2. * r, 0), vec3(0, -2. * r, 0), 0.2 * r), 0, 0);
+  d = dMin(d, b);
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
   // d = dMax(d, -crop);
 
   // d.x /= scale;
 
-  d.x *= 0.16;
+  d.x *= 0.15;
 
   d.z = d.x;
 
@@ -1516,16 +1503,16 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.0);
+  vec3 color = vec3(0, 1, 0);
 
-  float n = dot(pos, vec3(1));
-  n = sin(TWO_PI * 15. * n);
-  n = 2. * smoothstep(0., edge, n);
+//   float n = dot(pos, vec3(1));
+//   n = sin(TWO_PI * 15. * n);
+//   n = 2. * smoothstep(0., edge, n);
 
-  color = mix(color, vec3(0, 0, 1.2), isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(n), isMaterialSmooth(m, 2.));
+//   color = mix(color, vec3(0, 0, 1.2), isMaterialSmooth(m, 1.));
+//   color = mix(color, vec3(n), isMaterialSmooth(m, 2.));
 
-  return color;
+//   return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
@@ -1686,16 +1673,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
-      float dispersionI = 1.0 * (1. - isMaterialSmooth(t.y, 2.));
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0 * (1. - isMaterialSmooth(t.y, 2.));
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1757,9 +1744,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Cartoon outline
       // Requires trap be the distance even when the object is missed
-      float outlineStop = 0.01;
+      // Doesn't detect edges not on the background.
+      float outlineStop = 0.005;
       vec3 outlineColor = vec3(0);
-      color = mix(color, vec4(outlineColor, 1), 1. - smoothstep(outlineStop, 0.5 * edge + outlineStop, t.w));
+      float outlineT = t.w;
+      outlineT = smoothstep(outlineStop, 0.5 * edge + outlineStop, outlineT);
+      outlineT = 1. - outlineT;
+      color = mix(color, vec4(outlineColor, 1), outlineT);
 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
