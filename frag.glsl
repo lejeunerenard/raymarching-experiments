@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -1250,25 +1250,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.25 * PI * cos(wQ.y + localCosT));
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+  // wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.5 * PI * cos(wQ.y + localCosT));
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+
+  float rollingScale = 1.;
+  for (int i = 0; i < 4; i++) {
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1.) * kifsM).xyz;
+    rollingScale *= scale;
+  }
 
   // Commit warp
   q = wQ.xyz;
-  q.xz = opRepLim(q.xz, size, vec2(1.));
 
   mPos = q;
-  vec3 b = vec3(sdCapsule(q, vec3(0, 2. * r, 0), vec3(0, -2. * r, 0), 0.2 * r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
   // d = dMax(d, -crop);
 
-  // d.x /= scale;
+  d.x /= rollingScale;
 
   d.x *= 0.15;
 

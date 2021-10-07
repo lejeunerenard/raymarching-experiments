@@ -45,13 +45,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.033,
-        y: -0.323,
-        z: 0
+        x: 3.316,
+        y: 1.221,
+        z: 0.669
       },
       d: 0.04,
-      scale: 1.1,
-      rot2angle: [0, 0, 0],
+      scale: 1.2453,
+      rot2angle: [0.097, 3.146, 2.038],
       cameraAngles: [0, 0, 0]
     }
 
@@ -77,7 +77,7 @@ export default class App {
     this.angle2C = 0.449
     this.angle3C = 0.587
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -197,27 +197,24 @@ export default class App {
     // camRotTween1.start(0)
 
     // Animation Fractal
-    const delayBetweenRotation = 1 * 1000
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .delay(delayBetweenRotation)
-      .to([1.137, 0.892, 0], 3 * 1000)
+      .to([5.85, this.rot2angle[1], this.rot2angle[2]], 16 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .delay(delayBetweenRotation)
-      .to([...this.rot2angle], 3 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    // rotTween2
+    //   .to([...this.rot2angle], 4 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
     // let rotTween3 = new TWEEN.Tween(this.rot2angle)
     // rotTween3
     //   .to([...this.rot2angle], 5 * 1000)
     //   .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween1)
+    // rotTween1.chain(rotTween1)
+    // rotTween2.chain(rotTween1)
     // rotTween3.chain(rotTween1)
 
-    // rotTween1.start(0)
+    rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -253,7 +250,7 @@ export default class App {
     // offsetTween2.chain(offsetTween3)
     // offsetTween3.chain(offsetTween1)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
 
     // Angle1C Tween
     let angle1CTween1 = new TWEEN.Tween(this)
