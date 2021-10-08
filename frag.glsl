@@ -2382,17 +2382,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.0025;
   const float warpScale = 0.5;
-  vec2 size = vec2(0.05);
+  vec2 size = vec2(0.025);
 
   // Goal is to orbit trap some striped squares
 
   vec2 wQ = q;
 
-  // wQ *= 1. + 0.15 * sin(localCosT - 11. * length(wQ));
+  wQ *= 1. + 0.03 * sin(localCosT - 11. * length(wQ));
 
   // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
   // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
-  wQ *= rotMat2(-2.0 * length(wQ));
+  wQ *= rotMat2(-0.3 * length(wQ));
   // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
   // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
   // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
@@ -2412,12 +2412,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Add waviness
   // q.x += size.x * 0.125 * sin(TWO_PI * (25. * q.y - (verticalMultiplier + 2.) * localT));
 
-  // Flip back and forth
-  q *= rotMat2(PI * mod(c.y, 2.));
-
   // q += size * mod(dot(c, vec2(1, 0)), 2.);
   // float n = sdBox(q, vec2(0.0125, 0.40 * (1.00 + 0.0125 * mod(c.x, 5.))) * size);
-  float n = sdTriPrism(vec3(q, 0), vec2(0.20, 10.) * size);
+  float n = length(q) - size.x * 0.125;
 
   d = n;
 
@@ -2428,10 +2425,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q = uv;
 
-  float crop = sdBox(q, vec2(0.35, 0.40));
-  // float crop = length(q) - 0.40;
-  // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
-  mask *= step(0., -crop);
+  // float crop = sdBox(q, vec2(0.35, 0.40));
+  // // float crop = length(q) - 0.40;
+  // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
+  // mask *= step(0., -crop);
 
   // Set to black or white
   float stop = 0.;
@@ -2472,11 +2469,11 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
-  // const int slices = 40;
+  // const int slices = 15;
   // for (int i = 0; i < slices; i++) {
   //   float fI = float(i);
   //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -2495,7 +2492,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   //   // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
   //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
   //   layerColor *= colors1;
-  //   layerColor *= 2.3;
+  //   layerColor *= 1.3;
   //   // layerColor = vec3(5.0);
 
   //   // CYM
@@ -2513,7 +2510,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   //   // layerColor = pow(layerColor, vec3(4 + slices));
 
-  //   const float maxDelayLength = 0.5;
+  //   const float maxDelayLength = 0.2;
   //   float layerT = norT
   //     + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
   //   float mask = two_dimensional(uv, layerT).x;
