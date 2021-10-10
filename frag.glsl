@@ -2388,31 +2388,46 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  wQ *= 1. + 0.03 * sin(localCosT - 11. * length(wQ));
+  wQ *= 1. + 0.10 * sin(localCosT - 11. * length(wQ));
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
   wQ *= rotMat2(-0.5 * length(wQ) + 0.8);
   // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
   // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
   // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
   // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
 
+  for (int i = 0; i < 20; i++) {
+    float fI = float(i);
+    vec2 localQ = wQ;
+    localQ += sin(PI * (0.17238 * fI + vec2(0, 0.5))) * angle1C * snoise2(2.1237 * vec2(fI, fI + mod(fI, 3.)));
+
+    localQ *= rotMat2(TWO_PI * 7.12378 * fI);
+    float s = length(localQ) - 0.1;
+    if (s < d) {
+      mUv = localQ;
+    }
+    d = min(d, s);
+  }
+  q = wQ;
+
+  q = mUv;
+
   vec2 c = floor((wQ + size*0.5)/size);
   float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
   // float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
-  wQ.y += verticalMultiplier * size.y * localT;
-  wQ.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
-  wQ.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
+  q.y += verticalMultiplier * size.y * localT;
+  q.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
+  q.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
 
-  c = pMod2(wQ, vec2(size));
+  c = pMod2(q, vec2(size));
 
-  q = wQ;
   mUv = q;
 
   // Add waviness
   // q.x += size.x * 0.125 * sin(TWO_PI * (35. * q.y - (verticalMultiplier + 2.) * localT));
-  q.x += size.x * 0.25 * triangleWave((45. * q.y - (verticalMultiplier + 2.) * localT));
+  // q.x += size.x * 0.25 * triangleWave((45. * q.y - (verticalMultiplier + 2.) * localT));
 
   // q += size * mod(dot(c, vec2(1, 0)), 2.);
   float n = sdBox(q, vec2(0.0125, 0.40 * (1.00 + 0.0125 * mod(c.x, 5.))) * size);
@@ -2430,7 +2445,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float crop = sdBox(q, vec2(0.35, 0.40));
   // // float crop = length(q) - 0.40;
   // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
-  mask *= step(0., -crop);
+  // mask *= step(0., -crop);
 
   // Set to black or white
   float stop = 0.;
