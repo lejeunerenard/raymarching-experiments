@@ -69,6 +69,14 @@ const float amount = 0.05;
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
 #pragma glslify: vmax = require(./hg_sdf/vmax)
 
+float vmin (in vec2 t) {
+  return min(t.x, t.y);
+}
+
+float vmin (in vec3 t) {
+  return min(t.x, min(t.y, t.z));
+}
+
 #define combine(v1, v2, t, p) mix(v1, v2, t/p)
 
 float range (in float start, in float stop, in float t) {
@@ -2380,48 +2388,35 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float thickness = 0.0025;
-  const float warpScale = 0.125;
-  vec2 size = vec2(0.025, 0.1);
+  const float warpScale = 0.075;
+  vec2 size = vec2(0.05, 0.75);
+  float thickness = vmin(size) * 0.35;
 
-  // Goal is to orbit trap some striped squares
+  // Goal today is to make something using this optical effect... Chromostereopsis
+  // For me the red does appear to be in front though I get that alot with my
+  // glasses as they have distinct chromatic aberration.
 
   vec2 wQ = q;
 
-  wQ *= 1. + 0.10 * sin(localCosT - 11. * length(wQ));
+  // wQ *= 1. + 0.10 * sin(localCosT - 11. * length(wQ));
 
-  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
-  wQ *= rotMat2(-0.5 * length(wQ) + 0.8);
-  // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
-
-  for (int i = 0; i < 20; i++) {
-    float fI = float(i);
-    vec2 localQ = wQ;
-    localQ += sin(PI * (0.17238 * fI + vec2(0, 0.5))) * angle1C * snoise2(2.1237 * vec2(fI, fI + mod(fI, 3.)));
-
-    localQ *= rotMat2(TWO_PI * 7.12378 * fI);
-    float s = length(localQ) - 0.1;
-    if (s < d) {
-      mUv = localQ;
-    }
-    d = min(d, s);
-  }
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
+  wQ *= rotMat2(-0.75 * length(wQ));
+  wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
+  wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
+  wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
+  wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
   q = wQ;
 
-  q = mUv;
-
   vec2 c = floor((wQ + size*0.5)/size);
-  float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
   // float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
-  q.y += verticalMultiplier * size.y * localT;
-  q.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
-  q.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
+  // // float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
+  // q.y += verticalMultiplier * size.y * localT;
+  // q.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
+  // q.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
 
-  c = pMod2(q, vec2(size));
+  // c = pMod2(q, vec2(size));
 
   mUv = q;
 
@@ -2430,19 +2425,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q.x += size.x * 0.25 * triangleWave((45. * q.y - (verticalMultiplier + 2.) * localT));
 
   // q += size * mod(dot(c, vec2(1, 0)), 2.);
-  float n = sdBox(q, vec2(0.0125, 0.40 * (1.00 + 0.0125 * mod(c.x, 5.))) * size);
-  // float n = length(q) - size.x * 0.125;
+  float n = sdBox(q, vec2(0.5)) - 0.030;
+  // float n = length(q);
+  float iN = 20. * n;
+  n = sin(TWO_PI * iN);
+  c = vec2(0, floor(iN * 1.0 - 0.001));
+  // float n = sin(TWO_PI * q.x);
+  // d = min(n, d);
 
   d = n;
 
   float mask = 1.;
+  vec2 maskQ = q;
+  // vec2 maskC = pMod2(maskQ, vec2(0.003));
+  maskQ *= 150.;
+  mask = snoise2(maskQ);
+  // mask = step(0., mask);
+  mask = smoothstep(0., edge, mask);
   // float stop = 0.;
   // float mask = smoothstep(stop, 2. * edge + stop, d);
   // mask = saturate(mask);
 
   q = uv;
 
-  float crop = sdBox(q, vec2(0.35, 0.40));
+  // float crop = sdBox(q, vec2(0.35, 0.40));
   // // float crop = length(q) - 0.40;
   // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
   // mask *= step(0., -crop);
@@ -2452,7 +2458,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   d = smoothstep(stop, edge + stop, d);
   d = 1. - d;
 
-  color = vec3(d);
+  color = d * mix(vec3(1, 0, 0), vec3(0, 0, 1), mod(dot(c, vec2(1)), 2.));
   color *= mask;
 
   return color.rgb;
