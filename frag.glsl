@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1235,7 +1235,7 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.30;
+float gR = 0.50;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1253,41 +1253,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.5 * r;
 
-  float warpScale = 0.;
+  float warpScale = 1.5;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.5 * PI * cos(wQ.y + localCosT));
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
-
-  float rollingScale = 1.;
-  for (int i = 0; i < 4; i++) {
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1.) * kifsM).xyz;
-    rollingScale *= scale;
-  }
+  wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.75 * PI * cos(wQ.y + localCosT));
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
+  q = q.xzy;
   mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdTorus(q, vec2(r, 0.6 * r)), 0, 0);
   d = dMin(d, b);
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
   // d = dMax(d, -crop);
 
-  d.x /= rollingScale;
+  // d.x /= rollingScale;
 
-  d.x *= 0.15;
-
-  d.z = d.x;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1541,7 +1532,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (0.25 * color + dI + vec3(0, 0.33, 0.67)));
-  color *= 0.7;
+  color *= 0.2;
 
   // color = mix(vec3(0.0), vec3(0.8), isMaterialSmooth(m, 1.));
 
@@ -1600,13 +1591,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.5 * t.x, generalT);
-      // float bumpsScale = 0.8;
-      // float bumpIntensity = 0.105;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 1.8;
+      float bumpIntensity = 0.105;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1624,8 +1615,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.;
-      float specCo = 0.;
+      float freCo = 1.0;
+      float specCo = 0.75;
 
       float specAll = 0.0;
 
@@ -1688,25 +1679,25 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
-      // float dispersionI = 1.0 * (1. - isMaterialSmooth(t.y, 2.));
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -2492,7 +2483,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
