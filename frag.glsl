@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
-#define ORTHO 1
+#define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -677,6 +677,7 @@ float isMaterialSmooth( float m, float goal ) {
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
 
 #pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness, mask=sqrMask)
+#pragma glslify: sdFBM = require(./model/sdf-fbm, REPS=7, smoothness=0.6, clipFactor=0.1, smax=smax, smin=smin);
 // #pragma glslify: band = require(./band-filter)
 
 #pragma glslify: tetrahedron = require(./model/tetrahedron)
@@ -1239,8 +1240,9 @@ float gR = 0.50;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
+  // Okay I just read a new article by iq. I'd like to implement it for today!
 
-  // p *= globalRot;
+  p *= globalRot;
   // p.y += 0.04 * cos(cosT);
 
   // float scale = 1. + 0.2 * cos(dot(p, vec3(5)) + cosT);
@@ -1258,19 +1260,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.75 * PI * cos(wQ.y + localCosT));
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+  // wQ *= 1. + 0.25 * cos(-1.5 * length(wQ) + localCosT);
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.75 * PI * cos(wQ.y + localCosT));
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   q = q.xzy;
   mPos = q;
-  vec3 b = vec3(sdTorus(q, vec2(r, 0.6 * r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  b.x = sdFBM(q, b.x);
   d = dMin(d, b);
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
@@ -1509,7 +1512,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0, 1, 0);
+  vec3 color = vec3(0.75);
+
+  return color;
 
 //   float n = dot(pos, vec3(1));
 //   n = sin(TWO_PI * 15. * n);
@@ -1532,7 +1537,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (0.25 * color + dI + vec3(0, 0.33, 0.67)));
-  color *= 0.2;
+  color *= 1.0;
 
   // color = mix(vec3(0.0), vec3(0.8), isMaterialSmooth(m, 1.));
 
@@ -1591,13 +1596,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.5 * t.x, generalT);
-      float bumpsScale = 1.8;
-      float bumpIntensity = 0.105;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 1.8;
+      // float bumpIntensity = 0.105;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1615,8 +1620,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.75;
+      float freCo = 0.7;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1628,13 +1633,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
         float diffMin = 1.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
+
         // // Cartoon clamp
         // dif = mix(diffMin, 1.5 * dif, step(0.4, dif));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.1;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 4.00, generalT));
         dif *= sha;
 
@@ -1679,16 +1685,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1748,15 +1754,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         color.rgb += lightMasked * mix(lights[i].color, vec3(1), lightAngle) * pow(dot(-rayDirection, normalize(fromLight)), 512.0);
       }
 
-      // Cartoon outline
-      // Requires trap be the distance even when the object is missed
-      // Doesn't detect edges not on the background.
-      float outlineStop = 0.005;
-      vec3 outlineColor = vec3(0);
-      float outlineT = t.w;
-      outlineT = smoothstep(outlineStop, 0.5 * edge + outlineStop, outlineT);
-      outlineT = 1. - outlineT;
-      color = mix(color, vec4(outlineColor, 1), outlineT);
+      // // Cartoon outline
+      // // Requires trap be the distance even when the object is missed
+      // // Doesn't detect edges not on the background.
+      // float outlineStop = 0.0005;
+      // vec3 outlineColor = vec3(0);
+      // float outlineT = t.w;
+      // outlineT = smoothstep(outlineStop, 0.5 * edge + outlineStop, outlineT);
+      // outlineT = 1. - outlineT;
+      // color = mix(color, vec4(outlineColor, 1), outlineT);
 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
