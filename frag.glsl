@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1273,7 +1273,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = q.xzy;
   mPos = q;
   vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  b.x = sdFBM(q, b.x);
+  // b.x = sdFBM(q, b.x);
   d = dMin(d, b);
 
   // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
@@ -2385,25 +2385,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.075;
-  vec2 size = vec2(0.05, 0.75);
-  float thickness = vmin(size) * 0.35;
-
-  // Goal today is to make something using this optical effect... Chromostereopsis
-  // For me the red does appear to be in front though I get that alot with my
-  // glasses as they have distinct chromatic aberration.
+  const float warpScale = 0.25;
+  vec2 size = vec2(0.1);
 
   vec2 wQ = q;
 
-  // wQ *= 1. + 0.10 * sin(localCosT - 11. * length(wQ));
+  wQ *= 1. + 0.02 * sin(localCosT - 11. * length(wQ));
 
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
-  wQ *= rotMat2(-0.75 * length(wQ));
+  wQ *= rotMat2(-1.15 * length(wQ));
   wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
   wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
   wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
   wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
+  wQ *= rotMat2(0.25 * localCosT);
   q = wQ;
 
   vec2 c = floor((wQ + size*0.5)/size);
@@ -2413,7 +2409,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
   // q.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
 
-  // c = pMod2(q, vec2(size));
+  c = pMod2(q, vec2(size));
 
   mUv = q;
 
@@ -2421,12 +2417,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q.x += size.x * 0.125 * sin(TWO_PI * (35. * q.y - (verticalMultiplier + 2.) * localT));
   // q.x += size.x * 0.25 * triangleWave((45. * q.y - (verticalMultiplier + 2.) * localT));
 
-  // q += size * mod(dot(c, vec2(1, 0)), 2.);
-  float n = sdBox(q, vec2(0.5)) - 0.030;
-  // float n = length(q);
-  float iN = 20. * n;
-  n = sin(TWO_PI * iN);
-  c = vec2(0, floor(iN * 1.0 - 0.001));
+  float n = length(q) - 0.4 * size.x;
+  // float iN = 20. * n;
+  // n = sin(TWO_PI * iN);
+  // c = vec2(0, floor(iN * 1.0 - 0.001));
   // float n = sin(TWO_PI * q.x);
   // d = min(n, d);
 
@@ -2434,18 +2428,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float mask = 1.;
   vec2 maskQ = q;
-  // vec2 maskC = pMod2(maskQ, vec2(0.003));
-  maskQ *= 150.;
-  mask = snoise2(maskQ);
-  // mask = step(0., mask);
-  mask = smoothstep(0., edge, mask);
-  // float stop = 0.;
-  // float mask = smoothstep(stop, 2. * edge + stop, d);
-  // mask = saturate(mask);
 
   q = uv;
 
-  // float crop = sdBox(q, vec2(0.35, 0.40));
+  float crop = sdBox(q, vec2(0.35, 0.40));
   // // float crop = length(q) - 0.40;
   // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
   // mask *= step(0., -crop);
@@ -2455,7 +2441,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   d = smoothstep(stop, edge + stop, d);
   d = 1. - d;
 
-  color = d * mix(vec3(1, 0, 0), vec3(0, 0, 1), mod(dot(c, vec2(1)), 2.));
+  // color = d * mix(vec3(1, 0, 0), vec3(0, 0, 1), mod(dot(c, vec2(1)), 2.));
+  color = vec3(d);
   color *= mask;
 
   return color.rgb;
@@ -2489,7 +2476,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
