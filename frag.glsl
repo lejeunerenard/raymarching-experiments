@@ -540,6 +540,15 @@ float sdLine( in vec3 p, in vec3 a, in vec3 b ) {
     return length( pa - ba*h );
 }
 
+// IQ's arc SDF
+float sdArc( in vec2 p, in vec2 sca, in vec2 scb, in float ra, float rb )
+{
+    p *= mat2(sca.x,sca.y,-sca.y,sca.x);
+    p.x = abs(p.x);
+    float k = (scb.y*p.x>scb.x*p.y) ? dot(p,scb) : length(p);
+    return sqrt( dot(p,p) + ra*ra - 2.0*ra*k ) - rb;
+}
+
 #define Iterations 9
 #pragma glslify: mandelbox = require(./mandelbox, trap=Iterations, maxDistance=maxDistance, foldLimit=1., s=scale, minRadius=0.5, rotM=kifsM)
 #pragma glslify: octahedron = require(./octahedron, scale=scale, kifsM=kifsM, Iterations=Iterations)
@@ -2372,6 +2381,29 @@ vec3 factorColor (in float layerI, in float totalLayers, in vec2 uv) {
   return color;
 }
 
+float squiggle ( in vec2 q, in float r, in float thickness ) {
+  float d = maxDistance;
+
+  float a1 = 0.25 * PI;
+  float a2 = 0.25 * PI;
+  float n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
+  d = min(d, n);
+
+  for (int i = 0; i < 27; i++) {
+    a1 -= -1. * PI;
+    q.y -= 2. * r;
+    n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
+    d = min(d, n);
+
+    a1 -= 1.00 * PI;
+    q.x -= 2. * r;
+    n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
+    d = min(d, n);
+  }
+
+  return d;
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0.5);
@@ -2390,41 +2422,36 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  wQ *= 1. + 0.02 * sin(localCosT - 11. * length(wQ));
+  // wQ *= 1. + 0.02 * sin(localCosT - 11. * length(wQ));
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
-  wQ *= rotMat2(-1.15 * length(wQ));
-  wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
-  wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
-  wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
-  wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
-  wQ *= rotMat2(0.25 * localCosT);
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
+  // wQ *= rotMat2(-1.15 * length(wQ));
+  // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
+  // wQ *= rotMat2(0.25 * localCosT);
   q = wQ;
-
-  vec2 c = floor((wQ + size*0.5)/size);
-  // float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
-  // // float verticalMultiplier = (2. + 2. * mod(c.x, 3.));
-  // q.y += verticalMultiplier * size.y * localT;
-  // q.y += size.y * mod(0.2 * c.x, 1.); // Offset vertically
-  // q.y += size.y * snoise2(vec2(2.7123 * c.x)); // Offset vertically but randomly
-
-  c = pMod2(q, vec2(size));
 
   mUv = q;
 
-  // Add waviness
-  // q.x += size.x * 0.125 * sin(TWO_PI * (35. * q.y - (verticalMultiplier + 2.) * localT));
-  // q.x += size.x * 0.25 * triangleWave((45. * q.y - (verticalMultiplier + 2.) * localT));
+  q *= 15.;
 
-  float n = length(q) - 0.4 * size.x;
-  // float iN = 20. * n;
-  // n = sin(TWO_PI * iN);
-  // c = vec2(0, floor(iN * 1.0 - 0.001));
-  // float n = sin(TWO_PI * q.x);
-  // d = min(n, d);
-
-  d = n;
+  float r = 1.5;
+  const float thickness = 0.20;
+  // This is not working out as I thought it would. But Now I realize this was foolish
+  q.y -= 11. * r;
+  // q *= rotMat2(0.25 * PI);
+  q += 26. * r;
+  for (int i = 0; i < 26; i++) {
+    vec2 localQ = q;
+    float fI = float(i);
+    localQ += 0.125 * fI + (1. + fI - 12.) * 2. * r * localT;
+    localQ += 0.5 * vec2(-1, 1) * r * fI;
+    float n = squiggle(localQ, r, thickness);
+    d = min(d, n);
+  }
 
   float mask = 1.;
   vec2 maskQ = q;
@@ -2436,8 +2463,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
   // mask *= step(0., -crop);
 
+  d = sin(TWO_PI * 4. * d);
+
   // Set to black or white
-  float stop = 0.;
+  float stop = 0.0;
   d = smoothstep(stop, edge + stop, d);
   d = 1. - d;
 
