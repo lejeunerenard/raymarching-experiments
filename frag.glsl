@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.0125);
+const vec2 gSize = vec2(0.45);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1137,7 +1137,7 @@ float shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.05 * dC;
+  locallocalT -= 0.15 * dC;
   float t = mod(locallocalT, 1.);
   float localCosT = TWO_PI * t;
 
@@ -1152,11 +1152,14 @@ float shape (in vec2 q, in vec2 c) {
 
   // q *= rotMat2(0.25 * PI * sin(TWO_PI * t - 0.30 * length(c)));
 
-  float r = 0.15 * size;
+  float r = 0.35 * size;
 
   // Make grid look like random placement
   float nT = triangleWave(t);
-  q += 3.0 * size * mix(vec2(1, -1) * snoise2(1.317 * c + 23.17123), vec2(1) * snoise2(0.123 * c), nT);
+  q += 2.0 * size * mix(
+      vec2(1, -1) * snoise2(1.317 * c + 23.17123),
+      vec2(1) * snoise2(0.123 * c),
+      nT);
 
   // q += 0.4 * normalize(c) * size * cos(TWO_PI * t - 0.15 * length(c)); // Move outward?
   // q *= 1. - 0.125 * sin(PI * t);
@@ -1164,9 +1167,9 @@ float shape (in vec2 q, in vec2 c) {
 
   float a = atan(c.y, c.x);
 
-  float internalD = length(q);
+  // float internalD = length(q);
   // float internalD = vmax(abs(q));
-  // float internalD = dot(abs(q), vec2(1));
+  float internalD = dot(abs(q), vec2(1));
   // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
@@ -1185,7 +1188,7 @@ float shape (in vec2 q, in vec2 c) {
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
-  // d = mix(d, maxDistance, step(0., sdBox(c, vec2(4))));
+  d = mix(d, maxDistance, step(0., sdBox(c, vec2(10, 16))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 33.));
   // Convert circle into torus
@@ -2418,7 +2421,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.25;
-  vec2 size = vec2(0.1);
+  vec2 size = gSize;
 
   vec2 wQ = q;
 
@@ -2438,20 +2441,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q *= 15.;
 
-  float r = 1.5;
-  const float thickness = 0.20;
-  // This is not working out as I thought it would. But Now I realize this was foolish
-  q.y -= 11. * r;
-  // q *= rotMat2(0.25 * PI);
-  q += 26. * r;
-  for (int i = 0; i < 26; i++) {
-    vec2 localQ = q;
-    float fI = float(i);
-    localQ += 0.125 * fI + (1. + fI - 12.) * 2. * r * localT;
-    localQ += 0.5 * vec2(-1, 1) * r * fI;
-    float n = squiggle(localQ, r, thickness);
-    d = min(d, n);
-  }
+  float n = neighborGrid(q, size);
+  d = min(d, n);
 
   float mask = 1.;
   vec2 maskQ = q;
@@ -2463,7 +2454,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
   // mask *= step(0., -crop);
 
-  d = sin(TWO_PI * 4. * d);
+  d = sin(TWO_PI * 6. * d);
 
   // Set to black or white
   float stop = 0.0;
