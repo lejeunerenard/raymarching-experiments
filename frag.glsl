@@ -2409,7 +2409,7 @@ float squiggle ( in vec2 q, in float r, in float thickness ) {
 
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(1);
   float d = maxDistance;
 
   vec2 q = uv;
@@ -2434,36 +2434,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
   // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
   // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
-  // wQ *= rotMat2(0.25 * localCosT);
-  q = wQ;
 
+  q = wQ;
   mUv = q;
 
-  q *= 15.;
+  vec2 offset = vec2(0.);
 
-  float n = neighborGrid(q, size);
-  d = min(d, n);
+  const float originalR = 0.4;
+  for (float i = 0.; i < 6.; i++) {
+    float r = originalR;
+    offset = vec2((0.15 * i) * r) * rotMat2(0.125 * PI * cos(localCosT + angle1C * PI * i) + angle2C * PI * i);
+    float layer = length(q + offset) - r;
+    // vec3 layerColor  = vec3(1, 0, 0) * rotationMatrix(vec3(1), 0.25 * i * PI);
+    vec3 layerColor = 0.52 + 0.375 * cos(TWO_PI * (0.123 * i + 0.045 * cellular(0.4 * vec3(q + offset, 0.)) + vec3(0, 0.33, 0.67)));
+    layerColor = mix(layerColor, vec3(1), -angle3C * layer);
+    color = mix(color, layerColor, smoothstep(edge, 0., layer));
+  }
 
   float mask = 1.;
-  vec2 maskQ = q;
-
-  q = uv;
-
-  float crop = sdBox(q, vec2(0.35, 0.40));
-  // // float crop = length(q) - 0.40;
-  // // float crop = dodecahedral(vec3(q, 0), 52., 0.3);
-  // mask *= step(0., -crop);
-
-  d = sin(TWO_PI * 6. * d);
-
-  // Set to black or white
-  float stop = 0.0;
-  d = smoothstep(stop, edge + stop, d);
-  d = 1. - d;
-
-  // color = d * mix(vec3(1, 0, 0), vec3(0, 0, 1), mod(dot(c, vec2(1)), 2.));
-  color = vec3(d);
-  color *= mask;
+  mask = smoothstep(edge, 0., length(q) - originalR);
+  // color *= mask;
+  color = mix(color, vec3(0.8), 1. - mask);
 
   return color.rgb;
 }
