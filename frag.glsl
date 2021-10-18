@@ -2441,13 +2441,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 offset = vec2(0.);
 
   const float originalR = 0.4;
-  for (float i = 0.; i < 6.; i++) {
+  for (float i = 0.; i < 8.; i++) {
     float r = originalR;
-    offset = vec2((0.15 * i) * r) * rotMat2(0.125 * PI * cos(localCosT + angle1C * PI * i) + angle2C * PI * i);
-    float layer = length(q + offset) - r;
+    vec2 localQ = q;
+    localQ += vec2((0.19 * i) * r) * rotMat2(0.125 * PI * cos(localCosT + angle1C * PI * i) + angle2C * PI * i);
+    localQ *= rotMat2(-0.0723 * PI * i);
+    // float layer = length(localQ) - r;
+    float layer = sdBox(localQ, vec2(r));
     // vec3 layerColor  = vec3(1, 0, 0) * rotationMatrix(vec3(1), 0.25 * i * PI);
-    vec3 layerColor = 0.52 + 0.375 * cos(TWO_PI * (0.123 * i + 0.045 * cellular(0.4 * vec3(q + offset, 0.)) + vec3(0, 0.33, 0.67)));
-    layerColor = mix(layerColor, vec3(1), -angle3C * layer);
+    // vec3 layerColor = 0.52 + 0.375 * cos(TWO_PI * (0.123 * i + 0.045 * cellular(0.4 * vec3(localQ + offset, 0.)) + vec3(0, 0.33, 0.67)));
+    // layerColor = mix(layerColor, vec3(1), -angle3C * layer);
+    float n = dot(localQ, vec2(1));
+    n = sin(TWO_PI * (25. + 10. * i) * n);
+    n = smoothstep(0., edge, n);
+    vec3 layerColor = vec3(n);
     color = mix(color, layerColor, smoothstep(edge, 0., layer));
   }
 
