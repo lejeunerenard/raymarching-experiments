@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.45);
+const vec2 gSize = vec2(0.020);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1137,7 +1137,7 @@ float shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.15 * dC;
+  locallocalT -= 0.10 * dC;
   float t = mod(locallocalT, 1.);
   float localCosT = TWO_PI * t;
 
@@ -1156,7 +1156,7 @@ float shape (in vec2 q, in vec2 c) {
 
   // Make grid look like random placement
   float nT = triangleWave(t);
-  q += 2.0 * size * mix(
+  q += 1.5 * size * mix(
       vec2(1, -1) * snoise2(1.317 * c + 23.17123),
       vec2(1) * snoise2(0.123 * c),
       nT);
@@ -1181,18 +1181,18 @@ float shape (in vec2 q, in vec2 c) {
   // float o = microGrid(q);
   d = min(d, o);
 
-  // // Outline
-  // const float adjustment = 0.0;
-  // d = abs(d - adjustment) - r * 0.0250;
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - r * 0.0250;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
-  d = mix(d, maxDistance, step(0., sdBox(c, vec2(10, 16))));
+  // d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
-  // d = mix(d, maxDistance, step(0., length(c) - 33.));
+  // d = mix(d, maxDistance, step(0., length(c) - 15.));
   // Convert circle into torus
-  // d = mix(d, maxDistance, step(0., -(length(c) - 13.)));
+  d = mix(d, maxDistance, step(0., abs(length(c) - 13.) - 7.));
 
   return d;
 }
@@ -2440,28 +2440,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 offset = vec2(0.);
 
-  const float originalR = 0.4;
-  for (float i = 0.; i < 8.; i++) {
-    float r = originalR;
-    vec2 localQ = q;
-    localQ += vec2((0.19 * i) * r) * rotMat2(0.125 * PI * cos(localCosT + angle1C * PI * i) + angle2C * PI * i);
-    localQ *= rotMat2(-0.0723 * PI * i);
-    // float layer = length(localQ) - r;
-    float layer = sdBox(localQ, vec2(r));
-    // vec3 layerColor  = vec3(1, 0, 0) * rotationMatrix(vec3(1), 0.25 * i * PI);
-    // vec3 layerColor = 0.52 + 0.375 * cos(TWO_PI * (0.123 * i + 0.045 * cellular(0.4 * vec3(localQ + offset, 0.)) + vec3(0, 0.33, 0.67)));
-    // layerColor = mix(layerColor, vec3(1), -angle3C * layer);
-    float n = dot(localQ, vec2(1));
-    n = sin(TWO_PI * (25. + 10. * i) * n);
-    n = smoothstep(0., edge, n);
-    vec3 layerColor = vec3(n);
-    color = mix(color, layerColor, smoothstep(edge, 0., layer));
-  }
+  float neigh = neighborGrid(q, size);
+  d = min(d, neigh);
+
+  float n = d;
+  n = smoothstep(0., edge, n);
+  color = vec3(n);
 
   float mask = 1.;
-  mask = smoothstep(edge, 0., length(q) - originalR);
   // color *= mask;
-  color = mix(color, vec3(0.8), 1. - mask);
+  // color = mix(color, vec3(0.8), 1. - mask);
 
   return color.rgb;
 }
