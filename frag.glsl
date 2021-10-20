@@ -1837,13 +1837,13 @@ float myFBMWarp (in vec2 q) {
 // IQ's 2D isosceles triangle
 // source: https://www.shadertoy.com/view/MldcD7
 float sdTriangleIsosceles( in vec2 p, in vec2 q ) {
-    p.x = abs(p.x);
-    vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
-    vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
-    float s = -sign( q.y );
-    vec2 d = min( vec2( dot(a,a), s*(p.x*q.y-p.y*q.x) ),
-                  vec2( dot(b,b), s*(p.y-q.y)  ));
-    return -sqrt(d.x)*sign(d.y);
+  p.x = abs(p.x);
+  vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
+  vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
+  float k = sign( q.y );
+  float d = min(dot( a, a ),dot(b, b));
+  float s = max( k*(p.x*q.y-p.y*q.x),k*(p.y-q.y)  );
+  return sqrt(d)*sign(s);
 }
 
 // IQ's 2D Uneven capsule
@@ -2023,6 +2023,17 @@ float sdEllipse( in vec2 p, in vec2 ab )
     }
     vec2 r = ab * vec2(co, sqrt(1.0-co*co));
     return length(r-p) * sign(p.y-r.y);
+}
+
+// Credit: IQ
+// source: https://www.shadertoy.com/view/3l23RK
+// c is the sin/cos of the angle. r is the radius
+float sdPie( in vec2 p, in vec2 c, in float r )
+{
+  p.x = abs(p.x);
+  float l = length(p) - r;
+  float m = length(p - c*clamp(dot(p,c),0.0,r) );
+  return max(l,m*sign(c.y*p.x-c.x*p.y));
 }
 
 float starSpeed (in float i, in float numStars) {
@@ -2407,6 +2418,7 @@ float squiggle ( in vec2 q, in float r, in float thickness ) {
   return d;
 }
 
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(1);
@@ -2440,8 +2452,86 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 offset = vec2(0.);
 
-  float neigh = neighborGrid(q, size);
-  d = min(d, neigh);
+#define debugCircleEdge 1
+
+  const float baseR = 0.25;
+
+#ifdef debugCircleEdge
+  // Circle the edge is based on
+  float m = length(q) - baseR;
+  m = abs(m);
+  d = min(d, m);
+#endif
+
+  float anglePercentage = mix(0.02, 0.03755, sine(0.5 + 0.5 * cos(localCosT)));
+  // anglePercentage = angle2C;
+  float angleInc = anglePercentage * TWO_PI;
+
+  float accAngle = 0.;
+  float prevR = 0.;
+
+  const int NUM_CIRCLES = 10;
+  float subs = maxDistance;
+
+  for (int i = 0; i < NUM_CIRCLES; i++) {
+    float fI = float(i);
+
+    float angle = fI * angleInc * max(0.5, abs(snoise2(2.18 * vec2(fI))));
+    if (i == 1) angle *= 2.;
+    if (angle + accAngle >= TWO_PI) {
+      angle = TWO_PI - accAngle;
+    }
+    float sideR = 2. * baseR * sin(angle * 0.5);
+    float r = abs(sideR - prevR);
+    if (i == 0) r = angle1C * baseR;
+
+    accAngle += angle;
+    vec2 center = vec2(baseR, 0) * rotMat2(accAngle);
+    vec2 localQ = q - center;
+
+    // Add "fill"
+    if (i != 0) {
+      vec2 fillQ = q.yx * rotMat2(accAngle - angle / 2.);
+      float height = sideR * 0.5 / tan(angle * 0.5);
+      float fill = sdTriangleIsosceles(fillQ, vec2(sideR * 0.5, height));
+#ifdef debugCircleEdge
+      fill = abs(fill);
+#endif
+      d = min(d, fill);
+    }
+
+    float o = length(localQ) - r;
+#ifdef debugCircleEdge
+    o = abs(o);
+#endif
+    if (mod(fI, 2.) == 0.) {
+      d = min(d, o);
+    } else {
+#ifndef debugCircleEdge
+      subs = min(subs, o);
+#else
+      d = min(d, o);
+#endif
+      // d = max(d, -o);
+    }
+
+    prevR = r;
+  }
+
+  // Add final "fill"
+  float angle = TWO_PI - accAngle;
+  float sideR = 2. * baseR * sin(angle * 0.5);
+  vec2 fillQ = q.yx * rotMat2(TWO_PI - angle / 2.);
+  float height = sideR * 0.5 / tan(angle * 0.5);
+  float fill = sdTriangleIsosceles(fillQ, vec2(sideR * 0.5, height));
+#ifdef debugCircleEdge
+  fill = abs(fill);
+#endif
+  d = min(d, fill);
+
+#ifndef debugCircleEdge
+  d = max(d, -subs);
+#endif
 
   float n = d;
   n = smoothstep(0., edge, n);
