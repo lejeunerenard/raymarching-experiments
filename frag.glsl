@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.020);
+const vec2 gSize = vec2(0.025);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1152,14 +1152,20 @@ float shape (in vec2 q, in vec2 c) {
 
   // q *= rotMat2(0.25 * PI * sin(TWO_PI * t - 0.30 * length(c)));
 
-  float r = 0.35 * size;
+  float r = 0.25 * size;
 
-  // Make grid look like random placement
-  float nT = triangleWave(t);
-  q += 1.5 * size * mix(
-      vec2(1, -1) * snoise2(1.317 * c + 23.17123),
-      vec2(1) * snoise2(0.123 * c),
-      nT);
+  // // Make grid look like random placement
+  // float nT = triangleWave(t);
+  // q += 0.5 * size * mix(
+  //     vec2(1, -1) * snoise2(1.317 * c + 23.17123),
+  //     vec2(1) * snoise2(0.123 * c),
+  //     nT);
+
+  // float side = step(abs(c.y), abs(c.x));
+  // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
+
+  float side = floor(0.50 * mod(length(c), 4.));
+  q -= normalize(c) * side * size * (0.5 + 0.5 * cos(localCosT));
 
   // q += 0.4 * normalize(c) * size * cos(TWO_PI * t - 0.15 * length(c)); // Move outward?
   // q *= 1. - 0.125 * sin(PI * t);
@@ -1167,9 +1173,9 @@ float shape (in vec2 q, in vec2 c) {
 
   float a = atan(c.y, c.x);
 
-  // float internalD = length(q);
+  float internalD = length(q);
   // float internalD = vmax(abs(q));
-  float internalD = dot(abs(q), vec2(1));
+  // float internalD = dot(abs(q), vec2(1));
   // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
@@ -1181,9 +1187,9 @@ float shape (in vec2 q, in vec2 c) {
   // float o = microGrid(q);
   d = min(d, o);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - r * 0.0250;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - r * 0.0250;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
@@ -1191,8 +1197,8 @@ float shape (in vec2 q, in vec2 c) {
   // d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 15.));
-  // Convert circle into torus
-  d = mix(d, maxDistance, step(0., abs(length(c) - 13.) - 7.));
+  // // Convert circle into torus
+  // d = mix(d, maxDistance, step(0., abs(length(c) - 13.) - 7.));
 
   return d;
 }
@@ -2418,41 +2424,10 @@ float squiggle ( in vec2 q, in float r, in float thickness ) {
   return d;
 }
 
-
-vec2 mUv = vec2(0);
-vec3 two_dimensional (in vec2 uv, in float generalT) {
-  vec3 color = vec3(1);
-  float d = maxDistance;
-
-  vec2 q = uv;
-  float ovf = angle3C;
-
-  // Global Timing
-  float t = mod(generalT + 0.0, 1.0);
-  localCosT = TWO_PI * t;
-  localT = t;
-
-  const float warpScale = 0.25;
-  vec2 size = gSize;
-
-  vec2 wQ = q;
-
-  // wQ *= 1. + 0.02 * sin(localCosT - 11. * length(wQ));
-
-  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
-  // wQ *= rotMat2(-1.15 * length(wQ));
-  // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
-
-  q = wQ;
-  mUv = q;
-
-  vec2 offset = vec2(0.);
-
+float circleEdgeCircle (in vec2 q, in float localCosT) {
 #define debugCircleEdge 1
+
+  float d = maxDistance;
 
   const float baseR = 0.25;
 
@@ -2533,8 +2508,46 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   d = max(d, -subs);
 #endif
 
+  return d;
+}
+
+vec2 mUv = vec2(0);
+vec3 two_dimensional (in vec2 uv, in float generalT) {
+  vec3 color = vec3(1);
+  float d = maxDistance;
+
+  vec2 q = uv;
+  float ovf = angle3C;
+
+  // Global Timing
+  float t = mod(generalT + 0.0, 1.0);
+  localCosT = TWO_PI * t;
+  localT = t;
+
+  const float warpScale = 0.25;
+  vec2 size = gSize;
+
+  vec2 wQ = q;
+
+  // wQ *= 1. + 0.02 * sin(localCosT - 11. * length(wQ));
+
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
+  // wQ *= rotMat2(-1.15 * length(wQ));
+  // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
+  // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
+
+  q = wQ;
+  mUv = q;
+
+  float o = neighborGrid(q, size);
+  d = min(d, o);
+
   float n = d;
   n = smoothstep(0., edge, n);
+  n = 1. - n;
   color = vec3(n);
 
   float mask = 1.;
@@ -2572,88 +2585,88 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(0);
+  vec3 color = vec3(0);
 
-  // const int slices = 15;
-  // for (int i = 0; i < slices; i++) {
-  //   float fI = float(i);
-  //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
-  //   // vec3 layerColor = vec3(
-  //   //     saturate(mod(fI + 0., 3.)),
-  //   //     saturate(mod(fI + 1., 3.)),
-  //   //     saturate(mod(fI + 2., 3.))
-  //   // );
+  const int slices = 15;
+  for (int i = 0; i < slices; i++) {
+    float fI = float(i);
+    vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = vec3(
+    //     saturate(mod(fI + 0., 3.)),
+    //     saturate(mod(fI + 1., 3.)),
+    //     saturate(mod(fI + 2., 3.))
+    // );
 
-  //   vec3 dI = vec3(fI / float(slices));
-  //   dI += 0.3 * dot(uv, vec2(1));
-  //   // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+    vec3 dI = vec3(fI / float(slices));
+    dI += 0.3 * dot(uv, vec2(1));
+    // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
-  //   // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-  //   layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
-  //   // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-  //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-  //   layerColor *= colors1;
-  //   layerColor *= 1.3;
-  //   // layerColor = vec3(5.0);
+    // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
+    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
+    // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
+    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+    layerColor *= colors1;
+    layerColor *= 1.3;
+    // layerColor = vec3(5.0);
 
-  //   // CYM
-  //   // layerColor = vec3(0);
-  //   // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-  //   // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-  //   // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-  //   // layerColor *= 0.65;
-  //   // layerColor *= vec3(1.0, 0.6, 0.60);
+    // CYM
+    // layerColor = vec3(0);
+    // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+    // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+    // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+    // layerColor *= 0.65;
+    // layerColor *= vec3(1.0, 0.6, 0.60);
 
-  //   // layerColor *= 0.6;
+    // layerColor *= 0.6;
 
-  //   // Add black layer as first layer
-  //   // layerColor *= step(0.5, fI);
+    // Add black layer as first layer
+    // layerColor *= step(0.5, fI);
 
-  //   // layerColor = pow(layerColor, vec3(4 + slices));
+    // layerColor = pow(layerColor, vec3(4 + slices));
 
-  //   const float maxDelayLength = 0.2;
-  //   float layerT = norT
-  //     + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
-  //   float mask = two_dimensional(uv, layerT).x;
-  //   layerColor *= mask;
-  //   // if (i == 0) {
-  //   //   color = layerColor;
-  //   // } else {
-  //   //   color = overlay(color, layerColor);
-  //   // }
-  //   // color *= layerColor;
+    const float maxDelayLength = 0.2;
+    float layerT = norT
+      + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
+    float mask = two_dimensional(uv, layerT).x;
+    layerColor *= mask;
+    // if (i == 0) {
+    //   color = layerColor;
+    // } else {
+    //   color = overlay(color, layerColor);
+    // }
+    // color *= layerColor;
 
-  //   // vec3 layerColorA = softLight2(color, layerColor);
-  //   // vec3 layerColorB = color * layerColor;
-  //   // layerColor = layerColorA + layerColorB;
-  //   // layerColor *= 0.85;
+    // vec3 layerColorA = softLight2(color, layerColor);
+    // vec3 layerColorB = color * layerColor;
+    // layerColor = layerColorA + layerColorB;
+    // layerColor *= 0.85;
 
-  //   // layerColor = overlay(color, layerColor);
-  //   // layerColor = screenBlend(color, layerColor);
-  //   // color = mix(color, layerColor, 0.3);
+    // layerColor = overlay(color, layerColor);
+    // layerColor = screenBlend(color, layerColor);
+    // color = mix(color, layerColor, 0.3);
 
-  //   // Add
-  //   color += layerColor;
+    // Add
+    color += layerColor;
 
-  //   // // Multiply
-  //   // color *= layerColor;
+    // // Multiply
+    // color *= layerColor;
 
-  //   // // Pseudo Multiply
-  //   // color = mix(color, color * layerColor, mask);
-  // }
+    // // Pseudo Multiply
+    // color = mix(color, color * layerColor, mask);
+  }
 
-  // color = pow(color, vec3(1.50));
-  // color /= float(slices);
+  color = pow(color, vec3(1.50));
+  color /= float(slices);
 
-  // // // Final layer
-  // // color.rgb += 0.3 * two_dimensional(uv, 0.);
+  // // Final layer
+  // color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // // // Color manipulation
-  // // color.rgb = 1. - color.rgb;
+  // // Color manipulation
+  // color.rgb = 1. - color.rgb;
 
-  // return vec4(color, 1.);
+  return vec4(color, 1.);
 
   float time = norT;
   vec4 t = march(ro, rd, time);
