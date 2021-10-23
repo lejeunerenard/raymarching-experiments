@@ -2524,71 +2524,56 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
+  float stepC = floor(t * 3.);
+  float stepT = mod(t * 3., 1.);
+  float transition = 0.6;
+  float separate = range(0., transition, stepT);
+  float merge = range(transition, 1., stepT);
+
   const float warpScale = 0.25;
   vec2 size = gSize;
+  const float r = 0.1;
 
   vec2 wQ = q;
-
-  // wQ *= 1. + 0.02 * sin(localCosT - 11. * length(wQ));
-
-  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yx + localCosT );
-  // wQ *= rotMat2(-1.15 * length(wQ));
-  // wQ += warpScale * 0.025000 * cos(15. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.012500 * cos(23. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.006250 * cos(31. * wQ.yx + localCosT );
-  // wQ += warpScale * 0.003125 * cos(37. * wQ.yx + localCosT );
-
-  wQ *= rotMat2(0.10 * PI);
 
   q = wQ;
   mUv = q;
 
-  // float o = q.y;
-  // d = min(d, o);
+  vec2 dir = mix(vec2(1, 1), vec2(1, -1), step(1., stepC));
 
-  // "Wave"s
-  float r = 0.05;
-  float thickness = angle1C * r;
+  q *= rotMat2(0.25 * PI * step(1., stepC) - 0.5 * PI * step(2., stepC));
 
-  // Modulo space solution
-  // vec2 wavesQ = q;
-  // float c = pMod1(wavesQ.x, 2. * r);
-  // float w = length(wavesQ) - r;
-  // float a1 = 0.5 * PI;
-  // float a2 = 0.5 * PI;
-  // wavesQ *= rotMat2(PI * mod(c, 2.));
-  // float w = sdArc(wavesQ, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
-  // if (mod(c, 2.) == 0.) {
-    // d = min(d, w);
-  // } else {
-  //   d = max(d, -w);
-  // }
+  // View shift
+  vec2 cameraPan = mix(vec2(0), dir * vec2(0, -1.5 * r), quart(separate));
+  cameraPan = mix(cameraPan, vec2(0), sine(range(0.1, 1., merge)));
+  q += cameraPan;
 
-  // Explicit solution
-  float a1 = 0.5 * PI;
-  float a2 = 0.5 * PI;
-  for (int y = -8; y < 8; y++)
-  for (int i = -7; i < 7; i++) {
-    float fI = float(i);
-    float fY = float(y);
-    vec2 wavesQ = q + vec2(2. * r * fI + r * mod(fY, 2.), 2. * r * fY);
-    wavesQ.x += 4. * r * t * (1. - 2. * mod(fY, 2.));
-    wavesQ *= rotMat2(PI * mod(fI, 2.));
-    float w = sdArc(wavesQ, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
-  //   if (mod(fI, 2.) == 0.) {
-      d = min(d, w);
-  //   } else {
-  //     d = max(d, -w);
-  //   }
-  }
+  float n = 0.;
 
-  d = sin(TWO_PI * 60. * d);
+  float o = length(q) - r;
+  o = step(0., o);
+  n = mix(n, 1. - n, o);
 
-  float n = d;
+  vec2 finish = dir * vec2(0, 3. * r);
+
+  float seperation1 = range(0., 0.95, separate);
+  vec2 offset = mix(vec2(0), dir * vec2(-2. * r, 3. * r), quint(seperation1));
+  offset = mix(offset, finish, expo(merge));
+  o = length(q + offset) - r;
+  o = step(0., o);
+  n = mix(n, 1. - n, o);
+
+  float seperation2 = range(0.05, 1.0, separate);
+  offset = mix(vec2(0), dir * vec2(2. * r, 3. * r), quint(seperation2));
+  offset = mix(offset, finish, expo(merge));
+  o = length(q + offset) - r;
+  o = step(0., o);
+  n = mix(n, 1. - n, o);
+
   n = smoothstep(0., edge, n);
   // n = 1. - n;
   color = vec3(n);
+  color = mix(0.85 * #EB3B3F, #182DEB, n);
 
   float mask = 1.;
   // color *= mask;
