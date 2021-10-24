@@ -59,7 +59,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, 1.55)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [161, 233, 255]
+    this.colors1 = [162, 187, 198]
     this.colors2 = [250, 183, 238]
 
     // Ray Marching Parameters
@@ -306,7 +306,19 @@ export default class App {
     gl.disable(gl.DEPTH_TEST)
 
     // Create fragment shader
-    this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
+    try {
+      this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
+    } catch (e) {
+      if (e.name === 'GLError') {
+        let pre = document.createElement('pre')
+        let code = document.createElement('code')
+        code.innerHTML = e.message
+        pre.appendChild(code)
+        document.body.appendChild(pre)
+      } else {
+        throw e
+      }
+    }
     this.bright = createShader(gl, glslify('./vert.glsl'), glslify('./bright.glsl'))
     this.bloom = createShader(gl, glslify('./vert.glsl'), glslify('./bloom.glsl'))
     this.finalPass = createShader(gl, glslify('./vert.glsl'), glslify('./final-pass.glsl'))

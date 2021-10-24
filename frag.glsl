@@ -1852,6 +1852,29 @@ float sdTriangleIsosceles( in vec2 p, in vec2 q ) {
   return sqrt(d)*sign(s);
 }
 
+// IQ's 2D triangle
+// source: https://www.shadertoy.com/view/XsXSz4
+float sdTriangle( in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2 ) {
+  vec2 e0 = p1 - p0;
+  vec2 e1 = p2 - p1;
+  vec2 e2 = p0 - p2;
+
+  vec2 v0 = p - p0;
+  vec2 v1 = p - p1;
+  vec2 v2 = p - p2;
+
+  vec2 pq0 = v0 - e0*clamp( dot(v0,e0)/dot(e0,e0), 0.0, 1.0 );
+  vec2 pq1 = v1 - e1*clamp( dot(v1,e1)/dot(e1,e1), 0.0, 1.0 );
+  vec2 pq2 = v2 - e2*clamp( dot(v2,e2)/dot(e2,e2), 0.0, 1.0 );
+
+  float s = e0.x*e2.y - e0.y*e2.x;
+  vec2 d = min( min( vec2( dot( pq0, pq0 ), s*(v0.x*e0.y-v0.y*e0.x) ),
+        vec2( dot( pq1, pq1 ), s*(v1.x*e1.y-v1.y*e1.x) )),
+      vec2( dot( pq2, pq2 ), s*(v2.x*e2.y-v2.y*e2.x) ));
+
+  return -sqrt(d.x)*sign(d.y);
+}
+
 // IQ's 2D Uneven capsule
 // source: https://www.shadertoy.com/view/4lcBWn
 float sdUnevenCapsule( vec2 p, float r1, float r2, float h ) {
@@ -2424,8 +2447,34 @@ float squiggle ( in vec2 q, in float r, in float thickness ) {
   return d;
 }
 
+const int NUM_CIRCLES = 10;
+// Okay now to figure out how to get the last angle to perfectly complete the border
+// okay. i think i figured it out.
+float getCircleBorderAngle (in float i, in float t) {
+  float angleInc = TWO_PI / float(NUM_CIRCLES);
+
+  return i * angleInc + angleInc * (0.1 * snoise2(2.91283 * vec2(i)) + 0.075 * cos(t + (0.12 + 0.07 * noise(vec2(i))) * PI * i));
+}
+
+float getCircleBorderRadius (in float fI, in float baseR, in float t) {
+  float r0 = 0.0612062695 + 0.0045 * cos(t);
+
+  float r = r0;
+  for (float i = 1.; i < float(NUM_CIRCLES); i++) {
+    if (i > fI) break;
+    float prevI = float(mod(i - 1., float(NUM_CIRCLES)));
+
+    vec2 center = vec2(baseR, 0) * rotMat2(getCircleBorderAngle(i, t));
+    vec2 other = vec2(baseR, 0) * rotMat2(getCircleBorderAngle(prevI, t));
+
+    r = length(center - other) - r;
+  }
+
+  return r;
+}
+
 float circleEdgeCircle (in vec2 q, in float localCosT) {
-#define debugCircleEdge 1
+// #define debugCircleEdge 1
 
   float d = maxDistance;
 
@@ -2438,71 +2487,98 @@ float circleEdgeCircle (in vec2 q, in float localCosT) {
   d = min(d, m);
 #endif
 
-  float anglePercentage = mix(0.02, 0.03755, sine(0.5 + 0.5 * cos(localCosT)));
-  // anglePercentage = angle2C;
-  float angleInc = anglePercentage * TWO_PI;
+  float angleInc = TWO_PI / float(NUM_CIRCLES);
 
   float accAngle = 0.;
   float prevR = 0.;
+  vec2 prevCenter = vec2(0);
 
-  const int NUM_CIRCLES = 10;
   float subs = maxDistance;
 
-  for (int i = 0; i < NUM_CIRCLES; i++) {
+  for (int i = 0; i < NUM_CIRCLES - 1; i++) {
     float fI = float(i);
+    float prevI = float(mod(fI - 1., float(NUM_CIRCLES)));
 
-    float angle = fI * angleInc * max(0.5, abs(snoise2(2.18 * vec2(fI))));
-    if (i == 1) angle *= 2.;
-    if (angle + accAngle >= TWO_PI) {
-      angle = TWO_PI - accAngle;
-    }
-    float sideR = 2. * baseR * sin(angle * 0.5);
-    float r = abs(sideR - prevR);
-    if (i == 0) r = angle1C * baseR;
+    float angle = getCircleBorderAngle(fI, localCosT);
+    vec2 center = vec2(baseR, 0) * rotMat2(angle);
+    vec2 otherCenter = vec2(baseR, 0) * rotMat2(getCircleBorderAngle(prevI ,localCosT));
 
-    accAngle += angle;
-    vec2 center = vec2(baseR, 0) * rotMat2(accAngle);
+    float r = getCircleBorderRadius(fI, baseR ,localCosT);
+
     vec2 localQ = q - center;
 
     // Add "fill"
-    if (i != 0) {
-      vec2 fillQ = q.yx * rotMat2(accAngle - angle / 2.);
-      float height = sideR * 0.5 / tan(angle * 0.5);
-      float fill = sdTriangleIsosceles(fillQ, vec2(sideR * 0.5, height));
+    float fill = sdTriangle(q, vec2(0), center, otherCenter);
 #ifdef debugCircleEdge
-      fill = abs(fill);
+    fill = abs(fill);
 #endif
-      d = min(d, fill);
+    if (fI != 0.) {
+      // d = min(d, fill);
     }
 
     float o = length(localQ) - r;
+    o = abs(o);
 #ifdef debugCircleEdge
     o = abs(o);
 #endif
-    if (mod(fI, 2.) == 0.) {
+    // if (mod(fI, 2.) == 0.) {
       d = min(d, o);
-    } else {
-#ifndef debugCircleEdge
-      subs = min(subs, o);
-#else
-      d = min(d, o);
-#endif
-      // d = max(d, -o);
-    }
+    // } else {
+// #ifndef debugCircleEdge
+    //   subs = min(subs, o);
+// #else
+    //   d = min(d, o);
+// #endif
+    // }
 
+    prevCenter = center;
     prevR = r;
   }
 
-  // Add final "fill"
-  float angle = TWO_PI - accAngle;
-  float sideR = 2. * baseR * sin(angle * 0.5);
-  vec2 fillQ = q.yx * rotMat2(TWO_PI - angle / 2.);
-  float height = sideR * 0.5 / tan(angle * 0.5);
-  float fill = sdTriangleIsosceles(fillQ, vec2(sideR * 0.5, height));
+  // -- Add last circle --
+  float fI = float(NUM_CIRCLES - 1);
+  vec2 firstCenter = vec2(baseR, 0) * rotMat2(getCircleBorderAngle(0., localCosT));
+  float r0 = getCircleBorderRadius(0., baseR, localCosT);
+  vec2 secondToLastCenter = prevCenter;
+  float rSecondToLast = prevR;
+  float remainderSpace = length(firstCenter - secondToLastCenter) - (r0 + rSecondToLast);
+  vec2 middle = secondToLastCenter
+    + normalize(firstCenter - secondToLastCenter) * (remainderSpace * 0.5 + rSecondToLast);
+  vec2 center = normalize(middle) * baseR;
+
+  float r = length(firstCenter - center) - r0;
+
+  vec2 localQ = q - center;
+
+  // Add "fill"
+  float fill = sdTriangle(q, vec2(0), center, secondToLastCenter);
 #ifdef debugCircleEdge
   fill = abs(fill);
 #endif
-  d = min(d, fill);
+  // d = min(d, fill);
+
+  // To first center
+  fill = sdTriangle(q, vec2(0), center, firstCenter);
+#ifdef debugCircleEdge
+  fill = abs(fill);
+#endif
+  // d = min(d, fill);
+
+  float o = length(localQ) - r;
+  o = abs(o);
+#ifdef debugCircleEdge
+  o = abs(o);
+#endif
+  // if (mod(fI, 2.) == 0.) {
+    d = min(d, o);
+  // } else {
+#ifndef debugCircleEdge
+    // subs = min(subs, o);
+#else
+    // d = min(d, o);
+#endif
+    // d = max(d, -o);
+  // }
 
 #ifndef debugCircleEdge
   d = max(d, -subs);
@@ -2539,41 +2615,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  vec2 dir = mix(vec2(1, 1), vec2(1, -1), step(1., stepC));
+  vec2 offset = vec2(0.);
 
-  q *= rotMat2(0.25 * PI * step(1., stepC) - 0.5 * PI * step(2., stepC));
+#define debugCircleEdge 1
 
-  // View shift
-  vec2 cameraPan = mix(vec2(0), dir * vec2(0, -1.5 * r), quart(separate));
-  cameraPan = mix(cameraPan, vec2(0), sine(range(0.1, 1., merge)));
-  q += cameraPan;
+  const float baseR = 0.25;
 
-  float n = 0.;
+  float e = circleEdgeCircle(q, localCosT);
+  d = min(d, e);
 
-  float o = length(q) - r;
-  o = step(0., o);
-  n = mix(n, 1. - n, o);
-
-  vec2 finish = dir * vec2(0, 3. * r);
-
-  float seperation1 = range(0., 0.95, separate);
-  vec2 offset = mix(vec2(0), dir * vec2(-2. * r, 3. * r), quint(seperation1));
-  offset = mix(offset, finish, expo(merge));
-  o = length(q + offset) - r;
-  o = step(0., o);
-  n = mix(n, 1. - n, o);
-
-  float seperation2 = range(0.05, 1.0, separate);
-  offset = mix(vec2(0), dir * vec2(2. * r, 3. * r), quint(seperation2));
-  offset = mix(offset, finish, expo(merge));
-  o = length(q + offset) - r;
-  o = step(0., o);
-  n = mix(n, 1. - n, o);
-
-  n = smoothstep(0., edge, n);
-  // n = 1. - n;
+  float n = d;
+  n = smoothstep(0., 3. * edge, n);
+  n = 1. - n;
   color = vec3(n);
-  color = mix(0.85 * #EB3B3F, #182DEB, n);
 
   float mask = 1.;
   // color *= mask;
@@ -2610,88 +2664,88 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
-  // vec3 color = vec3(0);
+  vec3 color = vec3(0);
 
-  // const int slices = 15;
-  // for (int i = 0; i < slices; i++) {
-  //   float fI = float(i);
-  //   vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
-  //   // vec3 layerColor = vec3(
-  //   //     saturate(mod(fI + 0., 3.)),
-  //   //     saturate(mod(fI + 1., 3.)),
-  //   //     saturate(mod(fI + 2., 3.))
-  //   // );
+  const int slices = 15;
+  for (int i = 0; i < slices; i++) {
+    float fI = float(i);
+    vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
+    // vec3 layerColor = vec3(
+    //     saturate(mod(fI + 0., 3.)),
+    //     saturate(mod(fI + 1., 3.)),
+    //     saturate(mod(fI + 2., 3.))
+    // );
 
-  //   vec3 dI = vec3(fI / float(slices));
-  //   dI += 0.3 * dot(uv, vec2(1));
-  //   // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+    vec3 dI = vec3(fI / float(slices));
+    dI += 0.7 * dot(uv, vec2(1));
+    // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
-  //   // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-  //   layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
-  //   // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-  //   // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-  //   layerColor *= colors1;
-  //   layerColor *= 1.3;
-  //   // layerColor = vec3(5.0);
+    // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
+    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
+    // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
+    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+    layerColor *= colors1;
+    layerColor *= 1.3;
+    // layerColor = vec3(5.0);
 
-  //   // CYM
-  //   // layerColor = vec3(0);
-  //   // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-  //   // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-  //   // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-  //   // layerColor *= 0.65;
-  //   // layerColor *= vec3(1.0, 0.6, 0.60);
+    // CYM
+    // layerColor = vec3(0);
+    // layerColor += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+    // layerColor += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+    // layerColor += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+    // layerColor *= 0.65;
+    // layerColor *= vec3(1.0, 0.6, 0.60);
 
-  //   // layerColor *= 0.6;
+    // layerColor *= 0.6;
 
-  //   // Add black layer as first layer
-  //   // layerColor *= step(0.5, fI);
+    // Add black layer as first layer
+    // layerColor *= step(0.5, fI);
 
-  //   // layerColor = pow(layerColor, vec3(4 + slices));
+    // layerColor = pow(layerColor, vec3(4 + slices));
 
-  //   const float maxDelayLength = 0.2;
-  //   float layerT = norT
-  //     + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
-  //   float mask = two_dimensional(uv, layerT).x;
-  //   layerColor *= mask;
-  //   // if (i == 0) {
-  //   //   color = layerColor;
-  //   // } else {
-  //   //   color = overlay(color, layerColor);
-  //   // }
-  //   // color *= layerColor;
+    const float maxDelayLength = 0.2;
+    float layerT = norT
+      + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
+    float mask = two_dimensional(uv, layerT).x;
+    layerColor *= mask;
+    // if (i == 0) {
+    //   color = layerColor;
+    // } else {
+    //   color = overlay(color, layerColor);
+    // }
+    // color *= layerColor;
 
-  //   // vec3 layerColorA = softLight2(color, layerColor);
-  //   // vec3 layerColorB = color * layerColor;
-  //   // layerColor = layerColorA + layerColorB;
-  //   // layerColor *= 0.85;
+    // vec3 layerColorA = softLight2(color, layerColor);
+    // vec3 layerColorB = color * layerColor;
+    // layerColor = layerColorA + layerColorB;
+    // layerColor *= 0.85;
 
-  //   // layerColor = overlay(color, layerColor);
-  //   // layerColor = screenBlend(color, layerColor);
-  //   // color = mix(color, layerColor, 0.3);
+    // layerColor = overlay(color, layerColor);
+    // layerColor = screenBlend(color, layerColor);
+    // color = mix(color, layerColor, 0.3);
 
-  //   // Add
-  //   color += layerColor;
+    // Add
+    color += layerColor;
 
-  //   // // Multiply
-  //   // color *= layerColor;
+    // // Multiply
+    // color *= layerColor;
 
-  //   // // Pseudo Multiply
-  //   // color = mix(color, color * layerColor, mask);
-  // }
+    // // Pseudo Multiply
+    // color = mix(color, color * layerColor, mask);
+  }
 
-  // color = pow(color, vec3(1.50));
-  // color /= float(slices);
+  color = pow(color, vec3(1.50));
+  color /= float(slices);
 
-  // // // Final layer
-  // // color.rgb += 0.3 * two_dimensional(uv, 0.);
+  // // Final layer
+  // color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // // // Color manipulation
-  // // color.rgb = 1. - color.rgb;
+  // // Color manipulation
+  // color.rgb = 1. - color.rgb;
 
-  // return vec4(color, 1.);
+  return vec4(color, 1.);
 
   float time = norT;
   vec4 t = march(ro, rd, time);
