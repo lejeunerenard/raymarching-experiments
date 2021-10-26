@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.025);
+const vec2 gSize = vec2(0.125);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2589,6 +2589,7 @@ vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
   float d = maxDistance;
+  float m = 0.;
 
   vec2 q = uv;
   float ovf = angle3C;
@@ -2598,65 +2599,56 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float stepC = floor(t * 3.);
-  float stepT = mod(t * 3., 1.);
-  float transition = 0.6;
-  float separate = range(0., transition, stepT);
-  float merge = range(transition, 1., stepT);
-
   const float warpScale = 0.25;
-  vec2 size = gSize;
-  const float r = 0.1;
+  const vec2 size = gSize;
+  float r = 0.48 * size.x;
 
   vec2 wQ = q;
-
   q = wQ;
   mUv = q;
 
-  // float b = dot(q, vec2(1));
-  // b = sin(TWO_PI * 50. * b);
-  // b = smoothstep(0.95, 0.95 + edge, b);
-  // color = vec3(b);
+  // didn't look as cool as I was envisioning but its still mesmerizing.. is
+  // there something I could do to up its complexity / make it more interesting?
+  vec2 localQ = q;
+  vec2 c = pMod2(localQ, vec2(size));
+  float o = length(localQ) - r;
+  d = min(d, o);
 
-  vec2 offset = vec2(0.);
+  for (float i = 0.; i < 7.; i++) {
+    q = abs(q - vec2(0.1, 7.23));
+    localQ = q;
+    localQ *= rotMat2(sin(i * TWO_PI * angle2C) * PI);
+    float localSize = (0.95 - i * angle1C) * size.x;
+    r = localSize * 0.5;
+    localQ += localSize * t;
+    c = pMod2(localQ, vec2(localSize));
 
-#define debugCircleEdge 1
+    // Shape
+    if (mod(i, 3.) == 0.) {
+      o = sdBox(localQ, vec2(r));
+    } else {
+      o = length(localQ) - r;
+    }
 
-  float e = circleEdgeCircle(q, localCosT);
-  d = min(d, e);
-
-  float n = d;
-  n = smoothstep(0., edge, n);
-  n = 1. - n;
-  color = mix(color, vec3(1), n);
-
-  for (float i = 0.; i < 3.; i++) {
-    d = maxDistance;
-    q *= 1.5;
-    q *= rotMat2(0.123 * PI);
-    e = circleEdgeCircle(q, localCosT + 0.2);
-    // e -= 0.010 * cellular(vec3(2. * q, 1.37 * i));
-    // e = abs(e) - 0.025;
-    d = min(d, e);
-
-    n = d;
-
-    // // Drop shadow?
-    // color *= 0.5 + 0.5 * range(0., 0.025, n);
-
-    n = smoothstep(0., edge, n);
-    n = 1. - n;
-
-    float modI = mod(i, 3.);
-    vec3 layerColor = mix(vec3(0.8, 0, 0), vec3(0), step(1., modI));
-    layerColor = mix(layerColor, vec3(1), step(2., modI));
-    color = mix(color, layerColor, n);
+    // Operator
+    // if (mod(i, 5.) == 3.) {
+    //   d = min(d, o);
+    // } else {
+      d = max(d, o);
+    // }
+    // q = localQ;
   }
+  // d = min(d, o);
 
   float mask = 1.;
   // color *= mask;
   // color = mix(color, vec3(0.8), 1. - mask);
 
+  float n = d;
+  // n = smoothstep(0., edge, n);
+  // color = 0.5 + 0.5 * cos(TWO_PI * 24. * n + vec3(0));
+  color = vec3(39. * n);
+  // color = vec3(n);
   return color.rgb;
 }
 
