@@ -1260,10 +1260,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec2 minD = vec2(1e19, 0);
   // Okay I just read a new article by iq. I'd like to implement it for today!
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.y += 0.04 * cos(cosT);
 
-  // float scale = 1. + 0.2 * cos(dot(p, vec3(5)) + cosT);
   vec3 q = p;
 
   // dT = angle3C; // Control time
@@ -1274,31 +1273,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 1.5 * r;
 
   float warpScale = 1.3;
+  float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
-  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.75 * PI * cos(wQ.y + localCosT));
-  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+  // wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
+  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.75 * PI * cos(wQ.y + localCosT));
+  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
+  for (int i = 0; i < 10; i++) {
+    float fI = float(i);
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1.) * kifsM).xyz;
+    float dI = dot(q, vec3(1));
+    wQ *= rotationMatrix(vec3(1), 0.125 * PI * cos(localCosT + dI));
+    rollingScale *= scale;
+  }
   // Commit warp
   q = wQ.xyz;
 
   q = q.xzy;
   mPos = q;
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // b.x = sdFBM(q, b.x);
+  vec3 b = vec3(length(q) - 0.1, 0, 0);
   d = dMin(d, b);
 
-  // vec3 crop = vec3(dodecahedral(q, 52., r), 1, 0);
-  // d = dMax(d, -crop);
-
-  // d.x /= rollingScale;
+  d.x /= rollingScale;
 
   d.x *= 0.4;
 
