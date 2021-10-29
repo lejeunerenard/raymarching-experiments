@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1285,13 +1285,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
   // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
-  for (int i = 0; i < 10; i++) {
+  wQ.yxz = wQ.xyz;
+
+  for (int i = 0; i < 13; i++) {
     float fI = float(i);
     wQ = abs(wQ);
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
-    float dI = dot(q, vec3(1));
-    wQ *= rotationMatrix(vec3(1), 0.125 * PI * cos(localCosT + dI));
+    float dI = dot(q, vec3(1,0,0));
+    wQ *= rotationMatrix(vec3(1,1,1), 0.175 * PI * cos(localCosT + dI));
     rollingScale *= scale;
   }
   // Commit warp
@@ -1299,7 +1301,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q = q.xzy;
   mPos = q;
-  vec3 b = vec3(length(q) - 0.1, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(0.05)), 0, 0);
+  vec3 b = vec3(length(q) - 0.3, 0, 0);
   d = dMin(d, b);
 
   d.x /= rollingScale;
