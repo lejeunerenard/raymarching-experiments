@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.125);
+const vec2 gSize = vec2(0.046875);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1137,22 +1137,21 @@ float shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.10 * dC;
+  locallocalT -= 0.015 * dC;
   float t = mod(locallocalT, 1.);
+  t = expo(t);
   float localCosT = TWO_PI * t;
 
-  // // Local C that transitions from one cell to another
-  // float shift = 1.;
-  // vec2 shiftDir = vec2(0);
+  // Local C that transitions from one cell to another
+  float shift = 4.;
+  vec2 shiftDir = vec2(1);
 
-  // vec2 localC = mix(c, c + shift * shiftDir, t);
+  vec2 localC = mix(c, c + shift * shiftDir, t);
 
-  // Vanilla cell coordinate
-  vec2 localC = c;
+  // // Vanilla cell coordinate
+  // vec2 localC = c;
 
-  // q *= rotMat2(0.25 * PI * sin(TWO_PI * t - 0.30 * length(c)));
-
-  float r = 0.25 * size;
+  float r = 0.0125 * size;
 
   // // Make grid look like random placement
   // float nT = triangleWave(t);
@@ -1164,16 +1163,11 @@ float shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
 
-  float side = floor(0.50 * mod(length(c), 4.));
-  q -= normalize(c) * side * size * (0.5 + 0.5 * cos(localCosT));
+  q += shiftDir * shift * size * t;
 
-  // q += 0.4 * normalize(c) * size * cos(TWO_PI * t - 0.15 * length(c)); // Move outward?
-  // q *= 1. - 0.125 * sin(PI * t);
-  // q *= rotMat2(0.5 * PI * t);
-
-  float a = atan(c.y, c.x);
-
-  float internalD = length(q);
+  // float internalD = length(q);
+  float internalD = abs(dot(q, vec2(-1, 1)));
+  internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
   // float internalD = sdBox(q, vec2(r));
@@ -1203,7 +1197,7 @@ float shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=5.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2616,48 +2610,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  // didn't look as cool as I was envisioning but its still mesmerizing.. is
-  // there something I could do to up its complexity / make it more interesting?
-  vec2 localQ = q;
-  vec2 c = pMod2(localQ, vec2(size));
-  float o = length(localQ) - r;
+  float o = neighborGrid(q, size);
   d = min(d, o);
-
-  for (float i = 0.; i < 7.; i++) {
-    q = abs(q - vec2(0.1, 7.23));
-    localQ = q;
-    localQ *= rotMat2(sin(i * TWO_PI * angle2C) * PI);
-    float localSize = (0.95 - i * angle1C) * size.x;
-    r = localSize * 0.5;
-    localQ += localSize * t;
-    c = pMod2(localQ, vec2(localSize));
-
-    // Shape
-    if (mod(i, 3.) == 0.) {
-      o = sdBox(localQ, vec2(r));
-    } else {
-      o = length(localQ) - r;
-    }
-
-    // Operator
-    // if (mod(i, 5.) == 3.) {
-    //   d = min(d, o);
-    // } else {
-      d = max(d, o);
-    // }
-    // q = localQ;
-  }
-  // d = min(d, o);
 
   float mask = 1.;
   // color *= mask;
   // color = mix(color, vec3(0.8), 1. - mask);
 
   float n = d;
-  // n = smoothstep(0., edge, n);
-  // color = 0.5 + 0.5 * cos(TWO_PI * 24. * n + vec3(0));
-  color = vec3(39. * n);
-  // color = vec3(n);
+  n = smoothstep(0., edge, n);
+  n = 1. - n;
+  color = vec3(n);
   return color.rgb;
 }
 
@@ -2689,7 +2652,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
