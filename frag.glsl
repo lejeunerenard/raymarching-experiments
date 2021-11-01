@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.046875);
+const vec2 gSize = vec2(0.06);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1114,10 +1114,10 @@ float microGrid ( in vec2 q ) {
 float localCosT = cosT;
 float localT = norT;
 float second = maxDistance;
-float shape (in vec2 q, in vec2 c) {
-  float d = maxDistance;
+vec2 shape (in vec2 q, in vec2 c) {
+  vec2 d = vec2(maxDistance, -1.);
+  // cool now I have material support
 
-  // nice. trippy already
   vec2 uv = q;
 
   float odd = mod(dot(c, vec2(1)), 2.);
@@ -1137,21 +1137,22 @@ float shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.015 * dC;
+  locallocalT += 0.015 * dC;
+  // NOTE Flip time offset if there are gaps
   float t = mod(locallocalT, 1.);
   t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
   float shift = 4.;
-  vec2 shiftDir = vec2(1);
+  vec2 shiftDir = vec2(1, 0);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.0125 * size;
+  float r = 0.25 * size;
 
   // // Make grid look like random placement
   // float nT = triangleWave(t);
@@ -1163,11 +1164,11 @@ float shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
 
-  q += shiftDir * shift * size * t;
+  q -= shiftDir * shift * size * t;
 
-  // float internalD = length(q);
-  float internalD = abs(dot(q, vec2(-1, 1)));
-  internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
+  float internalD = length(q);
+  // float internalD = abs(dot(q, vec2(-1, 1)));
+  // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
   // float internalD = sdBox(q, vec2(r));
@@ -1177,9 +1178,10 @@ float shape (in vec2 q, in vec2 c) {
   // internalD = max(internalD, crossMask);
 
   // float o = internalD;
-  float o = internalD - r;
+  vec2 o = vec2(internalD - r, 0.);
+  o.y = dot(localC, vec2(1));
   // float o = microGrid(q);
-  d = min(d, o);
+  d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1213,7 +1215,7 @@ float thingy (in vec2 q, in float t) {
 
   float r = 0.40;
 
-  float shape = neighborGrid(q, gSize);
+  float shape = neighborGrid(q, gSize).x;
   d = min(d, shape);
 
   // // Outline
@@ -2592,7 +2594,6 @@ vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
   float d = maxDistance;
-  float m = 0.;
 
   vec2 q = uv;
   float ovf = angle3C;
@@ -2610,7 +2611,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  float o = neighborGrid(q, size);
+  vec2 o2 = neighborGrid(q, size);
+  float o = o2.x;
+  float m = o2.y;
   d = min(d, o);
 
   float mask = 1.;
@@ -2620,7 +2623,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = d;
   n = smoothstep(0., edge, n);
   n = 1. - n;
-  color = vec3(n);
+
+  // // B&W
+  // color = vec3(n);
+
+  // Color based on material ID
+  color = 0.5 + 0.5 * cos(TWO_PI * (0.035 * m + vec3(0, 0.33, 0.67)));
+  // color = vec3(1) * mod(m, 1.);
+  color *= n;
+
   return color.rgb;
 }
 
