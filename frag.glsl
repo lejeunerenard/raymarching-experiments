@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 450
+#define maxSteps 1024
 #define maxDistance 60.0
 #define fogMaxDistance 60.0
 
@@ -1250,13 +1250,13 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.45;
+float gR = 0.4;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
   // Okay I just read a new article by iq. I'd like to implement it for today!
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.y += 0.04 * cos(cosT);
 
   vec3 q = p;
@@ -1268,43 +1268,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.5 * r;
 
-  float warpScale = 1.3;
+  float warpScale = 1.5;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, -1. * wQ.y + 0.75 * PI * cos(wQ.y + localCosT));
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+  wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
-  wQ.yxz = wQ.xyz;
-
-  for (int i = 0; i < 13; i++) {
-    float fI = float(i);
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1.) * kifsM).xyz;
-    // float dI = length(wQ.xy);
-    // wQ *= rotationMatrix(vec3(1,-1,1), 0.075 * PI * cos(localCosT + dI));
-    rollingScale *= scale;
-  }
   // Commit warp
   q = wQ.xyz;
 
-  q = q.xzy;
   mPos = q;
-  // vec3 b = vec3(sdBox(q, vec3(0.)), 0, 0);
-  vec3 b = vec3(length(q), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(length(q), 0, 0);
   d = dMin(d, b);
 
-  d.x /= rollingScale;
-  d.x -= 0.005;
+  d.x -= 0.0075 * cellular(3. * q);
 
-  d.x *= 0.6;
+  // d.x /= rollingScale;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1438,15 +1426,14 @@ vec3 textures (in vec3 rd) {
 
   // dI *= 0.3;
 
+  // -- Colors --
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
   // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.1, 0.3) ) );
 
-  // color = mix(#F585E6, #6CF5EA, 0.5 + 0.5 * cos(TWO_PI * dI.x));
+  // color = vec3(n);
 
   color *= spread;
-
-  // color.r = pow(color.r, 0.2);
 
   // color = getBackground(rd.xy, 0.);
 
@@ -1711,13 +1698,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.00 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
-      float dispersionI = 1.0;
+      float dispersionI = 0.20 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2663,7 +2650,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
