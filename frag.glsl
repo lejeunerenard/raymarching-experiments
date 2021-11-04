@@ -1250,36 +1250,13 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-vec3 combined (in vec3 q, in float r, in float localCosT) {
-  const float warpScale = 1.5;
-
-  // Warp
-  vec3 wQ = q.xyz;
-
-  wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
-  wQ += warpScale * 0.1000000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, -3. * wQ.y);
-  wQ += warpScale * 0.0250000 * cos(13. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0125000 * cos(19. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0062500 * cos(25. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0031250 * cos(29. * wQ.yzx + localCosT );
-
-  // Commit warp
-  q = wQ.xyz;
-
-  mPos = q;
-  return vec3(sdBox(q, vec3(r)), 0, 0);
-  // return vec3(length(q) - r, 0, 0);
-}
-
-float gR = 0.4;
+float gR = 0.5;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
   // Okay I just read a new article by iq. I'd like to implement it for today!
 
-  p *= globalRot;
+  // p *= globalRot;
   // p.y += 0.04 * cos(cosT);
 
   vec3 q = p;
@@ -1291,33 +1268,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.5 * r;
 
-  float warpScale = 1.5;
+  float warpScale = 0.5;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+  wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
-  vec3 b = combined(q, r, localCosT);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  b = combined(vec3(-1, 1, 1) * q, r, localCosT);
-  d = dMin(d, b);
-
-  d.x -= 0.0075 * cellular(3. * q);
+  // d.x -= 0.0075 * cellular(3. * q);
 
   // d.x /= rollingScale;
-  d.x *= 0.5;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1454,7 +1428,7 @@ vec3 textures (in vec3 rd) {
   // -- Colors --
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
 
-  // color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.1, 0.3) ) );
+  // color = 0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) );
 
   // color = vec3(n);
 
@@ -1547,9 +1521,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5, 1.5, 1.6);
-
-  return color;
+  vec3 color = vec3(1.5);
+  // return vec3(0);
 
 //   float n = dot(pos, vec3(1));
 //   n = sin(TWO_PI * 15. * n);
@@ -1565,6 +1538,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.2 * pow(dNR, 3.);
   dI += 0.2 * snoise3(abs(mPos));
+  vec3 s = vec3(0);
+  dI += 0.025 * fbmWarp(2. * mPos, s);
   dI += 0.5 * mPos.y;
 
   dI *= angle1C;
@@ -1655,8 +1630,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1675,7 +1650,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.7;
+        float shadowMin = 1.0;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1708,10 +1683,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.05 * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1720,25 +1695,25 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 0.20 * pow(1. - 0.5 * dot(nor, -rayDirection), 3.00);
+      float dispersionI = 0.95 * pow(1. - 0.5 * dot(nor, -rayDirection), 2.00);
       // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.05));
+      // // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
