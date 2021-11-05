@@ -5,7 +5,7 @@
 
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
-#define HUE 2
+#define HUE 1
 #define HUE_NUM 1
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
