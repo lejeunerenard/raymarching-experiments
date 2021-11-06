@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1137,15 +1137,15 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT -= 0.05 * length(c);
-  locallocalT += 0.015 * dC;
+  locallocalT += 0.010 * dC;
   // NOTE Flip time offset if there are gaps
   float t = mod(locallocalT, 1.);
   t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 4.;
-  vec2 shiftDir = vec2(1, 0);
+  float shift = 1.;
+  vec2 shiftDir = vec2(1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1154,12 +1154,12 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   float r = 0.25 * size;
 
-  // // Make grid look like random placement
-  // float nT = triangleWave(t);
-  // q += 0.5 * size * mix(
-  //     vec2(1, -1) * snoise2(1.317 * c + 23.17123),
-  //     vec2(1) * snoise2(0.123 * c),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5; // triangleWave(t);
+  q += 0.5 * size * mix(
+      vec2(1, -1) * snoise2(0.417 * localC + 23.17123),
+      vec2(1) * snoise2(0.123 * localC),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
@@ -2630,10 +2630,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // B&W
   // color = vec3(n);
 
-  // Color based on material ID
-  color = 0.5 + 0.5 * cos(TWO_PI * (0.035 * m + vec3(0, 0.33, 0.67)));
-  // color = vec3(1) * mod(m, 1.);
-  color *= n;
+  // JS colors
+  color = mix(colors1, colors2, n);
+  // color *= n;
 
   return color.rgb;
 }
@@ -2666,7 +2665,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 

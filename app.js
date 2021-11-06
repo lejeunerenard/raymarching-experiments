@@ -13,6 +13,7 @@ import drawTriangle from 'a-big-triangle'
 import defined from 'defined'
 import assert from 'assert'
 import { vec3, mat4 } from 'gl-matrix'
+import { getLuminance, getColorWFixedLuminance } from './luminance'
 
 const dpr = 1.0 / window.devicePixelRatio
 
@@ -59,8 +60,9 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, 1.85)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [121, 170, 150]
-    this.colors2 = [250, 183, 238]
+    this.colors1 = [152, 166, 200]
+    this.colors2 = [null, 71, 25]
+    this.getEqualLuminance(this.colors1, this.colors2, 0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -103,6 +105,13 @@ export default class App {
       canvas,
       gl
     })
+  }
+
+  getEqualLuminance (reference, second, position) {
+    second[position] = null
+    second[position] = getColorWFixedLuminance(
+      second[0], second[1], second[2],
+      getLuminance(reference))
   }
 
   getDimensions () {
@@ -435,6 +444,8 @@ export default class App {
     this.shader.uniforms.angle3C = this.angle3C
 
     this.shader.uniforms.colors1 = [this.colors1[0] / 255, this.colors1[1] / 255, this.colors1[2] / 255]
+    // Update colors2 based on colors1 luminance
+    this.getEqualLuminance(this.colors1, this.colors2, 0)
     this.shader.uniforms.colors2 = [this.colors2[0] / 255, this.colors2[1] / 255, this.colors2[2] / 255]
 
     this.shader.uniforms.d = this.d
