@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.06);
+const vec2 gSize = vec2(0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1120,14 +1120,14 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   vec2 uv = q;
 
-  float odd = mod(dot(c, vec2(1)), 2.);
+  // float dC = vmax(abs(c));
+  float dC = dot(c, vec2(1));
+
+  float odd = mod(dC, 2.);
   float even = 1. - odd;
 
   const float warpScale = 0.;
   float size = gSize.y;
-
-  // float dC = vmax(abs(c));
-  float dC = dot(c, vec2(1));
 
   // // Assume [0,1] range per dimension
   // vec2 bigSize = vec2(2);
@@ -1136,8 +1136,10 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
+  // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
-  locallocalT += 0.010 * dC;
+  locallocalT += 0.0075 * dC;
+  locallocalT += 0.0025 * odd; // To (maybe) separate the different directions more?
   // NOTE Flip time offset if there are gaps
   float t = mod(locallocalT, 1.);
   t = expo(t);
@@ -1145,18 +1147,18 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Local C that transitions from one cell to another
   float shift = 1.;
-  vec2 shiftDir = vec2(1);
+  vec2 shiftDir = vec2((1. - 2. * odd), 1.);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.25 * size;
+  float r = 0.20 * size;
 
   // Make grid look like random placement
   float nT = 0.5; // triangleWave(t);
-  q += 0.5 * size * mix(
+  q += 0.75 * size * mix(
       vec2(1, -1) * snoise2(0.417 * localC + 23.17123),
       vec2(1) * snoise2(0.123 * localC),
       nT);
@@ -1183,9 +1185,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float o = microGrid(q);
   d = dMin(d, o);
 
-  // // Outline
-  // const float adjustment = 0.0;
-  // d = abs(d - adjustment) - r * 0.0250;
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - r * 0.0250;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
@@ -2627,11 +2629,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   n = smoothstep(0., edge, n);
   n = 1. - n;
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
-  // JS colors
-  color = mix(colors1, colors2, n);
+  // // JS colors
+  // color = mix(colors1, colors2, n);
+
   // color *= n;
 
   return color.rgb;
