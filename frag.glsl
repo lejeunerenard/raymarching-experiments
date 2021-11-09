@@ -1104,7 +1104,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.075);
+const vec2 gSize = vec2(0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1137,31 +1137,36 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.05 * length(c);
-  locallocalT += 0.0075 * dC;
+  locallocalT -= 0.05 * length(c);
+  // locallocalT += 0.0075 * dC;
   // locallocalT += 0.05 * odd; // To (maybe) separate the different directions more?
   // NOTE Flip time offset if there are gaps
+  // I'd like to figure out how this happens. I know the basics that the timing
+  // between the cell that covers the beginning vs the end position is off. But
+  // how can I cleanly fix this....
+
+  float preModT = locallocalT;
   float t = mod(locallocalT, 1.);
   t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
   float shift = 1.;
-  vec2 shiftDir = vec2((1. - 1. * odd), 1. + even);
+  vec2 shiftDir = (1. - 2. * step(1., c.y)) * vec2((1. - 1. * odd), 1. + even);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.30 * size;
+  float r = 0.25 * size;
 
-  // // Make grid look like random placement
-  // float nT = 0.5; // triangleWave(t);
-  // q += 0.75 * size * mix(
-  //     vec2(1, -1) * snoise2(0.417 * localC + 23.17123),
-  //     vec2(1) * snoise2(0.123 * localC),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  q += 0.25 * size * mix(
+      vec2(1, -1) * snoise2(0.417 * localC + 23.17123),
+      vec2(1) * snoise2(0.123 * localC),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
@@ -1171,8 +1176,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float internalD = length(q);
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
-  // float internalD = vmax(abs(q));
-  float internalD = dot(abs(q), vec2(1));
+  float internalD = vmax(abs(q));
+  // float internalD = dot(abs(q), vec2(1));
   // float internalD = sdBox(q, vec2(r));
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
@@ -1201,7 +1206,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   return d;
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2604,6 +2609,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float ovf = angle3C;
 
   // Global Timing
+  // generalT = angle1C;
   float t = mod(generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
@@ -2629,11 +2635,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   n = smoothstep(0., edge, n);
   n = 1. - n;
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
-  // JS colors
-  color = mix(colors1, colors2, n);
+  // // JS colors
+  // color = mix(colors1, colors2, n);
 
   // color *= n;
 
