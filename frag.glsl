@@ -172,6 +172,11 @@ float noise( in vec3 x ) {
   return sin(1.5*x.x)*sin(1.5*x.y)*sin(1.5*x.z);
 }
 
+// Source: https://www.shadertoy.com/view/fsyGD3
+float h21 (vec2 a) {
+  return fract(sin(dot(a.xy,vec2(12.9898,78.233)))*43758.5453123);
+}
+
 float sinoise3( in vec3 x ) {
   return sin(1.5 * x.x) * sin(1.51 * x.y) * sin(1.52 * x.z * x.x);
 }
@@ -2600,6 +2605,8 @@ float circleEdgeCircle (in vec2 q, in float localCosT) {
   return d;
 }
 
+#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -2622,9 +2629,34 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  vec2 o2 = neighborGrid(q, size);
-  float o = o2.x;
-  float m = o2.y;
+  // okay. so im aiming to implement a subdivision algorithm i found from
+  // @TaterGFX and make the parts zoom in or at least fade in.
+  // eventually want to get to this 3D cube version but sticking with 2D for now.
+  // https://www.shadertoy.com/view/fd3SRN
+  // Still it has different good ideas
+
+  float scale = 1.2;
+  vec2 boxQ = scale * q;
+  vec3 subResult = subdivide(boxQ, 1.5871);
+  vec2 dim = subResult.xy;
+  float id = subResult.z;
+
+  vec2 center = scale * uv - boxQ;
+
+  // float offset = 0.0009523 * id;
+  float offset = 0.35 * center.x;
+  // float offset = -0.4 * length(center);
+  float boxT = mod(t + offset, 1.0);
+  boxT = triangleWave(boxT);
+  boxT = range(0.1, 0.8, boxT);
+  boxT = expo(boxT);
+  dim *= boxT;
+  // boxQ += 1. - boxT;
+  vec2 boxD = abs(boxQ) - dim * 0.5;
+  float o = vmax(boxD);
+  o /= scale;
+  o += 0.002;
+
   d = min(d, o);
 
   float mask = 1.;
@@ -2632,7 +2664,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = mix(color, vec3(0.8), 1. - mask);
 
   float n = d;
-  n = smoothstep(0., edge, n);
+  float stop = 0.;
+  n = smoothstep(stop, stop + 0.5 * edge, n);
   n = 1. - n;
 
   // B&W
