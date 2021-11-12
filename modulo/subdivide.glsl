@@ -1,5 +1,5 @@
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 5.
+#define DIVIDE_ITERS 6.
 #endif
 
 vec3 subdivide (inout vec2 q, in float seed) {
@@ -12,7 +12,7 @@ vec3 subdivide (inout vec2 q, in float seed) {
 
   // Params
 #ifndef MIN_SIZE
-  float MIN_SIZE = 0.01;
+  float MIN_SIZE = 0.0025;
 #endif
 #ifndef MIN_ITERS
   float MIN_ITERS = 1.;

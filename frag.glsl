@@ -2617,7 +2617,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Global Timing
   // generalT = angle1C;
-  float t = mod(generalT + 0.0, 1.0);
+  float t = mod(2. * generalT + 0.0, 1.0);
   localCosT = TWO_PI * t;
   localT = t;
 
@@ -2629,17 +2629,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  // okay. so im aiming to implement a subdivision algorithm i found from
-  // @TaterGFX and make the parts zoom in or at least fade in.
-  // eventually want to get to this 3D cube version but sticking with 2D for now.
-  // https://www.shadertoy.com/view/fd3SRN
-  // Still it has different good ideas
+  // That was a success. Now to try to move in the boxes it creates
 
-  float scale = 1.2;
+  vec2 scale = vec2(1.120, 0.67);
   vec2 boxQ = scale * q;
-  vec3 subResult = subdivide(boxQ, 1.5871);
+  float seed = 1.5871 + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
+  vec3 subResult = subdivide(boxQ, seed);
   vec2 dim = subResult.xy;
   float id = subResult.z;
+  // float guard = subResult.w;
 
   vec2 center = scale * uv - boxQ;
 
@@ -2648,13 +2646,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // float offset = -0.4 * length(center);
   float boxT = mod(t + offset, 1.0);
   boxT = triangleWave(boxT);
-  boxT = range(0.1, 0.8, boxT);
+  // boxT = range(0.1, 0.8, boxT);
   boxT = expo(boxT);
-  dim *= boxT;
-  // boxQ += 1. - boxT;
+  boxQ.x += dim.x * (1. - boxT);
+  dim.x *= boxT;
   vec2 boxD = abs(boxQ) - dim * 0.5;
   float o = vmax(boxD);
-  o /= scale;
+  o /= vmin(scale);
   o += 0.002;
 
   d = min(d, o);
