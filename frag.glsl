@@ -2610,10 +2610,9 @@ float circleEdgeCircle (in vec2 q, in float localCosT) {
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
-  float d = maxDistance;
+  vec2 d = vec2(0., -1);
 
   vec2 q = uv;
-  float ovf = angle3C;
 
   // Global Timing
   // generalT = angle1C;
@@ -2623,56 +2622,66 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.25;
   const vec2 size = gSize;
-  float r = 0.48 * size.x;
+  float r = 0.2;
 
   vec2 wQ = q;
   q = wQ;
   mUv = q;
 
-  // That was a success. Now to try to move in the boxes it creates
+  vec3 dI = vec3(uv, 0.);
+  for (float i = 0.; i < 5.; i++) {
+    vec2 localQ = q;
+    localQ += 0.8 * vec2(
+        snoise2(vec2( 1.00 * i + 0.00)),
+        snoise2(vec2( 2.10 * i + 0.00)));
+    localQ += 0.8 * r * cos(localCosT + 7.323 * i);
 
-  vec2 scale = vec2(1.120, 0.67);
-  vec2 boxQ = scale * q;
-  float seed = 1.5871 + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
-  vec3 subResult = subdivide(boxQ, seed);
-  vec2 dim = subResult.xy;
-  float id = subResult.z;
-  // float guard = subResult.w;
+    vec2 o = vec2(length(localQ) - r, mod(i, 3.));
+    // vec2 o = vec2(abs(sdBox(localQ, vec2(r))), mod(i, 3.));
 
-  vec2 center = scale * uv - boxQ;
+    float modI = mod(i, 3.);
+    if (modI == 0.) {
+      dI.x += o.x;
+    } else if (modI == 1.) {
+      dI.y += o.x;
+    } else if (modI == 2.) {
+      dI.z += o.x;
+    }
+    dI += 0.002 * snoise2(147. * q + 0.123 * i + o.x);
+    // dI += 0.08 * vfbmWarp(0.2 * q + 0.123 * i + o.x);
+    dI *= 0.95;
+    // dI.xyz += 0.05 * i * dI.yzx;
+    q *= rotMat2(length(q) + 0.2 * PI * i);
+  }
 
-  // float offset = 0.0009523 * id;
-  float offset = 0.35 * center.x;
-  // float offset = -0.4 * length(center);
-  float boxT = mod(t + offset, 1.0);
-  boxT = triangleWave(boxT);
-  // boxT = range(0.1, 0.8, boxT);
-  boxT = expo(boxT);
-  boxQ.x += dim.x * (1. - boxT);
-  dim.x *= boxT;
-  vec2 boxD = abs(boxQ) - dim * 0.5;
-  float o = vmax(boxD);
-  o /= vmin(scale);
-  o += 0.002;
-
-  d = min(d, o);
-
-  float mask = 1.;
+  float mask = length(q) - 0.4;
+  float stop = 0.;
+  mask = smoothstep(stop, stop + 0.5 * edge, mask);
+  mask = 1. - mask;
   // color *= mask;
   // color = mix(color, vec3(0.8), 1. - mask);
 
-  float n = d;
-  float stop = 0.;
-  n = smoothstep(stop, stop + 0.5 * edge, n);
-  n = 1. - n;
+  float n = d.x;
+  // float stop = 0.;
+  // n = smoothstep(stop, stop + 0.5 * edge, n);
+  // n = 1. - n;
 
-  // B&W
-  color = vec3(n);
+  // // B&W
+  // color = vec3(n);
 
   // // JS colors
   // color = mix(colors1, colors2, n);
 
+  // Cosine Palette
+  // vec3 dI = vec3(n);
+  // dI += 0.1238 * d.y;
+  dI *= angle1C;
+  dI += angle2C;
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
   // color *= n;
+
+  color = mix(1.00 * vec3(0.7, 0, 0.4), color, mask);
 
   return color.rgb;
 }
