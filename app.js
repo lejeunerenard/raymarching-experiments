@@ -60,9 +60,9 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0, 1.85)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [24, 165, 91]
+    this.colors1 = [96, 132, 198]
     this.colors2 = [null, 94, 167]
-    this.getEqualLuminance(this.colors1, this.colors2, 0)
+    // this.getEqualLuminance(this.colors1, this.colors2, 0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -75,8 +75,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.8
-    this.angle2C = 1.5878
+    this.angle1C = -1.6466
+    this.angle2C = -0.5437
     this.angle3C = 1.8
 
     // this.setupAnimation(preset)
@@ -445,7 +445,7 @@ export default class App {
 
     this.shader.uniforms.colors1 = [this.colors1[0] / 255, this.colors1[1] / 255, this.colors1[2] / 255]
     // Update colors2 based on colors1 luminance
-    this.getEqualLuminance(this.colors1, this.colors2, 0)
+    // this.getEqualLuminance(this.colors1, this.colors2, 0)
     this.shader.uniforms.colors2 = [this.colors2[0] / 255, this.colors2[1] / 255, this.colors2[2] / 255]
 
     this.shader.uniforms.d = this.d

@@ -1262,7 +1262,7 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.5;
+float gR = 0.4;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1287,35 +1287,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  const float bounceHeight = 0.4;
-
-  wQ.y += 0.5 * bounceHeight;
-  wQ.y -= bounceHeight * abs(sin(localCosT - 0.35 * wQ.y));
-
-  // wQ *= 1. + 0.05 * cos(-1.5 * length(wQ) + localCosT);
-  // wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
-  // wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * wQ.yzx + localCosT );
+  wQ.xyz = twist(wQ.xzy, -2. * wQ.z);
+  wQ += warpScale * 0.05000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, -2. * wQ.y);
+  wQ += warpScale * 0.02500 * cos(13. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.01250 * cos(19. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
-  // float a = atan(q.z, q.x);
-  // r -= 0.00625 * r * abs(sin(10. * a));
-
   mPos = q;
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
-
-  q = p;
-  vec3 f = vec3(sdPlane(q + vec3(0, 1.01 * baseR + 0.5 * bounceHeight, 0), vec4(0, 1, 0, 0)), 1, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, f);
-
-  // d.x -= 0.0075 * cellular(3. * q);
 
   // d.x /= rollingScale;
   d.x *= 0.25;
@@ -1574,9 +1558,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (0.25 * color + dI + vec3(0, 0.33, 0.67)));
-  color *= 0.6;
-
-  color = mix(color, 0.8 * vec3(2.5, 3, 3), isMaterialSmooth(m, 1.));
+  color *= 0.7;
 
   gM = m;
 
@@ -1725,7 +1707,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 0.95 * pow(1. - 0.65 * dot(nor, -rayDirection), 2.00);
+      float dispersionI = 1.0 * pow(1. - 0.25 * dot(nor, -rayDirection), 2.00);
       // float dispersionI = 1.0;
       dispersionI *= 1. - isFloor;
       dispersionColor *= dispersionI;
@@ -2714,7 +2696,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
