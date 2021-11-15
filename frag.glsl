@@ -1109,7 +1109,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.04);
+const vec2 gSize = vec2(0.075);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2592,7 +2592,7 @@ float circleEdgeCircle (in vec2 q, in float localCosT) {
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
-  vec2 d = vec2(0., -1);
+  vec2 d = vec2(maxDistance, -1);
 
   vec2 q = uv;
 
@@ -2604,52 +2604,51 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.25;
   const vec2 size = gSize;
-  float r = 0.2;
+  float r = 0.5 * size.x;
 
   vec2 wQ = q;
+  vec2 c = pMod2(wQ, size);
   q = wQ;
   mUv = q;
 
-  vec3 dI = vec3(uv, 0.);
-  for (float i = 0.; i < 5.; i++) {
-    vec2 localQ = q;
-    localQ += 0.8 * vec2(
-        snoise2(vec2( 1.00 * i + 0.00)),
-        snoise2(vec2( 2.10 * i + 0.00)));
-    localQ += 0.8 * r * cos(localCosT + 7.323 * i);
+  vec2 truchetQ = q;
+  if (h21(c) < 0.5) truchetQ.x *= -1.; // Flip, don't rotate
+  if (dot(truchetQ, vec2(1)) <= 0.) truchetQ *= -1.;
 
-    vec2 o = vec2(length(localQ) - r, mod(i, 3.));
-    // vec2 o = vec2(abs(sdBox(localQ, vec2(r))), mod(i, 3.));
+  truchetQ -= vec2(0.5 * size);
 
-    float modI = mod(i, 3.);
-    if (modI == 0.) {
-      dI.x += o.x;
-    } else if (modI == 1.) {
-      dI.y += o.x;
-    } else if (modI == 2.) {
-      dI.z += o.x;
-    }
-    dI += 0.002 * snoise2(147. * q + 0.123 * i + o.x);
-    // dI += 0.08 * vfbmWarp(0.2 * q + 0.123 * i + o.x);
-    dI *= 0.95;
-    // dI.xyz += 0.05 * i * dI.yzx;
-    q *= rotMat2(length(q) + 0.2 * PI * i);
-  }
+  float angle = atan(truchetQ.x, truchetQ.y);
+  angle += PI;
+  angle *= 2. / PI;
+  float checker = mod(dot(c, vec2(1)), 2.);
+  angle *= checker * 2. - 1.;
 
-  float mask = length(q) - 0.4;
-  float stop = 0.;
-  mask = smoothstep(stop, stop + 0.5 * edge, mask);
+  angle += localCosT;
+  angle = sin(angle1C * angle);
+  angle = step(0., angle);
+
+  float width = 0.2 * r;
+
+  vec2 o = vec2(length(truchetQ) - r, 0);
+  o.x = abs(o.x) - width; // Outline
+  d = dMin(d, o);
+
+  float mask = 1.;
+  mask = smoothstep(0., 0.5 * edge, mask - 0.);
   mask = 1. - mask;
   // color *= mask;
   // color = mix(color, vec3(0.8), 1. - mask);
 
   float n = d.x;
-  // float stop = 0.;
-  // n = smoothstep(stop, stop + 0.5 * edge, n);
-  // n = 1. - n;
+  // n = sin(TWO_PI * 60. * n);
+  n = smoothstep(0., 0.5 * edge, n - 0.);
+  n = 1. - n;
 
-  // // B&W
-  // color = vec3(n);
+  // // Solid
+  // color = vec3(1);
+
+  // B&W
+  color = vec3(angle);
 
   // // JS colors
   // color = mix(colors1, colors2, n);
@@ -2657,13 +2656,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Cosine Palette
   // vec3 dI = vec3(n);
   // dI += 0.1238 * d.y;
-  dI *= angle1C;
-  dI += angle2C;
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // color *= n;
-
-  color = mix(1.00 * vec3(0.7, 0, 0.4), color, mask);
+  color *= n;
 
   return color.rgb;
 }
@@ -2696,7 +2691,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
