@@ -2589,6 +2589,21 @@ float circleEdgeCircle (in vec2 q, in float localCosT) {
 
 #pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
 
+float uShape (in vec2 q, in float r, in float size) {
+  // "U" shape
+  r = r * 0.707107; // sqrt(2) * 0.5
+  float o = length(q) - r;
+
+  // Add straight section
+  vec2 straightQ = q;
+  straightQ -= vec2(0.25 * size);
+  straightQ *= rotMat2(0.25 * PI);
+  float straight = sdBox(straightQ, vec2(r));
+  o = min(o, straight);
+
+  return o;
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -2609,6 +2624,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
   vec2 c = pMod2(wQ, size);
+  // vec2 c = vec2(0);
   q = wQ;
   mUv = q;
 
@@ -2616,8 +2632,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   if (h21(c + seed) < 0.5) truchetQ.x *= -1.; // Flip, don't rotate
   if (dot(truchetQ, vec2(1)) <= 0.) truchetQ *= -1.;
 
+  float width = 0.1 * r;
+
   truchetQ -= vec2(0.5 * size);
 
+  // float mixD = mix(vmax(abs(truchetQ)), dot(abs(truchetQ), vec2(1)), 0.5 + 0.25 * cos(localCosT - length(c)));
+  // vec2 o = vec2(mixD - r, 0);
+
+  float lPPow = 1. + 3. * (0.5 + 0.5 * cos(localCosT - length(c)));
+  float lPow = pow(dot(pow(truchetQ, vec2(lPPow)), vec2(1)), 1. / lPPow);
+  vec2 o = vec2(lPow - r, 0);
+
+  // vec2 o = vec2(dot(abs(truchetQ), vec2(1)) - r, 0);
+  // vec2 o = vec2(vmax(abs(truchetQ)) - r, 0);
+  // vec2 o = vec2(length(truchetQ) - r, 0);
+
+  // // "U" shape
+  // vec2 o = vec2(uShape(q, r, size.x), 0);
+
+  o.x = abs(o.x) - width; // Outline
+  d = dMin(d, o);
+
+  // Angle
   float angle = atan(truchetQ.x, truchetQ.y);
   angle += PI;
   angle *= 2. / PI;
@@ -2629,15 +2665,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // angle = abs(angle);
 
   angle += localCosT;
-  angle -= length(c);
   angle = sin(angle1C * angle);
   angle = step(0., angle);
-
-  float width = 0.3 * r;
-
-  vec2 o = vec2(length(truchetQ) - r, 0);
-  o.x = abs(o.x) - width; // Outline
-  d = dMin(d, o);
 
   float mask = 1.;
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
@@ -2669,15 +2698,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // --- Debug ---
 
-  // Border
-  const vec3 borderColor = vec3(1);
+  // // Border
+  // const vec3 borderColor = vec3(1);
 
-  float b = vmax(abs(q)) - (0.5 * size.x - 0.5 * edge);
-  b = step(0., b);
+  // float b = vmax(abs(q)) - (0.5 * size.x - 0.5 * edge);
+  // b = step(0., b);
 
-  float borderMask = b;
-  borderMask -= saturate(angle) * n * step(0.5, staticAngle);
-  color = mix(color, borderColor, saturate(borderMask));
+  // float borderMask = b;
+  // borderMask -= saturate(angle) * n * step(0.5, staticAngle);
+  // color = mix(color, borderColor, saturate(borderMask));
 
   // // Show negative
   // if (vmax(color) < 0.) {
