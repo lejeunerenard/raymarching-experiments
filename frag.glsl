@@ -2639,53 +2639,34 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.25;
   const vec2 size = gSize;
-  float r = 0.5 * size.x;
+  float bigR = 0.20;
+  float r = 0.25 * bigR;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q;
-	vec2 c = floor((wQ + size*0.5)/size);
+  wQ.yx = wQ.xy;
   q = wQ;
   mUv = q;
 
-  float width = 0.1 * r;
+  for (float i = 0.; i < 3.; i++) {
+    float angle = localCosT;
+    angle += 0.125 * PI * i;
 
-  vec3 tru = truchetSpace(q, size.x, seed);
-  vec2 truchetQ = tru.xy;
-  float angle = tru.z;
+    q *= rotMat2(0.5 * PI * sin(angle));
+    q.x = abs(q.x);
 
-  // float mixD = mix(vmax(abs(truchetQ)), dot(abs(truchetQ), vec2(1)), 0.5 + 0.25 * cos(localCosT - length(c)));
-  // vec2 o = vec2(mixD - r, 0);
+    float s = length(q - vec2(bigR, 0)) - r;
+    d.x = min(d.x, s);
 
-  float lPPow = 1. + 3. * (0.5 + 0.5 * cos(localCosT - length(c)));
-  float lPow = pow(dot(pow(truchetQ, vec2(lPPow)), vec2(1)), 1. / lPPow);
-  vec2 o = vec2(lPow - r, 0);
-
-  // vec2 o = vec2(dot(abs(truchetQ), vec2(1)) - r, 0);
-  // vec2 o = vec2(vmax(abs(truchetQ)) - r, 0);
-  // vec2 o = vec2(length(truchetQ) - r, 0);
-
-  // // "U" shape
-  // vec2 o = vec2(uShape(q, r, size.x), 0);
-
-  o.x = abs(o.x) - width; // Outline
-  d = dMin(d, o);
-
-  float staticAngle = abs(angle);
-
-  // angle = abs(angle);
-
-  angle += localCosT;
-  angle = sin(angle1C * angle);
-  angle = step(0., angle);
+    q.x -= bigR;
+    q *= scale;
+  }
 
   float mask = 1.;
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
   mask = 1. - mask;
-  // color *= mask;
-  // color = mix(color, vec3(0.8), 1. - mask);
 
   float n = d.x;
-  // n = sin(TWO_PI * 60. * n);
   n = smoothstep(0., 0.5 * edge, n - 0.);
   n = 1. - n;
 
@@ -2693,8 +2674,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = vec3(1);
 
   // B&W
-  color = vec3(angle);
-  // color *= 0.5 + 0.5 * cos(TWO_PI * (staticAngle + vec3(0, 0.33, 0.67)));
+  color = vec3(n);
 
   // // JS colors
   // color = mix(colors1, colors2, n);
@@ -2703,26 +2683,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec3 dI = vec3(n);
   // dI += 0.1238 * d.y;
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
-
-  color *= n;
-
-  // --- Debug ---
-
-  // // Border
-  // const vec3 borderColor = vec3(1);
-
-  // float b = vmax(abs(q)) - (0.5 * size.x - 0.5 * edge);
-  // b = step(0., b);
-
-  // float borderMask = b;
-  // borderMask -= saturate(angle) * n * step(0.5, staticAngle);
-  // color = mix(color, borderColor, saturate(borderMask));
-
-  // // Show negative
-  // if (vmax(color) < 0.) {
-  //   color = abs(color);
-  //   color.g *= 0.5;
-  // }
 
   return color.rgb;
 }
@@ -2796,7 +2756,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.05;
+    const float maxDelayLength = 0.02;
     float layerT = norT
       + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
     float mask = two_dimensional(uv, layerT).x;

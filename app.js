@@ -51,7 +51,7 @@ export default class App {
         z: 1.318
       },
       d: 0.04,
-      scale: 1.4378,
+      scale: 1.6141,
       rot2angle: [3.662, 2.229, 5.072],
       cameraAngles: [0, 0, 0]
     }
