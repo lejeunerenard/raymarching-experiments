@@ -2604,6 +2604,26 @@ float uShape (in vec2 q, in float r, in float size) {
   return o;
 }
 
+vec3 truchetSpace (in vec2 q, in float size, in vec2 seed) {
+  vec2 c = pMod2(q, vec2(size));
+
+  vec2 truchetQ = q;
+  if (h21(c + seed) < 0.5) truchetQ.x *= -1.; // Flip, don't rotate
+  if (dot(truchetQ, vec2(1)) <= 0.) truchetQ *= -1.;
+
+  // TODO maybe remove as this is for shapes at the corner specifically
+  truchetQ -= vec2(0.5 * size);
+
+  // Angle
+  float angle = atan(truchetQ.x, truchetQ.y);
+  angle += PI;
+  angle *= 2. / PI;
+  float checker = mod(dot(c, vec2(1)), 2.);
+  angle *= checker * 2. - 1.;
+
+  return vec3(truchetQ, angle);
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -2623,18 +2643,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q;
-  vec2 c = pMod2(wQ, size);
-  // vec2 c = vec2(0);
+	vec2 c = floor((wQ + size*0.5)/size);
   q = wQ;
   mUv = q;
 
-  vec2 truchetQ = q;
-  if (h21(c + seed) < 0.5) truchetQ.x *= -1.; // Flip, don't rotate
-  if (dot(truchetQ, vec2(1)) <= 0.) truchetQ *= -1.;
-
   float width = 0.1 * r;
 
-  truchetQ -= vec2(0.5 * size);
+  vec3 tru = truchetSpace(q, size.x, seed);
+  vec2 truchetQ = tru.xy;
+  float angle = tru.z;
 
   // float mixD = mix(vmax(abs(truchetQ)), dot(abs(truchetQ), vec2(1)), 0.5 + 0.25 * cos(localCosT - length(c)));
   // vec2 o = vec2(mixD - r, 0);
@@ -2652,13 +2669,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   o.x = abs(o.x) - width; // Outline
   d = dMin(d, o);
-
-  // Angle
-  float angle = atan(truchetQ.x, truchetQ.y);
-  angle += PI;
-  angle *= 2. / PI;
-  float checker = mod(dot(c, vec2(1)), 2.);
-  angle *= checker * 2. - 1.;
 
   float staticAngle = abs(angle);
 
