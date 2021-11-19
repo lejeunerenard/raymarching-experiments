@@ -2644,23 +2644,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q;
-  wQ.yx = wQ.xy;
+  wQ += 0.100000 * cos(vec2(  4., -4.) * wQ.yx + cosT );
+  wQ += 0.050000 * cos(vec2( -9.,  9.) * wQ.yx + cosT );
+  wQ += 0.025000 * cos(vec2(-13.,-13.) * wQ.yx + cosT );
+  wQ += 0.012500 * cos(vec2(-23., 27.) * wQ.yx + cosT );
+  wQ += 0.006250 * cos(vec2( 23.,-31.) * wQ.yx + cosT );
+  wQ += 0.003125 * cos(vec2( 37., 37.) * wQ.yx + cosT );
+
   q = wQ;
   mUv = q;
 
-  for (float i = 0.; i < 3.; i++) {
-    float angle = localCosT;
-    angle += 0.125 * PI * i;
-
-    q *= rotMat2(0.5 * PI * sin(angle));
-    q.x = abs(q.x);
-
-    float s = length(q - vec2(bigR, 0)) - r;
-    d.x = min(d.x, s);
-
-    q.x -= bigR;
-    q *= scale;
-  }
+  // float o = length(q) - r;
+  // float o = sdBox(q, vec2(r));
+  // float o = vmax(abs(q)) - r;
+  // float o = dot(abs(q), vec2(1)) - r;
+  float o = dot(q, vec2(1)) - r;
+  o = sin(TWO_PI * 25. * o);
+  d = dMin(d, vec2(o, 0));
 
   float mask = 1.;
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
