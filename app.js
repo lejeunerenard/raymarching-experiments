@@ -46,9 +46,9 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -1.097,
-        y: 0.311,
-        z: 1.318
+        x: 0.118,
+        y: 0.133,
+        z: 0.776
       },
       d: 0.04,
       scale: 1.6141,
@@ -57,7 +57,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.85)
+    this.cameraRo = vec3.fromValues(-1.13, 0, 1.25)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [176, 205, 134]
