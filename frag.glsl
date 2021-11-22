@@ -4,9 +4,9 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-// #define debugMapCalls
+#define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1280
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 10.0
 
@@ -757,7 +757,7 @@ vec2 julia (in vec4 z, in vec4 c, in float t) {
   float modulo2;
 
   float avgD = 0.;
-  const int iterations = 10;
+  const int iterations = 18;
   float dropOutInteration = float(iterations);
   float iteration = 0.;
 
@@ -766,7 +766,7 @@ vec2 julia (in vec4 z, in vec4 c, in float t) {
   for (int i = 0; i < iterations; i++) {
     float fI = float(i);
 
-    // General space pre-warp
+    // // General space pre-warp
     // z += warpScale * 0.1000 * triangleWave(3. * z.yzwx + t * TWO_PI);
 
     // // Kifs
@@ -1288,8 +1288,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec4 c = vec4(offset, 0);
-  c.xyz = mix(c.xyz, vec3(0.339, -0.323, 0.669), vec3(0.5 + 0.5 * cos(localCosT + PI * vec3(0, 0.3, 0.6))));
+  vec4 c = vec4(offset, scale);
+  c.xyz = mix(c.xyz, vec3(0.312, -0.161, -0.363), vec3(0.5 + 0.5 * cos(localCosT + PI * vec3(0, 0.3, 0.6))));
 
   vec2 j = julia(vec4(q.xzy, 0), c);
   d = dMin(d, vec3(j.x, 0, j.y));
@@ -1298,7 +1298,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d = dMin(d, b);
 
   // d.x /= rollingScale;
-  d.x *= 0.1225;
+  d.x *= 1.0;
 
   return d;
 }
@@ -1552,6 +1552,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3, 0.7)));
+  // color *= 0.6;
 
   gM = m;
 
@@ -1652,7 +1653,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 1.0;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1698,15 +1699,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 0.25 * dot(nor, -rayDirection), 2.00);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
