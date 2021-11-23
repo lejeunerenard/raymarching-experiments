@@ -1,4 +1,5 @@
-#define RAY_STEPS maxSteps / 6
+// #define RAY_STEPS maxSteps / 6
+#define RAY_STEPS maxSteps
 #define NEW_TECHNIQUE 1
 // source: https://www.shadertoy.com/view/lsKcDD
 

@@ -4,7 +4,7 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-#define debugMapCalls
+// #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
 // #define ORTHO 1
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 10.0
 
@@ -757,7 +757,7 @@ vec2 julia (in vec4 z, in vec4 c, in float t) {
   float modulo2;
 
   float avgD = 0.;
-  const int iterations = 18;
+  const int iterations = 200;
   float dropOutInteration = float(iterations);
   float iteration = 0.;
 
@@ -790,8 +790,8 @@ vec2 julia (in vec4 z, in vec4 c, in float t) {
     // dist2dq = 2. * modulo2;
     // z = qSquare(z);
 
-    modulo2 = qLength2(z);
     z += c;
+    modulo2 = qLength2(z);
 
     // // Mandelbrot set
     // vec2 c = uv;
@@ -816,7 +816,7 @@ vec2 julia (in vec4 z, in vec4 c, in float t) {
     // }
 
     float dis = modulo2;
-    if (dis > 512.) break;
+    if (dis > 256.) break;
     if (iteration >= dropOutInteration) break;
 
     iteration += 1.;
@@ -1011,6 +1011,18 @@ vec2 sdBoxWEdges (in vec3 q, in vec3 r, in float thickness) {
     m = 1.;
   }
   return vec2(b, m);
+}
+//--------------------------------------------------------------------------------
+// ray-sphere intersection
+// http://iquilezles.org/www/articles/intersectors/intersectors.htm
+//--------------------------------------------------------------------------------
+vec2 iSphere( in vec3 ro, in vec3 rd, in float rad ) {
+  float b = dot( ro, rd );
+  float c = dot( ro, ro ) - rad*rad;
+  float h = b*b - c;
+  if( h<0.0 ) return vec2(-1.0);
+  h = sqrt(h);
+  return vec2(-b-h, -b+h );
 }
 
 float gridBump ( in vec3 q, float size ) {
@@ -1288,17 +1300,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
+  // float bound = length(q) - 1.162;
+  // if (bound > 0.1) {
+  //   return vec3(bound, 0, 0);
+  // }
+
   vec4 c = vec4(offset, scale);
-  c.xyz = mix(c.xyz, vec3(0.312, -0.161, -0.363), vec3(0.5 + 0.5 * cos(localCosT + PI * vec3(0, 0.3, 0.6))));
+  // c.xyz = mix(c.xyz, c.xyz + 0.001 * sin(lin), vec3(0.5 + 0.5 * cos(localCosT + PI * vec3(0, 0.3, 0.6))));
+  c += vec4(1, 0, 0, 1) * 0.0075 * sin(localCosT + 4. * q.y);
 
   vec2 j = julia(vec4(q.xzy, 0), c);
   d = dMin(d, vec3(j.x, 0, j.y));
 
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(length(q) - angle1C, 0, 0);
   // d = dMin(d, b);
 
+  // Cut
+  d.x = max(d.x, q.y - 0.5);
+
   // d.x /= rollingScale;
-  d.x *= 1.0;
+  // d.x *= 1.0;
 
   return d;
 }
@@ -1528,7 +1549,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.5);
-  // return vec3(0);
+  return color;
 
 //   float n = dot(pos, vec3(1));
 //   n = sin(TWO_PI * 15. * n);
@@ -1594,8 +1615,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     lights[0] = light(vec3(-0.2, 0.7,-1.0), #FFBBBB, 1.0);
-    lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFBBC8, 1.2);
-    lights[2] = light(vec3(0.3, 0.3, 0.9), #CCEEFF, 1.5);
+    lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFBBC8, 5.2);
+    lights[2] = light(vec3(0.3, 0.3, 0.9), #CCEEFF, 2.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1634,7 +1655,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.7;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1686,10 +1707,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.12 * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.12 * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
