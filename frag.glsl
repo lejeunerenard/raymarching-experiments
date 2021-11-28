@@ -1234,13 +1234,51 @@ float thingy (in vec2 q, in float t) {
   localCosT = TWO_PI * t;
   localT = t;
 
-
   float thickness = 0.007;
 
-  float r = 0.40;
+  float r = 0.125;
 
-  float shape = neighborGrid(q, gSize).x;
-  d = min(d, shape);
+  const float spread = 0.275;
+
+  const float cycleLength = 0.5;
+  float cycleId = floor(localT / cycleLength);
+  float cycleT = 2. * mod(localT, cycleLength);
+  // Circle 1
+  vec2 localQ = q;
+
+  localQ -= vec2( 0.5 * spread, 0.);
+  localQ *= rotMat2(-PI * range(0., 0.5, cycleT));
+  localQ += vec2( 0.5 * spread, 0.);
+
+  localQ -= vec2( 0.0, 0.);
+  float o = length(localQ) - r;
+  d = min(d, o);
+
+  // Circle 2
+  localQ = q;
+
+  localQ -= vec2( 0.5 * spread, 0.);
+  localQ *= rotMat2(-PI * range(0., 0.5, cycleT));
+  localQ += vec2( 0.5 * spread, 0.);
+
+  localQ -= vec2( 1.5 * spread, 0.);
+  localQ *= rotMat2( PI * range(0.5, 1.001, cycleT));
+  localQ += vec2( 1.5 * spread, 0.);
+
+  localQ -= vec2( spread, 0.);
+  float o2 = length(localQ) - r;
+  d = min(d, o2);
+
+  // Circle 3
+  localQ = q;
+
+  localQ -= vec2(-0.5 * spread, 0.);
+  localQ *= rotMat2( PI * range(0.5, 1.001, cycleT));
+  localQ += vec2(-0.5 * spread, 0.);
+
+  localQ -= vec2(-spread, 0.);
+  float o3 = length(localQ) - r;
+  d = min(d, o3);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1279,7 +1317,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1295,23 +1333,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * noise(cos( 3. * wQ.yzx + localCosT ));
-  wQ += warpScale * 0.05000 * cos(cos( 7. * (q + wQ.yzx) + localCosT ));
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.5 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.02500 * noise(cos(13. * wQ.yzx + localCosT ));
-  wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.00625 * (cos(29. * wQ.yzx + localCosT ));
+  wQ.xzy = wQ.xyz;
+
+  // wQ += warpScale * 0.10000 * noise(cos( 3. * wQ.yzx + localCosT ));
+  // wQ += warpScale * 0.05000 * cos(cos( 7. * (q + wQ.yzx) + localCosT ));
+  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.5 * PI * cos(localCosT + wQ.y));
+  // wQ += warpScale * 0.02500 * noise(cos(13. * wQ.yzx + localCosT ));
+  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.00625 * (cos(29. * wQ.yzx + localCosT ));
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // b.x -= 0.005 * cellular(7. * q);
-  d = dMin(d, b);
+  float exLength = 0.75;
+  // q.z += 0.5 * exLength;
+
+  vec3 o = vec3(thingy(q.xy, mod(t + 1.0 * q.z, 1.)), 0, 0);
+  float correction = 0.0;
+  o.x = opExtrude(q.xyz, o.x, exLength);
+  d = dMin(d, o);
 
   // d.x /= rollingScale;
   d.x *= 0.25;
@@ -1624,13 +1666,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.5 * t.x, generalT);
-      // float bumpsScale = 1.8;
-      // float bumpIntensity = 0.105;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 1.8;
+      float bumpIntensity = 0.105;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1648,7 +1690,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 0.6;
 
       float specAll = 0.0;
@@ -1659,7 +1701,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.0;
+        float diffMin = 0.25;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1668,7 +1710,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.3;
+        float shadowMin = 0.15;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1701,10 +1743,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.12 * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1716,7 +1758,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
+      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 4.00);
       float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -2632,12 +2674,6 @@ vec3 truchetSpace (in vec2 q, in float size, in vec2 seed) {
   return vec3(truchetQ, angle);
 }
 
-
-vec2 weirdFunc ( in vec2 q ) {
-  // return (2. * q - q * q) / (abs(sin(q)) + 0.25);
-  return cos(q + 2. * cos(q)) - abs(cos(q));
-}
-
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -2653,28 +2689,51 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.125;
   const vec2 size = gSize;
-  float bigR = 0.20;
-  float r = 0.25 * bigR;
+  float r = 0.2;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q;
-  wQ -= 0.100000 * weirdFunc(cos(vec2(  4., -4.) * wQ.yx + localCosT ));
-  wQ -= 0.050000 * weirdFunc(cos(vec2( -9.,  9.) * wQ.yx + localCosT ));
-  // wQ -= 0.025000 * weirdFunc(cos(vec2(-13.,-13.) * wQ.yx + localCosT ));
-  // wQ -= 0.012500 * weirdFunc(cos(vec2(-23., 27.) * wQ.yx + localCosT ));
-  wQ -= 0.006250 * weirdFunc(cos(vec2( 23.,-31.) * wQ.yx + localCosT ));
-  wQ -= 0.003125 * weirdFunc(cos(vec2( 37., 37.) * wQ.yx + localCosT ));
-
   q = wQ;
   mUv = q;
 
-  // float o = length(q) - r;
-  // float o = sdBox(q, vec2(r));
-  // float o = vmax(abs(q)) - r;
-  // float o = dot(abs(q), vec2(1)) - r;
-  float o = dot(q, vec2(1)) - r;
-  o = sin(TWO_PI * 25. * o);
-  d = dMin(d, vec2(o, 0));
+  float spread = 0.25;
+
+  // Circle 1
+  vec2 localQ = q;
+
+  localQ -= vec2( 0.5 * spread, 0.);
+  localQ *= rotMat2(PI * range(0., 0.5, localT));
+  localQ += vec2( 0.5 * spread, 0.);
+
+  localQ -= vec2( 0.0, 0.);
+  vec2 o = vec2(length(localQ) - r, 0.);
+  d = dMin(d, o);
+
+  // Circle 2
+  localQ = q;
+
+  localQ -= vec2( 0.5 * spread, 0.);
+  localQ *= rotMat2( PI * range(0., 0.5, localT));
+  localQ += vec2( 0.5 * spread, 0.);
+
+  localQ -= vec2( 1.5 * spread, 0.);
+  localQ *= rotMat2( PI * range(0.5, 1.0, localT));
+  localQ += vec2( 1.5 * spread, 0.);
+
+  localQ -= vec2( spread, 0.);
+  vec2 o2 = vec2(length(localQ) - r, 1.);
+  d = dMin(d, o2);
+
+  // Circle 3
+  localQ = q;
+
+  localQ -= vec2(-0.5 * spread, 0.);
+  localQ *= rotMat2( PI * range(0.5, 1.0, localT));
+  localQ += vec2(-0.5 * spread, 0.);
+
+  localQ -= vec2(-spread, 0.);
+  vec2 o3 = vec2(length(localQ) - r, 1.);
+  d = dMin(d, o3);
 
   float mask = 1.;
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
@@ -2729,7 +2788,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
