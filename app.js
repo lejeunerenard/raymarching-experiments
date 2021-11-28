@@ -1,5 +1,3 @@
-const glslify = require('glslify')
-
 import createShader from 'gl-shader'
 import createTexture from 'gl-texture2d'
 import createFBO from 'gl-fbo'
@@ -310,27 +308,55 @@ export default class App {
     window.removeEventListener('vrdisplaypresentchange', this.resizeBound, true)
   }
 
+  setupShader (property, shader, gl) {
+    let showError = (e) => {
+      let pre = document.createElement('pre')
+      pre.classList.add('glsl-error')
+
+      let code = document.createElement('code')
+      code.innerHTML = e.message
+      pre.appendChild(code)
+      document.body.appendChild(pre)
+    }
+
+    try {
+      this[property] = createShader(gl, shader.vertex, shader.fragment)
+      shader.on('change', () => {
+        // Remove existing errors
+        const errors = document.body.querySelectorAll('.glsl-error')
+        for (const error of errors) {
+          error.parentNode.removeChild(error)
+        }
+
+        try {
+          this[property] = createShader(gl, shader.vertex, shader.fragment)
+        } catch (e) {
+          if (e.name === 'GLError') {
+            showError(e)
+          } else {
+            throw e
+          }
+        }
+      })
+    } catch (e) {
+      if (e.name === 'GLError') {
+        showError(e)
+      } else {
+        throw e
+      }
+    }
+  }
+
   glInit (gl) {
     // Turn off depth test
     gl.disable(gl.DEPTH_TEST)
 
     // Create fragment shader
-    try {
-      this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
-    } catch (e) {
-      if (e.name === 'GLError') {
-        let pre = document.createElement('pre')
-        let code = document.createElement('code')
-        code.innerHTML = e.message
-        pre.appendChild(code)
-        document.body.appendChild(pre)
-      } else {
-        throw e
-      }
-    }
-    this.bright = createShader(gl, glslify('./vert.glsl'), glslify('./bright.glsl'))
-    this.bloom = createShader(gl, glslify('./vert.glsl'), glslify('./bloom.glsl'))
-    this.finalPass = createShader(gl, glslify('./vert.glsl'), glslify('./final-pass.glsl'))
+    this.setupShader('shader', require('./shaders/frag.shader'), gl)
+
+    this.setupShader('bright', require('./shaders/bright.shader'), gl)
+    this.setupShader('bloom', require('./shaders/bloom.shader'), gl)
+    this.setupShader('finalPass', require('./shaders/final-pass.shader'), gl)
 
     this.currentState = 1
     this.setupFBOs(gl)
