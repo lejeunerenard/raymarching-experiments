@@ -22,7 +22,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 2
 const BLOOM_WET = 1
-const BLOOM_MIN_BRIGHTNESS = 0.95
+const BLOOM_MIN_BRIGHTNESS = 0.975
 
 // Initialize shell
 export default class App {
@@ -44,18 +44,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.090909, // 0.365
-        y: 0.272727,  // 0.518
+        x: -0.213,
+        y: -0.191,  // 0.518
         z: 0.681818   // 0.401
       },
       d: 0.04,
-      scale: -0.272727, // -0.2507
+      scale: 2.2822, // -0.2507
       rot2angle: [3.662, 2.229, 5.072],
       cameraAngles: [0.102, 2.148, -0.039]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.25, 1, -0.83)
+    this.cameraRo = vec3.fromValues(0.76, 1.08, 0.73)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [205, 134, 147]
@@ -73,9 +73,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.7798
-    this.angle2C = -0.6237
-    this.angle3C = 1.8
+    this.angle1C = 0.0078
+    this.angle2C = 0.2283
+    this.angle3C = 0.89
 
     // this.setupAnimation(preset)
 

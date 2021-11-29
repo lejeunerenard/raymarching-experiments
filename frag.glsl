@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1238,47 +1238,19 @@ float thingy (in vec2 q, in float t) {
 
   float r = 0.125;
 
-  const float spread = 0.275;
+  float rollingScale = 1.;
+  for (float i = 0.; i < 10.; i++) {
+    q = abs(q);
+    q += offset.xy;
+    q *= rotMat2(angle2C + localCosT);
+    q *= scale;
 
-  const float cycleLength = 0.5;
-  float cycleId = floor(localT / cycleLength);
-  float cycleT = 2. * mod(localT, cycleLength);
-  // Circle 1
-  vec2 localQ = q;
+    rollingScale *= scale;
+  }
 
-  localQ -= vec2( 0.5 * spread, 0.);
-  localQ *= rotMat2(-PI * range(0., 0.5, cycleT));
-  localQ += vec2( 0.5 * spread, 0.);
-
-  localQ -= vec2( 0.0, 0.);
-  float o = length(localQ) - r;
+  float o = length(q) - r;
+  o /= rollingScale;
   d = min(d, o);
-
-  // Circle 2
-  localQ = q;
-
-  localQ -= vec2( 0.5 * spread, 0.);
-  localQ *= rotMat2(-PI * range(0., 0.5, cycleT));
-  localQ += vec2( 0.5 * spread, 0.);
-
-  localQ -= vec2( 1.5 * spread, 0.);
-  localQ *= rotMat2( PI * range(0.5, 1.001, cycleT));
-  localQ += vec2( 1.5 * spread, 0.);
-
-  localQ -= vec2( spread, 0.);
-  float o2 = length(localQ) - r;
-  d = min(d, o2);
-
-  // Circle 3
-  localQ = q;
-
-  localQ -= vec2(-0.5 * spread, 0.);
-  localQ *= rotMat2( PI * range(0.5, 1.001, cycleT));
-  localQ += vec2(-0.5 * spread, 0.);
-
-  localQ -= vec2(-spread, 0.);
-  float o3 = length(localQ) - r;
-  d = min(d, o3);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1317,7 +1289,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1345,10 +1317,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  mPos = q;
+  float exLength = 0.65;
+  q.z += 0.35 * exLength;
 
-  float exLength = 0.75;
-  // q.z += 0.5 * exLength;
+  mPos = q;
 
   vec3 o = vec3(thingy(q.xy, mod(t + 1.0 * q.z, 1.)), 0, 0);
   float correction = 0.0;
@@ -1356,7 +1328,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d = dMin(d, o);
 
   // d.x /= rollingScale;
-  d.x *= 0.25;
+  // d.x *= 0.25;
 
   return d;
 }
@@ -1585,7 +1557,12 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
+  vec3 color = vec3(pow(0.70 * (mPos.z / 0.65 + 1.), 1.5));
+
+  color.gb *= 1.15;
+  // color += 0.1 * dot(nor, -rd);
+
+  return color;
 
 //   float n = dot(pos, vec3(1));
 //   n = sin(TWO_PI * 15. * n);
@@ -1650,9 +1627,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.2, 0.7,-1.0), #FFBBBB, 1.0);
+    lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #FFBBBB, 1.0);
     lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFBBC8, 1.2);
-    lights[2] = light(vec3(0.3, 0.3, 0.9), #CCEEFF, 2.0);
+    lights[2] = light(vec3(0.3, 0.3, 0.9), #CCEEFF, 1.5);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1666,13 +1643,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.5 * t.x, generalT);
-      float bumpsScale = 1.8;
-      float bumpIntensity = 0.105;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 1.8;
+      // float bumpIntensity = 0.105;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1690,8 +1667,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.6;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
@@ -1701,7 +1678,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.25;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1710,7 +1687,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.15;
+        float shadowMin = 0.60;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1722,8 +1699,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec;
 
         // Ambient
-        // lin += 0.15 * amb * diffuseColor;
-        // dif += 0.15 * amb;
+        lin += 0.05 * amb * diffuseColor;
+        dif += 0.05 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -1743,10 +1720,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1756,15 +1733,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 4.00);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2696,44 +2673,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  float spread = 0.25;
-
-  // Circle 1
-  vec2 localQ = q;
-
-  localQ -= vec2( 0.5 * spread, 0.);
-  localQ *= rotMat2(PI * range(0., 0.5, localT));
-  localQ += vec2( 0.5 * spread, 0.);
-
-  localQ -= vec2( 0.0, 0.);
-  vec2 o = vec2(length(localQ) - r, 0.);
+  vec2 o = vec2(thingy(q.xy, t), 0);
   d = dMin(d, o);
-
-  // Circle 2
-  localQ = q;
-
-  localQ -= vec2( 0.5 * spread, 0.);
-  localQ *= rotMat2( PI * range(0., 0.5, localT));
-  localQ += vec2( 0.5 * spread, 0.);
-
-  localQ -= vec2( 1.5 * spread, 0.);
-  localQ *= rotMat2( PI * range(0.5, 1.0, localT));
-  localQ += vec2( 1.5 * spread, 0.);
-
-  localQ -= vec2( spread, 0.);
-  vec2 o2 = vec2(length(localQ) - r, 1.);
-  d = dMin(d, o2);
-
-  // Circle 3
-  localQ = q;
-
-  localQ -= vec2(-0.5 * spread, 0.);
-  localQ *= rotMat2( PI * range(0.5, 1.0, localT));
-  localQ += vec2(-0.5 * spread, 0.);
-
-  localQ -= vec2(-spread, 0.);
-  vec2 o3 = vec2(length(localQ) - r, 1.);
-  d = dMin(d, o3);
 
   float mask = 1.;
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
