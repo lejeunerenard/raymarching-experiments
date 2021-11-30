@@ -883,11 +883,9 @@ vec3 opRepLim( in vec3 p, in float s, in vec3 lim ) {
 }
 
 // source: https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
-// float opRevolution( in vec3 p, in sdf2d primitive, float o )
-// {
-//     vec2 q = vec2( length(p.xz) - o, p.y );
-//     return primitive(q)
-// }
+vec2 opRevolution( in vec3 p, float o ) {
+    return vec2( length(p.xz) - o, p.y );
+}
 
 
 // tdhooper's adjustment to make inverse stereographic project to be lipschitz
@@ -1322,7 +1320,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 o = vec3(thingy(q.xy, mod(t + 1.0 * q.z, 1.)), 0, 0);
+  vec2 revQ = opRevolution(q, 0.3);
+  vec3 o = vec3(thingy(revQ, t), 0, 0);
   float correction = 0.0;
   o.x = opExtrude(q.xyz, o.x, exLength);
   d = dMin(d, o);
