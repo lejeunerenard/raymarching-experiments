@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1227,6 +1227,8 @@ float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
+  q *= 0.7;
+
   vec2 uv = q;
 
   localCosT = TWO_PI * t;
@@ -1237,10 +1239,10 @@ float thingy (in vec2 q, in float t) {
   float r = 0.125;
 
   float rollingScale = 1.;
-  for (float i = 0.; i < 10.; i++) {
+  for (float i = 0.; i < 6.; i++) {
     q = abs(q);
     q += offset.xy;
-    q *= rotMat2(angle2C + localCosT);
+    q *= rotMat2(angle2C + 0.5 * localCosT);
     q *= scale;
 
     rollingScale *= scale;
@@ -1250,9 +1252,9 @@ float thingy (in vec2 q, in float t) {
   o /= rollingScale;
   d = min(d, o);
 
-  // // Outline
-  // const float adjustment = 0.0;
-  // d = abs(d - adjustment) - 0.01;
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - 0.000000001 / rollingScale;
 
   float stop = angle3C;
   // d = smoothstep(stop, 0.3 * edge + stop, d);
@@ -1316,11 +1318,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
 
   float exLength = 0.65;
-  q.z += 0.35 * exLength;
+  // q.z += 0.35 * exLength;
 
   mPos = q;
 
-  vec2 revQ = opRevolution(q, 0.3);
+  vec2 revQ = opRevolution(q, 0.1);
   vec3 o = vec3(thingy(revQ, t), 0, 0);
   float correction = 0.0;
   o.x = opExtrude(q.xyz, o.x, exLength);
@@ -2680,7 +2682,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   mask = 1. - mask;
 
   float n = d.x;
+
+  // Hard Edge
   n = smoothstep(0., 0.5 * edge, n - angle1C);
+
+  // Invert
   n = 1. - n;
 
   // // Solid
@@ -2692,7 +2698,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // JS colors
   // color = mix(colors1, colors2, n);
 
-  // Cosine Palette
+  // // Cosine Palette
   // vec3 dI = vec3(n);
   // dI += 0.1238 * d.y;
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
@@ -2728,7 +2734,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
