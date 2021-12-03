@@ -1239,7 +1239,7 @@ float thingy (in vec2 q, in float t) {
   float r = 0.125;
 
   float rollingScale = 1.;
-  for (float i = 0.; i < 4.; i++) {
+  for (float i = 0.; i < 6.; i++) {
     q = abs(q);
     q += offset.xy;
     q *= rotMat2(angle2C + 0.5 * localCosT);
@@ -1254,7 +1254,7 @@ float thingy (in vec2 q, in float t) {
 
   // Outline
   const float adjustment = 0.0;
-  d = abs(d - adjustment) - 0.000000001 / rollingScale;
+  d = abs(d - adjustment) - 0.02 / rollingScale;
 
   float stop = angle3C;
   // d = smoothstep(stop, 0.3 * edge + stop, d);
@@ -1317,20 +1317,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  float exLength = 0.40;
+  float exLength = 0.30;
   // q.z += 0.35 * exLength;
 
   mPos = q;
 
   // vec2 revQ = opRevolution(q, 0.1);
-  vec2 revQ = q.xy;
+  vec2 revQ = q.xz;
+  pMod2(revQ, vec2(0.4));
   vec3 o = vec3(thingy(revQ, t), 0, 0);
   float correction = 0.0;
-  o.x = opExtrude(q.xyz, o.x, exLength);
+  o.x = opExtrude(q.xzy, o.x, exLength);
   d = dMin(d, o);
 
+  // q *= rotationMatrix(vec3(1), 0.23 * PI);
+  float crop = sdBox(q, vec3(0.3, exLength + 0.1, 0.7));
+  d.x = max(d.x, crop);
+
   // d.x /= rollingScale;
-  // d.x *= 0.25;
+  d.x *= 0.7;
 
   return d;
 }
@@ -1559,11 +1564,13 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.00 * (mPos.z / 0.40 + 1.));
+  vec3 color = vec3(1.00 * (mPos.y / 0.40 + 1.));
 
   color.gb *= 1.15;
-  color *= 1.3;
-  // color += 0.1 * dot(nor, -rd);
+
+  color = vec3(1);
+  color.gb *= 1.10;
+  color *= 1.7;
 
   return color;
 
@@ -1630,9 +1637,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #FFBBBB, 1.0);
+    lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #CCEEFF, 1.0);
     lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFBBC8, 1.0);
-    lights[2] = light(vec3(0.3, 0.3,-0.9), #CCEEFF, 1.0);
+    lights[2] = light(vec3(0.3, 0.3,-0.9), #FFBBBB, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1681,7 +1688,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.72;
+        float diffMin = 0.6;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1690,7 +1697,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.40;
+        float shadowMin = 0.1;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1705,7 +1712,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lin += 0.05 * amb * diffuseColor;
         // dif += 0.05 * amb;
 
-        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
