@@ -1030,6 +1030,10 @@ float gridBump ( in vec3 q, float size ) {
   return vmax(absQ) / size;
 }
 
+vec2 polarCoords (in vec2 q) {
+  return vec2(atan(q.y, q.x), length(q));
+}
+
 vec3 sphericalCoords (in vec3 q) {
   float a = atan(q.z, q.x);
   float arc = atan(q.y, length(q.xz));
@@ -1297,7 +1301,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float baseR = gR;
   float r = baseR;
-  float size = 1.5 * r;
+  float size = 1. * 0.25;
 
   float warpScale = 1.2;
   float rollingScale = 1.;
@@ -1316,26 +1320,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
-
-  float exLength = 0.30;
-  // q.z += 0.35 * exLength;
+  q.xzy = q.xyz;
 
   mPos = q;
 
-  // vec2 revQ = opRevolution(q, 0.1);
-  vec2 revQ = q.xz;
-  pMod2(revQ, vec2(0.4));
-  vec3 o = vec3(thingy(revQ, t), 0, 0);
-  float correction = 0.0;
-  o.x = opExtrude(q.xzy, o.x, exLength);
-  d = dMin(d, o);
+  vec2 pol = polarCoords(q.xy);
+  pol.x /= PI; // [-1, 1]
+  pol.y -= 0.5;
 
-  // q *= rotationMatrix(vec3(1), 0.23 * PI);
-  float crop = sdBox(q, vec3(0.3, exLength + 0.1, 0.7));
-  d.x = max(d.x, crop);
+  q.xy = pol.xy;
+  q.yz *= rotMat2(1.0 * PI * q.x);
 
-  // d.x /= rollingScale;
-  d.x *= 0.7;
+  q.x += t; // eh what?
+
+  pMod1(q.x, size);
+
+  vec3 b = vec3(sdBox(q, vec3(0.425 * size, 0.1, 0.1)), 0, 0);
+  // b.x -= 0.003;
+  b.x -= 0.008 * cellular(3. * q);
+  d = dMin(d, b);
+
+  d.x *= 0.95;
 
   return d;
 }
@@ -1564,13 +1569,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.00 * (mPos.y / 0.40 + 1.));
-
-  color.gb *= 1.15;
-
-  color = vec3(1);
-  color.gb *= 1.10;
-  color *= 1.7;
+  vec3 color = vec3(0);
 
   return color;
 
@@ -1688,7 +1687,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.6;
+        float diffMin = 0.2;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1697,7 +1696,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.1;
+        float shadowMin = 0.4;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1742,16 +1741,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 4.00);
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 3.40);
       // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.8);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
