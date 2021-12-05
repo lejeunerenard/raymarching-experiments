@@ -1225,6 +1225,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   return d;
 }
 
+// NOTE Don't fully understand whether this is correct or how it works
+vec2 circleInversion (in vec2 q) {
+  return q / dot(q, q);
+  // q is point in the circle & a is the inverse
+  // dot(q, a) = r * r
+  // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
+}
+
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float baseR = 0.4;
@@ -1242,9 +1250,12 @@ float thingy (in vec2 q, in float t) {
 
   float r = 0.125;
 
+  // Something is happening that looks circular
   float rollingScale = 1.;
-  for (float i = 0.; i < 6.; i++) {
+  for (float i = 0.; i < 7.; i++) {
+    q = circleInversion(q * 3.0) * 0.333;
     q = abs(q);
+    // foldNd(q, vec2(angle1C, angle2C));
     q += offset.xy;
     q *= rotMat2(angle2C + 0.5 * localCosT);
     q *= scale;
@@ -1252,13 +1263,14 @@ float thingy (in vec2 q, in float t) {
     rollingScale *= scale;
   }
 
+  // float o = dot(q, vec2(20)) * sdBox(q, vec2(r));
   float o = length(q) - r;
   o /= rollingScale;
   d = min(d, o);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - 0.02 / rollingScale;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - 0.02 / rollingScale;
 
   float stop = angle3C;
   // d = smoothstep(stop, 0.3 * edge + stop, d);
@@ -1329,7 +1341,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   pol.y -= 0.5;
 
   q.xy = pol.xy;
-  q.yz *= rotMat2(1.0 * PI * q.x);
+  // q.yz *= rotMat2(1.0 * PI * q.x * cos(1.5 * PI * (q.x * q.x - q.y)));
 
   q.x += t; // eh what?
 
@@ -2742,7 +2754,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
