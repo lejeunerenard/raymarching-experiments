@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 128
 #define maxDistance 60.0
 #define fogMaxDistance 10.0
 
@@ -1321,14 +1321,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ.xzy = wQ.xyz;
+  // I feel like im missing something.
+  for (float i = 0.; i < 14.; i++) {
+    if (mod(i, 2.) == 0.) {
+      if(dot(wQ.xy, vec2(1, -1)) < 0.) { wQ.xy = wQ.yx; }
+      if(dot(wQ.xz, vec2(1, -1)) < 0.) { wQ.xz = wQ.zx; }
+      if(dot(wQ.yz, vec2(1, -1)) < 0.) { wQ.yz = wQ.zy; }
 
-  // wQ += warpScale * 0.10000 * noise(cos( 3. * wQ.yzx + localCosT ));
-  // wQ += warpScale * 0.05000 * cos(cos( 7. * (q + wQ.yzx) + localCosT ));
-  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.5 * PI * cos(localCosT + wQ.y));
-  // wQ += warpScale * 0.02500 * noise(cos(13. * wQ.yzx + localCosT ));
-  // wQ += warpScale * 0.01250 * cos(23. * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00625 * (cos(29. * wQ.yzx + localCosT ));
+      if(dot(wQ.xy, vec2(1)) < 0.) { wQ.xy = -wQ.yx; }
+      if(dot(wQ.xz, vec2(1)) < 0.) { wQ.xz = -wQ.zx; }
+      if(dot(wQ.yz, vec2(1)) < 0.) { wQ.yz = -wQ.zy; }
+    } else {
+      wQ = abs(wQ);
+    }
+
+    wQ *= rotationMatrix(vec3(1, 0, 0), 0.130 * PI * cos(1. * wQ.x + localCosT));
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+
+    // float trap = length(wQ);
+    float trap = length(wQ - vec3(0.1));
+
+    minD = dMin(minD, vec2(trap, 0));
+    rollingScale *= scale;
+  }
 
   // Commit warp
   q = wQ.xyz;
@@ -1336,23 +1352,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec2 pol = polarCoords(q.xy);
-  pol.x /= PI; // [-1, 1]
-  pol.y -= 0.5;
-
-  q.xy = pol.xy;
-  // q.yz *= rotMat2(1.0 * PI * q.x * cos(1.5 * PI * (q.x * q.x - q.y)));
-
-  q.x += t; // eh what?
-
-  pMod1(q.x, size);
-
-  vec3 b = vec3(sdBox(q, vec3(0.425 * size, 0.1, 0.1)), 0, 0);
-  // b.x -= 0.003;
-  b.x -= 0.008 * cellular(3. * q);
+  vec3 b = vec3(length(q) - 1., 0, minD.x);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
-  d.x *= 0.95;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1581,9 +1585,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-
-  return color;
+  vec3 color = vec3(0.5);
+  // return color;
 
 //   float n = dot(pos, vec3(1));
 //   n = sin(TWO_PI * 15. * n);
@@ -1606,8 +1609,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + vec3(0.7, 0.5, 0.3) * cos(TWO_PI * (vec3(1, 0.9, 1.1) * dI + vec3(0, 0.2, 0.5)));
-  color += 0.2 * (0.5 + vec3(0.4, 0.5, 0.6) * cos(TWO_PI * (vec3(1, 0.9, 1.1) * (dI + color) + vec3(0, 0.2, 0.5))));
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
 
   gM = m;
 
@@ -1699,7 +1701,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.2;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1708,9 +1710,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.4;
+        float shadowMin = 0.1;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
+        // dif *= softshadow(pos, nLightPos, 0.00025, 5.00, generalT);
 
         vec3 lin = vec3(0.);
 
@@ -1723,7 +1726,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lin += 0.05 * amb * diffuseColor;
         // dif += 0.05 * amb;
 
-        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
@@ -1753,16 +1756,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 3.40);
+      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 3.40);
       // float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.8);
+      // dispersionColor.r = pow(dispersionColor.r, 0.8);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2754,7 +2757,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 

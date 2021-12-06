@@ -1,5 +1,5 @@
-// #define RAY_STEPS maxSteps / 6
-#define RAY_STEPS maxSteps
+#define RAY_STEPS maxSteps / 4
+// #define RAY_STEPS maxSteps
 #define NEW_TECHNIQUE 1
 // source: https://www.shadertoy.com/view/lsKcDD
 
@@ -35,7 +35,7 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float
 
   // Found this in iq's example implementations. Why it's there, I have no
   // clue. I don't notice a difference.
-  res = res * res * (3. - 2. * res);
+  // res = res * res * (3. - 2. * res);
   return res;
 }
 
