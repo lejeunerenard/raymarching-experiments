@@ -1321,9 +1321,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // I feel like im missing something.
-  for (float i = 0.; i < 14.; i++) {
-    if (mod(i, 2.) == 0.) {
+  for (float i = 0.; i < 16.; i++) {
+    if (mod(i, 3.) == 0.) {
       if(dot(wQ.xy, vec2(1, -1)) < 0.) { wQ.xy = wQ.yx; }
       if(dot(wQ.xz, vec2(1, -1)) < 0.) { wQ.xz = wQ.zx; }
       if(dot(wQ.yz, vec2(1, -1)) < 0.) { wQ.yz = wQ.zy; }
@@ -1335,7 +1334,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       wQ = abs(wQ);
     }
 
-    wQ *= rotationMatrix(vec3(1, 0, 0), 0.130 * PI * cos(1. * wQ.x + localCosT));
+    wQ *= rotationMatrix(vec3(0, 0, 1), 0.290 * cos(2. * wQ.x + localCosT));
+    wQ *= rotationMatrix(vec3(1, 0, 0), 0.050 * cos(2. * wQ.y + localCosT));
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
 
@@ -1609,6 +1609,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
+  dI += 0.2 * cos(cosT + pos.x);
+
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
 
   gM = m;
@@ -1690,8 +1692,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 1.5;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
@@ -1710,10 +1712,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.1;
+        float shadowMin = 0.2;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
-        // dif *= softshadow(pos, nLightPos, 0.00025, 5.00, generalT);
 
         vec3 lin = vec3(0.);
 
@@ -1722,9 +1723,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += specCo * spec;
 
-        // // Ambient
-        // lin += 0.05 * amb * diffuseColor;
-        // dif += 0.05 * amb;
+        // Ambient
+        lin += 0.100 * amb * diffuseColor;
+        dif += 0.100 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
