@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 60.0
 #define fogMaxDistance 10.0
 
@@ -1321,8 +1321,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  for (float i = 0.; i < 16.; i++) {
-    if (mod(i, 3.) == 0.) {
+  for (float i = 0.; i < 11.; i++) {
+    if (mod(i, 2.) == 0.) {
       if(dot(wQ.xy, vec2(1, -1)) < 0.) { wQ.xy = wQ.yx; }
       if(dot(wQ.xz, vec2(1, -1)) < 0.) { wQ.xz = wQ.zx; }
       if(dot(wQ.yz, vec2(1, -1)) < 0.) { wQ.yz = wQ.zy; }
@@ -1334,13 +1334,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       wQ = abs(wQ);
     }
 
-    wQ *= rotationMatrix(vec3(0, 0, 1), 0.290 * cos(2. * wQ.x + localCosT));
-    wQ *= rotationMatrix(vec3(1, 0, 0), 0.050 * cos(2. * wQ.y + localCosT));
+    wQ *= rotationMatrix(vec3(0, 0, 1), 0.290 * cos(1. * wQ.x + localCosT));
+    // wQ *= rotationMatrix(vec3(1, 0, 0), 0.050 * cos(2. * wQ.y + localCosT));
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
 
     // float trap = length(wQ);
-    float trap = length(wQ - vec3(0.1));
+    float trap = length(wQ - vec3(0.4));
 
     minD = dMin(minD, vec2(trap, 0));
     rollingScale *= scale;
@@ -1356,7 +1356,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   b.x /= rollingScale;
   d = dMin(d, b);
 
-  d.x *= 0.75;
+  d.x *= 0.4;
 
   return d;
 }
