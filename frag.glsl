@@ -2689,16 +2689,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.125;
+  const float warpScale = 1.0;
   const vec2 size = gSize;
   float r = 0.2;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q;
+
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + localCosT );
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + localCosT );
+  wQ *= rotMat2(2. * length(wQ));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + localCosT );
+
   q = wQ;
   mUv = q;
 
-  vec2 o = vec2(thingy(q.xy, t), 0);
+  float i = dot(q, vec2(1));
+  // float i = 2. * sdBox(q, vec2(0.4 * size));
+  i *= TWO_PI * 30.0;
+  i = sin(i);
+  vec2 o = vec2(i, 0);
   d = dMin(d, o);
 
   float mask = 1.;
@@ -2758,7 +2769,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
