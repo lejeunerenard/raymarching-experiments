@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -42,7 +42,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 60.0
 #define fogMaxDistance 10.0
 
@@ -62,7 +62,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.00;
+float n2 = angle3C;
 const float amount = 0.05;
 
 // Utils
@@ -1300,51 +1300,33 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.4;
+float gR = 0.6;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  // p *= globalRot;
+  p *= -globalRot;
 
   vec3 q = p;
 
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
-  float baseR = gR;
-  float r = baseR;
+  float r = gR;
   float size = 1. * 0.25;
 
-  float warpScale = 1.2;
+  float warpScale = 0.7;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
-
-  for (float i = 0.; i < 11.; i++) {
-    if (mod(i, 2.) == 0.) {
-      if(dot(wQ.xy, vec2(1, -1)) < 0.) { wQ.xy = wQ.yx; }
-      if(dot(wQ.xz, vec2(1, -1)) < 0.) { wQ.xz = wQ.zx; }
-      if(dot(wQ.yz, vec2(1, -1)) < 0.) { wQ.yz = wQ.zy; }
-
-      if(dot(wQ.xy, vec2(1)) < 0.) { wQ.xy = -wQ.yx; }
-      if(dot(wQ.xz, vec2(1)) < 0.) { wQ.xz = -wQ.zx; }
-      if(dot(wQ.yz, vec2(1)) < 0.) { wQ.yz = -wQ.zy; }
-    } else {
-      wQ = abs(wQ);
-    }
-
-    wQ *= rotationMatrix(vec3(0, 0, 1), 0.290 * cos(1. * wQ.x + localCosT));
-    // wQ *= rotationMatrix(vec3(1, 0, 0), 0.050 * cos(2. * wQ.y + localCosT));
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-
-    // float trap = length(wQ);
-    float trap = length(wQ - vec3(0.4));
-
-    minD = dMin(minD, vec2(trap, 0));
-    rollingScale *= scale;
-  }
+  wQ += warpScale * 0.1000000 * cos( 3. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  wQ += warpScale * 0.0250000 * cos(16. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0125000 * cos(27. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0062500 * cos(33. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0031250 * cos(37. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0015625 * cos(46. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1352,11 +1334,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 1., 0, minD.x);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   b.x /= rollingScale;
   d = dMin(d, b);
 
-  d.x *= 0.4;
+  d.x *= 0.2;
 
   return d;
 }
@@ -1476,14 +1458,12 @@ vec3 textures (in vec3 rd) {
   // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
   vec3 dI = vec3(dNR);
-  // dI += 0.2 * snoise3(0.1 * rd);
+  dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.5 * pow(dNR, 3.);
 
   dI += 0.25 * sin(TWO_PI * rd.x);
-  dI *= 0.7207;
-  dI += -2.8597;
-  dI *= 0.25 + 0.1 * sin(dNR);
-  // dI += 0.15 * sin(TWO_PI * norT);
+  dI *= angle1C;
+  dI += angle2C;
 
   // dI += gPos;
 
@@ -1585,8 +1565,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
-  // return color;
+  vec3 color = vec3(0);
+  return color;
 
 //   float n = dot(pos, vec3(1));
 //   n = sin(TWO_PI * 15. * n);
@@ -1712,7 +1692,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.2;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1757,16 +1737,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 3.40);
-      // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.40);
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.8);
+      dispersionColor.r = pow(dispersionColor.r, 0.8);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2769,7 +2749,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
