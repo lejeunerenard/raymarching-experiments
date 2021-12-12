@@ -111,7 +111,10 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // Cosine Palette based Hue
     vec3 cosOffset = vec3(0, 0.33, 0.67);
 
-    thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
+    // thisColor = vec3(1);
+
+    thisColor = 0.75 + 0.25 * cos(TWO_PI * (mixI + cosOffset));
+
     // Secondary cosine palette warp
     thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
     thisColor *= 0.5;
@@ -124,7 +127,7 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     thisColor += #44BBBB * (0.5 + 0.5 * sin(eye));
     thisColor += #BB44BB * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
 
-    thisColor *= 0.8;
+    thisColor *= 0.7;
 
     // -- Apply Scene Coloring --
     vec3 sceneResult = scene(iorRefract, ior);
