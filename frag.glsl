@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 
@@ -1314,7 +1314,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.;
 
-  float warpScale = 0.5;
+  float m = smoothstep(0., edge, sin(TWO_PI * (0.25 * fragCoord.x + t)));
+  float warpScale = mix(0.5, 1.7, m);
   float rollingScale = 1.;
 
   // Warp
@@ -1332,15 +1333,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  float bD = mix(dodecahedral(q, 42., r * 0.875), length(q) - r, m);
+  vec3 b = vec3(bD, 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   b.x /= rollingScale;
 
-  b.x -= 0.007 * cellular(2. * q);
-
   d = dMin(d, b);
 
-  d.x *= 0.2;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1569,6 +1569,17 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.001);
+
+  m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + t)));
+
+  vec3 primeColor = mix(vec3(1, 0, 0), vec3(0, 0, 1), m);
+  float period = mix(3., 11., m);
+  float n = sin(TWO_PI * period * dot(pos, vec3(1)));
+
+  n = smoothstep(0., edge, n);
+
+  color = mix(primeColor, vec3(1), n);
+
   // color *= 0.5;
   return color;
 
@@ -1643,6 +1654,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     const float universe = 0.;
     background = getBackground(uv, universe);
 
+    float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
+
     float backgroundMask = 1.;
     // Allow anything in top right corner
     // backgroundMask = max(backgroundMask, smoothstep(0., edge, dot(uv, vec2(1)) + 0.05));
@@ -1687,7 +1700,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.85;
+        float diffMin = mix(1., 0.85, m);
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1696,7 +1709,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.8;
+        float shadowMin = mix(0.95, 0.8, m);
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -1741,16 +1754,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.4);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
