@@ -1123,7 +1123,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.1);
+const vec2 gSize = vec2(0.1, 0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2686,32 +2686,51 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.0;
+  const float warpScale = 1.4;
   const vec2 size = gSize;
   float r = 0.2;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + localCosT );
-  wQ *= rotMat2(2. * length(wQ));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  wQ *= rotMat2(1.0 * length(wQ));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  float i = dot(q, vec2(1));
-  // float i = 2. * sdBox(q, vec2(0.4 * size));
-  i *= TWO_PI * 30.0;
-  i = sin(i);
-  vec2 o = vec2(i, 0);
+  // I want to think about how to have a grid expand but offset. Who knows if
+  // this will be able to be done tonight though.
+  //
+  // Yeah the mask will not working with the grid but it helps it feel less busy
+  // for me.
+  //
+  // So the main problem is that I want to push a "cell" and not just a point in
+  // space. With that, I need to get the cell position using a C coordinate, but
+  // even with that it will get messed up with the actual application of the mod
+  // space.
+  //
+  // I think I've thouth of this before but what if the key is to think of
+  // all of the cells in a row being squished and stretched by edges that are
+  // positioned with my push offset. I feel like I tried this though.
+  //
+  // Well maybe this is the compromise.. I can make horizontal lines that are
+  // pushed and pulled and then use them in a cosine warp space
+
+  float push = 2.0 * size.y * (0.5 + 0.5 * sin(8.0 * q.y + localCosT) + 2. * t);
+  q.y += push; // apply
+
+  float frequency = 10.;
+  float gridD = sin(TWO_PI * q.y / size.y);
+  vec2 o = vec2(gridD, 0);
   d = dMin(d, o);
 
-  float mask = 1.;
+  float mask = 1.; // sdBox(uv, vec2(0.4));
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
-  mask = 1. - mask;
+  // mask = 1. - mask;
 
   float n = d.x;
 
@@ -2734,6 +2753,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec3 dI = vec3(n);
   // dI += 0.1238 * d.y;
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
+  color *= mask;
 
   return color.rgb;
 }
@@ -2766,7 +2787,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
