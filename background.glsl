@@ -15,8 +15,6 @@ vec3 getBackground (in vec2 uv, in float universe) {
   bgIndex = 1. - bgIndex; // Flip
 
   // Metadata
-  float m = smoothstep(0., edge, sin(TWO_PI * (0.25 * fragCoord.x + norT)));
-  vec3 primeColor = mix(vec3(1,0,0), vec3(0,0,1), m);
 
   // --- Set colors / gradient ---
   // Gradients
@@ -70,18 +68,18 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
   float cutoff = 0.;
   n = 1. - smoothstep(cutoff, cutoff + edge, n);
-  vec3 color = mix(primeColor, vec3(1), n); // vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
+  vec3 color = mix(vec3(0.9), vec3(1), n); // vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
 
-  // Dots
-  float size = 0.065;
-  vec2 c = pMod2(uv, vec2(size));
-  float dotN = length(uv) - 0.3 * size;
-  // n = sin(54. * TWO_PI * dI);
-  // float dotCutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
-  float dotCutoff = 0.;
-  dotN = smoothstep(dotCutoff, dotCutoff + edge, dotN);
-  // vec3 color = vec3(1.00 * dotN);
-  color = mix(mix(primeColor, vec3(1), dotN), color, m);
+  // // Dots
+  // float size = 0.065;
+  // vec2 c = pMod2(uv, vec2(size));
+  // float dotN = length(uv) - 0.3 * size;
+  // // n = sin(54. * TWO_PI * dI);
+  // // float dotCutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
+  // float dotCutoff = 0.;
+  // dotN = smoothstep(dotCutoff, dotCutoff + edge, dotN);
+  // // vec3 color = vec3(1.00 * dotN);
+  // color = mix(mix(primeColor, vec3(1), dotN), color, m);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));

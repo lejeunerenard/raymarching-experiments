@@ -1314,18 +1314,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.;
 
-  float m = smoothstep(0., edge, sin(TWO_PI * (0.25 * fragCoord.x + t)));
-  float warpScale = mix(0.5, 1.7, m);
+  float warpScale = 0.5;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
-  wQ += warpScale * 0.1000000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0500000 * cos( 7. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.1000000 * cos( 5. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0500000 * cos( 9. * wQ.yzx + localCosT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.0250000 * cos(16. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0125000 * cos(27. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0062500 * cos(33. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0250000 * cos(17. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0125000 * cos(23. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.0062500 * cos(29. * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1333,9 +1332,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float bD = mix(dodecahedral(q, 42., r * 0.875), length(q) - r, m);
-  vec3 b = vec3(bD, 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   b.x /= rollingScale;
 
   d = dMin(d, b);
@@ -1570,15 +1567,14 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.001);
 
-  m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + t)));
-
-  vec3 primeColor = mix(vec3(1, 0, 0), vec3(0, 0, 1), m);
-  float period = mix(3., 11., m);
+  vec3 primeColor = vec3(0.9);
+  float period = 11.;
   float n = sin(TWO_PI * period * dot(pos, vec3(1)));
 
   n = smoothstep(0., edge, n);
 
   color = mix(primeColor, vec3(1), n);
+  color *= 0.95;
 
   // color *= 0.5;
   return color;
@@ -1648,8 +1644,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #CCEEFF, 1.0);
-    lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFBBC8, 1.0);
-    lights[2] = light(vec3(0.3, 0.3,-0.9), #FFBBBB, 1.0);
+    lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFEEFF, 1.0);
+    lights[2] = light(vec3(0.3, 0.3,-0.9), #FFFFEE, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1689,8 +1685,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.7;
-      float specCo = 0.8;
+      float freCo = 0.6;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1700,7 +1696,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = mix(1., 0.85, m);
+        float diffMin = 1.;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1709,7 +1705,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = mix(0.95, 0.8, m);
+        float shadowMin = 0.95;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
         dif *= sha;
 
@@ -2686,7 +2682,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.4;
+  const float warpScale = 0.6;
   const vec2 size = gSize;
   float r = 0.2;
   vec2 seed = vec2(angle2C);
@@ -2695,36 +2691,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
   wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  wQ *= rotMat2(1.0 * length(wQ));
+  wQ *= rotMat2(2.0 * length(wQ));
   wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
   wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  // I want to think about how to have a grid expand but offset. Who knows if
-  // this will be able to be done tonight though.
-  //
-  // Yeah the mask will not working with the grid but it helps it feel less busy
-  // for me.
-  //
-  // So the main problem is that I want to push a "cell" and not just a point in
-  // space. With that, I need to get the cell position using a C coordinate, but
-  // even with that it will get messed up with the actual application of the mod
-  // space.
-  //
-  // I think I've thouth of this before but what if the key is to think of
-  // all of the cells in a row being squished and stretched by edges that are
-  // positioned with my push offset. I feel like I tried this though.
-  //
-  // Well maybe this is the compromise.. I can make horizontal lines that are
-  // pushed and pulled and then use them in a cosine warp space
-
   float push = 2.0 * size.y * (0.5 + 0.5 * sin(8.0 * q.y + localCosT) + 2. * t);
   q.y += push; // apply
 
   float frequency = 10.;
-  float gridD = sin(TWO_PI * q.y / size.y);
+  // float gridD = sin(TWO_PI * q.y / size.y);
+  float gridD = sin(TWO_PI * length(q) / size.y);
   vec2 o = vec2(gridD, 0);
   d = dMin(d, o);
 
@@ -2787,7 +2766,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
