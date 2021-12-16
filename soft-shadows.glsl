@@ -5,7 +5,7 @@
 
 // Source: https://www.shadertoy.com/view/Xds3zN
 float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float generalT ) {
-  const float k = 32.;
+  const float k = 64.;
 
   float res = 1.0;
   float t = mint;
@@ -13,7 +13,7 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float
 
   for( int i=0; i<RAY_STEPS; i++ ) {
     float h = map(ro + rd*t, generalT).x;
-    if( h<0.000001) return 0.;
+    if( h<0.00001) return 0.;
 
 #ifdef NEW_TECHNIQUE
     // Skip first iteration if you are getting artifact on the first iteration,

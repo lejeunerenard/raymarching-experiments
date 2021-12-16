@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
-// #define ORTHO 1
+#define SS 2
+#define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -62,8 +62,11 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = angle3C;
+float n2 = 1.5;
 const float amount = 0.05;
+
+// Dof
+float doFDistance = angle3C;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1305,7 +1308,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= -globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1319,12 +1322,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
-  wQ += warpScale * 0.1000000 * cos( 5. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0500000 * cos( 9. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.0250000 * cos(17. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0125000 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.0062500 * cos(29. * wQ.yzx + localCosT );
+
+  for (float i = 0.; i < 9.; i++) {
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+
+    rollingScale *= scale;
+  }
 
   // Commit warp
   q = wQ.xyz;
@@ -1332,12 +1337,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - 0.5, 0, 0);
   b.x /= rollingScale;
 
   d = dMin(d, b);
 
-  d.x *= 0.3;
+  // d.x *= 0.3;
 
   return d;
 }
@@ -1565,7 +1570,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.001);
+  vec3 color = vec3(1.9);
+  return color;
 
   vec3 primeColor = vec3(0.9);
   float period = 11.;
@@ -1645,7 +1651,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
     lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #CCEEFF, 1.0);
     lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFEEFF, 1.0);
-    lights[2] = light(vec3(0.3, 0.3,-0.9), #FFFFEE, 1.0);
+    lights[2] = light(vec3(0.3, 0.3, 0.9), #FFFFEE, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1660,7 +1666,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 color = vec3(0.0);
 
       // Normals
-      vec3 nor = getNormal2(pos, 0.00025 * t.x, generalT);
+      vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
       // float bumpsScale = 1.8;
       // float bumpIntensity = 0.105;
       // nor += bumpIntensity * vec3(
@@ -1685,8 +1691,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 0.3;
 
       float specAll = 0.0;
 
@@ -1696,7 +1702,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 1.;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1705,8 +1711,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.95;
-        float sha = max(shadowMin, softshadow(pos, nLightPos, 0.00025, 2.00, generalT));
+        float shadowMin = 0.0;
+        float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 2.00, generalT));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -1716,9 +1722,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += specCo * spec;
 
-        // Ambient
-        lin += 0.100 * amb * diffuseColor;
-        dif += 0.100 * amb;
+        // // Ambient
+        // lin += 0.100 * amb * diffuseColor;
+        // dif += 0.100 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -2861,11 +2867,13 @@ void main() {
   norT = modT / totalT;
   cosT = TWO_PI / totalT * modT;
 
+    const float orthoZoom = 0.5;
+
     vec3 ro = cameraRo + cOffset;
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = 0.5 * TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
@@ -2879,6 +2887,9 @@ void main() {
       0.0, 1.0,  0.0,
       glRs, 0.0,  glRc);
 
+    // okay now to get to what i was hoping to do. time to add DOF!
+    // seems pretty straightforward
+
     #ifdef SS
     // Antialias by averaging all adjacent values
     vec4 color = vec4(0.);
@@ -2886,6 +2897,7 @@ void main() {
 
     for (int x = - SS / 2; x < SS / 2; x++) {
         for (int y = - SS / 2; y < SS / 2; y++) {
+            vec3 ssRo = ro;
 #ifdef ORTHO
             vec3 rd = vec3(0, 0, -1);
 #else
@@ -2899,15 +2911,24 @@ void main() {
             // rd.xy += 0.1 * noise(vec2(x, y));
             rd = (vec4(rd, 1.) * cameraMatrix).xyz;
             rd = normalize(rd);
+
+            // DoF
+            // source: shadertoy.con/view/WtSfWK
+            vec3 fp = ssRo + rd * doFDistance;
+            ssRo.xy += 0.0015 * vec2(
+                cnoise2(1238. * uv + 123. + 2384. * vec2(x, y)),
+                cnoise2(3023. * uv + 20034.123 * vec2(x, y)));
+            rd = normalize(fp - ssRo);
 #ifdef ORTHO
             vec2 ndc = (gl_FragCoord.xy + 0.0 * vec2(x, y)) / resolution.xy * 2.0 - 1.0;
+            ndc *= orthoZoom;
             float w = 2.0;
             float h = w / (resolution.x / resolution.y);
-            ro += (vec4(
+            ssRo += (vec4(
                   ndc * vec2(w * 0.5, h * 0.5),
                   0, 1) * cameraMatrix).xyz;
 #endif
-            color += saturate(sample(ro, rd, uv));
+            color += saturate(sample(ssRo, rd, uv));
         }
     }
     gl_FragColor = color / float(SS * SS);
@@ -2923,8 +2944,18 @@ void main() {
     // rd.xy += 0.001 * noise(2183. * uv);
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     rd = normalize(rd);
+
+    // DoF
+    // source: shadertoy.con/view/WtSfWK
+    vec3 fp = ro + rd * doFDistance;
+    ro.xy += 0.0015 * vec2(
+        cnoise2(1238. * uv + 123.),
+        cnoise2(3023. * uv + 20034.123));
+    rd = normalize(fp - ro);
+
 #ifdef ORTHO
     vec2 ndc = gl_FragCoord.xy / resolution.xy * 2.0 - 1.0;
+    ndc *= orthoZoom;
     float w = 2.0;
     float h = w / (resolution.x / resolution.y);
     ro += (vec4(
