@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 
 precision highp float;
@@ -570,6 +570,8 @@ float sdArc( in vec2 p, in vec2 sca, in vec2 scb, in float ra, float rb )
 //
 // #pragma glslify: fold = require(./folds)
 #pragma glslify: foldNd = require(./foldNd)
+#pragma glslify: halfTetraFold = require(./folds/half-tetrahedral)
+#pragma glslify: tetraFold = require(./folds/tetrahedral)
 #pragma glslify: twist = require(./twist)
 
 void opCheapBend (inout vec3 p, float a) {
@@ -1308,7 +1310,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1323,10 +1325,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  for (float i = 0.; i < 9.; i++) {
-    wQ = abs(wQ);
+  for (float i = 0.; i < 10.; i++) {
+    // wQ = abs(wQ);
+    // wQ = halfTetraFold(wQ);
+    wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
+    wQ *= rotationMatrix(vec3(1, 1, 0), 0.05 * PI * cos(localCosT + 2. * wQ.x));
 
     rollingScale *= scale;
   }
@@ -1337,12 +1342,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 0.5, 0, 0);
+  vec3 b = vec3(length(q) - 0.75, 0, 0);
   b.x /= rollingScale;
 
   d = dMin(d, b);
 
-  // d.x *= 0.3;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1570,7 +1575,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.9);
+  vec3 color = vec3(1.5);
   return color;
 
   vec3 primeColor = vec3(0.9);
@@ -1666,7 +1671,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 color = vec3(0.0);
 
       // Normals
-      vec3 nor = getNormal2(pos, 0.005 * t.x, generalT);
+      vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
       // float bumpsScale = 1.8;
       // float bumpIntensity = 0.105;
       // nor += bumpIntensity * vec3(
@@ -2873,7 +2878,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = 0.5 * TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
@@ -2886,9 +2891,6 @@ void main() {
       glRc, 0.0, -glRs,
       0.0, 1.0,  0.0,
       glRs, 0.0,  glRc);
-
-    // okay now to get to what i was hoping to do. time to add DOF!
-    // seems pretty straightforward
 
     #ifdef SS
     // Antialias by averaging all adjacent values
@@ -2916,9 +2918,10 @@ void main() {
             // source: shadertoy.con/view/WtSfWK
             vec3 fp = ssRo + rd * doFDistance;
             ssRo.xy += 0.0015 * vec2(
-                cnoise2(1238. * uv + 123. + 2384. * vec2(x, y)),
-                cnoise2(3023. * uv + 20034.123 * vec2(x, y)));
+                cnoise2(238. * uv + 123. + 2384. * vec2(x, y)),
+                cnoise2(323. * uv + 2034.123 * vec2(x, y)));
             rd = normalize(fp - ssRo);
+
 #ifdef ORTHO
             vec2 ndc = (gl_FragCoord.xy + 0.0 * vec2(x, y)) / resolution.xy * 2.0 - 1.0;
             ndc *= orthoZoom;
@@ -2949,8 +2952,8 @@ void main() {
     // source: shadertoy.con/view/WtSfWK
     vec3 fp = ro + rd * doFDistance;
     ro.xy += 0.0015 * vec2(
-        cnoise2(1238. * uv + 123.),
-        cnoise2(3023. * uv + 20034.123));
+        cnoise2(238. * uv + 123.),
+        cnoise2(323. * uv + 20034.123));
     rd = normalize(fp - ro);
 
 #ifdef ORTHO
