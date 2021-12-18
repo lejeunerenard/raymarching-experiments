@@ -9,6 +9,7 @@
 #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
+// #define DOF 1
 
 precision highp float;
 
@@ -1325,14 +1326,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  for (float i = 0.; i < 10.; i++) {
-    // wQ = abs(wQ);
-    // wQ = halfTetraFold(wQ);
-    wQ = tetraFold(wQ);
+  for (float i = 0.; i < 12.; i++) {
+    if (mod(i, 2.) == 1.) {
+      wQ = abs(wQ);
+      // wQ = halfTetraFold(wQ);
+    } else {
+      wQ = tetraFold(wQ);
+    }
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(1, 1, 0), 0.05 * PI * cos(localCosT + 2. * wQ.x));
+    wQ *= rotationMatrix(vec3(1, 1, 0), 0.05 * PI * cos(localCosT + 3. * wQ.y));
 
+    // float trap = length(wQ);
+    float trap = dot(sin(wQ), vec3(0.2));
+    minD.x = min(minD.x, trap);
     rollingScale *= scale;
   }
 
@@ -1342,12 +1349,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 0.75, 0, 0);
+  // vec3 b = vec3(length(q) - 0.75, 0, minD.x);
+  vec3 b = vec3(sdBox(q, vec3(0.75)), 0, minD.x);
   b.x /= rollingScale;
 
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  d.x *= 0.45;
 
   return d;
 }
@@ -1576,34 +1584,13 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.5);
-  return color;
-
-  vec3 primeColor = vec3(0.9);
-  float period = 11.;
-  float n = sin(TWO_PI * period * dot(pos, vec3(1)));
-
-  n = smoothstep(0., edge, n);
-
-  color = mix(primeColor, vec3(1), n);
-  color *= 0.95;
-
-  // color *= 0.5;
-  return color;
-
-//   float n = dot(pos, vec3(1));
-//   n = sin(TWO_PI * 15. * n);
-//   n = 2. * smoothstep(0., edge, n);
-
-//   color = mix(color, vec3(0, 0, 1.2), isMaterialSmooth(m, 1.));
-//   color = mix(color, vec3(n), isMaterialSmooth(m, 2.));
-
-//   return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
 
-  dI += 0.5 * pow(dNR, 3.);
-  dI += 0.5 * snoise3(mPos);
+  // dI += 0.5 * pow(dNR, 3.);
+  // dI += 0.5 * snoise3(mPos);
+
   vec3 s = vec3(0);
   // dI += 0.5 * fbmWarp(18. * mPos, s);
 
@@ -1696,8 +1683,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.3;
+      float freCo = 0.6;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -2914,6 +2901,7 @@ void main() {
             rd = (vec4(rd, 1.) * cameraMatrix).xyz;
             rd = normalize(rd);
 
+#ifdef DOF
             // DoF
             // source: shadertoy.con/view/WtSfWK
             vec3 fp = ssRo + rd * doFDistance;
@@ -2921,6 +2909,7 @@ void main() {
                 cnoise2(238. * uv + 123. + 2384. * vec2(x, y)),
                 cnoise2(323. * uv + 2034.123 * vec2(x, y)));
             rd = normalize(fp - ssRo);
+#endif
 
 #ifdef ORTHO
             vec2 ndc = (gl_FragCoord.xy + 0.0 * vec2(x, y)) / resolution.xy * 2.0 - 1.0;
@@ -2948,6 +2937,7 @@ void main() {
     rd = (vec4(rd, 1.) * cameraMatrix).xyz;
     rd = normalize(rd);
 
+#ifdef DOF
     // DoF
     // source: shadertoy.con/view/WtSfWK
     vec3 fp = ro + rd * doFDistance;
@@ -2955,6 +2945,7 @@ void main() {
         cnoise2(238. * uv + 123.),
         cnoise2(323. * uv + 20034.123));
     rd = normalize(fp - ro);
+#endif
 
 #ifdef ORTHO
     vec2 ndc = gl_FragCoord.xy / resolution.xy * 2.0 - 1.0;
