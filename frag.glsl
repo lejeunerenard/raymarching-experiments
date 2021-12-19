@@ -1326,7 +1326,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  for (float i = 0.; i < 12.; i++) {
+  for (float i = 0.; i < 7.; i++) {
     if (mod(i, 2.) == 1.) {
       wQ = abs(wQ);
       // wQ = halfTetraFold(wQ);
@@ -1335,7 +1335,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     }
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(1, 1, 0), 0.05 * PI * cos(localCosT + 3. * wQ.y));
+    wQ *= rotationMatrix(vec3(1, 0, 0), 0.100 * PI * cos(localCosT + 0.5 * wQ.y));
 
     // float trap = length(wQ);
     float trap = dot(sin(wQ), vec3(0.2));
@@ -1600,7 +1600,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
 
-  // color *= 0.5;
+  color *= 1.6;
 
   gM = m;
 
@@ -1642,7 +1642,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #CCEEFF, 1.0);
-    lights[1] = light(vec3( 0.5, 0.25, 1.0), #FFEEFF, 1.0);
+    lights[1] = light(vec3(-0.5, 0.25, 1.0), #FFEEFF, 1.0);
     lights[2] = light(vec3(0.3, 0.3, 0.9), #FFFFEE, 1.0);
 
     const float universe = 0.;
@@ -1694,7 +1694,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.0;
+        float diffMin = 1.00;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1703,7 +1703,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        float shadowMin = 0.1;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 2.00, generalT));
         dif *= sha;
 
