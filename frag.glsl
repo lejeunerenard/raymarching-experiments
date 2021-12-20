@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1326,7 +1326,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  for (float i = 0.; i < 7.; i++) {
+  for (float i = 0.; i < 4.; i++) {
     if (mod(i, 2.) == 1.) {
       wQ = abs(wQ);
       // wQ = halfTetraFold(wQ);
@@ -1350,7 +1350,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(length(q) - 0.75, 0, minD.x);
-  vec3 b = vec3(sdBox(q, vec3(0.75)), 0, minD.x);
+  vec3 b = vec3(sdBox(q, vec3(0.95)), 0, minD.x);
   b.x /= rollingScale;
 
   d = dMin(d, b);
@@ -1749,15 +1749,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
-      // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.4);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
