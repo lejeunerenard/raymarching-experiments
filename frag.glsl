@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.147;
+float n2 = 1.9;
 const float amount = 0.05;
 
 // Dof
@@ -1337,12 +1337,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
-  q.xzy = q.xyz;
+  // q.xzy = q.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 1.1, 0, minD.x);
-  // vec3 b = vec3(sdBox(q, vec3(0.95)), 0, minD.x);
+  // vec3 b = vec3(length(q) - 1.1, 0, minD.x);
+  const float width = 0.9;
+  vec3 b = vec3(sdBox(q, vec3(width, 1.7, width)), 0, minD.x);
+  b.x -= 0.0005 * cellular(4. * wQ);
   b.x /= rollingScale;
 
   d = dMin(d, b);
@@ -1591,9 +1593,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
-  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4)));
+  color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
 
-  // color *= 1.6;
+  color *= 0.5;
 
   gM = m;
 
@@ -1687,7 +1689,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 1.00;
+        float diffMin = 0.90;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1696,7 +1698,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 96.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.1;
+        float shadowMin = 0.4;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 2.00, generalT));
         dif *= sha;
 
