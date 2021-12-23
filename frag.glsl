@@ -1311,7 +1311,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  p *= -globalRot;
+  // p *= -globalRot;
 
   vec3 q = p;
 
@@ -1320,7 +1320,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.;
 
-  float warpScale = 0.5;
+  float warpScale = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1341,10 +1341,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  // vec3 b = vec3(length(q) - 1.1, 0, minD.x);
-  const float width = 0.9;
-  vec3 b = vec3(sdBox(q, vec3(width, 1.7, width)), 0, minD.x);
-  b.x -= 0.0005 * cellular(4. * wQ);
+  // q.y *= 0.4;
+
+  // vec3 b = vec3(length(q) - 1.0, 0, minD.x);
+  vec3 b = vec3(icosahedral(q, 52., 1.), 0, minD.x);
+  // const float width = 0.9;
+  // vec3 b = vec3(sdBox(q, vec3(width, 1.7, width)), 0, minD.x);
+  // b.x -= 0.0005 * cellular(4. * wQ);
   b.x /= rollingScale;
 
   d = dMin(d, b);
@@ -1750,7 +1753,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float dispersionI = 2.0;
       dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.4);
+      dispersionColor.b = pow(dispersionColor.b, 0.6);
+
+      // dispersionColor *= 0.8 + 0.2 * cos(TWO_PI * (dispersionColor + vec3(0, 0.33, 0.67)));
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
