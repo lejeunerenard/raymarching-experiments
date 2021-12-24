@@ -83,9 +83,11 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
-  color *= 1.3 * vec3(0.7, 0.8, 5.0); // Tint
+  color *= 1.3 * vec3(4.0, 0.7, 1.3); // Tint
   color *= 1.35; // Brighten
-  color.b = pow(color.b, 0.97);
+  color.r = pow(color.r, 0.9);
+  color.rb *= 1.8;
+  color.g *= 0.70;
 
   return color;
 }

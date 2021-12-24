@@ -1311,29 +1311,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  // p *= -globalRot;
-
-  vec3 q = p;
-
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
   float size = 1.;
 
+  // p *= -globalRot;
+  p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
+
+  vec3 q = p;
+
   float warpScale = 1.0;
+  float warpFrequency = 0.9;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx + localCosT );
-  wQ += warpScale * 0.001562 * cos(33. * wQ.yzx + localCosT );
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1344,10 +1346,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // q.y *= 0.4;
 
   // vec3 b = vec3(length(q) - 1.0, 0, minD.x);
-  vec3 b = vec3(icosahedral(q, 52., 1.), 0, minD.x);
-  // const float width = 0.9;
-  // vec3 b = vec3(sdBox(q, vec3(width, 1.7, width)), 0, minD.x);
-  // b.x -= 0.0005 * cellular(4. * wQ);
+  // vec3 b = vec3(icosahedral(q, 52., 1.), 0, minD.x);
+  q *= rotationMatrix(vec3(1), 0.25 * PI);
+  vec3 b = vec3(sdBox(q, vec3(1.75, 1.75, 0.10)), 0, 0);
   b.x /= rollingScale;
 
   d = dMin(d, b);
