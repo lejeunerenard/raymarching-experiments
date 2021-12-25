@@ -961,7 +961,7 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-const float repetitions = 12.;
+const float repetitions = 6.;
 vec4 pieSpace (in vec3 p, in float relativeC) {
   float angle = relativeC * TWO_PI / repetitions;
   p.xz *= rotMat2(angle);
@@ -1306,7 +1306,7 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 0.6;
+float gR = 1.0;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1317,12 +1317,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = 1.;
 
   // p *= -globalRot;
-  p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 0.9;
+  float warpScale = 0.6;
+  float warpFrequency = 1.3;
   float rollingScale = 1.;
 
   // Warp
@@ -1337,6 +1337,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
+  wQ *= rotationMatrix(vec3(0, 0, 1), 0.16667 * localCosT);
+  vec4 pQ = pieSpace(wQ.xzy, 0.);
+
+  wQ = pQ.xyz;
+  // wQ *= rotationMatrix(vec3(1), 0.23 * PI);
+
   // Commit warp
   q = wQ.xyz;
   // q.xzy = q.xyz;
@@ -1345,15 +1351,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // q.y *= 0.4;
 
-  // vec3 b = vec3(length(q) - 1.0, 0, minD.x);
-  // vec3 b = vec3(icosahedral(q, 52., 1.), 0, minD.x);
-  q *= rotationMatrix(vec3(1), 0.25 * PI);
-  vec3 b = vec3(sdBox(q, vec3(1.75, 1.75, 0.10)), 0, 0);
+  vec3 rotOffset = vec3(1, 0, 0);
+  q -= rotOffset;
+
+  // vec3 b = vec3(length(q) - 0.55, 0, minD.x);
+  // vec3 b = vec3(icosahedral(q, 52., 0.5), 0, minD.x);
+  q *= rotationMatrix(vec3(1), 0.23 * PI);
+  vec3 b = vec3(sdBox(q, vec3(0.5)), 0, minD.x);
+  b.x *= 0.85;
+  // vec3 b = vec3(sdTorus(q.xzy, vec2(r, 0.4 * r)), 0, 0);
   b.x /= rollingScale;
 
   d = dMin(d, b);
 
-  d.x *= 0.7;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1737,7 +1748,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.15 * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
