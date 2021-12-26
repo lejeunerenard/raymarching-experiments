@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.9;
+float n2 = 1.5;
 const float amount = 0.05;
 
 // Dof
@@ -1328,41 +1328,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
   // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
-
-  wQ *= rotationMatrix(vec3(0, 0, 1), 0.16667 * localCosT);
-  vec4 pQ = pieSpace(wQ.xzy, 0.);
-
-  wQ = pQ.xyz;
-  // wQ *= rotationMatrix(vec3(1), 0.23 * PI);
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
-  // q.xzy = q.xyz;
 
   mPos = q;
 
-  // q.y *= 0.4;
+  // Tree
+  const float totalDist = 0.85;
+  const float num = 15.;
+  q.y -= totalDist * 0.5;
 
-  vec3 rotOffset = vec3(1, 0, 0);
-  q -= rotOffset;
+  const float rotOffset = 0.3;
 
-  // vec3 b = vec3(length(q) - 0.55, 0, minD.x);
+  for (float i = 0.; i < num; i++) {
+    float portional = (i + 1.) / num;
+    float myT = range(portional * rotOffset, (1. - rotOffset) + portional * rotOffset, t);
+    vec3 localQ = q + vec3(0, totalDist * portional, 0);
+    localQ *= rotationMatrix(vec3(0, 1, 0), PI * cos(TWO_PI * myT - (1. - triangleWave(myT)) * 0.85 * length(q.xz)));
+
+    float width = 0.4 * portional;
+    vec3 b = vec3(sdCapsule(localQ, vec3(0, 0, -width), vec3(0, 0, width), 0.025), 0, 0);
+    d = dMin(d, b);
+  }
+
   // vec3 b = vec3(icosahedral(q, 52., 0.5), 0, minD.x);
-  q *= rotationMatrix(vec3(1), 0.23 * PI);
-  vec3 b = vec3(sdBox(q, vec3(0.5)), 0, minD.x);
-  b.x *= 0.85;
-  // vec3 b = vec3(sdTorus(q.xzy, vec2(r, 0.4 * r)), 0, 0);
-  b.x /= rollingScale;
+  // b.x /= rollingScale;
 
-  d = dMin(d, b);
+  // d = dMin(d, b);
 
   d.x *= 0.5;
 
@@ -1608,9 +1609,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
-  color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
+  // color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
 
-  color *= 0.5;
+  // color *= 0.5;
 
   gM = m;
 
@@ -1693,7 +1694,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.3;
+      float freCo = 1.0;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -1762,7 +1763,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
-      float dispersionI = 2.0;
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       dispersionColor.b = pow(dispersionColor.b, 0.6);
