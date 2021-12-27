@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.5;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1306,7 +1306,7 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 1.0;
+float gR = 0.45;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1316,54 +1316,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 1.;
 
-  // p *= -globalRot;
+  p *= globalRot;
   // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
 
   vec3 q = p;
 
   float warpScale = 0.6;
-  float warpFrequency = 1.3;
+  float warpFrequency = 0.8;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y);
-  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // Tree
-  const float totalDist = 0.85;
-  const float num = 15.;
-  q.y -= totalDist * 0.5;
-
-  const float rotOffset = 0.3;
-
-  for (float i = 0.; i < num; i++) {
-    float portional = (i + 1.) / num;
-    float myT = range(portional * rotOffset, (1. - rotOffset) + portional * rotOffset, t);
-    vec3 localQ = q + vec3(0, totalDist * portional, 0);
-    localQ *= rotationMatrix(vec3(0, 1, 0), PI * cos(TWO_PI * myT - (1. - triangleWave(myT)) * 0.85 * length(q.xz)));
-
-    float width = 0.4 * portional;
-    vec3 b = vec3(sdCapsule(localQ, vec3(0, 0, -width), vec3(0, 0, width), 0.025), 0, 0);
-    d = dMin(d, b);
-  }
-
-  // vec3 b = vec3(icosahedral(q, 52., 0.5), 0, minD.x);
+  vec3 b = vec3(tetrahedron(q, r), 0, minD.x);
   // b.x /= rollingScale;
-
-  // d = dMin(d, b);
+  d = dMin(d, b);
 
   d.x *= 0.5;
 
@@ -1511,6 +1492,8 @@ vec3 textures (in vec3 rd) {
   // // Identity scene color
   // color = vec3(1);
 
+  color *= 1.3;
+
   // // Unbounded
   // return color;
 
@@ -1609,9 +1592,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
-  // color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
+  color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
 
-  // color *= 0.5;
+  color *= 0.5;
 
   gM = m;
 
@@ -1694,7 +1677,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.7;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -2878,7 +2861,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = -TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
