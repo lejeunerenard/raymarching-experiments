@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1314,9 +1314,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  float size = 1.;
+  float size = 0.5;
 
-  p *= globalRot;
+  // p *= globalRot;
   // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
 
   vec3 q = p;
@@ -1328,25 +1328,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(tetrahedron(q, r), 0, minD.x);
-  // b.x /= rollingScale;
-  d = dMin(d, b);
+  float capWidth = size * 0.4;
+  float stackSpace = size * 0.2;
+  r = stackSpace * 0.35;
 
-  d.x *= 0.5;
+  float c = pMod1(q.x, size);
+
+  const float num = 14.;
+  for (float i = -num; i < num; i++) {
+    vec3 localQ = q - vec3(0, 0, i * stackSpace);
+    localQ.xy *= rotMat2(PI * quart(0.5 + 0.5 * cos(localCosT + i * 0.083 + c * 0.7)));
+
+    vec3 b = vec3(sdCapsule(localQ, vec3(-capWidth, 0, 0), vec3(capWidth, 0, 0), r), 0, minD.x);
+    // b.x /= rollingScale;
+    d = dMin(d, b);
+  }
+
+  d.x *= 0.125;
 
   return d;
 }
