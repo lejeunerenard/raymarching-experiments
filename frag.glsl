@@ -1314,7 +1314,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  float size = 0.5;
+  float size = 0.125;
 
   // p *= globalRot;
   // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
@@ -1342,8 +1342,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float capWidth = size * 0.4;
-  float stackSpace = size * 0.2;
+  float capWidth = size * 0.5;
+  float stackSpace = size * 1.0;
   r = stackSpace * 0.35;
 
   float c = pMod1(q.x, size);
@@ -1354,7 +1354,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     localQ.xy *= rotMat2(PI * quart(0.5 + 0.5 * cos(localCosT + i * 0.12 + c * 1.7)));
 
     // vec3 b = vec3(sdCapsule(localQ, vec3(-capWidth, 0, 0), vec3(capWidth, 0, 0), r), 0, minD.x);
-    vec3 b = vec3(sdBox(localQ, vec3(capWidth, capWidth, r)), 0, minD.x);
+    // what is going on? I am typing on my laptop keyboard and everything is just barely off!
+    vec3 b = vec3(sdBox(localQ, vec3(size * 0.4)), 0, minD.x);
+    b -= 0.0015 * cellular(12. * localQ + 0.123 * i);
     // b.x /= rollingScale;
     d = dMin(d, b);
   }
@@ -1758,17 +1760,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
       // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
-      // dispersionColor.b = pow(dispersionColor.b, 0.6);
+      dispersionColor.b = pow(dispersionColor.b, 0.6);
 
       // dispersionColor *= 0.8 + 0.2 * cos(TWO_PI * (dispersionColor + vec3(0, 0.33, 0.67)));
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
