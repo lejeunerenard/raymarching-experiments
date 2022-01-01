@@ -1322,15 +1322,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 0.6;
-  float warpFrequency = 0.8;
+  float warpFrequency = 0.5;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
+  float warpT = smoothstep(0.7, 1., cos(localCosT + 0.25 * TWO_PI * q.y));
+
+  wQ += warpScale * 0.100000 * cos( (3. + 8. * warpT) * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, (1.0 + 0.5 * cos(2. * wQ.y - localCosT)) * wQ.y);
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
@@ -1342,9 +1344,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
-  vec3 b = vec3(icosahedral(q, 52., 1.2 * r), 0, minD.x);
-  b -= 0.005 * cellular(2. * q);
+  // 5 Years. That's crazy! Now to do my obligatory number post
+  const float width = 0.9;
+  const float height = width * 1.5;
+  float thick = 0.07; // * (1.00 + 0.30 * cos(PI * 3. * q.y + localCosT));
+  const float topWidth = 0.455 * width;
+
+  q.y -= 0.40 * height;
+
+  float five = sdBox(q - vec3(topWidth - 0.5 * width, 0, 0), vec3(topWidth, thick, thick));
+  five = min(five, sdBox(q - vec3(-0.5 * width + thick,-0.25 * height, 0), vec3(thick, 0.25 * height, thick)));
+  float bottomXOffset = 0.025 * width;
+  vec3 bottomQ = q - vec3(bottomXOffset, -0.65 * height + thick, 0);
+  vec2 bottomPivot = vec2(0.089, 0.259);
+  bottomQ.xy -= bottomPivot;
+  bottomQ.xy *= rotMat2(0.104);
+  bottomQ.xy += bottomPivot;
+  five = min(five, sdCappedCylinder(bottomQ.xzy, vec2(width * 0.5 + bottomXOffset, thick)));
+  five = max(five,-sdCappedCylinder(bottomQ.xzy, vec2(width * 0.5 + bottomXOffset - 2. * thick, 2. * thick)));
+  // Remove left slice of circle
+  five = max(five,-sdBox(bottomQ - vec3(-0.40 * width, 0, 0), vec3(0.25 * width, 0.097 * height, 2. * thick)));
+
+  vec3 b = vec3(five, 0, minD.x);
+  b -= 0.005 * cellular(4. * q);
   // b.x /= rollingScale;
   d = dMin(d, b);
 
@@ -1657,13 +1679,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.8;
-      float bumpIntensity = 0.105;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 1.8;
+      // float bumpIntensity = 0.105;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1681,8 +1703,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.4;
-      float specCo = 0.6;
+      float freCo = 2.0;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -1754,8 +1776,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       dispersionColor.b = pow(dispersionColor.b, 0.6);
-
-      // dispersionColor *= 0.8 + 0.2 * cos(TWO_PI * (dispersionColor + vec3(0, 0.33, 0.67)));
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
