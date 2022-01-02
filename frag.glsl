@@ -961,8 +961,16 @@ float fTorus(vec4 p4) {
     return d;
 }
 
-const float repetitions = 6.;
+vec4 pieSpace (in vec3 p, in float relativeC, in float repetitions) {
+  float angle = relativeC * TWO_PI / repetitions;
+  p.xz *= rotMat2(angle);
+  float c = pModPolar(p.xz, repetitions);
+  p.xz *= rotMat2(-angle);
+  return vec4(p, c);
+}
+
 vec4 pieSpace (in vec3 p, in float relativeC) {
+  const float repetitions = 6.;
   float angle = relativeC * TWO_PI / repetitions;
   p.xz *= rotMat2(angle);
   float c = pModPolar(p.xz, repetitions);
@@ -2707,22 +2715,38 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  wQ *= rotMat2(2.0 * length(wQ));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  // wQ *= rotMat2(2.0 * length(wQ));
+  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  float push = 2.0 * size.y * (0.5 + 0.5 * sin(8.0 * q.y + localCosT) + 2. * t);
-  q.y += push; // apply
+  // Thinking of starting year 6 off with a spiral of stars. It should test
+  // whether I can convert to and from polar coordinates. We'll see.
 
-  float frequency = 10.;
-  // float gridD = sin(TWO_PI * q.y / size.y);
-  float gridD = sin(TWO_PI * length(q) / size.y);
-  vec2 o = vec2(gridD, 0);
+  const float dotR = 0.0025;
+  const float lengthSize = 3.0 * dotR;
+
+  // Coordinates / Repetitions
+  float c = floor((length(q) + lengthSize * 0.5) / lengthSize);
+  float repetitions = 2. + 1. * floor(
+      12. * noise(2. * vec2(c))
+      + 0.5 * sqrt(c * 40.));
+  float repAngle = TWO_PI / repetitions * localT;
+
+  q *= rotMat2(0.123 * c * PI + (1. + mod(c, 2.)) * repAngle);
+
+  vec4 pie = pieSpace(q.xyy, 0., repetitions);
+  q.xy = pie.xz;
+
+  pMod1(q.x, lengthSize);
+
+  q.x -= 0.5 * dotR * cnoise2(1.8213 + 2.1237 * vec2(c));
+
+  vec2 o = vec2(length(q) - dotR, 0);
   d = dMin(d, o);
 
   float mask = 1.; // sdBox(uv, vec2(0.4));
@@ -2732,7 +2756,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = d.x;
 
   // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - angle1C);
+  n = smoothstep(0., 0.5 * edge, n - 0.);
 
   // Invert
   n = 1. - n;
@@ -2784,7 +2808,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
