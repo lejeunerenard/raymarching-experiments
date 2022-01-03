@@ -2739,8 +2739,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   q *= rotMat2(0.123 * c * PI + (1. + mod(c, 2.)) * repAngle);
 
-  vec4 pie = pieSpace(q.xyy, 0., repetitions);
-  q.xy = pie.xz;
+  pModPolar(q, repetitions);
 
   pMod1(q.x, lengthSize);
 
