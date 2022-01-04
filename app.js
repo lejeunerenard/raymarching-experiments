@@ -44,18 +44,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.38,
-        y: 1.552,
-        z: -0.059
+        x: 0.660,
+        y: -1.536,
+        z: 0.449
       },
-      d: 0.04,
+      d: 0.47,
       scale: 2.1719,
-      rot2angle: [3.216, 1.622, 3.909],
+      rot2angle: [5.437, 1.833, 3.974],
       cameraAngles: [-0.016, -0.789, 0.04]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 2)
+    this.cameraRo = vec3.fromValues(0, 0, 3.36)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [205, 134, 147]
@@ -75,9 +75,9 @@ export default class App {
 
     this.angle1C = -0.4984
     this.angle2C = 2.3563
-    this.angle3C = 0.104
+    this.angle3C = 2.743
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -206,20 +206,25 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([5.85, this.rot2angle[1], this.rot2angle[2]], 16 * 1000)
+      .to([this.rot2angle[0], 2.093, 4.248], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    // let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    // rotTween2
-    //   .to([...this.rot2angle], 4 * 1000)
-    //   .easing(TWEEN.Easing.Quadratic.InOut)
-    // let rotTween3 = new TWEEN.Tween(this.rot2angle)
-    // rotTween3
-    //   .to([...this.rot2angle], 5 * 1000)
-    //   .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    rotTween2
+      .to([5.084, 2.093, 4.248], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([5.156, 2.661, 3.77], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween4 = new TWEEN.Tween(this.rot2angle)
+    rotTween4
+      .to([...this.rot2angle], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // rotTween1.chain(rotTween1)
-    // rotTween2.chain(rotTween1)
-    // rotTween3.chain(rotTween1)
+    rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween4)
+    rotTween4.chain(rotTween1)
 
     rotTween1.start(0)
 

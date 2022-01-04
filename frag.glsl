@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1338,44 +1338,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float warpT = smoothstep(0.7, 1., cos(localCosT + 0.25 * TWO_PI * q.y));
 
-  wQ += warpScale * 0.100000 * cos( (3. + 8. * warpT) * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, (1.0 + 0.5 * cos(2. * wQ.y - localCosT)) * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.100000 * cos( (3. + 8. * warpT) * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  // wQ.xzy = twist(wQ.xyz, (1.0 + 0.5 * cos(2. * wQ.y - localCosT)) * wQ.y);
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
+
+  vec3 prev = wQ;
+  for (float i = 0.; i < 9.; i++) {
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1.) * kifsM).xyz;
+
+    // Trap
+    // float trap = length(wQ - prev);
+    float trap = vmax(max(wQ, prev));
+    minD = min(minD, trap);
+
+    rollingScale *= scale;
+    prev = wQ;
+  }
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // 5 Years. That's crazy! Now to do my obligatory number post
-  const float width = 0.9;
-  const float height = width * 1.5;
-  float thick = 0.07; // * (1.00 + 0.30 * cos(PI * 3. * q.y + localCosT));
-  const float topWidth = 0.455 * width;
 
-  q.y -= 0.40 * height;
-
-  float five = sdBox(q - vec3(topWidth - 0.5 * width, 0, 0), vec3(topWidth, thick, thick));
-  five = min(five, sdBox(q - vec3(-0.5 * width + thick,-0.25 * height, 0), vec3(thick, 0.25 * height, thick)));
-  float bottomXOffset = 0.025 * width;
-  vec3 bottomQ = q - vec3(bottomXOffset, -0.65 * height + thick, 0);
-  vec2 bottomPivot = vec2(0.089, 0.259);
-  bottomQ.xy -= bottomPivot;
-  bottomQ.xy *= rotMat2(0.104);
-  bottomQ.xy += bottomPivot;
-  five = min(five, sdCappedCylinder(bottomQ.xzy, vec2(width * 0.5 + bottomXOffset, thick)));
-  five = max(five,-sdCappedCylinder(bottomQ.xzy, vec2(width * 0.5 + bottomXOffset - 2. * thick, 2. * thick)));
-  // Remove left slice of circle
-  five = max(five,-sdBox(bottomQ - vec3(-0.40 * width, 0, 0), vec3(0.25 * width, 0.097 * height, 2. * thick)));
-
-  vec3 b = vec3(five, 0, minD.x);
-  b -= 0.005 * cellular(4. * q);
-  // b.x /= rollingScale;
+  vec3 b = vec3(length(q) - angle3C, 0, minD.x);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -1608,8 +1602,12 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
-  // return color;
+  vec3 color = vec3(0);
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (d * trap + vec3(0, 0.3333, 0.67)));
+  color *= 1.7;
+
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(trap);
@@ -1712,7 +1710,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 2.0;
-      float specCo = 0.8;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
@@ -1722,7 +1720,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.00;
+        float diffMin = 0.10;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         // // Cartoon clamp
@@ -1776,16 +1774,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.b = pow(dispersionColor.b, 0.6);
+      // dispersionColor.b = pow(dispersionColor.b, 0.6);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2826,7 +2824,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
