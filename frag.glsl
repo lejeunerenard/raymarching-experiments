@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1324,7 +1324,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 0.125;
 
-  // p *= globalRot;
+  p *= globalRot;
   // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
 
   vec3 q = p;
@@ -1348,15 +1348,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
   vec3 prev = wQ;
+  float trapD = maxDistance;
   for (float i = 0.; i < 9.; i++) {
-    wQ = abs(wQ);
+    wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
+
+    wQ *= rotationMatrix(vec3(1, 1, 1), -0.4 * PI * range(0.3, 0.9, triangleWave(t + 0.5 * wQ.x)));
 
     // Trap
     // float trap = length(wQ - prev);
     float trap = vmax(max(wQ, prev));
     minD = min(minD, trap);
+
+    trapD = min(sdCylinder(wQ, vec3(vec2(0), 0.1)), trapD);
+    // trapD = min(length(wQ) - 0.1, trapD);
 
     rollingScale *= scale;
     prev = wQ;
@@ -1372,7 +1378,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   b.x /= rollingScale;
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  // vec3 trap = vec3(trapD, 1, minD.x);
+  // // trap.x /= rollingScale;
+  // d = dMin(d, trap);
+
+  d.x *= 0.25;
 
   return d;
 }
@@ -1606,6 +1616,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (d * trap + vec3(0, 0.3333, 0.67)));
   color *= 1.7;
+
+  color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 1.));
 
   return color;
 
