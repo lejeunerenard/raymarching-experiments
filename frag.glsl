@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1347,26 +1347,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
   // wQ += warpScale * 0.001562 * cos(33. * wQ.yzx * warpFrequency + localCosT );
 
-  // vec3 prev = wQ;
-  // float trapD = maxDistance;
-  // for (float i = 0.; i < 2.; i++) {
-  //   wQ = tetraFold(wQ);
+  vec3 prev = wQ;
+  float trapD = maxDistance;
+  for (float i = 0.; i < 12.; i++) {
+    wQ = tetraFold(wQ);
 
-  //   wQ = (vec4(wQ, 1.) * kifsM).xyz;
+    wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
-  //   wQ *= rotationMatrix(vec3(1, 1, 1), -0.4 * PI * range(0.3, 0.9, triangleWave(t + 0.5 * wQ.x)));
+    wQ *= rotationMatrix(vec3(1), -0.025 * PI * (0.5 + 0.5 * cos(localCosT + q.x)));
 
-  //   // Trap
-  //   // float trap = length(wQ - prev);
-  //   float trap = vmax(max(wQ, prev));
-  //   minD = min(minD, trap);
+    // Trap
+    // float trap = length(wQ - prev);
+    float trap = vmax(max(wQ, prev));
+    minD = min(minD, trap);
 
-  //   trapD = min(sdCylinder(wQ, vec3(vec2(0), 0.1)), trapD);
-  //   // trapD = min(length(wQ) - 0.1, trapD);
+    trapD = min(sdCylinder(wQ, vec3(vec2(0), 0.1)), trapD);
+    // trapD = min(length(wQ) - 0.1, trapD);
 
-  //   rollingScale *= scale;
-  //   prev = wQ;
-  // }
+    rollingScale *= scale;
+    prev = wQ;
+  }
 
   // wQ = max(q, mix(q, wQ, triangleWave(2. * t + 0.1 * q.x)));
 
@@ -1375,16 +1375,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  // Maybe some genuary prompt action? Broken square/cube was it?
-
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
-  // b.x /= rollingScale;
+  vec3 b = vec3(length(q) - angle3C, 0, minD.x);
+  b.x /= rollingScale;
   d = dMin(d, b);
-
-  vec3 cut = vec3(cellular(q) - 0.9, 0, 0);
-  cut.x *= -1.;
-  cut.x *= 0.2;
-  d = mix(dMax(d, cut), d, range(0., 0.9, circ(triangleWave(t + 0.2 * q.x))));
 
   // vec3 trap = vec3(trapD, 1, minD.x);
   // // trap.x /= rollingScale;
@@ -1620,18 +1613,22 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-
-  // This seems a freak accident that the colors are so cool.
-  color = 0.5 + 0.5 * cos(TWO_PI * (d * trap + vec3(0, 0.3333, 0.67)));
-  color *= 1.7;
-
-  color = mix(color, vec3(0, 1, 0), isMaterialSmooth(m, 1.));
-
+  vec3 color = vec3(2. * range(0.25, 0.7, trap));
   return color;
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(trap);
+  vec3 dI = vec3(d + trap);
+  dI += dNR;
+
+  dI *= angle1C;
+  dI += angle2C;
+
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + d * trap + vec3(0, 0.3333, 0.67)));
+  color *= 1.2;
+
+  return color;
+
 
   // return 2. * vec3(dNR);
 
@@ -1640,9 +1637,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec3 s = vec3(0);
   // dI += 0.5 * fbmWarp(18. * mPos, s);
-
-  dI *= angle1C;
-  dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.4 * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.2, 0.4))));
@@ -1730,7 +1724,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.0;
       float specCo = 0.4;
 
       float specAll = 0.0;
@@ -1741,11 +1735,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.10;
+        float diffMin = 0.1;
         float dif = max(diffMin, diffuse(nor, nLightPos));
-
-        // // Cartoon clamp
-        // dif = mix(diffMin, 1.5 * dif, step(0.4, dif));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 96.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1795,16 +1786,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.10);
+      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.25);
       // float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // dispersionColor *= dispersionI;
 
-      dispersionColor.b = pow(dispersionColor.b, 0.6);
+      // dispersionColor.b = pow(dispersionColor.b, 0.6);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
