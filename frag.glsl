@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -44,7 +44,7 @@ uniform float rot;
 // Greatest precision = 0.000001;
 uniform float epsilon;
 #define maxSteps 512
-#define maxDistance 60.0
+#define maxDistance 10.0
 #define fogMaxDistance 10.0
 
 #define slowTime time * 0.2
@@ -1354,7 +1354,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
-    wQ *= rotationMatrix(vec3(1), -0.025 * PI * (0.5 + 0.5 * cos(localCosT + q.x)));
+    // wQ *= rotationMatrix(vec3(1), -0.025 * PI * (0.5 + 0.5 * cos(localCosT + q.x)));
 
     // Trap
     // float trap = length(wQ - prev);
@@ -1613,7 +1613,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2. * range(0.25, 0.7, trap));
+  vec3 color = vec3(0.35 + 2.25 * trap);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1735,7 +1735,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.1;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 96.0);
