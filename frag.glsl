@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1354,7 +1354,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
-    // wQ *= rotationMatrix(vec3(1), -0.025 * PI * (0.5 + 0.5 * cos(localCosT + q.x)));
+    wQ *= rotationMatrix(vec3(1, -1, 1), 0.15 * PI * (0.5 + 0.5 * cos(localCosT + 2. * q.x)));
 
     // Trap
     // float trap = length(wQ - prev);
@@ -1613,7 +1613,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.35 + 2.25 * trap);
+  vec3 color = vec3(0.45 + 2.25 * trap);
   return color;
 
   float dNR = dot(nor, -rd);
