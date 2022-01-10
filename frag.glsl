@@ -2731,54 +2731,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
   // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
+  wQ *= rotMat2(0.3 * PI + 1.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
+  wQ.x += 2. * size.x * t;
+  float c = pMod1(wQ.x, size.x);
   q = wQ;
   mUv = q;
 
-  // Thinking of starting year 6 off with a spiral of stars. It should test
-  // whether I can convert to and from polar coordinates. We'll see.
+  vec2 axis = vec2(0, 1);
+  vec2 norm = axis.yx * vec2(-1., 1.);
+  float prog = dot(q, norm);
+  q += axis * 1.0 * size * triangleWave(range(-size.x, size.x, prog));
 
-  const float dotR = 0.005;
-  const float lengthSize = 3.0 * dotR;
+  float line = dot(q, axis);
+  line = sin(TWO_PI * 40. * line);
 
-  // Coordinates / Repetitions
-  float c = floor((length(q) + lengthSize * 0.5) / lengthSize);
-
-  // I want to repeat this w/ adjacent cells...
-  // Giving up for now
-  // for (float i = 0.; i < 1.; i++) {
-    float i = 0.;
-    vec2 localQ = q - vec2(i * lengthSize, 0);
-    float localC = c + i;
-
-    float repetitions = 2. + 1. * floor(
-        2. * noise(2.2378 * vec2(localC))
-        + 0.5 * sqrt(localC * 10.));
-    float repAngle = TWO_PI / repetitions * localT;
-
-    localQ *= rotMat2(0.123 * localC * PI +
-        1. // (1. - 2. * mod(floor(localC / 3.), 2.)) // Direction
-        * (1. + mod(localC, 2.)) * repAngle);
-        // * floor(localC * 0.25) * repAngle);
-
-    pModPolar(localQ, repetitions);
-
-    pMod1(localQ.x, lengthSize);
-
-    // localQ.x -= 0.7 * dotR * cnoise2(1.8213 + 2.1237 * vec2(localC) + cos(localCosT + 0.271 * localC));
-
-    // vec2 o = vec2(length(localQ) - dotR, 0);
-    vec2 o = vec2((localQ.x + dotR) / (2.5 * dotR), 0);
-    d = dMin(d, o);
-  // }
+  vec2 o = vec2(line, 0);
+  d = dMin(d, o);
 
   float mask = 1.; // sdBox(uv, vec2(0.4));
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
   // mask = 1. - mask;
 
-  float n = d.x;
+  float n = line;
 
-  // // Hard Edge
-  // n = smoothstep(0., 0.5 * edge, n - 0.);
+  // Hard Edge
+  n = smoothstep(0., 1. * edge, n - 0.75);
 
   // // Invert
   // n = 1. - n;
@@ -2786,11 +2763,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color = vec3(1);
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
-  // Mix
-  color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
+  // // Mix
+  // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
 
   // // JS colors
   // color = mix(colors1, colors2, n);
@@ -2836,7 +2813,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
