@@ -58,8 +58,8 @@ export default class App {
     this.cameraRo = vec3.fromValues(0, 0.28, 1.48)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [205, 134, 147]
-    this.colors2 = [null, 94, 167]
+    this.colors1 = [188, 135, 184]
+    this.colors2 = [75, 24, 17]
     // this.getEqualLuminance(this.colors1, this.colors2, 0)
 
     // Ray Marching Parameters
@@ -75,7 +75,7 @@ export default class App {
 
     this.angle1C = 0.4489
     this.angle2C = 2.3238
-    this.angle3C = 0.478
+    this.angle3C = 0.086
 
     // this.setupAnimation(preset)
 

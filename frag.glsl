@@ -2718,44 +2718,65 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.6;
+  const float warpScale = 0.4;
   const vec2 size = gSize;
   float r = 0.2;
   vec2 seed = vec2(angle2C);
 
-  vec2 wQ = q;
+  vec2 wQ = q.yx;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  // wQ *= rotMat2(2.0 * length(wQ));
-  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
-  wQ *= rotMat2(0.3 * PI + 1.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
   wQ.x += 2. * size.x * t;
-  float c = pMod1(wQ.x, size.x);
   q = wQ;
   mUv = q;
 
-  vec2 axis = vec2(0, 1);
-  vec2 norm = axis.yx * vec2(-1., 1.);
-  float prog = dot(q, norm);
-  q += axis * 1.0 * size * triangleWave(range(-size.x, size.x, prog));
+  {
+    vec2 localQ = q;
+    float c = pMod1(localQ.x, size.x);
+    vec2 axis = vec2(0, 1);
+    vec2 norm = axis.yx * vec2(-1., 1.);
+    float prog = dot(localQ, norm);
+    localQ += axis * 0.25 * size
+      * (size.x - abs(prog)) / size.x // smoother transition
+      * sin(TWO_PI * range(-0.50 * size.x, 0.50 * size.x, prog));
 
-  float line = dot(q, axis);
-  line = sin(TWO_PI * 40. * line);
+    float line = dot(localQ, axis);
+    line = sin(TWO_PI * 40. * line);
 
-  vec2 o = vec2(line, 0);
-  d = dMin(d, o);
+    vec2 o = vec2(line, 0);
+    d = dMin(d, o);
+  }
+
+  {
+    vec2 localQ = q - angle3C * size;
+    float c = pMod1(localQ.x, size.x);
+    vec2 axis = vec2(0, 1);
+    vec2 norm = axis.yx * vec2(-1., 1.);
+    float prog = dot(localQ, norm);
+    localQ += axis * 0.25 * size
+      * (size.x - abs(prog)) / size.x // smoother transition
+      * sin(TWO_PI * range(-0.50 * size.x, 0.50 * size.x, prog));
+
+    float line = dot(localQ, axis);
+    line = sin(TWO_PI * 40. * line);
+
+    vec2 o = vec2(line, 0);
+    d = dMin(d, o);
+  }
 
   float mask = 1.; // sdBox(uv, vec2(0.4));
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
   // mask = 1. - mask;
 
-  float n = line;
+  float n = d.x;
 
   // Hard Edge
-  n = smoothstep(0., 1. * edge, n - 0.75);
+  n = smoothstep(0., 90. * edge, n - 0.05);
 
   // // Invert
   // n = 1. - n;
@@ -2763,14 +2784,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color = vec3(1);
 
-  // B&W
-  color = vec3(n);
+  // // B&W
+  // color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
 
-  // // JS colors
-  // color = mix(colors1, colors2, n);
+  // JS colors
+  color = mix(colors1, colors2, n);
 
   // // Cosine Palette
   // vec3 dI = vec3(n);
