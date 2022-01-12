@@ -67,7 +67,7 @@ float n2 = 1.282;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = angle3C;
+float doFDistance = angle1C;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1349,8 +1349,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 prev = wQ;
   float trapD = maxDistance;
-  for (float i = 0.; i < 12.; i++) {
-    wQ = tetraFold(wQ);
+  for (float i = 0.; i < 10.; i++) {
+    if (mod(i, 2.) == 0.) {
+      wQ = tetraFold(wQ);
+    } else {
+      wQ = abs(wQ);
+    }
 
     wQ = (vec4(wQ, 1.) * kifsM).xyz;
 
@@ -1383,7 +1387,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // trap.x /= rollingScale;
   // d = dMin(d, trap);
 
-  d.x *= 0.25;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1613,7 +1617,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.45 + 2.25 * trap);
+  vec3 color = vec3(0.45 + 1.750 * trap);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -2834,7 +2838,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
@@ -2935,7 +2939,7 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
-    float gRAngle = -TWO_PI * mod(time, totalT) / totalT;
+    float gRAngle = -PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
     globalRot = mat3(
