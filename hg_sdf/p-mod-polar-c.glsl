@@ -1,3 +1,7 @@
+#ifndef PI
+#define PI 3.1415926536
+#endif
+
 // Repeat around the origin by a fixed angle.
 // For easier use, num of repetitions is use to specify the angle.
 float pModPolarC(inout vec2 p, float repetitions) {
@@ -19,3 +23,4 @@ void pModPolar(inout vec2 p, float repetitions) {
   a = mod(a,angle) - angle/2.;
   p = vec2(cos(a), sin(a))*r;
 }
+#pragma glslify: export(pModPolarC)

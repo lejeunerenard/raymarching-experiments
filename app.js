@@ -1,63 +1,28 @@
-const glslify = require('glslify')
-
 import createShader from 'gl-shader'
 import createTexture from 'gl-texture2d'
 import createFBO from 'gl-fbo'
 
-import ShaderVREffect from 'shader-vr-effect'
-import ShaderVROrbitControls from 'shader-vr-orbit-controls'
-import WebVRManager from 'shader-webvr-manager'
-
-import fit from 'canvas-fit'
+import ndarray from 'ndarray'
 import TWEEN from 'tween.js'
 import makeContext from 'gl-context'
-import { isAndroid, rot4 } from './utils'
-import { cameraOrbit } from './camera-tweens'
-import CCapture from 'ccapture.js'
-import SoundCloud from 'soundcloud-badge'
-import Analyser from 'gl-audio-analyser'
+import { rot4 } from './utils'
 import drawTriangle from 'a-big-triangle'
 
-import assign from 'object-assign'
 import defined from 'defined'
+import assert from 'assert'
 import { vec3, mat4 } from 'gl-matrix'
-import presets from './presets.json'
+import { getLuminance, getColorWFixedLuminance } from './luminance'
 
-const dpr = Math.min(2, defined(window.devicePixelRatio, 1))
-const CLIENT_ID = 'ded451c6d8f9ff1c62f72523f49dab68'
+const dpr = 1.0 / window.devicePixelRatio
 
-const fr = 60
-let captureTime = 0 * 5
-const secondsLong = 50
+const TWO_PI = 2 * Math.PI
+// const PHI = (1 + Math.sqrt(5)) / 2
 
-const capturing = false
-const BLOOM = false
 const MANDELBOX = false
-
-let capturer = {}
-if (capturing) {
-  capturer = new CCapture({
-    format: 'jpg',
-    framerate: fr,
-    name: 'kifs-dodeca-introspective-reflective-test1',
-    autoSaveTime: 5,
-    quality: 90,
-    startTime: captureTime,
-    timeLimit: secondsLong,
-    verbose: true
-  })
-}
-
-let currentTime = captureTime * 1000
-window.capturer = capturer
-let winSetTimeout = window.setTimeout
-let winClearTimeout = window.clearTimeout
-let winSetInterval = window.setInterval
-let winclearInterval = window.clearInterval
-let winRequestAnimationFrame = window.requestAnimationFrame
-let winProfNow = window.performance.now
-
-const PHI = (1+Math.sqrt(5))/2;
+const BLOOM = true
+const BLOOM_PASSES = 2
+const BLOOM_WET = 1
+const BLOOM_MIN_BRIGHTNESS = 0.975
 
 // Initialize shell
 export default class App {
@@ -65,27 +30,37 @@ export default class App {
     let canvas = document.createElement('canvas')
     document.body.appendChild(canvas)
     canvas.style.display = 'none'
-    if (!isAndroid()) {
-      canvas.addEventListener('touchstart', function(e) { e.preventDefault() })
+
+    let gl = makeContext(canvas, { preserveDrawingBuffer: true })
+
+    // enable extensions
+    var ext = gl.getExtension('OES_standard_derivatives')
+    if (!ext) {
+      throw new Error('derivatives not supported')
     }
 
-    let gl = makeContext(canvas)
     this.LOOKAT = true
 
+    this.presets = {}
     const preset = {
       offset: {
-        x: .669,
-        y: -.654,
-        z: 1.618
+        x: 0.749,
+        y: -1.11,
+        z: 1.961
       },
-      d: 5,
-      scale: .9, // 1.79,
-      rot2angle: [.685, .583, 2.259],
-      cameraAngles: [0, 0, 0]
+      d: 0.52,
+      scale: 2.2148,
+      rot2angle: [3.14, 3.857, 2.308],
+      cameraAngles: [-0.016, -0.789, 0.04]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1, 1, 1)
+    this.cameraRo = vec3.fromValues(0, 0.28, 3.35)
+    this.offsetC = [0.339, -0.592, 0.228, 0.008]
+
+    this.colors1 = [188, 135, 184]
+    this.colors2 = [75, 24, 17]
+    // this.getEqualLuminance(this.colors1, this.colors2, 0)
 
     // Ray Marching Parameters
     this.epsilon = preset.epsilon || 0.0001
@@ -98,42 +73,56 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.setupAnimation(preset)
+    this.angle1C = 1.3282
+    this.angle2C = 0.7408
+    this.angle3C = 1.111
+
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
-    let effect = new ShaderVREffect(gl)
-    let controls = new ShaderVROrbitControls(gl)
+    // Audio
+    this.audioFFT = 32
+    this.audioTexArray = new Uint8Array(1 * this.audioFFT)
+    this.audioNday = ndarray(this.audioTexArray, [this.audioFFT, 1])
+    this.audioTex = createTexture(gl, this.audioNday)
+    this.pulseGoal = 0
 
-    let params = {
-      hideButton: true,
-      isUndistorted: false
-    }
-    let manager = new WebVRManager({ domElement: canvas }, effect, params)
-    let vrDisplay = undefined
+    // Capturing state
+    this.capturing = defined(options.capturing, false)
 
-    assign(this, {
+    this.loaded = Promise.resolve()
+      .then(() => {
+        this.setupAudio()
+      })
+
+    // Scene Rendering
+    this.sceneRenderer = options.sceneRenderer
+
+    Object.assign(this, {
       canvas,
-      gl,
-      effect,
-      controls,
-      manager,
-      vrDisplay,
-      currentRAF: null,
-      running: false
+      gl
     })
+  }
 
-    this.stageReady = this.setupStage()
-    this.loaded = Promise.all([this.stageReady])
+  getEqualLuminance (reference, second, position) {
+    second[position] = null
+    second[position] = getColorWFixedLuminance(
+      second[0], second[1], second[2],
+      getLuminance(reference))
   }
 
   getDimensions () {
-    return [dpr * window.innerWidth, dpr * window.innerHeight]
+    let width = this.width || window.innerWidth
+    let height = this.height || window.innerHeight
+    return [dpr * width, dpr * height]
   }
 
   setupFBOs (gl) {
     let dim = this.getDimensions()
     this.state = [
+      createFBO(gl, dim, { depth: false }),
+      createFBO(gl, dim, { depth: false }),
       createFBO(gl, dim, { depth: false }),
       createFBO(gl, dim, { depth: false }),
       createFBO(gl, dim, { depth: false }) ]
@@ -144,141 +133,176 @@ export default class App {
     this.state[1].color.minFilter = gl.LINEAR
     this.state[2].color.magFilter = gl.LINEAR
     this.state[2].color.minFilter = gl.LINEAR
+    this.state[3].color.magFilter = gl.LINEAR
+    this.state[3].color.minFilter = gl.LINEAR
+    this.state[4].color.magFilter = gl.LINEAR
+    this.state[4].color.minFilter = gl.LINEAR
   }
 
   setupAnimation (preset) {
+    let self = this
     // Epsilon Animation
     let eps1 = new TWEEN.Tween(this)
     eps1
       .to({ epsilon: 0.001 }, 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let eps2 = new TWEEN.Tween(this)
-    eps2
-      .to({ epsilon: 0.00006 }, 6000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let eps3 = new TWEEN.Tween(this)
-    eps3
-      .to({ epsilon: 0.000009 }, 5000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let eps4 = new TWEEN.Tween(this)
-    eps4
-      .delay(2000)
-      .to({ epsilon: 0.005 }, 10000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-
-    // eps1.chain(eps2)
-    // eps2.chain(eps3)
-    // eps3.chain(eps4)
-
     // eps1.start(0)
 
     // Camera location animation
-    let cameraPosTween = new TWEEN.Tween(this.cameraRo)
-    cameraPosTween
-      .to([1.91, 0.092, 1.102], 20 * 1000)
-      .easing(TWEEN.Easing.Sinusoidal.Out)
-    let cameraPosTween2 = new TWEEN.Tween(this.cameraRo)
-      .to([2.92, 0, 0], 20 * 1000)
-      .easing(TWEEN.Easing.Sinusoidal.Out)
-    cameraPosTween.chain(cameraPosTween2)
+    let ob = {
+      x: self.cameraRo[0],
+      y: self.cameraRo[1],
+      z: self.cameraRo[2]
+    }
+    function updatePos () {
+      self.cameraRo[0] = this.x
+      self.cameraRo[1] = this.y
+      self.cameraRo[2] = this.z
+    }
 
-    cameraPosTween.start(0)
+    const totalTime = 10
+
+    let cameraPosTween = new TWEEN.Tween(ob)
+    cameraPosTween
+      .delay(2.5 * 1000)
+      .to({ x: 0, y: 0, z: self.cameraRo[2] }, 2.5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .onUpdate(updatePos)
+
+    let cameraPosTween2 = new TWEEN.Tween(ob)
+    cameraPosTween2
+      .delay(2.5 * 1000)
+      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 2.5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .onUpdate(updatePos)
+
+    cameraPosTween.chain(cameraPosTween2)
+    cameraPosTween2.chain(cameraPosTween)
+    // cameraPosTween.start(0)
 
     // Camera rotation
-    let self = this
-    let camRotTween1 = new TWEEN.Tween([-1.579, 2.148, 1.57])
-    camRotTween1
-      .to([-0.124, 0.917, 0.121], 10 * 1000)
-      .onUpdate(function () {
-        self.cameraAngles[0] = this[0]
-        self.cameraAngles[1] = this[1]
-        self.cameraAngles[2] = this[2]
-      })
-      .delay(10 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let camRotTween2 = new TWEEN.Tween([0, 0, 0])
-    camRotTween2
-      .to([0, Math.PI / 2, 0], 5 * 1000)
-      .onUpdate(function () {
-        self.cameraAngles[0] = this[0]
-        self.cameraAngles[1] = this[1]
-        self.cameraAngles[2] = this[2]
-      })
-      .easing(TWEEN.Easing.Quadratic.InOut)
-      .delay(0 * 1000)
+    function updateRot () {
+      self.cameraAngles[0] = this[0]
+      self.cameraAngles[1] = this[1]
+      self.cameraAngles[2] = this[2]
+    }
 
-    // camRotTween1.chain(camRotTween2)
+    let rotObj = [...this.cameraAngles]
+    let camRotTween1 = new TWEEN.Tween(rotObj)
+    camRotTween1
+      .to([-0.328, this.cameraAngles[1], this.cameraAngles[2]], 4 * 1000)
+      .onUpdate(updateRot)
+      .easing(TWEEN.Easing.Linear.None)
+    let camRotTween2 = new TWEEN.Tween(rotObj)
+    camRotTween2
+      .to([...this.cameraAngles], 4 * 1000)
+      .onUpdate(updateRot)
+      .easing(TWEEN.Easing.Linear.None)
+
+    camRotTween1.chain(camRotTween2)
+    camRotTween2.chain(camRotTween1)
     // camRotTween1.start(0)
 
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([1.899, 1.483, 2.315], 20 * 1000)
+      .to([this.rot2angle[0], 2.093, 4.248], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
-      .to([2.359, 1.483, 2.315], 20 * 1000)
+    rotTween2
+      .to([5.084, 2.093, 4.248], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween3 = new TWEEN.Tween(this.rot2angle)
+    rotTween3
+      .to([5.156, 2.661, 3.77], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let rotTween4 = new TWEEN.Tween(this.rot2angle)
+    rotTween4
+      .to([...this.rot2angle], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
+    rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween4)
+    rotTween4.chain(rotTween1)
+
     rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
     scaleTween1
-      .to({ scale: 1.72 }, 10 * 1000)
+      .delay(0 * 1000)
+      .to({ scale: 1.4911 }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+    let scaleTween2 = new TWEEN.Tween(this)
+    scaleTween2
+      .delay(0 * 1000)
+      .to({ scale: this.scale }, 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+
+    scaleTween1.chain(scaleTween2)
+    scaleTween2.chain(scaleTween1)
     // scaleTween1.start(0)
 
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
-      .delay(20 * 1000)
-      .to([
-        1.441,
-        .669,
-        -.654
-      ], 20 * 1000)
+    offsetTween1
+      .to([ this.offset[0], this.offset[1], Math.PI ], 30 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let offsetTween2 = new TWEEN.Tween(this.offset)
+    offsetTween2
+      .to([ 1.993, this.offset[1], -0.654 ], 5 * 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+    let offsetTween3 = new TWEEN.Tween(this.offset)
+    offsetTween3
+      .to([ ...this.offset ], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    offsetTween1.start(0)
+    // offsetTween1.chain(offsetTween2)
+    // offsetTween2.chain(offsetTween3)
+    // offsetTween3.chain(offsetTween1)
+
+    // offsetTween1.start(0)
+
+    // Angle1C Tween
+    let angle1CTween1 = new TWEEN.Tween(this)
+    angle1CTween1
+      .to({ angle1C: 0.5166 }, 20 * 1000)
+      .easing(TWEEN.Easing.Linear.None)
+    // angle1CTween1.start(0)
+
+    // // Angle2C Tween
+    // let angle2CTween1 = new TWEEN.Tween(this)
+    // angle2CTween1
+    //   .to({ angle2C: TWO_PI * 2 }, 15 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
+
+    // angle2CTween1.start(0)
+
+    // Angle3C Tween
+    // let angle3CTween1 = new TWEEN.Tween(this)
+    // angle3CTween1
+    //   .to({ angle3C: 1.25 }, 20 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
+
+    // angle3CTween1.start(0)
   }
 
   setupAudio () {
     return new Promise((resolve, reject) => {
-      SoundCloud({
-        client_id: CLIENT_ID,
-        song: 'https://soundcloud.com/shang-lin/swanky',
-        dark: true,
-        getFonts: true
-      }, (err, src, data, div)  => {
-        if (err) {
-          reject(err)
-          throw err
-        }
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 
-        // Play the song on
-        // a modern browser
-        let audio = new Audio
-        audio.crossOrigin = 'Anonymous'
-        audio.src = src
-        audio.addEventListener('canplay', () => {
-          console.log('playing!')
-          this.analyser = Analyser(this.gl, audio)
-          audio.play()
-        })
+      const output = audioCtx.createGain()
+      output.gain.setValueAtTime(0.2, audioCtx.currentTime)
+      output.connect(audioCtx.destination)
 
-        this.audio = audio
-
-        resolve()
-
-        // Metadata related to the song
-        // retrieved by the API.
-        console.log(data)
-      })
+      this.analyser = audioCtx.createAnalyser()
+      this.analyser.fftSize = this.audioFFT
     })
   }
 
   enableEvents () {
-    if (capturing) return
+    if (this.capturing) return
     this.resizeBound = this.resizeBound || this.resize.bind(this)
     window.addEventListener('resize', this.resizeBound, true)
     window.addEventListener('vrdisplaypresentchange', this.resizeBound, true)
@@ -289,23 +313,63 @@ export default class App {
     window.removeEventListener('vrdisplaypresentchange', this.resizeBound, true)
   }
 
+  setupShader (property, shader, gl) {
+    let showError = (e) => {
+      let pre = document.createElement('pre')
+      pre.classList.add('glsl-error')
+
+      let code = document.createElement('code')
+      code.innerHTML = e.message
+      pre.appendChild(code)
+      document.body.appendChild(pre)
+    }
+
+    try {
+      this[property] = createShader(gl, shader.vertex, shader.fragment)
+      shader.on('change', () => {
+        // Remove existing errors
+        const errors = document.body.querySelectorAll('.glsl-error')
+        for (const error of errors) {
+          error.parentNode.removeChild(error)
+        }
+
+        try {
+          this[property] = createShader(gl, shader.vertex, shader.fragment)
+        } catch (e) {
+          if (e.name === 'GLError') {
+            showError(e)
+          } else {
+            throw e
+          }
+        }
+      })
+    } catch (e) {
+      if (e.name === 'GLError') {
+        showError(e)
+      } else {
+        throw e
+      }
+    }
+  }
+
   glInit (gl) {
     // Turn off depth test
     gl.disable(gl.DEPTH_TEST)
 
     // Create fragment shader
-    this.shader = createShader(gl, glslify('./vert.glsl'), glslify('./frag.glsl'))
-    this.bright = createShader(gl, glslify('./vert.glsl'), glslify('./bright.glsl'))
-    this.bloom = createShader(gl, glslify('./vert.glsl'), glslify('./bloom.glsl'))
-    this.finalPass = createShader(gl, glslify('./vert.glsl'), glslify('./final-pass.glsl'))
+    this.setupShader('shader', require('./shaders/frag.shader'), gl)
 
+    this.setupShader('bright', require('./shaders/bright.shader'), gl)
+    this.setupShader('bloom', require('./shaders/bloom.shader'), gl)
+    this.setupShader('finalPass', require('./shaders/final-pass.shader'), gl)
+
+    this.currentState = 1
     this.setupFBOs(gl)
 
     this.shader.attributes.position.location = 0
   }
 
-  kifsM (t = 0) {
-    let { offset, scale } = this
+  kifsM (t = 0, scale = this.scale, offset = this.offset) {
     this.shader.uniforms.scale = scale
     this.shader.uniforms.offset = offset
 
@@ -314,19 +378,20 @@ export default class App {
 
     if (MANDELBOX) {
       _kifsM = mat4.fromValues(
-        1,     0,     0,     -offset[0],
-        0,     1,     0,     -offset[1],
-        0,     0,     1,     -offset[2],
-        0,     0,     0,     1)
+        1, 0, 0, -offset[0],
+        0, 1, 0, -offset[1],
+        0, 0, 1, -offset[2],
+        0, 0, 0, 1)
     } else {
       _kifsM = mat4.fromValues(
-        scale, 0,     0,     -offset[0] * (scale - 1),
-        0,     scale, 0,     -offset[1] * (scale - 1),
-        0,     0,     scale, -offset[2] * (scale - 1),
-        0,     0,     0,     1)
+        scale, 0, 0, -offset[0] * (scale - 1),
+        0, scale, 0, -offset[1] * (scale - 1),
+        0, 0, scale, -offset[2] * (scale - 1),
+        0, 0, 0, 1)
     }
 
     const angleX = this.rot2angle[0]
+    this.shader.uniforms.rot = angleX
     const axisX = vec3.fromValues(1, 0, 0)
     mat4.multiply(_kifsM, rot4(axisX, angleX), _kifsM)
 
@@ -343,53 +408,31 @@ export default class App {
     return _kifsM
   }
 
-  // Get the HMD, and if we're dealing with something that specifies
-  // stageParameters, rearrange the scene.
-  setupStage () {
-    return navigator.getVRDisplays().then((displays) => {
-      if (displays.length > 0) {
-        this.vrDisplay = displays[0]
-        this.effect.setVRDisplay(this.vrDisplay)
-        this.controls.setVRDisplay(this.vrDisplay)
-      }
-    })
-  }
-
   resize (e) {
-    let { effect, canvas } = this
-    let scale = 1
-    fit(canvas, window, dpr * scale)
+    let canvas = this.canvas
     let dim = this.getDimensions()
+    canvas.width = dim[0]
+    canvas.height = dim[1]
+    canvas.style.width = dim[0] + 'px'
+    canvas.style.height = dim[1] + 'px'
 
-    effect.setSize(scale * dim[0], scale * dim[1])
     this.state[0].shape = dim
     this.state[1].shape = dim
     this.state[2].shape = dim
+    this.state[3].shape = dim
+    this.state[4].shape = dim
   }
 
   tick (t) {
-    let gl = this.gl
-
-    let dim = this.getDimensions()
-
-    t = capturing ? currentTime + 1000 / fr : t
-    currentTime = t
-
     this.shader.bind()
-
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    gl.clearColor(0, 0, 0, 1)
-    gl.viewport(0, 0, dim[0], dim[1])
 
     this.update(t)
     this.render(t)
-
-    this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
   }
 
   getCamera (t) {
     t /= 1000
-    let cameraMatrix = mat4.create() 
+    let cameraMatrix = mat4.create()
 
     // LookAt
     if (this.LOOKAT) {
@@ -410,38 +453,48 @@ export default class App {
       mat4.multiply(cameraMatrix, rot4(axisZ, angleZ), cameraMatrix)
     }
 
-
     this.cameraMatrix = cameraMatrix
     return [this.cameraRo, cameraMatrix]
   }
 
   update (t) {
+    t = (window.time !== undefined) ? window.time : t
     TWEEN.update(t)
 
     this.shader.uniforms.epsilon = this.epsilon
-
-    this.controls.update(this.shader)
 
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
     this.shader.uniforms.cameraMatrix = (updates[1])
 
-    this.shader.uniforms.kifsM = this.kifsM(t)
+    this.shader.uniforms.kifsM = this.kifsM(t, this.scale, this.offset)
+    this.shader.uniforms.offsetC = this.offsetC
+
+    this.shader.uniforms.angle1C = this.angle1C
+    this.shader.uniforms.angle2C = this.angle2C
+    this.shader.uniforms.angle3C = this.angle3C
+
+    this.shader.uniforms.colors1 = [this.colors1[0] / 255, this.colors1[1] / 255, this.colors1[2] / 255]
+    // Update colors2 based on colors1 luminance
+    // this.getEqualLuminance(this.colors1, this.colors2, 0)
+    this.shader.uniforms.colors2 = [this.colors2[0] / 255, this.colors2[1] / 255, this.colors2[2] / 255]
+
+    this.shader.uniforms.d = this.d
   }
 
-  bloomBlur (gl) {
+  bloomBlur (gl, t) {
     let dim = this.getDimensions()
 
     // Brightness pass
     let base = this.state[0].color[0]
     this.state[1].bind()
     this.bright.bind()
-    this.bright.uniforms.minBright = .2
+    this.bright.uniforms.minBright = BLOOM_MIN_BRIGHTNESS
     this.bright.uniforms.buffer = base.bind(0)
     this.bright.uniforms.resolution = dim
     drawTriangle(gl)
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < BLOOM_PASSES; i++) {
       // Horizontal Blur
       let brightLayer = this.state[1].color[0]
       this.state[2].bind()
@@ -450,81 +503,70 @@ export default class App {
       this.bloom.uniforms.buffer = brightLayer.bind(1)
       this.bloom.uniforms.resolution = dim
       this.bloom.uniforms.direction = [1, 0]
+      this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
 
       // Vertical Blur
       let prev = this.state[2].color[0]
       this.state[1].bind()
 
-      //this.bloom.bind()
       this.bloom.uniforms.buffer = prev.bind(2)
       this.bloom.uniforms.resolution = dim
       this.bloom.uniforms.direction = [0, 1]
+      this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
     }
 
     // Additive blending
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    this.currentState = (this.currentState) ? 0 : 1
+    this.state[3 + this.currentState].bind()
     this.finalPass.bind()
-    this.finalPass.uniforms.base = base.bind(0)
-    this.finalPass.uniforms.buffer = this.state[1].color[0].bind(1)
+    this.finalPass.uniforms.base = base.bind(3)
+    this.finalPass.uniforms.buffer = this.state[1].color[0].bind(4)
+    this.finalPass.uniforms.prevBuffer = this.state[3 + ((this.currentState + 1) % 2)].color[0].bind(5)
     this.finalPass.uniforms.resolution = dim
+    this.finalPass.uniforms.time = this.getTime(t)
+    this.finalPass.uniforms.wet = BLOOM_WET
+    this.finalPass.uniforms.colors1 = [this.colors1[0] / 255, this.colors1[1] / 255, this.colors1[2] / 255]
+    this.finalPass.uniforms.colors2 = [this.colors2[0] / 255, this.colors2[1] / 255, this.colors2[2] / 255]
+    drawTriangle(gl)
+
+    // Render again as framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     drawTriangle(gl)
   }
 
-  render (t) {
-    let { shader, manager, controls, gl } = this
+  getTime (t) {
+    return window.time || t / 1000
+  }
 
-    if (BLOOM){
+  render (t) {
+    let { shader, gl } = this
+
+    if (BLOOM) {
       this.state[0].bind()
     }
 
-    shader.uniforms.time = t / 1000
-    manager.render(shader, t)
+    shader.uniforms.time = this.getTime(t)
+    shader.uniforms.BLOOM = BLOOM
+    this.sceneRenderer(shader, t)
 
-    if (BLOOM){
-      this.bloomBlur(gl)
+    if (BLOOM) {
+      this.bloomBlur(gl, t)
     }
-
-    capturing && capturer.capture(this.canvas)
   }
 
   run () {
+    assert(this.sceneRenderer, 'A sceneRenderer is required')
+
     this.canvas.style.display = null
     this.resize()
 
-    if (this.manager.mode !== WebVRManager.Modes.VR) {
-      this.manager.button.setVisibility(true)
-    }
-
     this.enableEvents()
-    this.manager.enableEvents()
-
-    this.running = true
-    capturing && capturer.start()
-    window.setTimeout = winSetTimeout
-    window.clearTimeout = winClearTimeout
-    window.setInterval = winSetInterval
-    window.clearInterval = winclearInterval
-    window.requestAnimationFrame = winRequestAnimationFrame
-    window.performance.now = winProfNow
-
-    this.loaded.then(() => {
-      if (this.vrDisplay && this.running && !this.currentRAF) {
-        this.currentRAF = this.vrDisplay.requestAnimationFrame(this.tick.bind(this))
-      }
-    })
   }
 
   stop () {
     this.canvas.style.display = 'none'
-    this.manager.button.setVisibility(false)
-    if (this.currentRAF) {
-      this.vrDisplay.cancelAnimationFrame(this.currentRAF)
-      this.currentRAF = null
-    }
-    this.running = false
     this.disposeEvents()
-    this.manager.disposeEvents()
   }
 }
