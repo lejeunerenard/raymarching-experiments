@@ -2722,65 +2722,55 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.4;
+  const float warpScale = 0.7;
   const vec2 size = gSize;
-  float r = 0.2;
+  float r = 0.125;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.yx;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  // wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
+  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
-  wQ.x += 2. * size.x * t;
   q = wQ;
   mUv = q;
 
-  {
-    vec2 localQ = q;
-    float c = pMod1(localQ.x, size.x);
-    vec2 axis = vec2(0, 1);
-    vec2 norm = axis.yx * vec2(-1., 1.);
-    float prog = dot(localQ, norm);
-    localQ += axis * 0.25 * size
-      * (size.x - abs(prog)) / size.x // smoother transition
-      * sin(TWO_PI * range(-0.50 * size.x, 0.50 * size.x, prog));
+  float net = 0.;
+  d.x = 0.;
+  for (float i = 0.; i < 8.; i++) {
+    vec2 localQ = q + vec2(0.5, 0.3) * vec2(
+        snoise2(vec2(9.71238 * i, 2.2378 * (i - 1.)) + 0.3 * cos(localCosT + 0.23 * PI * i) + vec2(0)),
+        snoise2(vec2(6.37238 * i,-1.8378 * (i - 1.)) + 0.3 * sin(localCosT + 0.23 * PI * i) + vec2(9.12378)));
 
-    float line = dot(localQ, axis);
-    line = sin(TWO_PI * 40. * line);
+    // localQ += warpScale * 0.10000 * cos( 3. * localQ + 0.70 * i + localCosT);
+    // localQ += warpScale * 0.05000 * cos( 9. * localQ + 0.20 * i + localCosT);
+    // localQ += warpScale * 0.02500 * cos(15. * localQ + 0.19 * i + localCosT);
 
-    vec2 o = vec2(line, 0);
-    d = dMin(d, o);
-  }
+    float b = 0.;
+    // if (mod(i, 2.) == 0.) {
+    b = -(length(localQ) - r) / r;
+    // } else {
+    //   b = -sdBox(localQ, vec2(r)) / r;
+    // }
 
-  {
-    vec2 localQ = q - angle3C * size;
-    float c = pMod1(localQ.x, size.x);
-    vec2 axis = vec2(0, 1);
-    vec2 norm = axis.yx * vec2(-1., 1.);
-    float prog = dot(localQ, norm);
-    localQ += axis * 0.25 * size
-      * (size.x - abs(prog)) / size.x // smoother transition
-      * sin(TWO_PI * range(-0.50 * size.x, 0.50 * size.x, prog));
-
-    float line = dot(localQ, axis);
-    line = sin(TWO_PI * 40. * line);
-
-    vec2 o = vec2(line, 0);
-    d = dMin(d, o);
+    b = max(0., b);
+    b = pow(b, 0.6);
+    net += b + step(edge, b) * 0.3 * i;
+    d = dMax(d, vec2(b, 0));
   }
 
   float mask = 1.; // sdBox(uv, vec2(0.4));
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
   // mask = 1. - mask;
 
-  float n = d.x;
+  float n = 0.2 * net;
+  // float n = d.x;
 
-  // Hard Edge
-  n = smoothstep(0., 90. * edge, n - 0.05);
+  // // Hard Edge
+  // n = smoothstep(0., 1. * edge, n - 0.05);
 
   // // Invert
   // n = 1. - n;
@@ -2794,13 +2784,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
 
-  // JS colors
-  color = mix(colors1, colors2, n);
+  // // JS colors
+  // color = mix(colors1, colors2, n);
 
-  // // Cosine Palette
-  // vec3 dI = vec3(n);
+  // Cosine Palette
+  vec3 dI = vec3(n);
   // dI += 0.1238 * d.y;
-  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
@@ -2838,7 +2828,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
