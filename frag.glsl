@@ -2724,7 +2724,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.7;
   const vec2 size = gSize;
-  float r = 0.125;
+  float r = 0.17;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.yx;
@@ -2742,8 +2742,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   d.x = 0.;
   for (float i = 0.; i < 8.; i++) {
     vec2 localQ = q + vec2(0.5, 0.3) * vec2(
-        snoise2(vec2(9.71238 * i, 2.2378 * (i - 1.)) + 0.3 * cos(localCosT + 0.23 * PI * i) + vec2(0)),
-        snoise2(vec2(6.37238 * i,-1.8378 * (i - 1.)) + 0.3 * sin(localCosT + 0.23 * PI * i) + vec2(9.12378)));
+        snoise2(vec2(9.71238 * i, 2.2378 * (i - 1.)) + 0.3 * cos(localCosT + 0.23 * PI * i) + vec2(0.237)),
+        snoise2(vec2(6.37238 * i,-1.8378 * (i - 1.)) + 0.3 * sin(localCosT + 0.23 * PI * i) + vec2(7.92378)));
 
     // localQ += warpScale * 0.10000 * cos( 3. * localQ + 0.70 * i + localCosT);
     // localQ += warpScale * 0.05000 * cos( 9. * localQ + 0.20 * i + localCosT);
@@ -2757,8 +2757,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
     // }
 
     b = max(0., b);
-    b = pow(b, 0.6);
-    net += b + step(edge, b) * 0.3 * i;
+    b = pow(b, 0.4);
+    net += b;
     d = dMax(d, vec2(b, 0));
   }
 
@@ -2766,7 +2766,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
   // mask = 1. - mask;
 
-  float n = 0.2 * net;
+  float n = 0.1 * net;
   // float n = d.x;
 
   // // Hard Edge
@@ -2787,10 +2787,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // JS colors
   // color = mix(colors1, colors2, n);
 
-  // Cosine Palette
-  vec3 dI = vec3(n);
-  // dI += 0.1238 * d.y;
-  color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // // Cosine Palette
+  // vec3 dI = vec3(n);
+  // // dI += 0.1238 * d.y;
+  // color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+
+  // Stripes
+  vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
+  float line = dot(q, axis);
+  line = sin(TWO_PI * 20. * line);
+  line = smoothstep(0., edge, line);
+  color = vec3(line);
 
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
