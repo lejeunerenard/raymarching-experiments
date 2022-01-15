@@ -2792,11 +2792,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // dI += 0.1238 * d.y;
   // color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // Stripes
-  vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
-  float line = dot(q, axis);
-  line = sin(TWO_PI * 20. * line);
-  line = smoothstep(0., edge, line);
+  // // Stripes
+  // vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
+  // float line = dot(q, axis);
+  // line = sin(TWO_PI * 20. * line);
+  // line = smoothstep(0., edge, line);
+  // color = vec3(line);
+
+  // // radial stripes
+  // float angle = atan(q.y, q.x);
+  // angle += 6. * n;
+  // float line = angle;
+  // line = sin(TWO_PI * 20. * line);
+  // line = smoothstep(0., edge, line);
+  // color = vec3(line);
+  // color = mix(vec3(0), color, step(edge, n));
+
+  // Grid spinners?
+  float gridSize = 0.0175;
+  vec2 c = pMod2(q, vec2(gridSize));
+  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  float line = abs(q.y) - 0.015625 * gridSize;
+  line = smoothstep(edge, 0., line);
   color = vec3(line);
 
   // // Tint
