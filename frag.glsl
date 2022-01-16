@@ -2724,7 +2724,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.7;
   const vec2 size = gSize;
-  float r = 0.17;
+  float r = 0.25;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.yx;
@@ -2740,7 +2740,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float net = 0.;
   d.x = 0.;
-  for (float i = 0.; i < 8.; i++) {
+  for (float i = 0.; i < 5.; i++) {
     vec2 localQ = q + vec2(0.5, 0.3) * vec2(
         snoise2(vec2(9.71238 * i, 2.2378 * (i - 1.)) + 0.3 * cos(localCosT + 0.23 * PI * i) + vec2(0.237)),
         snoise2(vec2(6.37238 * i,-1.8378 * (i - 1.)) + 0.3 * sin(localCosT + 0.23 * PI * i) + vec2(7.92378)));
@@ -2751,7 +2751,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     float b = 0.;
     // if (mod(i, 2.) == 0.) {
-    b = -(length(localQ) - r) / r;
+    // b = -(length(localQ) - r) / r;
+    localQ *= rotMat2(i * 0.123 * PI);
+    b = -sdTriPrism(vec3(localQ, 0.), vec2(r, 1.)) / r;
     // } else {
     //   b = -sdBox(localQ, vec2(r)) / r;
     // }
@@ -2808,11 +2810,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = vec3(line);
   // color = mix(vec3(0), color, step(edge, n));
 
-  // Grid spinners?
+  // // Grid spinners?
+  // float gridSize = 0.0175;
+  // vec2 c = pMod2(q, vec2(gridSize));
+  // q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  // float line = abs(q.y) - 0.015625 * gridSize;
+  // line = smoothstep(edge, 0., line);
+  // color = vec3(line);
+
+  // Grid crosses
   float gridSize = 0.0175;
   vec2 c = pMod2(q, vec2(gridSize));
   q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  float line = abs(q.y) - 0.015625 * gridSize;
+  float line = min(abs(q.x), abs(q.y)) - 0.125 * 0.015625 * gridSize;
+  // line = max(line, sdBox(q, vec2(0.25 * gridSize)));
   line = smoothstep(edge, 0., line);
   color = vec3(line);
 
