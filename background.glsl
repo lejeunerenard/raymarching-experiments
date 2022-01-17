@@ -21,7 +21,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(#501E5B, vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.0125), vec3(0.), bgIndex);
   // vec3 color = mix(vec3(0.9), vec3(0.6), bgIndex);
-  vec3 color = mix(vec3(0.45), vec3(0.70), bgIndex);
+  // vec3 color = mix(vec3(0.45), vec3(0.70), bgIndex);
   // vec3 color = 1.2 * mix(#CE81F8, #958AF0, bgIndex);
   // color *= mix(colors1, vec3(1), 1. - length(coord));
   // color = mix(color, vec3(1), 0.30);
@@ -50,15 +50,16 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = vec3(0);
 
   // -- Patterns --
-  // // Grid
-  // const float size = 0.015;
-  // float sizeI = smoothstep(-1.0, 0.5, uv.y);
-  // uv *= rotMat2Back(0.25 * PI);
-  // vec2 c = pMod2(uv, vec2(size));
-  // vec2 absQ = abs(uv);
-  // float n = max(absQ.x, absQ.y) - (0.35 + 0.115 * sizeI) * size;
-  // n = 1. - step(0.0, n);
-  // vec3 color = 0.8 * vec3(n);
+
+  // Grid
+  const float size = 0.007;
+  float sizeI = smoothstep(-1.0, 0.25, uv.y);
+  uv *= rotMat2Back(0.35 * PI);
+  vec2 c = pMod2(uv, vec2(size));
+  vec2 absQ = abs(uv);
+  float n = max(absQ.x, absQ.y) - (0.35 + 0.115 * sizeI) * size;
+  n = 1. - step(0.0, n);
+  vec3 color = 0.8 * vec3(n);
 
   // // Stripes
   // vec2 axis = vec2(1);
@@ -68,18 +69,18 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
   // float cutoff = 0.;
   // n = 1. - smoothstep(cutoff, cutoff + edge, n);
-  // vec3 color = mix(vec3(0.9), vec3(1), n); // vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
+  // vec3 color = mix(vec3(0.0), vec3(1), n); // vec3(1.00 * n); // mix(#FAC011, #001FAD, n);
 
   // // Dots
-  // float size = 0.065;
+  // float size = 0.0265;
   // vec2 c = pMod2(uv, vec2(size));
   // float dotN = length(uv) - 0.3 * size;
   // // n = sin(54. * TWO_PI * dI);
   // // float dotCutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
   // float dotCutoff = 0.;
   // dotN = smoothstep(dotCutoff, dotCutoff + edge, dotN);
-  // // vec3 color = vec3(1.00 * dotN);
-  // color = mix(mix(primeColor, vec3(1), dotN), color, m);
+  // vec3 color = vec3(1.00 * dotN);
+  // // color = mix(mix(primeColor, vec3(1), dotN), color, m);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
