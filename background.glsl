@@ -20,7 +20,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(#501E5B, vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(0.0125), vec3(0.), bgIndex);
-  // vec3 color = mix(vec3(0.9), vec3(0.6), bgIndex);
+  vec3 color = mix(vec3(0.9), vec3(0.6), bgIndex);
   // vec3 color = mix(vec3(0.45), vec3(0.70), bgIndex);
   // vec3 color = 1.2 * mix(#CE81F8, #958AF0, bgIndex);
   // color *= mix(colors1, vec3(1), 1. - length(coord));
@@ -51,15 +51,15 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // -- Patterns --
 
-  // Grid
-  const float size = 0.007;
-  float sizeI = smoothstep(-1.0, 0.25, uv.y);
-  uv *= rotMat2Back(0.35 * PI);
-  vec2 c = pMod2(uv, vec2(size));
-  vec2 absQ = abs(uv);
-  float n = max(absQ.x, absQ.y) - (0.35 + 0.115 * sizeI) * size;
-  n = 1. - step(0.0, n);
-  vec3 color = 0.8 * vec3(n);
+  // // Grid
+  // const float size = 0.007;
+  // float sizeI = smoothstep(-1.0, 0.25, uv.y);
+  // uv *= rotMat2Back(0.35 * PI);
+  // vec2 c = pMod2(uv, vec2(size));
+  // vec2 absQ = abs(uv);
+  // float n = max(absQ.x, absQ.y) - (0.35 + 0.115 * sizeI) * size;
+  // n = 1. - step(0.0, n);
+  // vec3 color = 0.8 * vec3(n);
 
   // // Stripes
   // vec2 axis = vec2(1);
