@@ -2696,54 +2696,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.7;
+  const float warpScale = 0.2;
   const vec2 size = gSize;
   float r = 0.25;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.yx;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  // wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
-  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  float net = 0.;
-  d.x = 0.;
-  for (float i = 0.; i < 5.; i++) {
-    vec2 localQ = q + vec2(0.5, 0.3) * vec2(
-        snoise2(vec2(9.71238 * i, 2.2378 * (i - 1.)) + 0.3 * cos(localCosT + 0.23 * PI * i) + vec2(0.237)),
-        snoise2(vec2(6.37238 * i,-1.8378 * (i - 1.)) + 0.3 * sin(localCosT + 0.23 * PI * i) + vec2(7.92378)));
-
-    // localQ += warpScale * 0.10000 * cos( 3. * localQ + 0.70 * i + localCosT);
-    // localQ += warpScale * 0.05000 * cos( 9. * localQ + 0.20 * i + localCosT);
-    // localQ += warpScale * 0.02500 * cos(15. * localQ + 0.19 * i + localCosT);
-
-    float b = 0.;
-    // if (mod(i, 2.) == 0.) {
-    // b = -(length(localQ) - r) / r;
-    localQ *= rotMat2(i * 0.123 * PI);
-    b = -sdTriPrism(vec3(localQ, 0.), vec2(r, 1.)) / r;
-    // } else {
-    //   b = -sdBox(localQ, vec2(r)) / r;
-    // }
-
-    b = max(0., b);
-    b = pow(b, 0.4);
-    net += b;
-    d = dMax(d, vec2(b, 0));
-  }
+  vec2 b = vec2(length(q), 0);
+  d = dMin(d, b);
 
   float mask = 1.; // sdBox(uv, vec2(0.4));
   mask = smoothstep(0., 0.5 * edge, mask - 0.);
   // mask = 1. - mask;
 
-  float n = 0.1 * net;
-  // float n = d.x;
+  float n = d.x;
 
   // // Hard Edge
   // n = smoothstep(0., 1. * edge, n - 0.05);
@@ -2792,14 +2768,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // line = smoothstep(edge, 0., line);
   // color = vec3(line);
 
-  // Grid crosses
-  float gridSize = 0.0175;
+  // // Grid crosses
+  // float gridSize = 0.0175;
+  // q = uv;
+  // vec2 c = pMod2(q, vec2(gridSize));
+  // q *= rotMat2(-localCosT + 12. * n - 0.05 * length(c));
+  // float line = min(abs(q.x), abs(q.y)) - 0.125 * 0.015625 * gridSize;
+  // // line = max(line, sdBox(q, vec2(0.25 * gridSize)));
+  // line = smoothstep(edge, 0., line);
+  // color = vec3(line);
+
+  // Grid circles
+  float gridSize = 0.02;
+  q = uv;
   vec2 c = pMod2(q, vec2(gridSize));
-  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  float line = min(abs(q.x), abs(q.y)) - 0.125 * 0.015625 * gridSize;
-  // line = max(line, sdBox(q, vec2(0.25 * gridSize)));
-  line = smoothstep(edge, 0., line);
+  float line = length(q) - 0.125 * gridSize * (-0.2 + 1.2 * range(0.1, 1., 0.5 + 0.5 * cos(PI * 1.123 * snoise2(3.0237 * c) - localCosT)));
+  line = smoothstep(0.5 * edge, 0., line);
   color = vec3(line);
+
 
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
@@ -2837,7 +2823,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
