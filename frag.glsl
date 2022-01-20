@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.1, 0.05);
+const vec2 gSize = vec2(0.025);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1154,7 +1154,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 uv = q;
 
   // float dC = vmax(abs(c));
-  float dC = dot(c, vec2(1));
+  float dC = dot(c, vec2(1, 2));
 
   float odd = mod(dC, 2.);
   float even = 1. - odd;
@@ -1184,8 +1184,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
-  vec2 shiftDir = vec2(odd, even) * rotMat2(-0.25 * localCosT);
+  float shift = 2.;
+  vec2 shiftDir = vec2(0, -1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1206,7 +1206,13 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   q -= shiftDir * shift * size * t;
 
-  float internalD = length(q);
+  // Rotate randomly
+  q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
+
+  // float internalD = length(q);
+  float internalD = abs(q.y);
+  internalD = max(internalD, abs(q.x) - 0.4 * size);
+
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
@@ -1217,9 +1223,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
 
-  // float o = internalD;
-  vec2 o = vec2(internalD - r, 0.);
-  o.y = dot(localC, vec2(1));
+  vec2 o = vec2(internalD, 0.);
+  // vec2 o = vec2(internalD - r, 0.);
   // float o = microGrid(q);
   d = dMin(d, o);
 
@@ -2701,18 +2706,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float r = 0.25;
   vec2 seed = vec2(angle2C);
 
-  vec2 wQ = q.yx;
+  vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  // wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
+  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  vec2 b = vec2(length(q), 0);
+  vec2 b = neighborGrid(q, size);
   d = dMin(d, b);
 
   float mask = 1.; // sdBox(uv, vec2(0.4));
@@ -2721,17 +2726,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = d.x;
 
-  // // Hard Edge
-  // n = smoothstep(0., 1. * edge, n - 0.05);
+  // Hard Edge
+  n = smoothstep(0., 1. * edge, n - 0.0);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // // Solid
   // color = vec3(1);
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -2778,14 +2783,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // line = smoothstep(edge, 0., line);
   // color = vec3(line);
 
-  // Grid circles
-  float gridSize = 0.02;
-  q = uv;
-  vec2 c = pMod2(q, vec2(gridSize));
-  float line = length(q) - 0.125 * gridSize * (-0.2 + 1.2 * range(0.1, 1., 0.5 + 0.5 * cos(PI * 1.123 * snoise2(3.0237 * c) - localCosT)));
-  line = smoothstep(0.5 * edge, 0., line);
-  color = vec3(line);
-
+  // // Grid circles
+  // float gridSize = 0.02;
+  // q = uv;
+  // vec2 c = pMod2(q, vec2(gridSize));
+  // float line = length(q) - 0.125 * gridSize * (-0.2 + 1.2 * range(0.1, 1., 0.5 + 0.5 * cos(PI * 1.123 * snoise2(3.0237 * c) - localCosT)));
+  // line = smoothstep(0.5 * edge, 0., line);
+  // color = vec3(line);
 
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
