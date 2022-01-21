@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.025);
+const vec2 gSize = vec2(0.020);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1153,8 +1153,8 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   vec2 uv = q;
 
-  // float dC = vmax(abs(c));
-  float dC = dot(c, vec2(1, 2));
+  float dC = vmax(abs(c));
+  // float dC = dot(c, vec2(1, 2));
 
   float odd = mod(dC, 2.);
   float even = 1. - odd;
@@ -1171,7 +1171,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
-  locallocalT += 0.005 * dC;
+  locallocalT -= 0.005 * dC;
   // locallocalT += 0.05 * odd;
   // NOTE Flip time offset if there are gaps
   // Might fix some of the gaps caused by the time offset
@@ -1211,7 +1211,9 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // float internalD = length(q);
   float internalD = abs(q.y);
-  internalD = max(internalD, abs(q.x) - 0.4 * size);
+  internalD = max(internalD, abs(q.x) - 0.3 * size);
+  // internalD = min(internalD, abs(q.x));
+  // internalD = max(internalD, sdBox(q, vec2(0.3 * size, 0.1 * size)));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -2708,11 +2710,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  // wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - length(wQ)));
-  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
+  wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
 
   q = wQ;
   mUv = q;
