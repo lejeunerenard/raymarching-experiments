@@ -1153,8 +1153,8 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   vec2 uv = q;
 
-  float dC = vmax(abs(c));
-  // float dC = dot(c, vec2(1, 2));
+  // float dC = vmax(abs(c));
+  float dC = dot(c, vec2(-1, 2));
 
   float odd = mod(dC, 2.);
   float even = 1. - odd;
@@ -1171,20 +1171,20 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.005 * dC;
+  locallocalT -= 0.0075 * dC;
   // locallocalT += 0.05 * odd;
   // NOTE Flip time offset if there are gaps
   // Might fix some of the gaps caused by the time offset
   // A hack but getting closer to a general solution
-  const float clip = 0.1;
-  locallocalT = clamp(locallocalT, clip, 1. - clip);
+  // const float clip = 0.0125;
+  // locallocalT = clamp(locallocalT, clip, 1. - clip);
 
   float t = mod(locallocalT, 1.);
   t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 2.;
+  float shift = 8.;
   vec2 shiftDir = vec2(0, -1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1192,7 +1192,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.25 * size;
+  float r = 0.025 * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
@@ -1206,12 +1206,12 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   q -= shiftDir * shift * size * t;
 
-  // Rotate randomly
-  q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
+  // // Rotate randomly
+  // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = length(q);
-  float internalD = abs(q.y);
-  internalD = max(internalD, abs(q.x) - 0.3 * size);
+  float internalD = length(q);
+  // float internalD = abs(q.y);
+  // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
   // internalD = max(internalD, sdBox(q, vec2(0.3 * size, 0.1 * size)));
 
@@ -1225,8 +1225,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
 
-  vec2 o = vec2(internalD, 0.);
-  // vec2 o = vec2(internalD - r, 0.);
+  // vec2 o = vec2(internalD, 0.);
+  vec2 o = vec2(internalD - r, 0.);
   // float o = microGrid(q);
   d = dMin(d, o);
 
@@ -1254,7 +1254,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2703,7 +2703,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.2;
+  const float warpScale = 0.4;
   const vec2 size = gSize;
   float r = 0.25;
   vec2 seed = vec2(angle2C);
