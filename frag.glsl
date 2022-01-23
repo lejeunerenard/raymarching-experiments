@@ -2703,12 +2703,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.4;
+  const float warpScale = 1.0;
   const vec2 size = gSize;
   float r = 0.25;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.xy;
+  wQ *= rotMat2(-0.10 * PI);
 
   wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
   wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
@@ -2719,11 +2720,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  vec2 b = neighborGrid(q, size);
+  const float numStripes = 60.;
+
+  vec2 b = vec2(0);
   d = dMin(d, b);
 
-  float mask = 1.; // sdBox(uv, vec2(0.4));
-  mask = smoothstep(0., 0.5 * edge, mask - 0.);
+  float bigMaskR = 0.35 * (1. + 0.05 * snoise2(vec2(2., 190.) * polarCoords(uv)));
+  float mask = length(uv) - bigMaskR; // sdBox(uv, vec2(0.4));
+  // mask = max(mask, -(length(uv) - 0.45 * bigMaskR)); // Make it a ring / enso
+  mask = max(mask, dot(q + 1. * edge - 2. / numStripes, vec2(1, 0)));
+  mask = smoothstep(0., 0.5 * edge, mask);
   // mask = 1. - mask;
 
   float n = d.x;
@@ -2737,8 +2743,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color = vec3(1);
 
-  // B&W
-  color = vec3(n);
+  // // B&W
+  // color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -2751,12 +2757,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // dI += 0.1238 * d.y;
   // color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // // Stripes
-  // vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
-  // float line = dot(q, axis);
-  // line = sin(TWO_PI * 20. * line);
-  // line = smoothstep(0., edge, line);
-  // color = vec3(line);
+  // Stripes
+  vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
+  float line = dot(q, axis);
+  line = sin(TWO_PI * numStripes * line);
+  line = smoothstep(0., 2. * edge, line);
+  color = vec3(line);
 
   // // radial stripes
   // float angle = atan(q.y, q.x);
