@@ -1336,16 +1336,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.2;
-  float warpFrequency = 1.2;
+  float warpScale = 2.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
+  wQ *= scale;
+
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, (1.0 + 0.5 * cos(2. * wQ.y - localCosT)) * wQ.y);
+  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(2. * wQ.y - localCosT)) * wQ.y / scale);
   wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
@@ -1353,24 +1355,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ = max(q, mix(q, wQ, triangleWave(2. * t + 0.1 * q.x)));
 
+  wQ.y -= angle3C;
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  q.y *= 0.65;
-
-  // vec3 b = vec3(length(q) - angle3C, 0, minD.x);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, minD.x);
+  vec3 b = vec3(dot(sin(q), cos(q.yzx)), 0, minD.x);
+  b.x /= scale;
   // b.x -= 0.00075 * cellular(9. * q);
   // b.x /= rollingScale;
+  float crop = length(p) - 1.0;
+  b.x = max(b.x, crop);
   d = dMin(d, b);
 
   // vec3 trap = vec3(trapD, 1, minD.x);
   // // trap.x /= rollingScale;
   // d = dMin(d, trap);
 
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }
@@ -2725,10 +2728,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 b = vec2(0);
   d = dMin(d, b);
 
-  float bigMaskR = 0.35 * (1. + 0.05 * snoise2(vec2(2., 190.) * polarCoords(uv)));
-  float mask = length(uv) - bigMaskR; // sdBox(uv, vec2(0.4));
-  // mask = max(mask, -(length(uv) - 0.45 * bigMaskR)); // Make it a ring / enso
-  mask = max(mask, dot(q + 1. * edge - 2. / numStripes, vec2(1, 0)));
+  // float bigMaskR = 0.35;
+  // vec2 s = vec2(length(uv) - bigMaskR, 1.);
+  // d = dMin(d, s);
+
+  float mask = maxDistance;
+  mask = min(mask, -dot(vec2(abs(q.x), q.y) - 70. * edge - 2. / numStripes, vec2(1, 0)));
   mask = smoothstep(0., 0.5 * edge, mask);
   // mask = 1. - mask;
 
@@ -2835,7 +2840,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
