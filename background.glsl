@@ -12,17 +12,17 @@ vec3 getBackground (in vec2 uv, in float universe) {
   float bgIndex = saturate(length(uv));
   // bgIndex = pow(bgIndex, 4.);
   // bgIndex += 0.1 * dot(sin(6. * uv), vec2(1));
-  bgIndex = 1. - bgIndex; // Flip
+  // bgIndex = 1. - bgIndex; // Flip
 
   // Metadata
 
   // --- Set colors / gradient ---
   // Gradients
   // vec3 color = mix(#501E5B, vec3(0.0), bgIndex);
-  // vec3 color = mix(vec3(0.0125), vec3(0.), bgIndex);
-  vec3 color = 0.55 * mix(vec3(0.9), vec3(0.6), bgIndex);
+  vec3 color = mix(vec3(0.0125), vec3(0.), bgIndex);
+  // vec3 color = mix(vec3(0.9), vec3(0.6), bgIndex);
   // vec3 color = mix(vec3(0.45), vec3(0.70), bgIndex);
-  // vec3 color = 1.2 * mix(#CE81F8, #958AF0, bgIndex);
+  // vec3 color = 1.05 * mix(1.00 * #F5ED76, mix(pow(#A82F4B, vec3(0.454545)), pow(#45C6F5, vec3(0.454545)), coord.x), bgIndex);
   // color *= mix(colors1, vec3(1), 1. - length(coord));
   // color = mix(color, vec3(1), 0.30);
 
@@ -86,6 +86,8 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
   // color *= vec3(0.7, 4.0, 1.3); // Tint
   // color *= 1.35; // Brighten
+
+  // color = pow(color, vec3(2.2));
 
   return color;
 }
