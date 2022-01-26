@@ -1343,7 +1343,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ.x = abs(wQ.x);
+  // wQ.x = abs(wQ.x);
   wQ += warpScale * 0.100000 * cos( 3. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
   wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(2. * wQ.y - localCosT)) * wQ.y / scale);
@@ -1352,33 +1352,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.003125 * cos(29. * wQ.yzx * warpFrequency + localCosT );
 
-  for (float i = 0.; i < 3.; i++) {
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1.) * kifsM).xyz;
-
-    rollingScale *= scale;
-
-    // Trap
-    float trap = sdCappedCylinder(wQ, vec2(0.3386, 2.434));
-    trap /= rollingScale;
-    minD.x = min(minD.x, trap);
-  }
-
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(minD.x, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // b.x /= rollingScale;
   d = dMin(d, b);
 
-  // vec3 trap = vec3(trapD, 1, minD.x);
-  // // trap.x /= rollingScale;
-  // d = dMin(d, trap);
+  float crop = sdBox(q - vec3(0.5 * r), vec3(0.5 * r));
+  d.x = max(d.x, -crop);
 
-  d.x *= 0.125;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1717,7 +1703,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.5;
       float specCo = 0.7;
 
       float specAll = 0.0;
@@ -1734,7 +1720,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 96.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.2;
+        float shadowMin = 0.3;
         float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 2.00, generalT));
         dif *= sha;
 
@@ -1782,7 +1768,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
