@@ -1321,7 +1321,7 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 1.1;
+float gR = 1.0;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1336,18 +1336,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 3.00;
+  float warpScale = 1.25;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(2. * wQ.y - localCosT)) * wQ.y / scale);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * triangleWave(19. * wQ.yzx * warpFrequency + t );
+  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(4. * wQ.y - localCosT)) * wQ.y / scale);
+  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.003125 * triangleWave(29. * wQ.yzx * warpFrequency + t );
 
@@ -1769,7 +1769,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
-      // dispersionColor.b = pow(dispersionColor.b, 0.6);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
