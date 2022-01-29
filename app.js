@@ -44,18 +44,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.654,
-        y: 1.993,
-        z: -0.323
+        x: -1.316,
+        y: -0.433,
+        z: -0.985
       },
       d: 0.52,
-      scale: 2.8222,
-      rot2angle: [3.909, 5.117, 4.671],
+      scale: 1.8056,
+      rot2angle: [2.661, 4.255, 5.503],
       cameraAngles: [-0.016, -0.789, 0.04]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(1.61, 1.83, 1.8)
+    this.cameraRo = vec3.fromValues(0, 0.65, 3.8)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [188, 135, 184]
@@ -73,11 +73,11 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.1742
-    this.angle2C = 0.3954
+    this.angle1C = 0.6695
+    this.angle2C = 0.3181
     this.angle3C = 2.434
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -206,25 +206,23 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], 2.093, 4.248], 5 * 1000)
+      .delay(0.667 * 1000)
+      .to([3.424, 3.89, 5.641], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween2 = new TWEEN.Tween(this.rot2angle)
     rotTween2
-      .to([5.084, 2.093, 4.248], 5 * 1000)
+      .delay(0.667 * 1000)
+      .to([3.424, 4.394, 5.418], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween3 = new TWEEN.Tween(this.rot2angle)
     rotTween3
-      .to([5.156, 2.661, 3.77], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween4 = new TWEEN.Tween(this.rot2angle)
-    rotTween4
+      .delay(0.667 * 1000)
       .to([...this.rot2angle], 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
     rotTween1.chain(rotTween2)
     rotTween2.chain(rotTween3)
-    rotTween3.chain(rotTween4)
-    rotTween4.chain(rotTween1)
+    rotTween3.chain(rotTween1)
 
     rotTween1.start(0)
 
