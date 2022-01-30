@@ -1352,7 +1352,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.003125 * triangleWave(29. * wQ.yzx * warpFrequency + t );
 
   for (float i = 0.; i < 9.; i++) {
-    wQ = abs(wQ);
+    wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
 
@@ -2702,41 +2702,40 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.0;
+  const float warpScale = 1.2;
   const vec2 size = gSize;
   float r = 0.25;
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.xy;
-  wQ *= rotMat2(-0.10 * PI);
+  wQ *= rotMat2(-0.20 * PI);
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 0. * localCosT );
-  wQ *= rotMat2(0.3 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 0. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 0. * localCosT );
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.1237);
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 1.937);
+  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  const float numStripes = 60.;
-
-  vec2 b = vec2(0);
+  float x = dot(q, vec2(1));
+  x = sin(TWO_PI * 30. * x);
+  vec2 b = vec2(x, 0);
   d = dMin(d, b);
 
   // float bigMaskR = 0.35;
   // vec2 s = vec2(length(uv) - bigMaskR, 1.);
   // d = dMin(d, s);
 
-  float mask = maxDistance;
-  mask = min(mask, -dot(vec2(abs(q.x), q.y) - 70. * edge - 2. / numStripes, vec2(1, 0)));
-  mask = smoothstep(0., 0.5 * edge, mask);
+  // float mask = maxDistance;
+  // mask = smoothstep(0., 0.5 * edge, mask);
   // mask = 1. - mask;
 
   float n = d.x;
 
   // Hard Edge
-  n = smoothstep(0., 1. * edge, n - 0.0);
+  n = smoothstep(0., 1. * edge, n + 0.975);
 
   // Invert
   n = 1. - n;
@@ -2744,8 +2743,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color = vec3(1);
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -2758,12 +2757,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // dI += 0.1238 * d.y;
   // color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // Stripes
-  vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
-  float line = dot(q, axis);
-  line = sin(TWO_PI * numStripes * line);
-  line = smoothstep(0., 2. * edge, line);
-  color = vec3(line);
+  // // Stripes
+  // const float numStripes = 60.;
+  // vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
+  // float line = dot(q, axis);
+  // line = sin(TWO_PI * numStripes * line);
+  // line = smoothstep(0., 2. * edge, line);
+  // color = vec3(line);
 
   // // radial stripes
   // float angle = atan(q.y, q.x);
@@ -2803,7 +2803,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
@@ -2836,7 +2836,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
