@@ -1351,10 +1351,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
   // wQ += warpScale * 0.003125 * triangleWave(29. * wQ.yzx * warpFrequency + t );
 
-  for (float i = 0.; i < 9.; i++) {
+  for (float i = 0.; i < 5.; i++) {
     wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
+    wQ *= rotationMatrix(vec3(1), 0.3 * PI * cos(dot(wQ, vec3(1)) + localCosT));
 
     rollingScale *= scale;
   }
@@ -1760,7 +1761,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.40 * diffuseColor * reflection(pos, reflectionRd, generalT);
+      // reflectColor += 0.10 * diffuseColor * reflection(pos, reflectionRd, generalT);
       // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2836,7 +2837,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
