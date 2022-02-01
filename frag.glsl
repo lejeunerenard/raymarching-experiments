@@ -1331,7 +1331,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = gR;
   float size = 0.125;
 
-  // p *= globalRot;
+  p *= globalRot;
   // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
 
   vec3 q = p;
@@ -1351,11 +1351,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
   // wQ += warpScale * 0.003125 * triangleWave(29. * wQ.yzx * warpFrequency + t );
 
-  for (float i = 0.; i < 5.; i++) {
+  for (float i = 0.; i < 7.; i++) {
     wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(1), 0.3 * PI * cos(dot(wQ, vec3(1)) + localCosT));
+    float angle = 0.1 * PI * cos(dot(wQ, vec3(0.5)) + localCosT);
+    wQ *= rotationMatrix(vec3(1), angle);
+    wQ = abs(wQ);
+    wQ *= rotationMatrix(vec3(1), -angle);
 
     rollingScale *= scale;
   }
@@ -1600,7 +1603,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
