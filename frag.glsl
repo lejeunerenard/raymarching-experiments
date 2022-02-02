@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1321,7 +1321,7 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
-float gR = 1.0;
+float gR = 0.6;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1343,37 +1343,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  // wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(4. * wQ.y - localCosT)) * wQ.y / scale);
-  // wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.003125 * triangleWave(29. * wQ.yzx * warpFrequency + t );
-
-  for (float i = 0.; i < 7.; i++) {
-    wQ = tetraFold(wQ);
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-    float angle = 0.1 * PI * cos(dot(wQ, vec3(0.5)) + localCosT);
-    wQ *= rotationMatrix(vec3(1), angle);
-    wQ = abs(wQ);
-    wQ *= rotationMatrix(vec3(1), -angle);
-
-    rollingScale *= scale;
-  }
+  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
+  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   b.x /= rollingScale;
   d = dMin(d, b);
 
 
-  d.x *= 0.1;
+  d.x *= 0.6;
 
   return d;
 }
@@ -1604,7 +1592,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1);
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1614,7 +1601,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + d * trap + vec3(0, 0.3333, 0.67)));
-  color *= 1.7;
+  color *= 1.3;
+
+  color = mix(color, vec3(1), 0.5);
 
   return color;
 
@@ -1689,13 +1678,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.8;
-      // float bumpIntensity = 0.105;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 1.8;
+      float bumpIntensity = 0.105;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1713,7 +1702,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 1.0;
       float specCo = 0.7;
 
       float specAll = 0.0;
@@ -1724,7 +1713,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.2;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 96.0);
