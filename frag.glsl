@@ -1343,12 +1343,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  // wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1356,12 +1356,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x -= 0.08 * cellular(3. * q);
   b.x /= rollingScale;
   d = dMin(d, b);
 
+  vec3 crop = vec3(icosahedral(q, 53., (0.959 + 0.02 * cos(2. * localCosT + dot(q, vec3(4)))) * r), 1, 0);
+  d = dMax(d, crop);
 
-  d.x *= 0.6;
+  d.x *= 0.4;
 
   return d;
 }
@@ -1591,7 +1594,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1603,7 +1606,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + d * trap + vec3(0, 0.3333, 0.67)));
   color *= 1.3;
 
-  color = mix(color, vec3(1), 0.5);
+  // color = mix(color, vec3(1), 0.5);
+
+  color = mix(color, vec3(1.5), isMaterialSmooth(m, 1.));
 
   return color;
 
@@ -1678,13 +1683,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.8;
-      float bumpIntensity = 0.105;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 1.8;
+      // float bumpIntensity = 0.105;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1696,14 +1701,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isFloor = isMaterialSmooth(t.y, 1.);
+      float isCrack = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.7;
+      float specCo = 0.75 * isCrack;
 
       float specAll = 0.0;
 
@@ -1768,7 +1773,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
+      float dispersionI = 1.0 * isCrack;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
