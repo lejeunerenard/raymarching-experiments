@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.020);
+const vec2 gSize = vec2(0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1171,7 +1171,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.0075 * dC;
+  locallocalT += 0.01 * dC;
   // locallocalT += 0.05 * odd;
   // NOTE Flip time offset if there are gaps
   // Might fix some of the gaps caused by the time offset
@@ -1184,22 +1184,22 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 8.;
-  vec2 shiftDir = vec2(0, -1);
+  float shift = 2.;
+  vec2 shiftDir = vec2(1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.025 * size;
+  float r = 0.30 * size;
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // q += 0.25 * size * mix(
-  //     vec2(1, -1) * snoise2(0.417 * localC + 23.17123),
-  //     vec2(1) * snoise2(0.123 * localC),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  q += 0.25 * size * mix(
+      vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
+      vec2(1) * snoise2(0.123 * localC + 2.37),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
@@ -1209,7 +1209,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = length(q);
+  // float internalD = length(q);
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1225,8 +1225,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
 
-  // vec2 o = vec2(internalD, 0.);
-  vec2 o = vec2(internalD - r, 0.);
+  // Arrow Up
+  vec2 arrowQ = q;
+  arrowQ.y += abs(arrowQ.x);
+  float internalD = abs(arrowQ.y) - 0.1 * size;
+  internalD = max(internalD, sdBox(q, vec2(r)));
+
+  vec2 o = vec2(internalD, 0.);
+  // vec2 o = vec2(internalD - r, 0.);
   // float o = microGrid(q);
   d = dMin(d, o);
 
@@ -1254,7 +1260,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2707,20 +2713,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.xy;
-  wQ *= rotMat2(-0.20 * PI);
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.1237);
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 1.937);
-  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.1237);
+  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 1.937);
+  // wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
+  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
+  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
 
   q = wQ;
   mUv = q;
 
-  float x = dot(q, vec2(1));
-  x = sin(TWO_PI * 30. * x);
-  vec2 b = vec2(x, 0);
+  vec2 b = neighborGrid(q, gSize);
   d = dMin(d, b);
 
   // float bigMaskR = 0.35;
@@ -2734,7 +2737,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = d.x;
 
   // Hard Edge
-  n = smoothstep(0., 1. * edge, n + 0.975);
+  n = smoothstep(0., 1. * edge, n + 0.);
 
   // Invert
   n = 1. - n;
@@ -2835,7 +2838,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
