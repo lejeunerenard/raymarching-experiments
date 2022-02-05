@@ -1327,6 +1327,19 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
+float arrowUpTexture (in vec2 q, in float size) {
+  float r = 0.4 * size;
+
+  // Arrow Up texture
+  vec2 arrowQ = q;
+  vec2 c = pMod2(arrowQ, vec2(size));
+  vec2 localQ = arrowQ;
+  arrowQ.y += abs(arrowQ.x);
+  arrowQ.y -= size * 0.25;
+  float internalD = abs(arrowQ.y) - 0.1 * size;
+  return max(internalD, sdBox(localQ, vec2(r)));
+}
+
 float gR = 0.6;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1342,33 +1355,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.25;
+  float warpScale = 1.;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  // wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
-  // wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
+  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
-  b.x -= 0.08 * cellular(3. * q);
+  float rY = 1.6 * r;
+  vec3 b = vec3(sdBox(q, vec3(r, rY, r)) - 0.1, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // b.x -= 0.08 * cellular(3. * q);
+  vec2 patternQ = q.xy;
+  if (abs(q.x) > r) {
+    patternQ = q.zy;
+  } else if (abs(q.y) > rY) {
+    patternQ = q.xz;
+  }
+  b.x += 0.15 * arrowUpTexture(patternQ, 0.09);
   b.x /= rollingScale;
   d = dMin(d, b);
-
-  vec3 crop = vec3(icosahedral(q, 53., (0.959 + 0.02 * cos(2. * localCosT + dot(q, vec3(4)))) * r), 1, 0);
-  d = dMax(d, crop);
 
   d.x *= 0.4;
 
@@ -2838,7 +2856,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
