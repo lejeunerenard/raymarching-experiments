@@ -48,6 +48,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = vec3(0.5);
   // vec3 color = vec3(1);
   // vec3 color = vec3(0);
+  // vec3 color = mix(#F82759, vec3(0.5), 0.30);
 
   // -- Patterns --
 

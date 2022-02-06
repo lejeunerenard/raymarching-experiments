@@ -1340,7 +1340,18 @@ float arrowUpTexture (in vec2 q, in float size) {
   return max(internalD, sdBox(localQ, vec2(r)));
 }
 
-float gR = 0.6;
+float dotTexture (in vec2 q, in float size) {
+  float r = 0.4 * size;
+
+  // Arrow Up texture
+  vec2 arrowQ = q;
+  vec2 c = pMod2(arrowQ, vec2(size));
+  vec2 localQ = arrowQ;
+  float internalD = abs(length(localQ) - 0.4 * size) - 0.05 * size;
+  return max(internalD, sdBox(localQ, vec2(r)));
+}
+
+float gR = 0.8;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1355,8 +1366,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.;
-  float warpFrequency = 1.0;
+  float warpScale = 1.0;
+  float warpFrequency = 0.7;
   float rollingScale = 1.;
 
   // Warp
@@ -1374,17 +1385,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  float rY = 1.6 * r;
-  vec3 b = vec3(sdBox(q, vec3(r, rY, r)) - 0.1, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)) - 0.05, 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // b.x -= 0.08 * cellular(3. * q);
   vec2 patternQ = q.xy;
   if (abs(q.x) > r) {
     patternQ = q.zy;
-  } else if (abs(q.y) > rY) {
+  } else if (abs(q.y) > r) {
     patternQ = q.xz;
   }
-  b.x += 0.15 * arrowUpTexture(patternQ, 0.09);
+  b.x += 0.15 * dotTexture(patternQ, 0.09);
   b.x /= rollingScale;
   d = dMin(d, b);
 
@@ -1627,8 +1638,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + d * trap + vec3(0, 0.3333, 0.67)));
-  color *= 1.3;
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
+  color *= 0.7;
 
   // color = mix(color, vec3(1), 0.5);
 
