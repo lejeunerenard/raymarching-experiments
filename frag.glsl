@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.05);
+const vec2 gSize = vec2(0.2);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1327,6 +1327,36 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
+vec2 piston (in vec3 q, in float r, in float t) {
+  vec2 d = vec2(maxDistance, -1.);
+
+  const float headBodyRatio = 0.25;
+  const float invHeadBodyRatio = 1. - headBodyRatio;
+
+  // Assume pointed in the +x direction
+  vec3 headQ = q;
+  headQ.x += invHeadBodyRatio * r + t * 2. * r;
+
+  float head = sdBox(headQ, vec3(headBodyRatio * r, r, r));
+  d = dMin(d, vec2(head, 0));
+
+  // Shaft
+  float shaftR = 0.2 * r;
+  float shaftLength = t * r;
+
+  vec3 shaftQ = q.yxz;
+  shaftQ.y += shaftLength + 2. * (invHeadBodyRatio - 0.5) * r;
+  float shaft = sdCappedCylinder(shaftQ, vec2(shaftR, shaftLength));
+  d = dMin(d, vec2(shaft, 2));
+
+  vec3 bodyQ = q;
+  bodyQ.x -= headBodyRatio * r;
+  float body = sdBox(bodyQ, vec3(invHeadBodyRatio * r, r, r));
+  d = dMin(d, vec2(body, 1));
+
+  return d;
+}
+
 float arrowUpTexture (in vec2 q, in float size) {
   float r = 0.4 * size;
 
@@ -1356,13 +1386,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  float t = mod(dT, 1.);
+  float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
-  float r = gR;
-  float size = 0.125;
+  float size = gSize.x;
+  float r = 0.5 * size;;
 
-  p *= globalRot;
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.15 * PI * cos(localCosT + 0.5 * p.x));
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1373,33 +1402,72 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  // wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
+  // wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)) - 0.05, 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  // b.x -= 0.08 * cellular(3. * q);
-  vec2 patternQ = q.xy;
-  if (abs(q.x) > r) {
-    patternQ = q.zy;
-  } else if (abs(q.y) > r) {
-    patternQ = q.xz;
-  }
-  b.x += 0.15 * dotTexture(patternQ, 0.09);
-  b.x /= rollingScale;
+  // Objective for today. Recreate a 'piston' from minecraft and use it to push a block around.
+  // I'm even listening to the Minecraft soundtrack!
+
+  // okay quick drawing...
+  // p = piston
+  // b = box
+  // +-+-+-+-+
+  // | | |p| |
+  // +-+-+-+-+
+  // |p|b| | |
+  // +-+-+-+-+
+  // | | | |p|
+  // +-+-+-+-+
+  // | |p| | |
+  // +-+-+-+-+
+  const float pistSpeed = 0.25;
+  float pistIndex = -1.;
+  vec3 pistOffset = vec3(1.5 * size, 0.0 * size, 0.5 * size);
+  float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
+  vec3 pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
+  d = dMin(d, pist);
+
+  pistIndex++;
+  q.xz *= rotMat2(-0.5 * PI);
+  pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
+  pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
+  d = dMin(d, pist);
+
+  pistIndex++;
+  q.xz *= rotMat2(-0.5 * PI);
+  pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
+  pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
+  d = dMin(d, pist);
+
+  pistIndex++;
+  q.xz *= rotMat2(-0.5 * PI);
+  pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
+  pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
+  d = dMin(d, pist);
+
+  vec2 boxOffset = mix(
+      vec2(-0.5 * size, 0.5 * size) * rotMat2(0.5 * PI * floor(t / pistSpeed)),
+      vec2(-0.5 * size, 0.5 * size) * rotMat2(0.5 * PI * (floor(t / pistSpeed) + 1.)),
+      circ(fract(t / pistSpeed)));
+  q = p - vec3(boxOffset.x, 0, boxOffset.y);
+  vec3 b = vec3(sdBox(q, vec3(0.9 * r)), 3, 0);
+  b.x -= 0.02 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.4;
+  q = p;
+  vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
+  d = dMin(d, f);
+
+  // d.x *= 0.4;
 
   return d;
 }
@@ -1631,6 +1699,18 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
+  const vec3 head = vec3(0.325);
+  const vec3 body = vec3(0.8);
+  color = mix(head, body, isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0.3), isMaterialSmooth(m, 3.)); // Box
+  vec3 floorC = vec3(0.7);
+  vec3 floorCQ = pos;
+  floorCQ.xz += 0.5 * gSize;
+  pMod2(floorCQ.xz, gSize);
+  floorC -= 0.0125 * smoothstep(0.4 * gSize.x, 0.5 * gSize.x, vmax(abs(floorCQ.xz)));
+  color = mix(color, floorC, isMaterialSmooth(m, 4.)); // Floor
+  return color;
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
@@ -1700,9 +1780,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.2, 0.7, 1.0), 0.7 * #CCEEFF, 1.0);
-    lights[1] = light(vec3(-0.5, 0.25, 1.0), #FFEEFF, 1.0);
-    lights[2] = light(vec3(0.3, 0.3, 0.9), #FFFFEE, 1.0);
+    lights[0] = light(vec3(-0.7, 1.2, 1.0), 0.7 * #AACCFF, 1.0);
+    lights[1] = light(vec3(0.5, 0.7,1.0), #FFCCFF, 1.0);
+    lights[2] = light(vec3(0.1, 0.7,-0.9), #FFFFCC, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1736,14 +1816,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isCrack = isMaterialSmooth(t.y, 0.);
+      float isBox = isMaterialSmooth(t.y, 3.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.75 * isCrack;
+      float freCo = mix(0.5, 1.2, isBox);
+      float specCo = 1.00 * isBox;
 
       float specAll = 0.0;
 
@@ -1753,14 +1833,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.0;
+        float diffMin = 0.85;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 96.0);
+        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
-        float sha = max(shadowMin, softshadow(pos, nLightPos, 0.01, 2.00, generalT));
+        float shadowMin = 0.; // mix(0.0, 0.7, isBox);
+        float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -1770,9 +1850,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += specCo * spec;
 
-        // // Ambient
-        // lin += 0.100 * amb * diffuseColor;
-        // dif += 0.100 * amb;
+        // Ambient
+        lin += 0.300 * amb * diffuseColor;
+        dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -1804,14 +1884,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0 * isCrack;
+      float dispersionI = 1.0 * isBox;
       dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
