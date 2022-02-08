@@ -1327,6 +1327,19 @@ float sdBin (in vec3 q, in vec3 r, in float thickness) {
   return b;
 }
 
+float arrowUpTexture (in vec2 q, in float size) {
+  float r = 0.4 * size;
+
+  // Arrow Up texture
+  vec2 arrowQ = q;
+  vec2 c = pMod2(arrowQ, vec2(size));
+  vec2 localQ = arrowQ;
+  arrowQ.y += abs(arrowQ.x);
+  arrowQ.y -= size * 0.25;
+  float internalD = abs(arrowQ.y) - 0.1 * size;
+  return max(internalD, sdBox(localQ, vec2(r)));
+}
+
 vec2 piston (in vec3 q, in float r, in float t) {
   vec2 d = vec2(maxDistance, -1.);
 
@@ -1335,14 +1348,14 @@ vec2 piston (in vec3 q, in float r, in float t) {
 
   // Assume pointed in the +x direction
   vec3 headQ = q;
-  headQ.x += invHeadBodyRatio * r + t * 2. * r;
+  headQ.x += invHeadBodyRatio * r + 2. * t * 2. * r;
 
   float head = sdBox(headQ, vec3(headBodyRatio * r, r, r));
   d = dMin(d, vec2(head, 0));
 
   // Shaft
   float shaftR = 0.2 * r;
-  float shaftLength = t * r;
+  float shaftLength = 2. * t * r;
 
   vec3 shaftQ = q.yxz;
   shaftQ.y += shaftLength + 2. * (invHeadBodyRatio - 0.5) * r;
@@ -1355,19 +1368,6 @@ vec2 piston (in vec3 q, in float r, in float t) {
   d = dMin(d, vec2(body, 1));
 
   return d;
-}
-
-float arrowUpTexture (in vec2 q, in float size) {
-  float r = 0.4 * size;
-
-  // Arrow Up texture
-  vec2 arrowQ = q;
-  vec2 c = pMod2(arrowQ, vec2(size));
-  vec2 localQ = arrowQ;
-  arrowQ.y += abs(arrowQ.x);
-  arrowQ.y -= size * 0.25;
-  float internalD = abs(arrowQ.y) - 0.1 * size;
-  return max(internalD, sdBox(localQ, vec2(r)));
 }
 
 float dotTexture (in vec2 q, in float size) {
@@ -1392,6 +1392,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = 0.5 * size;;
 
   // p *= globalRot;
+  p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
 
   vec3 q = p;
 
@@ -1414,58 +1415,50 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  // Objective for today. Recreate a 'piston' from minecraft and use it to push a block around.
-  // I'm even listening to the Minecraft soundtrack!
-
-  // okay quick drawing...
-  // p = piston
-  // b = box
-  // +-+-+-+-+
-  // | | |p| |
-  // +-+-+-+-+
-  // |p|b| | |
-  // +-+-+-+-+
-  // | | | |p|
-  // +-+-+-+-+
-  // | |p| | |
-  // +-+-+-+-+
-  const float pistSpeed = 0.25;
+  const float pistSpeed = 0.33;
   float pistIndex = -1.;
-  vec3 pistOffset = vec3(1.5 * size, 0.0 * size, 0.5 * size);
-  float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
+  q = p;
+  q.xz *= rotMat2(0.5 * PI);
+  vec3 pistOffset = vec3(2.5 * size, 1.0 * size,-0.5 * size);
+  float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t + 0.0085 - pistIndex * pistSpeed, 1.)));
   vec3 pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
   d = dMin(d, pist);
 
   pistIndex++;
-  q.xz *= rotMat2(-0.5 * PI);
+  q = p;
+  q.xy *= rotMat2(0.5 * PI);
+  pistOffset = vec3(0.0,-0.5, 0.5) * size;
   pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
   pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
   d = dMin(d, pist);
 
   pistIndex++;
-  q.xz *= rotMat2(-0.5 * PI);
+  q = p;
+  q.xy *= rotMat2(1.0 * PI);
+  pistOffset = vec3(1.5,-3.0, 0.5) * size;
   pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
   pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
   d = dMin(d, pist);
 
-  pistIndex++;
-  q.xz *= rotMat2(-0.5 * PI);
-  pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
-  pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
-  d = dMin(d, pist);
+  // Box
+  vec3 boxOffset = mix(vec3(-0.5, 1, 0.5), vec3(-0.5, 3, 0.5), circ(saturate(t / pistSpeed)));
+  boxOffset = mix(boxOffset, vec3( 1.5, 3, 0.5), circ(saturate((t / pistSpeed) - 1.)));
 
-  vec2 boxOffset = mix(
-      vec2(-0.5 * size, 0.5 * size) * rotMat2(0.5 * PI * floor(t / pistSpeed)),
-      vec2(-0.5 * size, 0.5 * size) * rotMat2(0.5 * PI * (floor(t / pistSpeed) + 1.)),
-      circ(fract(t / pistSpeed)));
-  q = p - vec3(boxOffset.x, 0, boxOffset.y);
-  vec3 b = vec3(sdBox(q, vec3(0.9 * r)), 3, 0);
-  b.x -= 0.02 * cellular(3. * q);
+  float step3T = saturate((t / pistSpeed) - 2.);
+  step3T = circ(step3T);
+  boxOffset = mix(boxOffset, vec3( 1.5, 3, 2.5), step3T);
+  vec3 jumpOffset = mix(vec3(-0.5, 1,-1.5), vec3(-0.5, 1, 0.5), step3T);
+  boxOffset = mix(boxOffset, jumpOffset, step(2.5 * pistSpeed, t));
+
+  boxOffset *= size;
+  q = p - boxOffset;
+  vec3 b = vec3(sdBox(q, vec3(1.0 * r)), 3, 0);
+  b.x -= 0.01 * snoise3(8. * q);
   d = dMin(d, b);
 
-  q = p;
-  vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
-  d = dMin(d, f);
+  // q = p;
+  // vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
+  // d = dMin(d, f);
 
   // d.x *= 0.4;
 
@@ -1702,13 +1695,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   const vec3 head = vec3(0.325);
   const vec3 body = vec3(0.8);
   color = mix(head, body, isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(0.3), isMaterialSmooth(m, 3.)); // Box
+  color = mix(color, vec3(0.8, 0, 0), isMaterialSmooth(m, 3.)); // Box
   vec3 floorC = vec3(0.7);
   vec3 floorCQ = pos;
   floorCQ.xz += 0.5 * gSize;
   pMod2(floorCQ.xz, gSize);
   floorC -= 0.0125 * smoothstep(0.4 * gSize.x, 0.5 * gSize.x, vmax(abs(floorCQ.xz)));
   color = mix(color, floorC, isMaterialSmooth(m, 4.)); // Floor
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1833,13 +1827,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.85;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.; // mix(0.0, 0.7, isBox);
+        float shadowMin = 0.5; // mix(0.0, 0.7, isBox);
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
@@ -1891,7 +1885,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float dispersionI = 1.0 * isBox;
       dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
