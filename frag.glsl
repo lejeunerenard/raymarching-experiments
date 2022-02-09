@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.2);
+const vec2 gSize = vec2(0.1);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1348,14 +1348,14 @@ vec2 piston (in vec3 q, in float r, in float t) {
 
   // Assume pointed in the +x direction
   vec3 headQ = q;
-  headQ.x += invHeadBodyRatio * r + 2. * t * 2. * r;
+  headQ.x += invHeadBodyRatio * r + t * 2. * r;
 
-  float head = sdBox(headQ, vec3(headBodyRatio * r, r, r));
+  float head = sdBox(headQ, 0.95 * vec3(headBodyRatio * r, r, r));
   d = dMin(d, vec2(head, 0));
 
   // Shaft
   float shaftR = 0.2 * r;
-  float shaftLength = 2. * t * r;
+  float shaftLength = t * r;
 
   vec3 shaftQ = q.yxz;
   shaftQ.y += shaftLength + 2. * (invHeadBodyRatio - 0.5) * r;
@@ -1392,7 +1392,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float r = 0.5 * size;;
 
   // p *= globalRot;
-  p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
+  // p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
 
   vec3 q = p;
 
@@ -1410,6 +1410,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
 
+  vec2 c = pMod2(wQ.xz, size * vec2(2));
+
   // Commit warp
   q = wQ.xyz;
 
@@ -1417,50 +1419,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float pistSpeed = 0.33;
   float pistIndex = -1.;
-  q = p;
-  q.xz *= rotMat2(0.5 * PI);
-  vec3 pistOffset = vec3(2.5 * size, 1.0 * size,-0.5 * size);
-  float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t + 0.0085 - pistIndex * pistSpeed, 1.)));
-  vec3 pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
+  q = wQ.yxz;
+  q.x *= -1.;
+  float pistTInput = t + 0.0085;
+  // pistTInput -= pistIndex * pistSpeed
+  pistTInput += dot(c, vec2(0.1, 0.));
+  pistTInput += 0.035 * snoise2(0.213 * c);
+  float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(pistTInput, 1.)));
+  pistT = circ(pistT);
+  vec3 pistOffset = size * vec3(-0.5, 0.0, 0.0);
+  vec3 pist = vec3(piston(q - pistOffset, 1.0 * r, pistT), 0.);
   d = dMin(d, pist);
-
-  pistIndex++;
-  q = p;
-  q.xy *= rotMat2(0.5 * PI);
-  pistOffset = vec3(0.0,-0.5, 0.5) * size;
-  pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
-  pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
-  d = dMin(d, pist);
-
-  pistIndex++;
-  q = p;
-  q.xy *= rotMat2(1.0 * PI);
-  pistOffset = vec3(1.5,-3.0, 0.5) * size;
-  pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t - pistIndex * pistSpeed, 1.)));
-  pist = vec3(piston(q - pistOffset, r, circ(pistT)), 0.);
-  d = dMin(d, pist);
-
-  // Box
-  vec3 boxOffset = mix(vec3(-0.5, 1, 0.5), vec3(-0.5, 3, 0.5), circ(saturate(t / pistSpeed)));
-  boxOffset = mix(boxOffset, vec3( 1.5, 3, 0.5), circ(saturate((t / pistSpeed) - 1.)));
-
-  float step3T = saturate((t / pistSpeed) - 2.);
-  step3T = circ(step3T);
-  boxOffset = mix(boxOffset, vec3( 1.5, 3, 2.5), step3T);
-  vec3 jumpOffset = mix(vec3(-0.5, 1,-1.5), vec3(-0.5, 1, 0.5), step3T);
-  boxOffset = mix(boxOffset, jumpOffset, step(2.5 * pistSpeed, t));
-
-  boxOffset *= size;
-  q = p - boxOffset;
-  vec3 b = vec3(sdBox(q, vec3(1.0 * r)), 3, 0);
-  b.x -= 0.01 * snoise3(8. * q);
-  d = dMin(d, b);
 
   // q = p;
-  // vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
-  // d = dMin(d, f);
+  // pistOffset = size * vec3(0.5, 1.0, 1.5);
+  // pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t + 0.0085 - pistIndex * pistSpeed, 1.)));
+  // pist = vec3(piston(q - pistOffset, r, pistT), 0.);
+  // d = dMin(d, pist);
 
-  // d.x *= 0.4;
+  q = p;
+  vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
+  d = dMin(d, f);
+
+  d.x *= 0.4;
 
   return d;
 }
@@ -1700,7 +1681,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 floorCQ = pos;
   floorCQ.xz += 0.5 * gSize;
   pMod2(floorCQ.xz, gSize);
-  floorC -= 0.0125 * smoothstep(0.4 * gSize.x, 0.5 * gSize.x, vmax(abs(floorCQ.xz)));
+  floorC -= 0.05 * smoothstep(0.4 * gSize.x, 0.5 * gSize.x, vmax(abs(floorCQ.xz)));
   color = mix(color, floorC, isMaterialSmooth(m, 4.)); // Floor
 
   return color;
