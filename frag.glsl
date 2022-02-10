@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.1);
+const vec2 gSize = vec2(0.14);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1391,7 +1391,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = gSize.x;
   float r = 0.5 * size;;
 
-  // p *= globalRot;
+  p *= globalRot;
   // p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
 
   vec3 q = p;
@@ -1410,7 +1410,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
 
-  vec2 c = pMod2(wQ.xz, size * vec2(2));
+  // vec2 c = pMod2(wQ.xz, size * vec2(2));
 
   // Commit warp
   q = wQ.xyz;
@@ -1419,29 +1419,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float pistSpeed = 0.33;
   float pistIndex = -1.;
-  q = wQ.yxz;
+  vec3 absQ = abs(q);
+  float side = 0.;
+  if (absQ.y > absQ.x && absQ.y > absQ.z) {
+    side = 1.;
+    q = wQ.yxz;
+  } else if (absQ.z > absQ.x && absQ.z > absQ.y) {
+    side = 2.;
+    q = wQ.zyx;
+  }
+  q.x = abs(q.x);
+  vec2 c = floor((q.yz + vec2(size)*0.5)/size);
+  q.yz = opRepLim(q.yz, size, vec2(1));
   q.x *= -1.;
-  float pistTInput = t + 0.0085;
+  q.x += 1. * size;
+  float pistTInput = 2. * t + 0.0085;
   // pistTInput -= pistIndex * pistSpeed
-  pistTInput += dot(c, vec2(0.1, 0.));
-  pistTInput += 0.035 * snoise2(0.213 * c);
+  pistTInput += dot(c, vec2(0.1, 0.05));
+  // pistTInput += 0.035 * snoise2(0.213 * c);
   float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(pistTInput, 1.)));
-  pistT = circ(pistT);
+  pistT = expo(pistT);
   vec3 pistOffset = size * vec3(-0.5, 0.0, 0.0);
-  vec3 pist = vec3(piston(q - pistOffset, 1.0 * r, pistT), 0.);
+  vec3 pist = vec3(piston(q - pistOffset, 0.975 * r, pistT), 0.);
   d = dMin(d, pist);
 
+  q = wQ;
+
+  vec3 inner = vec3(sdBox(q, vec3(1.5 * size)), 1, 0);
+  d = dMin(d, inner);
+
+  d.x *= 0.1;
+
   // q = p;
-  // pistOffset = size * vec3(0.5, 1.0, 1.5);
-  // pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(t + 0.0085 - pistIndex * pistSpeed, 1.)));
-  // pist = vec3(piston(q - pistOffset, r, pistT), 0.);
-  // d = dMin(d, pist);
+  // vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
+  // d = dMin(d, f);
 
-  q = p;
-  vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
-  d = dMin(d, f);
-
-  d.x *= 0.4;
+  // d.x *= 0.3;
 
   return d;
 }
@@ -1797,8 +1810,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(0.5, 1.2, isBox);
-      float specCo = 1.00 * isBox;
+      float freCo = 0.5;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
