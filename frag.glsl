@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.14);
+const vec2 gSize = vec2(0.04);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1154,7 +1154,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 uv = q;
 
   // float dC = vmax(abs(c));
-  float dC = dot(c, vec2(-1, 2));
+  float dC = dot(c, vec2(-1, 1));
 
   float odd = mod(dC, 2.);
   float even = 1. - odd;
@@ -1184,7 +1184,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 2.;
+  float shift = 3.;
   vec2 shiftDir = vec2(1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1209,7 +1209,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = length(q);
+  float internalD = abs(length(q) - 0.25 * size) - 0.05 * size;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1225,11 +1225,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
 
-  // Arrow Up
-  vec2 arrowQ = q;
-  arrowQ.y += abs(arrowQ.x);
-  float internalD = abs(arrowQ.y) - 0.1 * size;
-  internalD = max(internalD, sdBox(q, vec2(r)));
+  // // Arrow Up
+  // vec2 arrowQ = q;
+  // arrowQ.y += abs(arrowQ.x);
+  // float internalD = abs(arrowQ.y) - 0.1 * size;
+  // internalD = max(internalD, sdBox(q, vec2(r)));
 
   vec2 o = vec2(internalD, 0.);
   // vec2 o = vec2(internalD - r, 0.);
@@ -1260,7 +1260,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -1391,7 +1391,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = gSize.x;
   float r = 0.5 * size;;
 
-  p *= globalRot;
+  // p *= globalRot;
   // p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
 
   vec3 q = p;
@@ -1417,38 +1417,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  const float pistSpeed = 0.33;
-  float pistIndex = -1.;
-  vec3 absQ = abs(q);
-  float side = 0.;
-  if (absQ.y > absQ.x && absQ.y > absQ.z) {
-    side = 1.;
-    q = wQ.yxz;
-  } else if (absQ.z > absQ.x && absQ.z > absQ.y) {
-    side = 2.;
-    q = wQ.zyx;
-  }
-  q.x = abs(q.x);
-  vec2 c = floor((q.yz + vec2(size)*0.5)/size);
-  q.yz = opRepLim(q.yz, size, vec2(1));
-  q.x *= -1.;
-  q.x += 1. * size;
-  float pistTInput = 2. * t + 0.0085;
-  // pistTInput -= pistIndex * pistSpeed
-  pistTInput += dot(c, vec2(0.1, 0.05));
-  // pistTInput += 0.035 * snoise2(0.213 * c);
-  float pistT = 1. - triangleWave(range(0., 2. * pistSpeed, mod(pistTInput, 1.)));
-  pistT = expo(pistT);
-  vec3 pistOffset = size * vec3(-0.5, 0.0, 0.0);
-  vec3 pist = vec3(piston(q - pistOffset, 0.975 * r, pistT), 0.);
-  d = dMin(d, pist);
+  vec3 b = vec3(length(q) - 0.2, 0, 0);
+  d= dMin(d, b);
 
   q = wQ;
-
-  vec3 inner = vec3(sdBox(q, vec3(1.5 * size)), 1, 0);
-  d = dMin(d, inner);
-
-  d.x *= 0.1;
 
   // q = p;
   // vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
@@ -2935,7 +2907,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
