@@ -1396,19 +1396,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 0.7;
+  float warpScale = 0.5;
+  float warpFrequency = 1.7;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  // wQ.xzy = twist(wQ.xyz, (2.0 + 1.0 * cos(8. * wQ.y - localCosT)) * wQ.y / scale);
-  // wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  // wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
+  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
+  wQ += warpScale * 0.004125 * cos(39. * wQ.yzx * warpFrequency + localCosT );
 
   // vec2 c = pMod2(wQ.xz, size * vec2(2));
 
@@ -1417,7 +1418,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - 0.2, 0, 0);
+  q.y *= 0.8;
+  vec3 b = vec3(length(q) - 0.3, 0, 0);
+  vec2 subQ = q.xy;
+  vec2 subQC = pMod2(subQ, vec2(0.05));
+  float sq = vmax(subQ);
+  sq = sin(TWO_PI * 5. * sq);
+  // b.x -= 0.01 * sq;
   d= dMin(d, b);
 
   q = wQ;
@@ -1848,7 +1855,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0 * isBox;
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
@@ -2907,7 +2914,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
