@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.04);
+const vec2 gSize = vec2(0.06);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1396,8 +1396,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.7;
+  float warpScale = 1.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1405,7 +1405,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, wQ.y);
+  wQ.xzy = twist(wQ.xyz, 5. * wQ.y);
   wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
   wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
@@ -1413,27 +1413,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec2 c = pMod2(wQ.xz, size * vec2(2));
 
+  wQ.xz = opRepLim(wQ.xz, size, vec2(4));
+
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  q.y *= 0.8;
-  vec3 b = vec3(length(q) - 0.3, 0, 0);
-  vec2 subQ = q.xy;
-  vec2 subQC = pMod2(subQ, vec2(0.05));
-  float sq = vmax(subQ);
-  sq = sin(TWO_PI * 5. * sq);
-  // b.x -= 0.01 * sq;
-  d= dMin(d, b);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(0.3 * size, 0.5)), 0, 0);
+  d = dMin(d, b);
 
-  q = wQ;
+  q = p;
+  float crop = length(q) - 0.4;
+  d.x = max(d.x, crop);
 
-  // q = p;
-  // vec3 f = vec3(sdPlane(q + vec3(0, 0.5 * size, 0), vec4(0, 1, 0, 0)), 4, 0);
-  // d = dMin(d, f);
-
-  // d.x *= 0.3;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1665,32 +1659,18 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  const vec3 head = vec3(0.325);
-  const vec3 body = vec3(0.8);
-  color = mix(head, body, isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(0.8, 0, 0), isMaterialSmooth(m, 3.)); // Box
-  vec3 floorC = vec3(0.7);
-  vec3 floorCQ = pos;
-  floorCQ.xz += 0.5 * gSize;
-  pMod2(floorCQ.xz, gSize);
-  floorC -= 0.05 * smoothstep(0.4 * gSize.x, 0.5 * gSize.x, vmax(abs(floorCQ.xz)));
-  color = mix(color, floorC, isMaterialSmooth(m, 4.)); // Floor
-
-  return color;
-
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
 
   dI *= angle1C;
   dI += angle2C;
+  dI += 0.10 * length(pos);
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.1, 0.3)));
-  color *= 0.7;
+  color *= 0.8;
 
   // color = mix(color, vec3(1), 0.5);
-
-  color = mix(color, vec3(1.5), isMaterialSmooth(m, 1.));
 
   return color;
 
@@ -1789,8 +1769,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.5;
+      float freCo = 1.0;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -1800,7 +1780,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.5;
+        float diffMin = 0.7;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
@@ -1817,9 +1797,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += specCo * spec;
 
-        // Ambient
-        lin += 0.300 * amb * diffuseColor;
-        dif += 0.300 * amb;
+        // // Ambient
+        // lin += 0.300 * amb * diffuseColor;
+        // dif += 0.300 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -1839,10 +1819,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * diffuseColor * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.12 * diffuseColor * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1851,11 +1831,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
