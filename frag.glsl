@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.06);
+const vec2 gSize = vec2(0.01);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2752,6 +2752,31 @@ vec3 truchetSpace (in vec2 q, in float size, in vec2 seed) {
   return vec3(truchetQ, angle);
 }
 
+float roseCircles (in vec2 q, in float d, in float r) {
+  vec2 sQ = (q);
+  sQ *= rotMat2(cosT);
+  sQ.x -= 0.5 * r;
+  float s = length(sQ) - r;
+  d = mix(d, 1. - d, step(0., s));
+
+  sQ.x += 1.0 * r;
+  s = length(sQ) - r;
+  d = mix(d, 1. - d, step(0., s));
+
+  sQ.xy += r * vec2(-0.5, 0.5);
+  s = length(sQ) - r;
+  d = mix(d, 1. - d, step(0., s));
+
+  sQ.y += r * -1.0;
+  s = length(sQ) - r;
+  d = mix(d, 1. - d, step(0., s));
+
+  s = length(q) - 1.5 * r;
+  d = mix(d, 1. - d, step(0., s));
+
+  return d;
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -2778,11 +2803,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
   // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
 
+  // vec2 c = pMod2(wQ, size);
+
   q = wQ;
   mUv = q;
 
-  vec2 b = neighborGrid(q, gSize);
-  d = dMin(d, b);
+  // q *= rotMat2(cos(cosT + 0.05 * dot(c, vec2(1, 0))));
+
+  // vec2 line = vec2(abs(dot(q, vec2(0, 1))), 0);
+  d.x = roseCircles(q, d.x, 1.0 * r);
+  d.x = roseCircles(q, d.x, 1.5 * r);
 
   // float bigMaskR = 0.35;
   // vec2 s = vec2(length(uv) - bigMaskR, 1.);
@@ -2795,7 +2825,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = d.x;
 
   // Hard Edge
-  n = smoothstep(0., 1. * edge, n + 0.);
+  n = smoothstep(0., 1.0 * edge, n + 0.);
 
   // Invert
   n = 1. - n;
@@ -2834,13 +2864,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = vec3(line);
   // color = mix(vec3(0), color, step(edge, n));
 
-  // // Grid spinners?
-  // float gridSize = 0.0175;
-  // vec2 c = pMod2(q, vec2(gridSize));
-  // q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  // float line = abs(q.y) - 0.015625 * gridSize;
-  // line = smoothstep(edge, 0., line);
-  // color = vec3(line);
+  // Grid spinners?
+  float gridSize = 0.010;
+  vec2 c = pMod2(q, vec2(gridSize));
+  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  float line = abs(q.y) - 0.015625 * gridSize;
+  line = smoothstep(0.5 * edge, 0., line);
+  color = vec3(line);
 
   // // Grid crosses
   // float gridSize = 0.0175;
@@ -2896,7 +2926,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
