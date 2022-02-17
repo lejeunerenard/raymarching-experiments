@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.01);
+const vec2 gSize = vec2(0.2);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1389,15 +1389,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.4 * size;;
+  float r = 0.75;
 
   p *= globalRot;
   // p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
 
   vec3 q = p;
 
-  float warpScale = 0.6;
-  float warpFrequency = 1.0;
+  float warpScale = 0.4;
+  float warpFrequency = 1.2;
   float rollingScale = 1.;
 
   // Warp
@@ -1405,7 +1405,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
   wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, -5. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, -4. * wQ.y);
   wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
   wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
   wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
@@ -1413,8 +1413,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec2 c = pMod2(wQ.xz, size * vec2(2));
 
-  vec2 c = floor((wQ.xz + size*0.5)/size);
-  wQ.xz = opRepLim(wQ.xz, size, vec2(4));
+  // vec2 c = floor((wQ.xz + size*0.5)/size);
+  // wQ.xz = opRepLim(wQ.xz, size, vec2(1));
 
   // Commit warp
   q = wQ.xyz;
@@ -1422,14 +1422,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // r = 0.3 * size + 0.2 * cellular(4. * p);
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 0.15 + 0.15 * snoise2(0.2 * c))), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // q = p;
   // float crop = length(q) - 0.4;
   // d.x = max(d.x, crop);
 
-  d.x *= 0.115;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1823,7 +1823,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * diffuseColor * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.30 * diffuseColor * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1833,11 +1833,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.2 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 1.0;
+      // float dispersionI = 1.2 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
@@ -2926,7 +2926,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
