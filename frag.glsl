@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.282;
+float n2 = 0.47;
 const float amount = 0.05;
 
 // Dof
@@ -1381,6 +1381,29 @@ float dotTexture (in vec2 q, in float size) {
   return max(internalD, sdBox(localQ, vec2(r)));
 }
 
+float gear (in vec3 p, in float r, in float thickness, in float thinness, in float teeth) {
+  vec3 q = p;
+  float d = maxDistance;
+  float b = sdCappedCylinder(q, vec2(r, thinness));
+  d = min(d, b);
+
+  pModPolar(q.xz, teeth);
+  float toothThickness = thickness * 0.4;
+  q.x -= r + 1.0 * toothThickness;
+  float cog = sdBox(q, vec3(toothThickness, thinness, toothThickness));
+  d = min(d, cog);
+
+  q = p;
+  float cutOut = sdCappedCylinder(q, vec2(r - thickness, 1.));
+  d = max(d, -cutOut);
+
+  pModPolar(q.xz, 6.);
+  float spoke = sdBox(q, vec3(r, thinness, thickness));
+  d = min(d, spoke);
+
+  return d;
+}
+
 float gR = 0.8;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1389,12 +1412,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.75;
+  float r = 0.3;
 
   p *= globalRot;
-  // p -= vec3(0.0, -1.5,0) * size; // Adjust to center in camera
 
   vec3 q = p;
+  q.z *= -1.;
 
   float warpScale = 0.4;
   float warpFrequency = 1.2;
@@ -1403,33 +1426,85 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * wQ.xzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * wQ.yzx * warpFrequency + localCosT );
-  wQ.xzy = twist(wQ.xyz, -4. * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * wQ.xzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * wQ.yzx * warpFrequency + localCosT );
-  wQ += warpScale * 0.004125 * cos(39. * wQ.yzx * warpFrequency + localCosT );
-
-  // vec2 c = pMod2(wQ.xz, size * vec2(2));
-
-  // vec2 c = floor((wQ.xz + size*0.5)/size);
-  // wQ.xz = opRepLim(wQ.xz, size, vec2(1));
-
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // r = 0.3 * size + 0.2 * cellular(4. * p);
-  vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, b);
+  q.xzy = q.xyz;
+
+  // Im going to attempt to make a clock in honor of my grandfather passing away today
+  //
+  float bodyThickness = 0.015;
+  float cogR = 0.175;
+  float cogThickness = 0.02;
+  float cogThinness = 0.5 * cogThickness;
+
+  vec3 cogOffset = vec3(r * 0.55, 0., r * 0.55);
+
+  vec3 cogQ = q - cogOffset;
+  cogQ.xz *= rotMat2(localCosT);
+  vec3 cog = vec3(gear(cogQ, cogR, cogThickness, cogThinness, 40.), 0, 0); d = dMin(d, cog);
+  float cogCrop = sdCappedCylinder(cogQ, vec2(cogR + 2. * cogThickness, 0.0025 + cogThinness));
+
+  cogQ = q + vec3(r * 0.75, 0, 0.3 * r);
+  cogQ.xz *= rotMat2(0.5 * localCosT);
+  cogR *= 0.7;
+  cog = vec3(gear(cogQ, cogR, cogThickness, cogThinness, 20.), 0, 0); d = dMin(d, cog);
+  float cogCrop2 = sdCappedCylinder(cogQ, vec2(cogR + 2. * cogThickness, 0.0025 + cogThinness));
+  cogCrop = min(cogCrop, cogCrop2);
+
+  cogQ = q + vec3(-r * 0.5, 0, 0.75 * r);
+  cogQ.xz *= rotMat2(1.5 * localCosT);
+  cogR *= 0.8;
+  cog = vec3(gear(cogQ, cogR, cogThickness, cogThinness, 20.), 0, 0); d = dMin(d, cog);
+  cogCrop2 = sdCappedCylinder(cogQ, vec2(cogR + 2. * cogThickness, 0.0025 + cogThinness));
+  cogCrop = min(cogCrop, cogCrop2);
+
+  vec3 body = vec3(sdCappedCylinder(q, vec2(r, bodyThickness)) - 1.0 * bodyThickness, 0, 0);
+  body.x = max(body.x, -cogCrop);
+  d = dMin(d, body);
+
+  vec3 topShaft = vec3(sdCappedCylinder(q.xzy - vec3(0, r + 2. * bodyThickness, 0), vec2(1.5 * bodyThickness, bodyThickness)), 0, 0);
+  d = dMin(d, topShaft);
+  float topRounding = 0.4 * bodyThickness;
+  vec3 top = vec3(sdCappedCylinder(q.xzy - vec3(0, r + (2. + 1.) * bodyThickness, 0), vec2(2.0 * bodyThickness, 0.7 * bodyThickness)) - topRounding, 0, 0);
+  d = dMin(d, top);
+
+  vec3 face = vec3(-sdCappedCylinder(q + vec3(0, 2. * bodyThickness, 0), vec2(r - bodyThickness, bodyThickness)), 2, 0);
+  d = dMax(d, face);
+
+  float tickWidth = 0.1 * bodyThickness;
+  vec3 tickQ = q + vec3(0, bodyThickness + tickWidth, 0);
+  float c = pModPolar(tickQ.xz, 12.);
+  tickQ.x -= r - bodyThickness * 3.;
+  float tickThick = tickWidth;
+  if (c == 3.) {
+    tickThick *= 2.5;
+  }
+  vec3 tick = vec3(sdBox(tickQ, vec3(bodyThickness, vec2(tickWidth, tickThick))), 3, 0);
+  d = dMin(d, tick);
+
+  float handWidth = 0.2 * bodyThickness;
+  float handLength = r * 0.8 * 0.5;
+  vec3 handQ = q + vec3(0, bodyThickness + handWidth, 0);
+  handQ.xz *= rotMat2(cosT);
+  handQ.x -= handLength;
+  vec3 hand = vec3(sdBox(handQ, vec3(handLength, vec2(handWidth))), 3, 0);
+  d = dMin(d, hand);
+
+  // Short hand
+  handLength = r * 0.5 * 0.5;
+  handQ = q + vec3(0, bodyThickness + handWidth, 0);
+  handQ.x -= handLength;
+  hand = vec3(sdBox(handQ, vec3(handLength, vec2(handWidth))), 3, 0);
+  d = dMin(d, hand);
 
   // q = p;
   // float crop = length(q) - 0.4;
   // d.x = max(d.x, crop);
 
-  d.x *= 0.75;
+  // d.x *= 0.75;
 
   return d;
 }
@@ -1659,7 +1734,13 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1, 0.9, 0.6);
+
+  color = mix(color, 1.6 * vec3(1, 0.9, 0.55), isMaterialSmooth(m, 0.));
+  color = mix(color, vec3(2.5), isMaterialSmooth(m, 2.));
+  color = mix(color, vec3(0.1), isMaterialSmooth(m, 3.));
+
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1765,7 +1846,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isBox = isMaterialSmooth(t.y, 3.);
+      float isGear = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1782,13 +1863,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.7;
+        float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.6;
+        float shadowMin = 0.5;
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
@@ -1823,7 +1904,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * diffuseColor * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.20 * isGear * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1833,16 +1914,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.2 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
