@@ -39,7 +39,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = true
+    this.LOOKAT = false
 
     this.presets = {}
     const preset = {
@@ -51,11 +51,11 @@ export default class App {
       d: 0.52,
       scale: 1.8056,
       rot2angle: [2.315, 3.562, 4.463],
-      cameraAngles: [-0.016, -0.789, 0.04]
+      cameraAngles: [0, 0.001, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0, 1.12)
+    this.cameraRo = vec3.fromValues(0.03, 0.15, 0.55)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [188, 135, 184]

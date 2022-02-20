@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.14;
+float n2 = 1.74;
 const float amount = 0.05;
 
 // Dof
@@ -1412,15 +1412,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.3;
+  float r = 0.25;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
-  q.z *= -1.;
 
   float warpScale = 0.6;
-  float warpFrequency = 1.0;
+  float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1438,16 +1437,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  q.xzy = q.xyz;
-
   vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  // q = p;
-  // float crop = length(q) - 0.4;
-  // d.x = max(d.x, crop);
-
-  // d.x *= 0.75;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1689,7 +1682,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
-  color *= 0.8;
+  color *= 0.5;
 
   // color = mix(color, vec3(1), 0.5);
 
@@ -1766,13 +1759,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.8;
-      // float bumpIntensity = 0.105;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 2.8;
+      float bumpIntensity = 0.020;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
