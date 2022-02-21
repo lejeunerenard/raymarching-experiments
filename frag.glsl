@@ -1414,31 +1414,41 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = gSize.x;
   float r = 0.25;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.6;
-  float warpFrequency = 1.5;
+  float warpScale = 1.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.10000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.05000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += warpScale * 0.02500 * cos(13. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.01250 * cos(19. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.00625 * cos(24. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.05000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz, 0.5 * PI * cos(1. * wQ.y + localCosT));
+  // wQ += warpScale * 0.02500 * cos(13. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.01250 * cos(19. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.00625 * cos(24. * warpFrequency * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
+
+  // Dodecahedron fold
+  float s = 0.;
+  q = dodecahedronFold(q, s);
+  vec3 e = vec3(sdBox(q - offset, vec3(r)), 0, 0);
+  e.x *= 0.25;
+  d = dMin(d, e);
+
+  d.x -= 0.001 * cellular(3. * q);
 
   d.x *= 0.75;
 
@@ -1759,13 +1769,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 2.8;
-      float bumpIntensity = 0.020;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 2.8;
+      // float bumpIntensity = 0.020;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1835,7 +1845,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * isGear * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
