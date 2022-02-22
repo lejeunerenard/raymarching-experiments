@@ -1412,9 +1412,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.25;
+  float r = 0.18;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1425,30 +1425,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.05000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz, 0.5 * PI * cos(1. * wQ.y + localCosT));
-  // wQ += warpScale * 0.02500 * cos(13. * warpFrequency * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.01250 * cos(19. * warpFrequency * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.00625 * cos(24. * warpFrequency * wQ.yzx + localCosT );
+  float c = pModPolar(wQ.xy, 5.);
+  wQ.y = abs(wQ.y);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
+  q -= vec3(1.7 * r, 0, 0);
+  q *= rotationMatrix(vec3(1), 0.35 * PI + localCosT);
+
   // vec3 b = vec3(length(q) - r, 0, 0);
   vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  // Dodecahedron fold
-  float s = 0.;
-  q = dodecahedronFold(q, s);
-  vec3 e = vec3(sdBox(q - offset, vec3(r)), 0, 0);
-  e.x *= 0.25;
-  d = dMin(d, e);
+  // // Dodecahedron fold
+  // float s = 0.;
+  // q = dodecahedronFold(q, s);
+  // vec3 e = vec3(sdBox(q - offset, vec3(r)), 0, 0);
+  // e.x *= 0.25;
+  // d = dMin(d, e);
 
-  d.x -= 0.001 * cellular(3. * q);
+  // d.x -= 0.001 * cellular(3. * q);
 
   d.x *= 0.75;
 
@@ -1807,10 +1806,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float diffMin = 0.8;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 65.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.5;
+        float shadowMin = 0.3;
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
@@ -1845,7 +1844,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.30 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
