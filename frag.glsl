@@ -1425,19 +1425,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  float c = pModPolar(wQ.xy, 5.);
-  wQ.y = abs(wQ.y);
+  // float c = pModPolar(wQ.xy, 7.);
+  // wQ.y = abs(wQ.y);
+
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
+  wQ += warpScale * 0.075000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
+  wQ += warpScale * 0.056250 * cos(13. * warpFrequency * wQ.yzx + localCosT );
+  wQ += warpScale * 0.042188 * cos(19. * warpFrequency * wQ.yzx + localCosT );
+  wQ += warpScale * 0.031641 * cos(23. * warpFrequency * wQ.yzx + localCosT );
+
+  wQ.xz = opRepLim(wQ.xz, r * 1., vec2(2.));
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  q -= vec3(1.7 * r, 0, 0);
-  q *= rotationMatrix(vec3(1), 0.35 * PI + localCosT);
+  // q -= vec3(1.7 * r, 0, 0);
+  // q *= rotationMatrix(vec3(1), 0.35 * PI + localCosT);
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdCapsule(q, vec3(0, r, 0), vec3(0, -r, 0), 0.25 * r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // Dodecahedron fold
@@ -1449,7 +1459,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // d.x -= 0.001 * cellular(3. * q);
 
-  d.x *= 0.75;
+  d.x *= 0.25;
 
   return d;
 }
@@ -1792,7 +1802,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 0.9;
 
       float specAll = 0.0;
