@@ -1412,13 +1412,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.18;
+  float r = 0.325;
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1429,37 +1429,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y = abs(wQ.y);
 
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.075000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
-  wQ += warpScale * 0.056250 * cos(13. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.042188 * cos(19. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.031641 * cos(23. * warpFrequency * wQ.yzx + localCosT );
-
-  wQ.xz = opRepLim(wQ.xz, r * 1., vec2(2.));
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
+  wQ.xzy = twist(wQ.xyz,  2. * wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT );
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // q -= vec3(1.7 * r, 0, 0);
-  // q *= rotationMatrix(vec3(1), 0.35 * PI + localCosT);
-
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdCapsule(q, vec3(0, r, 0), vec3(0, -r, 0), 0.25 * r), 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  // // Dodecahedron fold
-  // float s = 0.;
-  // q = dodecahedronFold(q, s);
-  // vec3 e = vec3(sdBox(q - offset, vec3(r)), 0, 0);
-  // e.x *= 0.25;
-  // d = dMin(d, e);
-
-  // d.x -= 0.001 * cellular(3. * q);
-
-  d.x *= 0.25;
+  d.x *= 0.75;
 
   return d;
 }
@@ -3058,6 +3043,12 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
+    // Pixelate UVs
+    const float pixelSize = 2.5 * 0.009375;
+    vec2 innerUV = uv;
+    pMod2(innerUV, vec2(pixelSize));
+    uv = floor((uv + pixelSize * 0.5) / pixelSize) * pixelSize;
+
     float gRAngle = -TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
     float gRs = sin(gRAngle);
@@ -3151,6 +3142,8 @@ void main() {
 #endif
     gl_FragColor = saturate(sample(ro, rd, uv));
     #endif
+
+    gl_FragColor.rgb *= 0.80 + 0.20 * (dot(innerUV, vec2(0.2, 1)) / pixelSize);
 
     // gamma
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
