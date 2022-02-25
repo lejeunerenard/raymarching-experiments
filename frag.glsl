@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1428,23 +1428,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
-  wQ.xzy = twist(wQ.xyz,  2. * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
+  // wQ.xzy = twist(wQ.xyz,  2. * wQ.y);
+  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
+
+  for (float i = 0.; i < 9.; i++) {
+    wQ *= rotationMatrix(vec3(1), 0.3 + 0.2 * cos(localCosT));
+
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+
+    rollingScale *= scale;
+  }
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
-  d.x *= 0.75;
+  // d.x *= 0.75;
 
   return d;
 }
@@ -1674,10 +1684,11 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-
+  vec3 color = vec3(0.5);
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
+
+  return dI;
 
   dI *= angle1C;
   dI += angle2C;
@@ -1787,7 +1798,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.0;
       float specCo = 0.9;
 
       float specAll = 0.0;
@@ -1798,13 +1809,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.8;
+        float diffMin = 0.5;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 65.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.3;
+        float shadowMin = 0.0;
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
@@ -1849,16 +1860,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.2 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -3043,11 +3054,14 @@ void main() {
 
     vec2 uv = fragCoord.xy;
 
+// #define pixelated
+#ifdef pixelated
     // Pixelate UVs
     const float pixelSize = 2.5 * 0.009375;
     vec2 innerUV = uv;
     pMod2(innerUV, vec2(pixelSize));
     uv = floor((uv + pixelSize * 0.5) / pixelSize) * pixelSize;
+#endif
 
     float gRAngle = -TWO_PI * mod(time, totalT) / totalT;
     float gRc = cos(gRAngle);
@@ -3143,7 +3157,10 @@ void main() {
     gl_FragColor = saturate(sample(ro, rd, uv));
     #endif
 
+#ifdef pixelated
+    // Pixelated shading
     gl_FragColor.rgb *= 0.80 + 0.20 * (dot(innerUV, vec2(0.2, 1)) / pixelSize);
+#endif
 
     // gamma
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.454545));
