@@ -1435,10 +1435,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
   // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
 
-  for (float i = 0.; i < 9.; i++) {
+  for (float i = 0.; i < 11.; i++) {
     wQ *= rotationMatrix(vec3(1), 0.3 + 0.2 * cos(localCosT));
-
-    wQ = abs(wQ);
+    wQ = tetraFold(wQ);
+    // wQ = abs(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
 
@@ -1848,10 +1848,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.30 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.30 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
