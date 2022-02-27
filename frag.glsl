@@ -1435,8 +1435,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
   // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
 
-  for (float i = 0.; i < 11.; i++) {
-    wQ *= rotationMatrix(vec3(1), 0.3 + 0.2 * cos(localCosT));
+  for (float i = 0.; i < 10.; i++) {
+    wQ *= rotationMatrix(vec3(1), 0.4 + 0.2 * cos(localCosT));
     wQ = tetraFold(wQ);
     // wQ = abs(wQ);
 
@@ -1684,11 +1684,11 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(1.5);
+  return color;
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
-
-  return dI;
 
   dI *= angle1C;
   dI += angle2C;
@@ -1758,7 +1758,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
     lights[0] = light(vec3(-0.7, 1.2, 1.0), 0.7 * #AACCFF, 1.0);
     lights[1] = light(vec3(0.5, 0.7,1.0), #FFCCFF, 1.0);
-    lights[2] = light(vec3(0.1, 0.7,-0.9), #FFFFCC, 1.0);
+    lights[2] = light(vec3(0.1, 0.7,-0.7), #FFFFFF, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1809,7 +1809,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.5;
+        float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 65.0);
@@ -1824,7 +1824,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // Specular Lighting
         fre *= freCo * dif * occ;
         lin += fre; // Commit Fresnel
-        specAll += specCo * spec;
+        specAll += specCo * spec * dif;
 
         // // Ambient
         // lin += 0.300 * amb * diffuseColor;
@@ -1874,11 +1874,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -1921,13 +1921,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         color.a = 1.0;
       }
 
-      for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
-        vec3 lightPos = lights[i].position;
-        vec3 fromLight = rayOrigin - lightPos;
-        float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
-        float lightAngle = pow(dot(-rayDirection, normalize(fromLight)), 512.0);
-        color.rgb += lightMasked * mix(lights[i].color, vec3(1), lightAngle) * pow(dot(-rayDirection, normalize(fromLight)), 512.0);
-      }
+//       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
+//         vec3 lightPos = lights[i].position;
+//         vec3 fromLight = rayOrigin - lightPos;
+//         float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
+//         float lightAngle = pow(dot(-rayDirection, normalize(fromLight)), 512.0);
+//         color.rgb += lightMasked * mix(lights[i].color, vec3(1), lightAngle) * pow(dot(-rayDirection, normalize(fromLight)), 512.0);
+//       }
 
       // // Cartoon outline
       // // Requires trap be the distance even when the object is missed
