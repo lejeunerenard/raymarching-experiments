@@ -7,9 +7,9 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -1435,10 +1435,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
   // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
 
-  for (float i = 0.; i < 10.; i++) {
+  for (float i = 0.; i < 12.; i++) {
     wQ *= rotationMatrix(vec3(1), 0.4 + 0.2 * cos(localCosT));
-    wQ = tetraFold(wQ);
-    // wQ = abs(wQ);
+    if (mod(i, 2.) == 0.) {
+      wQ = tetraFold(wQ);
+    } else {
+      wQ = abs(wQ);
+    }
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
 
@@ -1450,7 +1453,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - angle3C, 0, 0);
   b.x /= rollingScale;
   d = dMin(d, b);
 
@@ -1684,7 +1687,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
+  vec3 color = vec3(1.7);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -3077,6 +3080,10 @@ void main() {
       0.0, 1.0,  0.0,
       glRs, 0.0,  glRc);
 
+#ifdef DOF
+    const float dofCoeficient = 0.00165;
+#endif
+
     #ifdef SS
     // Antialias by averaging all adjacent values
     vec4 color = vec4(0.);
@@ -3103,7 +3110,7 @@ void main() {
             // DoF
             // source: shadertoy.con/view/WtSfWK
             vec3 fp = ssRo + rd * doFDistance;
-            ssRo.xy += 0.0015 * vec2(
+            ssRo.xy += dofCoeficient * vec2(
                 cnoise2(238. * uv + 123. + 2384. * vec2(x, y)),
                 cnoise2(323. * uv + 2034.123 * vec2(x, y)));
             rd = normalize(fp - ssRo);
@@ -3139,7 +3146,7 @@ void main() {
     // DoF
     // source: shadertoy.con/view/WtSfWK
     vec3 fp = ro + rd * doFDistance;
-    ro.xy += 0.0015 * vec2(
+    ro.xy += dofCoeficient * vec2(
         cnoise2(238. * uv + 123.),
         cnoise2(323. * uv + 20034.123));
     rd = normalize(fp - ro);
