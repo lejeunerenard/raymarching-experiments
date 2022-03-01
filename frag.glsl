@@ -3081,7 +3081,7 @@ void main() {
       glRs, 0.0,  glRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.00165;
+    const float dofCoeficient = 0.0200;
 #endif
 
     #ifdef SS
