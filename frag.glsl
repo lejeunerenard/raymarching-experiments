@@ -6,10 +6,10 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
-#define ORTHO 1
+// #define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -1418,7 +1418,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.0;
+  float warpScale = 0.9;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1428,41 +1428,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT );
-  // wQ.xzy = twist(wQ.xyz,  2. * wQ.y);
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT );
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT );
-
-  for (float i = 0.; i < 12.; i++) {
-    wQ *= rotationMatrix(vec3(1), 0.7 + 0.3 * cos(localCosT));
-    if (mod(i, 2.) == 0.) {
-      wQ = tetraFold(wQ);
-    } else {
-      pModPolar(wQ.xy, 5.);
-      wQ.y = abs(wQ.y);
-      // wQ.xy = abs(wQ.xy);
-    }
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-
-
-    minD.x = min(minD.x, sdCappedCylinder(wQ - vec3(0.1,-0.2, 0.3), vec2(0.1, 0.4)));
-
-    rollingScale *= scale;
-  }
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
+  wQ.xzy = twist(wQ.xyz,  2. * wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - angle3C, 0, minD.x);
-  b.x /= rollingScale;
+  vec3 b = vec3(length(q) - r, 0, minD.x);
   d = dMin(d, b);
 
-  // d.x *= 0.75;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1692,8 +1673,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5, 1.3, 1.1);
-  color = mix(color, vec3(1.1, 1.3, 1.5), 0.5 + 0.5 * cos(TWO_PI * trap));
+  vec3 color = 0.5 * vec3(1.1, 1.3, 1.5);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1821,10 +1801,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float diffMin = 0.0;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 65.0);
+        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        float shadowMin = 0.0;
+        // TODO Debug shadow spots on a sphere
+        float shadowMin = 1.0;
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
@@ -1869,16 +1850,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.2 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
