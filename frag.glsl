@@ -1412,13 +1412,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.325;
+  float r = 0.4;
 
   p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.9;
+  float warpScale = 0.4;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1430,7 +1430,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  wQ.xzy = twist(wQ.xyz,  2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
@@ -1441,6 +1441,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   vec3 b = vec3(length(q) - r, 0, minD.x);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
   d = dMin(d, b);
 
   d.x *= 0.75;
@@ -1673,8 +1674,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = 0.5 * vec3(1.1, 1.3, 1.5);
-  return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dNR);
@@ -1686,7 +1686,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
-  color *= 0.5;
+  color *= 0.25;
 
   // color = mix(color, vec3(1), 0.5);
 
