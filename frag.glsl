@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1412,9 +1412,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.4;
+  float r = 0.1;
 
-  p *= globalRot;
+  // p *= globalRot;
+
+  p.y += 0.1;
 
   vec3 q = p;
 
@@ -1428,23 +1430,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
-  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
-  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
+  // wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
+  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
+  
+  const float num = 9.;
+  float pendHeight = 7.0 * r;
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q - vec3(0, 0, (i - 0.5 * num + 0.5) * 2.05 * r);
+    // Rotation
+    localQ.y -= 2. * pendHeight;
+    localQ.xy *= rotMat2(0.05 * PI * cos((-i - 1.) * localCosT + 0.25 * PI));
+    localQ.y += 2. * pendHeight;
+    vec3 v = vec3(sdCappedCylinder(localQ - vec3(0, pendHeight, 0), vec2(0.25 * r, pendHeight)), 0, 0);
+    d = dMin(d, v);
 
-  vec3 b = vec3(length(q) - r, 0, minD.x);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
-  d = dMin(d, b);
+    vec3 b = vec3(length(localQ) - r, 0, minD.x);
+    // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
+    d = dMin(d, b);
+  }
 
-  d.x *= 0.75;
+  // d.x *= 0.75;
 
   return d;
 }
@@ -1677,7 +1691,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dNR);
+  vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
+  dI *= 1. - dNR;
+
+  return 3. * (1. - step(-0.5, dI));
 
   dI *= angle1C;
   dI += angle2C;
@@ -1850,16 +1867,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       // float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1875,7 +1892,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      // color = diffuseColor;
+      color = diffuseColor;
 
       // Debugging
 #ifdef NO_MATERIALS
@@ -2942,7 +2959,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
