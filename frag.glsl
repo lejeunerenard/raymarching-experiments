@@ -1414,9 +1414,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = gSize.x;
   float r = 0.1;
 
-  // p *= globalRot;
-
-  p.y += 0.1;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1430,35 +1428,41 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  // wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
+  wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
-  
-  const float num = 9.;
-  float pendHeight = 7.0 * r;
-  for (float i = 0.; i < num; i++) {
-    vec3 localQ = q - vec3(0, 0, (i - 0.5 * num + 0.5) * 2.05 * r);
-    // Rotation
-    localQ.y -= 2. * pendHeight;
-    localQ.xy *= rotMat2(0.05 * PI * cos((-i - 1.) * localCosT + 0.25 * PI));
-    localQ.y += 2. * pendHeight;
-    vec3 v = vec3(sdCappedCylinder(localQ - vec3(0, pendHeight, 0), vec2(0.25 * r, pendHeight)), 0, 0);
-    d = dMin(d, v);
 
-    vec3 b = vec3(length(localQ) - r, 0, minD.x);
-    // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
-    d = dMin(d, b);
-  }
+  pModPolar(q.xz, 5.);
+  q.z = abs(q.z);
 
-  // d.x *= 0.75;
+  q.x -= angle2C;
+  q.z -= angle3C;
+  q *= rotationMatrix(vec3(1, 0, 0), angle1C * PI);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 4. * r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
+  d = dMin(d, b);
+
+  q = wQ;
+  q.y *= -1.;
+  pModPolar(q.xz, 5.);
+  q.z = abs(q.z);
+
+  q.x -= angle2C;
+  q.z -= angle3C;
+  q *= rotationMatrix(vec3(1, 0, 0), angle1C * PI);
+  b = vec3(sdCappedCylinder(q, vec2(r, 4. * r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
+  d = dMin(d, b);
+
+  d.x *= 0.6;
 
   return d;
 }
@@ -1694,7 +1698,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
   dI *= 1. - dNR;
 
-  return 3. * (1. - step(-0.5, dI));
+  return 3. * (1. - step(0., dI));
 
   dI *= angle1C;
   dI += angle2C;
