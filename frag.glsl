@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1414,11 +1414,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float size = gSize.x;
   float r = 0.1;
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.4;
+  float warpScale = 0.2;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1428,37 +1428,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
-  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
-  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
+  // wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
+  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
+
+  wQ.yz *= rotMat2(-0.3 * PI);
+
+  wQ.xz = polarCoords(wQ.xz);
+  wQ.z -= r * 3.;
+  wQ.x /= PI;
+  
+  // wQ.zx = wQ.xz;
+
+  wQ.yz *= rotMat2(0.333 * PI * wQ.x + localCosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  pModPolar(q.xz, 5.);
-  q.z = abs(q.z);
-
-  q.x -= angle2C;
-  q.z -= angle3C;
-  q *= rotationMatrix(vec3(1, 0, 0), angle1C * PI);
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 4. * r)), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
-  d = dMin(d, b);
-
-  q = wQ;
-  q.y *= -1.;
-  pModPolar(q.xz, 5.);
-  q.z = abs(q.z);
-
-  q.x -= angle2C;
-  q.z -= angle3C;
-  q *= rotationMatrix(vec3(1, 0, 0), angle1C * PI);
-  b = vec3(sdCappedCylinder(q, vec2(r, 4. * r)), 0, 0);
+  vec3 b = vec3(sdTriPrism(q.zyx, vec2(r, 1.5)), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
   d = dMin(d, b);
 
@@ -1696,9 +1688,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
-  dI *= 1. - dNR;
+  // dI *= 1. - dNR;
 
-  return 3. * (1. - step(0., dI));
+  // return 3. * (1. - step(0., dI));
 
   dI *= angle1C;
   dI += angle2C;
@@ -1707,7 +1699,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
-  color *= 0.25;
+  color *= 0.5;
 
   // color = mix(color, vec3(1), 0.5);
 
