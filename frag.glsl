@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
-#define ORTHO 1
+// #define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1412,13 +1412,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.1;
+  float r = 0.3;
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.2;
+  float warpScale = 2.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1428,33 +1428,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  // wQ.xzy = twist(wQ.xyz,  PI * cos(3. * wQ.y));
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
+  wQ.xzy = twist(wQ.xyz,  PI * cos(2. * wQ.y));
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
 
-  wQ.yz *= rotMat2(-0.3 * PI);
-
-  wQ.xz = polarCoords(wQ.xz);
-  wQ.z -= r * 3.;
-  wQ.x /= PI;
-  
   // wQ.zx = wQ.xz;
-
-  wQ.yz *= rotMat2(0.333 * PI * wQ.x + localCosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(sdTriPrism(q.zyx, vec2(r, 1.5)), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, minD.x);
+  // vec3 b = vec3(length(q) - r, 0, minD.x);
+  vec3 b = vec3(sdTorus(q.xzy, vec2(r, 0.5 * r)), 0, minD.x);
   d = dMin(d, b);
 
-  d.x *= 0.6;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1864,15 +1856,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1888,7 +1880,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
 #ifdef NO_MATERIALS
