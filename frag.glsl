@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1428,25 +1428,40 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
-  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  wQ.xzy = twist(wQ.xyz,  PI * cos(2. * wQ.y));
-  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
+  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
+  // wQ.xzy = twist(wQ.xyz,  PI * cos(2. * wQ.y));
+  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
 
-  // wQ.zx = wQ.xz;
+  for (float i = 0.; i < 4.; i++) {
+    wQ *= rotationMatrix(vec3(1), 0.1 * cos(localCosT));
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+
+    rollingScale /= scale;
+
+    vec3 localQ = wQ;
+    localQ.xy = opRepLim(localQ.xy, 0.3, vec2(2));
+    const float trapLength = 0.7;
+    float tapper = 1.; // saturate(1. - abs(localQ.y) / trapLength);
+    // tapper = pow(tapper, 2.);
+    float trap = sdCappedCylinder(localQ, vec2(0.05 * tapper, trapLength));
+    trap /= rollingScale;
+    minD.x = min(minD.x, trap);
+  }
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, minD.x);
-  vec3 b = vec3(sdTorus(q.xzy, vec2(r, 0.5 * r)), 0, minD.x);
+  vec3 b = vec3(minD.x, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.1;
+  d.x *= 0.25;
 
   return d;
 }
