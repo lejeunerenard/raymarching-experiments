@@ -22,7 +22,7 @@ const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 2
 const BLOOM_WET = 1
-const BLOOM_MIN_BRIGHTNESS = 1
+const BLOOM_MIN_BRIGHTNESS = 0.9
 
 // Initialize shell
 export default class App {
@@ -73,8 +73,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.8901
-    this.angle2C = 1.2209
+    this.angle1C = 0.5592
+    this.angle2C = 2.329
     this.angle3C = 0.212
 
     this.setupAnimation(preset)

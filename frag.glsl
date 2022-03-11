@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1412,13 +1412,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.3;
+  float r = 0.65;
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 2.0;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1428,40 +1428,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 0.713);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 0.193);
-  // wQ.xzy = twist(wQ.xyz,  PI * cos(2. * wQ.y));
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 0.817);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 0.523);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 0.713);
-
-  for (float i = 0.; i < 4.; i++) {
-    wQ *= rotationMatrix(vec3(1), 0.1 * cos(localCosT));
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-
-    rollingScale /= scale;
-
-    vec3 localQ = wQ;
-    localQ.xy = opRepLim(localQ.xy, 0.3, vec2(2));
-    const float trapLength = 0.7;
-    float tapper = 1.; // saturate(1. - abs(localQ.y) / trapLength);
-    // tapper = pow(tapper, 2.);
-    float trap = sdCappedCylinder(localQ, vec2(0.05 * tapper, trapLength));
-    trap /= rollingScale;
-    minD.x = min(minD.x, trap);
-  }
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 3.713);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 2.193);
+  wQ.xzy = twist(wQ.xyz,  3. * wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 1.817);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 7.523);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 9.713);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(minD.x, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.25;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1807,8 +1789,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.9;
+      float freCo = 2.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
@@ -1825,7 +1807,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         // TODO Debug shadow spots on a sphere
-        float shadowMin = 1.0;
+        float shadowMin = 0.9;
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
         dif *= sha;
 
@@ -1870,14 +1852,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
