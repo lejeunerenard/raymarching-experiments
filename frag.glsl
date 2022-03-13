@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1412,7 +1412,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.35;
+  float r = 0.15;
 
   // p *= globalRot;
 
@@ -1441,22 +1441,41 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // I'm going to try to create a kind of goopy trail to the sphere
-  const float num = 4.;
+  const float num = 5.;
   const float invNum = 1. / num;
   for (float i = 0.; i < num; i++) {
     vec3 localQ = q;
-    vec2 willOffset = 1.00 * vec2(0, 1) * r * cos(localCosT - i * 0.175 * PI);
-    // vec2 willOffset = 0.75 * r * cos(localCosT - i * 0.2 * PI + vec2(0, 0.1) * PI);
-    // vec2 wasOffset = 0.75 * r * cos(localCosT - (i - 1.) * 0.2 * PI + vec2(0, 0.1) * PI);
+    float echoT = -(localCosT - i * 0.175 * PI);
+    float legT = floor(echoT / (0.5 * PI));
+    vec2 dir = vec2(1, 0) * rotMat2(PI * 0.5 * -legT);
+    vec2 willOffset = vec2(2. * r * (-1. + 2. * mod(echoT, 0.5 * PI) / (0.5 * PI)), 2. * r) * rotMat2(PI * 0.5 * -legT);
+
+    // Automatic stretching of noise space
+    // TODO
+    // Can i take the derivative and just get the direction?
+    // dx cos(x) = -sin(x)
+    // Maybe this is working technically? But i think i messed up in the actual
+    // idea. It changes the density of the noise and given the direction changes
+    // fast right at the 'corner's it looks unnatural.
+    // I feel like i need to derive the place in time that corresponds with the
+    // location and then derive the direction it would be going from that. The
+    // problem is that I have an equation only for the center and not for the
+    // entire volume that the object is in. My brain is already hurting.. Maybe
+    // some other daily time...
+    // vec2 willOffset = 0.75 * r * cos(localCosT - (i - 0.) * 0.2 * PI + vec2(0, 0.1) * PI);
+    // vec2 derivative = -0.75 * r * sin(localCosT - (i - 0.) * 0.2 * PI + vec2(0, 0.1) * PI);
+    // // vec2 wasOffset = 0.75 * r * cos(localCosT - (i - 1.) * 0.2 * PI + vec2(0, 0.1) * PI);
+
     localQ.xy -= willOffset;
 
-    vec3 b = vec3(length(localQ) - r * (1. - invNum * (i + 0.4 * step(1., i))), 0, 0);
+    vec3 b = vec3(sdBox(localQ, vec3(r * (1. - invNum * (i + 0.3 * step(1., i))))), 0, 0);
     float crop = b.x;
 
     if (i != 0.) {
       // vec2 dir = normalize(willOffset - wasOffset);
-      vec2 dir = vec2(0, 1);
-      float n = 0.075 * i * snoise3((4. + i) * (1. - invNum * i * vec3(dir, 0)) * q);
+      // vec2 dir = normalize(derivative);
+      // vec2 dir = vec2(0, 1) * rotMat2(PI * 0.5 * floor(echoT / 0.5 * PI));
+      float n = 0.214286 * r * i * snoise3((4. + i) * (1. - invNum * i * vec3(dir, 0)) * q);
       b.x += n;
     }
 
@@ -1696,7 +1715,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.5);
-  return color;
+  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1875,16 +1894,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1944,15 +1963,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 //         color.rgb += lightMasked * mix(lights[i].color, vec3(1), lightAngle) * pow(dot(-rayDirection, normalize(fromLight)), 512.0);
 //       }
 
-      // Cartoon outline
-      // Requires trap be the distance even when the object is missed
-      // Doesn't detect edges not on the background.
-      float outlineStop = 0.00125;
-      vec3 outlineColor = vec3(0);
-      float outlineT = t.w;
-      outlineT = smoothstep(outlineStop, 0.125 * edge + outlineStop, outlineT);
-      outlineT = 1. - outlineT;
-      color = mix(color, vec4(outlineColor, 1), outlineT);
+      // // Cartoon outline
+      // // Requires trap be the distance even when the object is missed
+      // // Doesn't detect edges not on the background.
+      // float outlineStop = 0.00125;
+      // vec3 outlineColor = vec3(0);
+      // float outlineT = t.w;
+      // outlineT = smoothstep(outlineStop, 0.125 * edge + outlineStop, outlineT);
+      // outlineT = 1. - outlineT;
+      // color = mix(color, vec4(outlineColor, 1), outlineT);
 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
