@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.74;
+float n2 = angle3C;
 const float amount = 0.05;
 
 // Dof
@@ -1412,7 +1412,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.15;
+  float r = 0.6;
+
+  const float tilt = 0.1 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), tilt * sin(localCosT));
 
   // p *= globalRot;
 
@@ -1440,51 +1444,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  // I'm going to try to create a kind of goopy trail to the sphere
-  const float num = 5.;
-  const float invNum = 1. / num;
-  for (float i = 0.; i < num; i++) {
-    vec3 localQ = q;
-    float echoT = -(localCosT - i * 0.175 * PI);
-    float legT = floor(echoT / (0.5 * PI));
-    vec2 dir = vec2(1, 0) * rotMat2(PI * 0.5 * -legT);
-    vec2 willOffset = vec2(2. * r * (-1. + 2. * mod(echoT, 0.5 * PI) / (0.5 * PI)), 2. * r) * rotMat2(PI * 0.5 * -legT);
+  vec3 outerQ = q;
+  // outerQ *= rotationMatrix(vec3(0, 0, 1), -localCosT);
+  vec3 b = vec3(length(outerQ) - r, 0, 0);
+  b.x -= 0.001 * cellular(2. * outerQ);
+  d = dMin(d, b);
 
-    // Automatic stretching of noise space
-    // TODO
-    // Can i take the derivative and just get the direction?
-    // dx cos(x) = -sin(x)
-    // Maybe this is working technically? But i think i messed up in the actual
-    // idea. It changes the density of the noise and given the direction changes
-    // fast right at the 'corner's it looks unnatural.
-    // I feel like i need to derive the place in time that corresponds with the
-    // location and then derive the direction it would be going from that. The
-    // problem is that I have an equation only for the center and not for the
-    // entire volume that the object is in. My brain is already hurting.. Maybe
-    // some other daily time...
-    // vec2 willOffset = 0.75 * r * cos(localCosT - (i - 0.) * 0.2 * PI + vec2(0, 0.1) * PI);
-    // vec2 derivative = -0.75 * r * sin(localCosT - (i - 0.) * 0.2 * PI + vec2(0, 0.1) * PI);
-    // // vec2 wasOffset = 0.75 * r * cos(localCosT - (i - 1.) * 0.2 * PI + vec2(0, 0.1) * PI);
+  vec3 swirlQ = q;
+  swirlQ.xyz = twist(swirlQ.xzy,
+        2.000 * swirlQ.z
+      // + 0.125 * localCosT
+      + 0.200 * PI * cos(localCosT - 8. * length(swirlQ.xy))
+  );
+  swirlQ *= (1. + 0.05 * cos(localCosT - length(swirlQ.xy)));
+  float swirlR = r * (0.5 + 0.1 * abs(cos(4. * atan(swirlQ.y, swirlQ.x))));
+  float swirl = length(swirlQ) - swirlR;
+  swirl += 0.07 * cellular(2. * swirlQ);
+  // d.x = swirl;
+  d.x = max(d.x, -swirl);
 
-    localQ.xy -= willOffset;
-
-    vec3 b = vec3(sdBox(localQ, vec3(r * (1. - invNum * (i + 0.3 * step(1., i))))), 0, 0);
-    float crop = b.x;
-
-    if (i != 0.) {
-      // vec2 dir = normalize(willOffset - wasOffset);
-      // vec2 dir = normalize(derivative);
-      // vec2 dir = vec2(0, 1) * rotMat2(PI * 0.5 * floor(echoT / 0.5 * PI));
-      float n = 0.214286 * r * i * snoise3((4. + i) * (1. - invNum * i * vec3(dir, 0)) * q);
-      b.x += n;
-    }
-
-    d = dSMin(d, b, 0.25 * r);
-  }
-
-  d.x *= 0.1;
-
-  d.z = d.x;
+  // d.x *= 0.1;
 
   return d;
 }
@@ -1611,7 +1590,7 @@ vec3 textures (in vec3 rd) {
   dI *= angle1C;
   dI += angle2C;
 
-  // dI += gPos;
+  dI += gPos;
 
   dI *= 0.3;
 
@@ -1630,7 +1609,7 @@ vec3 textures (in vec3 rd) {
   // // Identity scene color
   // color = vec3(1);
 
-  color *= 1.3;
+  // color *= 1.3;
 
   // // Unbounded
   // return color;
@@ -1715,22 +1694,21 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.5);
-  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
-  // dI *= 1. - dNR;
 
-  // return 3. * (1. - step(0., dI));
+  dI += 0.1 * snoise3(pos);
 
   dI *= angle1C;
   dI += angle2C;
+  dI *= 0.3;
   dI += 0.10 * length(pos);
   dI += t;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
-  color *= 0.5;
+  color *= 0.3;
 
   // color = mix(color, vec3(1), 0.5);
 
@@ -1903,8 +1881,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      color += saturate(dispersionColor);
-      // color = saturate(dispersionColor);
+      // color += saturate(dispersionColor);
+      color = saturate(dispersionColor);
 
 #endif
 
