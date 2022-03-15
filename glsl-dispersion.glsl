@@ -104,8 +104,8 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     // Index into Cosine palette
     vec3 dI = vec3(dot(nor, eye));
-    vec3 mixI = vec3(dI);
-    // vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
+    // vec3 mixI = vec3(dI);
+    vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
     mixI += 0.2 * hue;
 
     // Cosine Palette based Hue

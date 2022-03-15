@@ -1412,7 +1412,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   float size = gSize.x;
-  float r = 0.6;
+  float r = 0.5;
 
   const float tilt = 0.1 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
@@ -1422,7 +1422,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 1.4;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1432,12 +1432,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT + 3.713);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + 2.193);
-  // wQ.xzy = twist(wQ.xyz,  3. * wQ.y);
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT + 1.817);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 7.523);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 9.713);
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 7.523);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 9.713);
 
   // Commit warp
   q = wQ.xyz;
@@ -1445,25 +1445,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   vec3 outerQ = q;
-  // outerQ *= rotationMatrix(vec3(0, 0, 1), -localCosT);
-  vec3 b = vec3(length(outerQ) - r, 0, 0);
-  b.x -= 0.001 * cellular(2. * outerQ);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  vec3 swirlQ = q;
-  swirlQ.xyz = twist(swirlQ.xzy,
-        2.000 * swirlQ.z
-      // + 0.125 * localCosT
-      + 0.200 * PI * cos(localCosT - 8. * length(swirlQ.xy))
-  );
-  swirlQ *= (1. + 0.05 * cos(localCosT - length(swirlQ.xy)));
-  float swirlR = r * (0.5 + 0.1 * abs(cos(4. * atan(swirlQ.y, swirlQ.x))));
-  float swirl = length(swirlQ) - swirlR;
-  swirl += 0.07 * cellular(2. * swirlQ);
-  // d.x = swirl;
-  d.x = max(d.x, -swirl);
-
-  // d.x *= 0.1;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1592,7 +1577,7 @@ vec3 textures (in vec3 rd) {
 
   dI += gPos;
 
-  dI *= 0.3;
+  dI *= 0.2;
 
   // -- Colors --
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
