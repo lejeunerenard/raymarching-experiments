@@ -1149,7 +1149,6 @@ float localT = norT;
 float second = maxDistance;
 vec2 shape (in vec2 q, in vec2 c) {
   vec2 d = vec2(maxDistance, -1.);
-  // cool now I have material support
 
   vec2 uv = q;
 
@@ -1184,7 +1183,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 3.;
+  float shift = 2.;
   vec2 shiftDir = vec2(1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1192,24 +1191,27 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.30 * size;
+  float r = 0.40 * size;
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 0.25 * size * mix(
-      vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
-      vec2(1) * snoise2(0.123 * localC + 2.37),
-      nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  // q += 0.25 * size * mix(
+  //     vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
+  //     vec2(1) * snoise2(0.123 * localC + 2.37),
+  //     nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
+
+  q.x +=     size * 0.5 * mod(c.y, 2.);
+  q.x += t * size * 0.5 * mod((shift * shiftDir).y, 2.);
 
   q -= shiftDir * shift * size * t;
 
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = abs(length(q) - 0.25 * size) - 0.05 * size;
+  // float internalD = abs(length(q) - 0.25 * size) - 0.05 * size;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1224,6 +1226,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
+
+  q *= rotMat2(0.1665 * PI);
+  float internalD = sdHexPrism(vec3(q, 0), vec2(r, 1.));
 
   // // Arrow Up
   // vec2 arrowQ = q;
@@ -1260,7 +1265,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2821,25 +2826,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837);
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
+  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837);
+  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  // wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
+  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
+  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
 
   // vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  // q *= rotMat2(cos(cosT + 0.05 * dot(c, vec2(1, 0))));
-
-  // vec2 line = vec2(abs(dot(q, vec2(0, 1))), 0);
-  // d.x = roseCircles(q, d.x, 1.0 * r);
-
-  // float bigMaskR = 0.35;
-  // vec2 s = vec2(length(uv) - bigMaskR, 1.);
-  // d = dMin(d, s);
+  vec2 h = neighborGrid(q, size);
+  d.x = min(d.x, h.x);
 
   // float mask = maxDistance;
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -2887,13 +2886,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = vec3(line);
   // color = mix(vec3(0), color, step(edge, n));
 
-  // Grid spinners?
-  float gridSize = 0.020;
-  vec2 c = pMod2(q, vec2(gridSize));
-  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  float line = abs(q.y) - 0.015625 * gridSize;
-  line = smoothstep(0.5 * edge, 0., line);
-  color = vec3(line);
+  // // Grid spinners?
+  // float gridSize = 0.020;
+  // vec2 c = pMod2(q, vec2(gridSize));
+  // q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  // float line = abs(q.y) - 0.015625 * gridSize;
+  // line = smoothstep(0.5 * edge, 0., line);
+  // color = vec3(line);
 
   // // Grid crosses
   // float gridSize = 0.0175;
@@ -2949,7 +2948,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
