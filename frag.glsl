@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.05);
+const vec2 gSize = vec2(0.04);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1171,7 +1171,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
   locallocalT += 0.01 * dC;
-  // locallocalT += 0.05 * odd;
+  locallocalT += 0.02 * odd;
   // NOTE Flip time offset if there are gaps
   // Might fix some of the gaps caused by the time offset
   // A hack but getting closer to a general solution
@@ -1183,15 +1183,18 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 2.;
-  vec2 shiftDir = vec2(1);
+  float shift = 1.;
+  vec2 shiftDir = vec2(1, 3);
+  if (mod(c.y, 2.) == 0.) {
+    shiftDir = vec2(-2, 1);
+  }
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.40 * size;
+  float r = 0.30 * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
