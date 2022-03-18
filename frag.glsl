@@ -1430,7 +1430,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.4;
+  float warpScale = 1.1;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1444,19 +1444,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + 7.523);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + 9.713);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 outerQ = q;
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1585,7 +1584,7 @@ vec3 textures (in vec3 rd) {
 
   dI += gPos;
 
-  dI *= 0.2;
+  dI *= 0.3;
 
   // -- Colors --
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
@@ -2951,7 +2950,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
