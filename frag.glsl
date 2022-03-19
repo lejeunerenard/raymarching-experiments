@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.04);
+const vec2 gSize = vec2(0.3, 0.1);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1419,12 +1419,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
-  float size = gSize.x;
-  float r = 0.5;
+  vec2 size = gSize;
+  float r = 0.3 * vmin(size);
 
-  const float tilt = 0.1 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), tilt * sin(localCosT));
+  // const float tilt = 0.1 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), tilt * sin(localCosT));
 
   // p *= globalRot;
 
@@ -1440,19 +1440,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
-  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
+  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+
+  vec2 c = pMod2(wQ.xz, size);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  q *= rotationMatrix(vec3(0, 0, 1), 0.3 * PI * cos(-TWO_PI * 0.02 * dot(c, vec2(1, 1)) + localCosT));
+
+  float cLength = 0.35 * size.x;
+  vec3 b = vec3(sdCapsule(q,vec3(-cLength, 0, 0),vec3(cLength, 0, 0), r), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.75;
@@ -1868,7 +1873,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
+      float dispersionI = 1.5;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
