@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1420,7 +1420,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   vec2 size = gSize;
-  float r = 0.3 * vmin(size);
+  float r = 0.75;
 
   // const float tilt = 0.1 * PI;
   // p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
@@ -1430,7 +1430,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.1;
+  float warpScale = 0.1;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1440,42 +1440,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ.xzy = twist(wQ.xyz,  1. * wQ.y);
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y));
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  const float num = 3.;
-  const float invNum = 1. / num;
-  const float mainBoxLength = 20.;
-
-  const float colNum = 7.;
-  for (float j = 0.; j < colNum; j++) {
-    vec3 colQ = q - 2. * r * vec3(0, 0, j - 0.5 * colNum);
-    float colT = t + snoise2(1.68178 * vec2(j, 3.));
-
-    float mainShift = mod(colT, invNum) * num;
-    vec3 mainBox = vec3(sdBox(colQ + r * vec3(mainBoxLength - 1.0 + mainShift, 0, 0), r * vec3(mainBoxLength, 1, 1)), 0, 0);
-    d = dMin(d, mainBox);
-
-    for (float i = 0.; i < num; i++) {
-      vec3 localQ = colQ;
-      float localLocalT = mod(colT + i * invNum, 1.);
-
-      localQ -= r * vec3(25,-20, 0) * (1. - vec3(localLocalT, sqrt(localLocalT), 1));
-
-      localQ.xy *= rotMat2(-TWO_PI * localLocalT);
-      vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
-      d = dMin(d, b);
-    }
-  }
+  vec3 b = vec3(length(q) - r, 0, 0);
+  d = dMin(d, b);
 
   // d.x *= 0.75;
 
@@ -1708,6 +1686,23 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.0);
+
+  float angle = atan(mPos.z, mPos.x);
+  float phi = atan(mPos.y, length(mPos.xz));
+
+  float phiSize = PI / 50.;
+  float lineWidth = 0.2 * phiSize;
+  float phiC = pMod1(phi, phiSize);
+  float numAngle = 75. - 3.0 * phiC;
+
+  float angleSize = TWO_PI / (numAngle);
+
+  angle += angleSize * 2. * t;
+  float angleC = pMod1(angle, angleSize);
+
+  float n = sdBox(vec2(angle, phi), 0.35 * vec2(angleSize, lineWidth));
+  color = vec3(smoothstep(2. * edge, 0., n));
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1824,7 +1819,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.0;
       float specCo = 0.4;
 
       float specAll = 0.0;
