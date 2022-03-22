@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1412,7 +1412,7 @@ float gear (in vec3 p, in float r, in float thickness, in float thinness, in flo
   return d;
 }
 
-float gR = 0.8;
+float gR = 0.3;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1420,7 +1420,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(2. * dT, 1.);
   float localCosT = TWO_PI * t;
   vec2 size = gSize;
-  float r = 0.75;
+  float r = gR;
 
   // const float tilt = 0.1 * PI;
   // p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
@@ -1437,22 +1437,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+  // wQ *= rotationMatrix(vec3(1), localCosT);
+
   // float c = pModPolar(wQ.xy, 7.);
   // wQ.y = abs(wQ.y);
 
-  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y));
-  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y));
+  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   // d.x *= 0.75;
@@ -1687,20 +1689,18 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.0);
 
-  float angle = atan(mPos.z, mPos.x);
-  float phi = atan(mPos.y, length(mPos.xz));
+  vec2 size = vec2(TWO_PI, gR / 10.);
 
-  float phiSize = PI / 50.;
-  float lineWidth = 0.2 * phiSize;
-  float phiC = pMod1(phi, phiSize);
-  float numAngle = 75. - 3.0 * phiC;
+  float angle = atan(mPos.y, mPos.z);
+  vec2 q = vec2(angle, mPos.x + 0.5 * size.y);
+  float cZ = pMod1(q.y, size.y);
+  size.x /= 30. - 1. * abs(cZ);
 
-  float angleSize = TWO_PI / (numAngle);
+  q.x += size.x * (0.25 * cZ + t);
+  q.x += size.x * snoise2(0.1237 * vec2(cZ));
+  float c = pMod1(q.x, size.x);
 
-  angle += angleSize * 2. * t;
-  float angleC = pMod1(angle, angleSize);
-
-  float n = sdBox(vec2(angle, phi), 0.35 * vec2(angleSize, lineWidth));
+  float n = sdBox(q, size * vec2(0.4, 0.1));
   color = vec3(smoothstep(2. * edge, 0., n));
 
   return color;
@@ -1830,7 +1830,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
 
-        float diffMin = 0.65;
+        float diffMin = 0.80;
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
