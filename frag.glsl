@@ -1422,9 +1422,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec2 size = gSize;
   float r = gR;
 
-  // const float tilt = 0.1 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), tilt * sin(localCosT));
+  const float tilt = 0.080 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
   // p *= globalRot;
 
@@ -1691,12 +1691,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec2 size = vec2(TWO_PI, gR / 10.);
 
+  mPos.xyz = mPos.yxz;
+
   float angle = atan(mPos.y, mPos.z);
   vec2 q = vec2(angle, mPos.x + 0.5 * size.y);
   float cZ = pMod1(q.y, size.y);
-  size.x /= 30. - 1. * abs(cZ);
+  size.x /= 20. - 1. * abs(cZ);
 
-  q.x += size.x * (0.25 * cZ + t);
+  q.x += size.x * (0.0 * cZ + t);
   q.x += size.x * snoise2(0.1237 * vec2(cZ));
   float c = pMod1(q.x, size.x);
 
