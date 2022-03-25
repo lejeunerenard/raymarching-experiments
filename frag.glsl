@@ -1426,25 +1426,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.15;
+  float warpScale = 0.20;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ *= rotationMatrix(vec3(1), localCosT);
-
-  // float c = pModPolar(wQ.xy, 7.);
-  // wQ.y = abs(wQ.y);
-
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y));
+  wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
@@ -1454,7 +1449,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // d.x *= 0.75;
@@ -1689,24 +1685,6 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.0);
 
-  vec2 size = vec2(TWO_PI, gR / 9.);
-
-  mPos.xyz = mPos.yxz;
-
-  float angle = atan(mPos.y, mPos.z);
-  vec2 q = vec2(angle, mPos.x + 0.5 * size.y);
-  float cZ = pMod1(q.y, size.y);
-  size.x /= 30. - 1. * abs(cZ);
-
-  q.x += size.x * (0.0 * cZ + t);
-  q.x += size.x * snoise2(0.1237 * vec2(cZ));
-  float c = pMod1(q.x, size.x);
-
-  float n = sdBox(q, size * vec2(0.4, 0.1));
-  color = vec3(smoothstep(2. * edge, 0., n));
-
-  return color;
-
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
 
@@ -1821,8 +1799,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
@@ -1851,8 +1829,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += specCo * spec * dif;
 
         // Ambient
-        lin += 0.300 * amb * diffuseColor;
-        dif += 0.300 * amb;
+        lin += 0.400 * amb * diffuseColor;
+        dif += 0.400 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -1884,16 +1862,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 1.5;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 1.0;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -1909,7 +1887,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
 
-      color = diffuseColor;
+      // color = diffuseColor;
 
       // Debugging
 #ifdef NO_MATERIALS
