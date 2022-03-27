@@ -1449,11 +1449,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.75;
+  float fill = p.y + 0.15 * snoise2(1.2 * p.xz + 0.2 * cos(localCosT + vec2(0, 0.5 * PI))) + 0.3 * r * cos(localCosT + q.x) + 0.0;
+  d.x = max(d.x, fill);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -1698,7 +1702,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.3333, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
-  color *= 0.3;
+  color *= 0.2;
 
   // color = mix(color, vec3(1), 0.5);
 
@@ -1801,7 +1805,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
