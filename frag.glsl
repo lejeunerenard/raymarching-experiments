@@ -1412,7 +1412,7 @@ float gear (in vec3 p, in float r, in float thickness, in float thinness, in flo
   return d;
 }
 
-float gR = 0.55;
+float gR = 0.65;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1430,7 +1430,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.25;
+  float warpScale = 0.35;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1447,15 +1447,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
+  q.yxz = q.xyz;
+
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  q.y += 0.2 * r * 0.5 * (snoise2(1.0 * q.xz) + cos(localCosT + 4. * q.x));
+
+  vec3 b = vec3(sdBox(q, vec3(r, 0.25 * r, 0.5 * r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
   d = dMin(d, b);
 
-  float fill = p.y + 0.15 * snoise2(1.2 * p.xz + 0.2 * cos(localCosT + vec2(0, 0.5 * PI))) + 0.3 * r * cos(localCosT + q.x) + 0.0;
-  d.x = max(d.x, fill);
+  // float fill = p.y + 0.15 * snoise2(1.2 * p.xz + 0.2 * cos(localCosT + vec2(0, 0.5 * PI))) + 0.3 * r * cos(localCosT + q.x) + 0.0;
+  // d.x = max(d.x, fill);
 
   d.x *= 0.5;
 
@@ -1696,6 +1700,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI *= angle1C;
   dI += angle2C;
+  dI += 2. * mPos.x;
   dI *= 0.3;
   dI += 0.10 * length(pos);
   dI += t;
