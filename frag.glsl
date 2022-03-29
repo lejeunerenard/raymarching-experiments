@@ -1412,7 +1412,7 @@ float gear (in vec3 p, in float r, in float thickness, in float thinness, in flo
   return d;
 }
 
-float gR = 0.65;
+float gR = 0.80;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1426,6 +1426,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
+  p.y -= r * 0.2;
   p *= globalRot;
 
   vec3 q = p;
@@ -1439,24 +1440,47 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
 
-  q.yxz = q.xyz;
-
   mPos = q;
 
-  q.y += 0.2 * r * 0.5 * (snoise2(1.0 * q.xz) + cos(localCosT + 4. * q.x));
-
-  vec3 b = vec3(sdBox(q, vec3(r, 0.25 * r, 0.5 * r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
+  vec3 b = vec3(sdEllipsoid(q, vec3(0.5 * r, r, 0.75 * r)), 0, 0);
   d = dMin(d, b);
+
+  // Base
+  vec3 baseQ = p + vec3(0, 0.65, 0);
+
+  vec3 baseP = baseQ;
+  float cRot = pModPolar(baseQ.xz, 6.);
+  float baseSpread = 0.75 * r;
+  baseQ.x -= baseSpread; // spread out
+
+  vec3 baseQPrevCurve = baseQ;
+  float cCurve = pModPolar(baseQ.xy, 6.);
+  baseQ.x -= 0.3 * r;
+  float baseWidth = 0.075 * r;
+  float baseThickness = 0.05 * r;
+  vec3 base = vec3(sdBox(baseQ, vec3(baseThickness, 0.9 * r, baseWidth)), 1, 0);
+  base.x = max(base.x, -baseQPrevCurve.x);
+
+  // First cylinder
+  float baseBaseThickness = 0.15 * r;
+  vec3 baseBaseQ = baseP + vec3(0, 0.325 * r + baseBaseThickness - baseThickness, 0);
+  base.x = min(base.x, sdCappedCylinder(baseBaseQ, vec2(baseSpread * 1.05, baseBaseThickness)));
+
+  // Second lower cylinder
+  float baseBaseBaseThickness = r;
+  vec3 baseBaseBaseQ = baseP + vec3(0, 0.325 * r + baseBaseBaseThickness + baseBaseThickness, 0);
+  base.x = fOpUnionRound(base.x, sdCappedCylinder(baseBaseBaseQ, vec2(baseSpread * 1.15, baseBaseBaseThickness)), 0.2 * r);
+  base.x -= 0.005 * cellular(3. * baseP);
+
+  d = dMin(d, base);
 
   // float fill = p.y + 0.15 * snoise2(1.2 * p.xz + 0.2 * cos(localCosT + vec2(0, 0.5 * PI))) + 0.3 * r * cos(localCosT + q.x) + 0.0;
   // d.x = max(d.x, fill);
@@ -1713,6 +1737,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color.b = pow(color.b, 0.4);
 
+  color = mix(color, vec3(0.1), isMaterialSmooth(m,1.));
+
   return color;
 
 
@@ -1804,7 +1830,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isGear = isMaterialSmooth(t.y, 0.);
+      float isBase = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1861,10 +1887,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.30 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.30 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1877,7 +1903,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
+      float dispersionI = 1.0 * (1. - isBase);
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
