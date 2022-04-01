@@ -1448,15 +1448,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  q *= rotationMatrix(vec3(1), TWO_PI * sine(mod(t - 0.05 * length(c), 1.)));
+  q *= rotationMatrix(vec3(1), 1.333333 * PI * sine(mod(t - 0.05 * length(c), 1.)));
 
   mPos = q;
 
-  // Tried two different ideas "off camera" trying to figure out if they would
-  // work, but nothing so far. So I've got a simpler idea to get it done.
-  r = 0.1 * size.x;
-  float capLengthHalf = 0.8 * (0.5 * size.x - r);
-  vec3 b = vec3(sdCapsule(q, vec3(capLengthHalf, 0, 0), vec3(-capLengthHalf, 0, 0), r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(0.3 * size.x)), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -1689,8 +1685,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.8);
-  return color;
+  vec3 color = vec3(1.5);
+  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1811,14 +1807,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 0.7;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.7;
-      float shadowMin = 0.5;
+      float diffMin = 0.75;
+      float shadowMin = 0.25;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1876,17 +1872,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       // float dispersionI = 0.8;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.4);
+      dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
