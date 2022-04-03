@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.1);
+const vec2 gSize = vec2(0.015);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2839,19 +2839,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  // wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837);
-  // wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  // wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
-  // wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
-  // wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
+  vec2 c = pMod2(wQ, size);
+  vec2 postMod = wQ;
 
-  // vec2 c = pMod2(wQ, size);
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837);
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
 
   q = wQ;
+  q = postMod;
   mUv = q;
 
-  vec2 h = neighborGrid(q, size);
-  d.x = min(d.x, h.x);
+  q *= rotMat2(
+      localCosT
+      + snoise3(0.3 * ( 
+            vec3(5.0 * wQ, 0)
+          + vec3(0.1 * c, 0)
+          + 1.3 * vec3(0.4, 0.4, 2) * cos(localCosT + vec3(0, 0.5 * PI, 0.714286 * PI)) )));
+
+  float o = abs(q.y) - 0.1 * edge;
+  d.x = min(d.x, o);
 
   // float mask = maxDistance;
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -2961,7 +2970,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
