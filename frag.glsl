@@ -2839,27 +2839,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+
   vec2 c = pMod2(wQ, size);
   vec2 postMod = wQ;
-
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837);
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.0125 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT );
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT );
 
   q = wQ;
   q = postMod;
   mUv = q;
 
-  q *= rotMat2(
-      localCosT
-      + snoise3(0.3 * ( 
-            vec3(5.0 * wQ, 0)
-          + vec3(0.1 * c, 0)
-          + 1.3 * vec3(0.4, 0.4, 2) * cos(localCosT + vec3(0, 0.5 * PI, 0.714286 * PI)) )));
+  float theta = atan(c.y, c.x);
 
-  float o = abs(q.y) - 0.1 * edge;
+  float angle = 0.3 * PI * cos(localCosT + theta)
+    // + 0.5 * localCosT
+    + 1.0 * dot(c, vec2(0.3))
+    - theta;
+  q *= rotMat2(angle);
+
+  float o = abs(q.x) - 0.1 * edge;
   d.x = min(d.x, o);
 
   // float mask = maxDistance;
