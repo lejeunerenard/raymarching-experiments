@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.015);
+const vec2 gSize = vec2(0.035);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1171,7 +1171,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
   locallocalT += 0.01 * dC;
-  locallocalT += 0.02 * odd;
+  // locallocalT += 0.02 * odd;
+  locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
   // Might fix some of the gaps caused by the time offset
   // A hack but getting closer to a general solution
@@ -1183,11 +1184,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
-  vec2 shiftDir = vec2(1, 3);
-  if (mod(c.y, 2.) == 0.) {
-    shiftDir = vec2(-2, 1);
-  }
+  float shift = 2.;
+  vec2 shiftDir = vec2(0, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1206,8 +1204,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
 
-  q.x +=     size * 0.5 * mod(c.y, 2.);
-  q.x += t * size * 0.5 * mod((shift * shiftDir).y, 2.);
+  // q.x += t * size * 0.5 * mod((shift * shiftDir).y, 2.);
 
   q -= shiftDir * shift * size * t;
 
@@ -1215,10 +1212,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
   // float internalD = abs(length(q) - 0.25 * size) - 0.05 * size;
-  // float internalD = abs(q.y);
+  float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
-  // internalD = max(internalD, sdBox(q, vec2(0.3 * size, 0.1 * size)));
+  internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -1230,8 +1227,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float crossMask = sdBox(q, vec2(0.35 * size));
   // internalD = max(internalD, crossMask);
 
-  q *= rotMat2(0.1665 * PI);
-  float internalD = sdHexPrism(vec3(q, 0), vec2(r, 1.));
+  // float internalD = sdHexPrism(vec3(q, 0), vec2(r, 1.));
 
   // // Arrow Up
   // vec2 arrowQ = q;
@@ -1251,7 +1247,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
-  // d = mix(d, maxDistance, step(0., sdBox(c, vec2(14))));
+  // d.x = mix(d.x, maxDistance, step(0., sdBox(c, vec2(1))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 15.));
   // // Convert circle into torus
@@ -1268,7 +1264,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2835,33 +2831,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   const float warpScale = 0.7;
   const vec2 size = gSize;
   float r = 0.25;
-  vec2 seed = vec2(angle2C);
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
-
-  vec2 c = pMod2(wQ, size);
-  vec2 postMod = wQ;
+//   wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
+//   wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+//   wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
+//   wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
+//   wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
   q = wQ;
-  q = postMod;
   mUv = q;
 
-  float theta = atan(c.y, c.x);
-
-  float angle = 0.3 * PI * cos(localCosT + theta)
-    // + 0.5 * localCosT
-    + 1.0 * dot(c, vec2(0.3))
-    - theta;
-  q *= rotMat2(angle);
-
-  float o = abs(q.x) - 0.1 * edge;
-  d.x = min(d.x, o);
+  vec2 o = neighborGrid(q, size);
+  d.x = min(d.x, o.x);
 
   // float mask = maxDistance;
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -2870,7 +2853,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = d.x;
 
   // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n + 0.);
+  n = smoothstep(0., 0.5 * edge, n + 0.);
 
   // Invert
   n = 1. - n;
