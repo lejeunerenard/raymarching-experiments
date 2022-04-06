@@ -2840,11 +2840,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 //   wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
 //   wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
+  // wQ.x = abs(wQ.x);
   q = wQ;
   mUv = q;
 
-  vec2 o = neighborGrid(q, size);
-  d.x = min(d.x, o.x);
+  float thickness = 0.0125 * r;
+
+  vec2 o = vec2(0);
+  o = vec2(abs(length(q) - r) - thickness, 0.);
+  d = dMin(d, o);
+
+  const float num = 5.;
+  for (float i = 0.; i < num; i++){
+    vec2 localQ = q;
+    localQ *= rotMat2(TWO_PI / num * i + localCosT);
+    float shiftR = 0.1 + 0.4 * quint(0.5 + 0.5 * cos(localCosT + i * 0.5 * PI / num));
+    // if (mod(i, 2.) == 0.) {
+    //   o = vec2(abs(length(localQ - r * vec2(shiftR, 0)) - r) - thickness, 1);
+    // } else {
+      o = vec2(abs(sdBox(localQ - r * vec2(shiftR, 0), vec2(r))) - thickness, 1);
+    // }
+    // d = dSMin(d, o, 0.05 * r);
+    d = dMin(d, o);
+  }
 
   // float mask = maxDistance;
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -2852,17 +2870,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = d.x;
 
-  // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n + 0.);
+  float fallOff = pow(saturate(n) * 3.0, 0.20);
 
-  // Invert
-  n = 1. - n;
+  // // Hard Edge
+  // n = smoothstep(0., 0.5 * edge, n + 0.);
+
+  // // Invert
+  // n = 1. - n;
 
   // // Solid
   // color = vec3(1);
 
-  // B&W
-  color = vec3(n);
+  // // B&W
+  // color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -2870,10 +2890,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // JS colors
   // color = mix(colors1, colors2, n);
 
-  // // Cosine Palette
-  // vec3 dI = vec3(n);
-  // // dI += 0.1238 * d.y;
-  // color = 0.55 + 0.45 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // Cosine Palette
+  vec3 dI = vec3(n);
+  // dI += 0.125 * fallOff;
+  dI += dot(uv, vec2(0.4));
+  dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
+  dI *= 0.75;
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // // Stripes
   // const float numStripes = 60.;
@@ -2920,6 +2943,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
+  //
+  color = mix(color, vec3(1), fallOff);
+
+  // Darken negative distances
+  color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
   // color *= mask;
 
