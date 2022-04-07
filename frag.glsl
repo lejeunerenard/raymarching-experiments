@@ -1408,7 +1408,7 @@ float gear (in vec3 p, in float r, in float thickness, in float thinness, in flo
   return d;
 }
 
-float gR = 0.4;
+float gR = 0.35;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1433,25 +1433,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  // wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz,  3. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
-  vec2 c = pMod2(wQ.xy, size);
   // Commit warp
   q = wQ.xyz;
-
-  q *= rotationMatrix(vec3(1), TWO_PI * sine(mod(t - 0.05 * length(c), 1.)));
-
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(0.45 * size.x, 0.45 * size.x, 0.05 * size.x)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.2;
+  // d.x *= 0.2;
 
   return d;
 }
@@ -1578,15 +1575,17 @@ vec3 textures (in vec3 rd) {
   dI *= angle1C;
   dI += angle2C;
 
-  dI += gPos;
+  dI += 1.1 * gPos;
 
-  dI *= 0.3;
+  dI *= 0.4;
 
   // -- Colors --
   color = 0.5 + 0.5 * cos( TWO_PI * ( dI + vec3(0, 0.33, 0.67) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
+
+  color += 0.4 * cos(TWO_PI * 2.2 * gPos);
 
   // color = vec3(n);
 
@@ -1681,8 +1680,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.5);
-  return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1698,13 +1696,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
-  color *= 0.7;
+  color *= 0.65;
 
   // color = mix(color, vec3(1), 0.5);
 
   color.b = pow(color.b, 0.4);
-
-  color = mix(color, vec3(0.1), isMaterialSmooth(m,1.));
 
   return color;
 
@@ -1803,7 +1799,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.0;
       float specCo = 0.7;
 
       float specAll = 0.0;
@@ -1870,17 +1866,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 0.8;
-      // dispersionColor *= dispersionI;
+      float dispersionI = 0.9;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2982,7 +2978,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
