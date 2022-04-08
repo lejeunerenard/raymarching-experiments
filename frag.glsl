@@ -1426,7 +1426,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.35;
+  float warpScale = 0.5;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1445,10 +1445,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.2;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1571,7 +1572,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.2 * pow(dNR, 3.);
 
-  // dI += 0.25 * sin(TWO_PI * rd.x);
+  dI += 0.25 * sin(TWO_PI * rd.x);
   dI *= angle1C;
   dI += angle2C;
 
@@ -1689,7 +1690,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI *= angle1C;
   dI += angle2C;
-  dI += 2. * mPos.x;
+  dI += 2. * mPos.y;
   dI *= 0.3;
   dI += 0.10 * length(pos);
   dI += t;
@@ -1800,13 +1801,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.7;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.3;
+      float diffMin = 0.425;
+      float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
