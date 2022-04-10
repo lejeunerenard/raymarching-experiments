@@ -1449,25 +1449,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
-  vec2 c = pMod2(wQ.xz, vec2(2. * r));
+  vec2 c = pMod2(wQ.xz, vec2(2.5 * r));
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + dot(c, vec2(1))));
+  // q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + dot(c, vec2(1))));
 
-  vec3 b = vec3(axialStar(q, r, 0.065), 0, 0);
+  float thickness = 0.175 * r;
+  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
   d = dMin(d, b);
 
-  vec3 axialStarQ2 = q;
-  // foldNd(axialStarQ2, vec3(1));
-  axialStarQ2 *= rotationMatrix(vec3(1), angle3C);
-  b = vec3(axialStar(axialStarQ2, r, 0.065), 0, 0);
+  vec3 q2 = q;
+  q2 *= rotationMatrix(vec3(1, 0, 0), 0.25 * PI);
+
+  b = vec3(sdHollowBox(q2, vec3(r), thickness), 0, 0);
   d = dMin(d, b);
 
-  axialStarQ2 = q;
-  axialStarQ2 *= rotationMatrix(vec3(-1, 1, 1), angle3C);
-  b = vec3(axialStar(axialStarQ2, r, 0.065), 0, 0);
+  vec3 q3 = q;
+  q3 *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
+
+  b = vec3(sdHollowBox(q3, vec3(r), thickness), 0, 0);
   d = dMin(d, b);
 
   // vec3 b = vec3(length(q) - r, 0, 0);
@@ -1475,7 +1477,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
   // d = dMin(d, b);
 
-  d.x *= 0.3;
+  // d.x *= 0.3;
 
   return d;
 }
@@ -1833,7 +1835,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.325;
-      float shadowMin = 0.1;
+      float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1893,8 +1895,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       float dispersionI = 1.0;
