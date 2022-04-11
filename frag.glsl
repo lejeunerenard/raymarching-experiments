@@ -1417,7 +1417,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, r * vec3(1, vec2(thickness)));
 }
 
-float gR = 0.30;
+float gR = 0.10;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1431,7 +1431,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1450,34 +1450,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
   vec2 c = pMod2(wQ.xz, vec2(2.5 * r));
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + dot(c, vec2(1))));
+  float n = snoise2(0.348 * c);
+  q.y += 0.1 * r * cos(localCosT + 3. * n + dot(c, vec2(0.3)));
+  q *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * floor(cos(TWO_PI * n) * 2.));
+  // q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + dot(c, vec2(1))));
 
-  float thickness = 0.175 * r;
-  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
+  vec3 b = vec3(sdBox(q, r * vec3(1, 2, 1)), 0, 0);
+  vec3 slantQ = q - vec3(0, 2. * r, 0);
+  slantQ *= rotationMatrix(vec3(0, 0, 1), 0.175 * PI);
+
+  float slant = sdBox(slantQ, r * vec3(3, 1, 3));
+  b.x = max(b.x, -slant);
+  b.x -= 0.0075;
   d = dMin(d, b);
 
-  vec3 q2 = q;
-  q2 *= rotationMatrix(vec3(1, 0, 0), 0.25 * PI);
-
-  b = vec3(sdHollowBox(q2, vec3(r), thickness), 0, 0);
-  d = dMin(d, b);
-
-  vec3 q3 = q;
-  q3 *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
-
-  b = vec3(sdHollowBox(q3, vec3(r), thickness), 0, 0);
-  d = dMin(d, b);
 
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
   // d = dMin(d, b);
 
-  // d.x *= 0.3;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1721,7 +1719,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 2. * mPos.y;
   dI *= 0.3;
   dI += 0.10 * length(pos);
-  dI += t;
+  dI += 0.1 * cos(cosT);
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
