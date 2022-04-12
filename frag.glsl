@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
-#define ORTHO 1
+// #define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1417,7 +1417,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, r * vec3(1, vec2(thickness)));
 }
 
-float gR = 0.10;
+float gR = 0.75;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1435,47 +1435,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.0;
+  float warpScale = 1.0;
+  float warpFrequency = 0.9;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  // wQ.xzy = twist(wQ.xyz,  3. * wQ.y + 0.075 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-
-  vec2 c = pMod2(wQ.xz, vec2(2.5 * r));
+  wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz,  4. * wQ.y + 0.25 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float n = snoise2(0.348 * c);
-  q.y += 0.1 * r * cos(localCosT + 3. * n + dot(c, vec2(0.3)));
-  q *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * floor(cos(TWO_PI * n) * 2.));
   // q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + dot(c, vec2(1))));
 
-  vec3 b = vec3(sdBox(q, r * vec3(1, 2, 1)), 0, 0);
-  vec3 slantQ = q - vec3(0, 2. * r, 0);
-  slantQ *= rotationMatrix(vec3(0, 0, 1), 0.175 * PI);
-
-  float slant = sdBox(slantQ, r * vec3(3, 1, 3));
-  b.x = max(b.x, -slant);
-  b.x -= 0.0075;
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
   d = dMin(d, b);
 
-
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  // vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
-  // d = dMin(d, b);
-
-  d.x *= 0.5;
+  d.x *= 0.4;
 
   return d;
 }
@@ -1712,14 +1697,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
 
-  dI += 0.1 * snoise3(pos);
+  dI += 2. * mPos.y;
+  dI += 0.3 * snoise3(0.3 * pos);
 
   dI *= angle1C;
   dI += angle2C;
-  dI += 2. * mPos.y;
-  dI *= 0.3;
-  dI += 0.10 * length(pos);
-  dI += 0.1 * cos(cosT);
 
   color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.1, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
