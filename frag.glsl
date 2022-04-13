@@ -1158,7 +1158,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.;
+  const float warpScale = 5.0;
   float size = gSize.y;
 
   // // Assume [0,1] range per dimension
@@ -1180,7 +1180,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT = clamp(locallocalT, clip, 1. - clip);
 
   float t = mod(locallocalT, 1.);
-  t = expo(t);
+  // t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
@@ -1206,13 +1206,20 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += t * size * 0.5 * mod((shift * shiftDir).y, 2.);
 
-  q -= shiftDir * shift * size * t;
+  vec2 center = vec2(size * c);
+  center += size * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  center += size * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  center += size * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  center -= size * c;
+  q += center;
+
+  // q -= shiftDir * shift * size * t;
 
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = abs(length(q) - 0.25 * size) - 0.05 * size;
-  float internalD = abs(q.y);
+  float internalD = abs(length(q) - 0.125 * size) - 0.05 * size;
+  // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
   internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
@@ -2839,35 +2846,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-//   wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
-//   wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-//   wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
-//   wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
-//   wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
+  wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  // wQ.x = abs(wQ.x);
+  vec2 c = pMod2(wQ, size);
+
   q = wQ;
   mUv = q;
 
   float thickness = 0.0125 * r;
 
-  vec2 o = vec2(0);
-  o = vec2(abs(length(q) - r) - thickness, 0.);
+  // vec2 x = neighborGrid(q, size);
+  vec2 o = vec2(sin(100. * TWO_PI * length(q)), 0.);
   d = dMin(d, o);
-
-  const float num = 5.;
-  for (float i = 0.; i < num; i++){
-    vec2 localQ = q;
-    localQ *= rotMat2(TWO_PI / num * i + localCosT);
-    float shiftR = 0.1 + 0.4 * quint(0.5 + 0.5 * cos(localCosT + i * 0.5 * PI / num));
-    // if (mod(i, 2.) == 0.) {
-    //   o = vec2(abs(length(localQ - r * vec2(shiftR, 0)) - r) - thickness, 1);
-    // } else {
-      o = vec2(abs(sdBox(localQ - r * vec2(shiftR, 0), vec2(r))) - thickness, 1);
-    // }
-    // d = dSMin(d, o, 0.05 * r);
-    d = dMin(d, o);
-  }
 
   // float mask = maxDistance;
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -2875,10 +2869,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = d.x;
 
-  float fallOff = pow(saturate(n) * 3.0, 0.20);
-
-  // // Hard Edge
-  // n = smoothstep(0., 0.5 * edge, n + 0.);
+  // Hard Edge
+  n = smoothstep(0., 0.5 * edge, n + 0.);
 
   // // Invert
   // n = 1. - n;
@@ -2886,8 +2878,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color = vec3(1);
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -2895,13 +2887,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // JS colors
   // color = mix(colors1, colors2, n);
 
-  // Cosine Palette
-  vec3 dI = vec3(n);
-  // dI += 0.125 * fallOff;
-  dI += dot(uv, vec2(0.4));
-  dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
-  dI *= 0.75;
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // // Cosine Palette
+  // vec3 dI = vec3(n);
+  // // dI += 0.125 * fallOff;
+  // dI += dot(uv, vec2(0.4));
+  // dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
+  // dI *= 0.75;
+  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // // Stripes
   // const float numStripes = 60.;
@@ -2948,8 +2940,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // // Tint
   // color *= vec3(1, 0.9, 0.9);
-  //
-  color = mix(color, vec3(1), fallOff);
 
   // Darken negative distances
   color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
@@ -2987,7 +2977,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
