@@ -1137,7 +1137,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.035);
+const vec2 gSize = vec2(0.030);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2840,17 +2840,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.7;
+  const float warpScale = 0.3;
   const vec2 size = gSize;
-  float r = 0.25;
+  float r = 0.25 * size.x;
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( 3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
+  wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
   wQ *= rotMat2(0.7 * PI + 0.5 * length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ += warpScale * 0.02500 * cos(16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
-  wQ += warpScale * 0.01250 * cos(23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
   vec2 c = pMod2(wQ, size);
 
@@ -2860,7 +2860,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float thickness = 0.0125 * r;
 
   // vec2 x = neighborGrid(q, size);
-  vec2 o = vec2(sin(100. * TWO_PI * length(q)), 0.);
+  float dir = 1. - 2. * mod(dot(c, vec2(1)), 2.);
+  float shift = 2.; // 2. + 0.5 * mod(vmax(abs(c)), 2.);
+  vec2 o = vec2(dot(q, vec2(dir)) - shift * r, 0.);
   d = dMin(d, o);
 
   // float mask = maxDistance;
