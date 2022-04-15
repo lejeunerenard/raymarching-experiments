@@ -1442,7 +1442,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.8;
   float warpFrequency = 0.9;
   float rollingScale = 1.;
 
@@ -1452,7 +1452,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz,  4. * wQ.y + 0.25 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  wQ.xyz = twist(wQ.xzy,  4. * wQ.z + 0.35 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
@@ -1460,10 +1460,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + dot(c, vec2(1))));
-
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(max(0., r + 0.125 * q.z) - length(q.xy), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdTorus(q, vec2(r, 0.35 * r)), 0, 0);
   d = dMin(d, b);
 
@@ -1604,7 +1602,7 @@ vec3 textures (in vec3 rd) {
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
 
-  color += 0.4 * cos(TWO_PI * 2.2 * gPos);
+  // color += 0.4 * cos(TWO_PI * 2.2 * gPos);
 
   // color = vec3(n);
 
@@ -1870,10 +1868,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.05 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.075 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2979,7 +2977,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT), 1);
+  // return vec4(two_dimensional(uv, norT), 1);
 
   // vec3 color = vec3(0);
 
