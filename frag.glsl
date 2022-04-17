@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1424,12 +1424,13 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, r * vec3(1, vec2(thickness)));
 }
 
-float gR = 0.25;
+float gR = 0.125;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
 
-  float t = mod(2. * dT, 1.);
+  // dT = angle3C;
+  float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
   vec2 size = vec2(4. * r);
@@ -1442,7 +1443,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.8;
+  float warpScale = 0.05;
   float warpFrequency = 0.9;
   float rollingScale = 1.;
 
@@ -1456,20 +1457,63 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
-  vec3 c = floor((wQ + size.x*0.5)/size.x);
-  wQ.x += size.x * quart(mod(t + 0.23 * c.z, 1.));
-
-  c = pMod3(wQ, vec3(size.x));
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  b.x += 0.005 * gridBump(q, 0.333 * r);
+  float height = 3. * r;
+
+  q.y += 0.5 * height;
+
+  // Concept for today is an infinite staircase w/ a bouncy ball, going up or down. Not sure which yet.
+  // was just making the motion of the bounce with my hands.
+
+  // Stairs
+  float stairsR = 1.2 * r;
+  vec3 stairsQ = q;
+  stairsQ.xy *= rotMat2(-0.25 * PI);
+
+  // Move stairs
+  stairsQ.x += 2. * (2. * stairsR) * t;
+  stairsQ.x += 0.0 * stairsR; // Offset so center is where the ball hits
+
+  float c = pMod1(stairsQ.x, 2. * stairsR);
+
+  stairsQ.xy *= rotMat2(0.25 * PI);
+  vec3 stairs = vec3(sdBox(stairsQ, vec3(stairsR)), 0, 0);
+  stairs.x += 0.01 * cellular(3. * stairsQ + mod(c, 2.));
+  float stairsCrop = sdBox(q, vec3(3.8 * stairsR));
+  // stairs.x = max(stairs.x, stairsCrop);
+
+  d = dMin(d, stairs);
+
+  // Ball
+  q.y -= height;
+
+  float animationT = pow(0.5 + 0.5 * cos(2. * localCosT), 0.40);
+  float easedAnimationT = animationT;
+
+  const float squishEnd = 0.15;
+
+  // pause on bounce
+  animationT = range(squishEnd, 1., animationT);
+
+  q.y -= height * animationT;
+
+  // Squish
+  float squishT = 1. - range(0., squishEnd, easedAnimationT) - 0.025 * range(1. - squishEnd, 1., easedAnimationT);
+  squishT = quintOut(squishT);
+  float squishAmount = 1. * (1.0 - 1.5 * q.y);
+  float squish = 1. + squishAmount * squishT;
+  q.y += squishT * r / squish;
+  q.y *= squish;
+
+  // yeah. its just very precise with the animation moving so fast at the bottom... Maybe i need a smoother animation easing
+  vec3 b = vec3(length(q) - r, 1, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.4;
+  // d.x *= 0.4;
 
   return d;
 }
@@ -1716,9 +1760,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
   color *= 0.75;
 
-  // color = mix(color, vec3(1), 0.5);
-
   color.b = pow(color.b, 0.4);
+
+  color = mix(color, vec3(1), isMaterialSmooth(m, 0.));
 
   return color;
 
@@ -1811,7 +1855,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isBase = isMaterialSmooth(t.y, 1.);
+      float isBall = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1884,12 +1928,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      dispersionColor *= isBall * dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.4);
