@@ -58,7 +58,7 @@ export default class App {
     this.cameraRo = vec3.fromValues(-1, 0.6, 2)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [188, 135, 184]
+    this.colors1 = [240, 240, 121]
     this.colors2 = [75, 24, 17]
     // this.getEqualLuminance(this.colors1, this.colors2, 0)
 
