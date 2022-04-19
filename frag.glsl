@@ -2884,7 +2884,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.8;
+  const float warpScale = 1.4;
   const vec2 size = gSize;
   float r = 0.35;
 
@@ -2901,11 +2901,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.0125 * r;
 
-  vec2 o = vec2(sin(20. * TWO_PI * dot(q, vec2(1))), 0.);
-  o.x -= 0.2;
+  vec2 o = vec2(sin(40. * TWO_PI * dot(q, vec2(1))), 0.);
+  // o.x -= 0.2;
   d = dMin(d, o);
 
-  float mask = sdBox(q, vec2(r, 2. * r));
+  // float mask = sdBox(q, vec2(r));
+  float mask = length(vec2(1, 0.75) * q) - r;
   mask = smoothstep(0., 0.5 * edge, mask);
   mask = 1. - mask;
 
@@ -3034,8 +3035,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // );
 
     vec3 dI = vec3(fI / float(slices));
-    dI += 0.7 * dot(uv, vec2(1));
+    dI += 0.5 * dot(uv, vec2(1));
     // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+
+    dI *= 0.45;
 
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
@@ -3060,7 +3063,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.25;
+    const float maxDelayLength = 0.15;
     float layerT = norT
       + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
     float mask = two_dimensional(uv, layerT).x;
