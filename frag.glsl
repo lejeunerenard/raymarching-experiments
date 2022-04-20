@@ -2872,7 +2872,7 @@ float roseCircles (in vec2 q, in float d, in float r) {
 }
 
 vec2 mUv = vec2(0);
-vec3 two_dimensional (in vec2 uv, in float generalT) {
+vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   vec3 color = vec3(0);
   vec2 d = vec2(maxDistance, -1);
 
@@ -2886,37 +2886,47 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 1.4;
   const vec2 size = gSize;
-  float r = 0.35;
+  const float baseR = 0.05;
+  float r = baseR * (range(0., 50., layerId));
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
-  wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
-  wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
-  wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ *= rotMat2(-0.2 * PI);
+
+  // wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
+  // wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
+  // wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  // wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
+  // wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+
+  float c = pMod1(wQ.y, 3. * baseR);
 
   q = wQ;
   mUv = q;
 
-  float thickness = 0.0125 * r;
+  float xSize = 5. * baseR;
 
-  vec2 o = vec2(sin(40. * TWO_PI * dot(q, vec2(1))), 0.);
-  // o.x -= 0.2;
+  // now time to wiggle across the screen
+
+  q.x -= 0.5 * xSize * c;
+  q.x -= 10. * baseR * (2. * mod(localT + 0.05 * c, 1.) - 1.);
+  pMod1(q.x, xSize);
+
+  q.y -= baseR * 0.5 * sin(3. * localCosT + TWO_PI * 0.23 * c);
+  vec2 o = vec2(length(q) - r, 0.);
   d = dMin(d, o);
 
-  // float mask = sdBox(q, vec2(r));
-  float mask = length(vec2(1, 0.75) * q) - r;
-  mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
+  // float mask = length(vec2(1, 0.75) * q) - r;
+  // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
 
   float n = d.x;
 
-  // // Hard Edge
-  // n = smoothstep(0., 0.5 * edge, n + 0.);
+  // Hard Edge
+  n = smoothstep(0., 0.5 * edge, n + 0.);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // // Solid
   // color = vec3(1);
@@ -2987,9 +2997,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
+}
+
+vec3 two_dimensional (in vec2 uv, in float layerT) {
+  return two_dimensional(uv, layerT, 0.);
 }
 
 vec3 two_dimensional (in vec2 uv) {
@@ -3035,15 +3049,15 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // );
 
     vec3 dI = vec3(fI / float(slices));
-    dI += 0.5 * dot(uv, vec2(1));
+    dI += 0.6 * dot(uv, vec2(1));
     // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
-    dI *= 0.45;
+    dI *= 0.6;
 
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1, 1.5) * dI + vec3(0, 0.33, 0.67))));
-    // layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-    // layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+    layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
+    layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
+    layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
     layerColor *= colors1;
     layerColor *= 1.3;
     // layerColor = vec3(5.0);
@@ -3063,10 +3077,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.15;
+    const float maxDelayLength = 0.25;
     float layerT = norT
-      + maxDelayLength * (1.00 + 0.0 * sin(cosT + length(uv))) * fI / float(slices);
-    float mask = two_dimensional(uv, layerT).x;
+      + maxDelayLength * fI / float(slices);
+    float mask = two_dimensional(uv, layerT, fI).x;
     layerColor *= mask;
     // if (i == 0) {
     //   color = layerColor;
