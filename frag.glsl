@@ -2885,13 +2885,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localT = t;
 
   const float warpScale = 1.4;
-  const vec2 size = gSize;
-  const float baseR = 0.05;
+  const float baseR = 0.025;
+  const float size = 8. * baseR;
   float r = baseR * (range(0., 50., layerId));
 
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(-0.2 * PI);
+  float preL = length(wQ);
+  wQ.yx = polarCoords(wQ);
+
+  wQ.x *= 1. + preL;
 
   // wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
   // wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
@@ -2899,7 +2902,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
   // wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  float c = pMod1(wQ.y, 3. * baseR);
+  float c = pMod1(wQ.y, size);
 
   q = wQ;
   mUv = q;
@@ -2910,7 +2913,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   q.x -= 0.5 * xSize * c;
   q.x -= 10. * baseR * (2. * mod(localT + 0.05 * c, 1.) - 1.);
-  pMod1(q.x, xSize);
+  float cX = pMod1(q.x, xSize);
 
   q.y -= baseR * 0.5 * sin(3. * localCosT + TWO_PI * 0.23 * c);
   vec2 o = vec2(length(q) - r, 0.);
@@ -3034,7 +3037,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   vec3 color = vec3(0);
 
