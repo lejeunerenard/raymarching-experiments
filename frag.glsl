@@ -2884,39 +2884,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.4;
-  const float baseR = 0.025;
-  const float size = 8. * baseR;
-  float r = baseR * (range(0., 50., layerId));
+  const float warpScale = 1.0;
+  float r = 0.2; //  / pow(1. + layerId, 0.1);
 
   vec2 wQ = q.xy;
 
-  float preL = length(wQ);
-  wQ.yx = polarCoords(wQ);
-
-  wQ.x *= 1. + preL;
-
-  // wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
-  // wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
-  // wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  // wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
-  // wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
-
-  float c = pMod1(wQ.y, size);
+  wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
+  wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
   q = wQ;
   mUv = q;
 
-  float xSize = 5. * baseR;
-
-  // now time to wiggle across the screen
-
-  q.x -= 0.5 * xSize * c;
-  q.x -= 10. * baseR * (2. * mod(localT + 0.05 * c, 1.) - 1.);
-  float cX = pMod1(q.x, xSize);
-
-  q.y -= baseR * 0.5 * sin(3. * localCosT + TWO_PI * 0.23 * c);
-  vec2 o = vec2(length(q) - r, 0.);
+  vec2 o = vec2(abs(length(q) - r) - 0.03 * r, 0.);
   d = dMin(d, o);
 
   // float mask = length(vec2(1, 0.75) * q) - r;
@@ -2959,14 +2941,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // line = smoothstep(0., 2. * edge, line);
   // color = vec3(line);
 
-  // // radial stripes
-  // float angle = atan(q.y, q.x);
-  // angle += 6. * n;
-  // float line = angle;
-  // line = sin(TWO_PI * 20. * line);
-  // line = smoothstep(0., edge, line);
-  // color = vec3(line);
-  // color = mix(vec3(0), color, step(edge, n));
+  // radial stripes
+  float angle = atan(q.y, q.x);
+  angle += 6. * n;
+  float line = angle;
+  line = sin(TWO_PI * 30. * line);
+  line = smoothstep(0., edge, line);
+  color = vec3(line);
+  color = mix(vec3(0), color, step(edge, n));
 
   // // Grid spinners?
   // float gridSize = 0.020;
@@ -3037,7 +3019,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT, 50.), 1);
+  // return vec4(two_dimensional(uv, norT, 50.), 1);
 
   vec3 color = vec3(0);
 
@@ -3062,7 +3044,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     layerColor += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerColor + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     layerColor *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
     layerColor *= colors1;
-    layerColor *= 1.3;
+    layerColor *= 1.5;
     // layerColor = vec3(5.0);
 
     // CYM
@@ -3080,7 +3062,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.25;
+    const float maxDelayLength = 0.5;
     float layerT = norT
       + maxDelayLength * fI / float(slices);
     float mask = two_dimensional(uv, layerT, fI).x;
