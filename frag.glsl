@@ -2884,8 +2884,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.0;
-  float r = 0.2; //  / pow(1. + layerId, 0.1);
+  const float warpScale = 0.8;
+  float r = 0.2;
 
   vec2 wQ = q.xy;
 
@@ -2898,7 +2898,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  vec2 o = vec2(abs(length(q) - r) - 0.03 * r, 0.);
+  pModPolar(q, 7.);
+  q *= rotMat2(0.25 * PI);
+  vec2 o = vec2(abs(sdBox(q, vec2(r))) - 0.03 * r, 0.);
   d = dMin(d, o);
 
   // float mask = length(vec2(1, 0.75) * q) - r;
@@ -2941,22 +2943,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // line = smoothstep(0., 2. * edge, line);
   // color = vec3(line);
 
-  // radial stripes
-  float angle = atan(q.y, q.x);
-  angle += 6. * n;
-  float line = angle;
-  line = sin(TWO_PI * 30. * line);
-  line = smoothstep(0., edge, line);
-  color = vec3(line);
-  color = mix(vec3(0), color, step(edge, n));
-
-  // // Grid spinners?
-  // float gridSize = 0.020;
-  // vec2 c = pMod2(q, vec2(gridSize));
-  // q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  // float line = abs(q.y) - 0.015625 * gridSize;
-  // line = smoothstep(0.5 * edge, 0., line);
+  // // radial stripes
+  // float angle = atan(q.y, q.x);
+  // angle += 6. * n;
+  // float line = angle;
+  // line = sin(TWO_PI * 30. * line);
+  // line = smoothstep(0., edge, line);
   // color = vec3(line);
+  // color = mix(vec3(0), color, step(edge, n));
+
+  // Grid spinners?
+  float gridSize = 0.020;
+  vec2 c = pMod2(q, vec2(gridSize));
+  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  float line = abs(q.y) - 0.015625 * gridSize;
+  line = smoothstep(0.5 * edge, 0., line);
+  color = vec3(line);
 
   // // Grid crosses
   // float gridSize = 0.0175;
@@ -3034,10 +3036,12 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // );
 
     vec3 dI = vec3(fI / float(slices));
-    dI += 0.6 * dot(uv, vec2(1));
+    dI += dot(uv, vec2(0.7));
     // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
 
     dI *= 0.6;
+
+    dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1)));
 
     // layerColor = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerColor = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
