@@ -2898,9 +2898,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  pModPolar(q, 7.);
-  q *= rotMat2(0.25 * PI);
-  vec2 o = vec2(abs(sdBox(q, vec2(r))) - 0.03 * r, 0.);
+  vec2 o = vec2(sdBox(q, vec2(0)), 0.);
   d = dMin(d, o);
 
   // float mask = length(vec2(1, 0.75) * q) - r;
@@ -3021,7 +3019,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   vec3 color = vec3(0);
 
