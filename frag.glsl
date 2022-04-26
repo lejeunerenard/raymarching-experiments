@@ -1450,10 +1450,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+  wQ *= mat3(
+      0.95,                0.1,  -0.2,
+      0.05, 1.01 + 0.15 * wQ.z,   0.2,
+     -0.01,                0.1, -1.01);
+
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xyz = twist(wQ.xzy,  4. * wQ.z + 0.35 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  wQ.xzy = twist(wQ.xyz,  4. * wQ.y + 0.35 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
 
@@ -1461,7 +1466,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
   d = dMin(d, b);
 
   // d.x *= 0.4;
@@ -1792,13 +1797,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.75;
+      float specCo = 0.3;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.25;
+      float diffMin = 0.125;
       float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
@@ -1859,8 +1864,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       float dispersionI = 1.0;
