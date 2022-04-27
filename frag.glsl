@@ -1450,10 +1450,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ *= mat3(
-      0.95,                0.1,  -0.2,
-      0.05, 1.01 + 0.15 * wQ.z,   0.2,
-     -0.01,                0.1, -1.01);
+  pModPolar(wQ.xy, 5.);
+  wQ.y = abs(wQ.y);
 
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
@@ -1466,10 +1464,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  // vec3 b = vec3(length(q) - r, 1, 0);
+  vec3 b = vec3(sdHollowBox(q, vec3(r), 0.25 * r), 1, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.4;
+  q *= rotationMatrix(vec3(1), 0.723 * PI);
+  r *= 0.5;
+  b = vec3(sdHollowBox(q, vec3(r), 0.25 * r), 1, 0);
+  d = dMin(d, b);
+
+
+  d.x *= 0.3;
 
   return d;
 }
@@ -1864,8 +1869,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
       float dispersionI = 1.0;
