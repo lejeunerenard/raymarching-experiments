@@ -1450,16 +1450,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec4 wQ = vec4(q.xyz, 0.);
 
-  pModPolar(wQ.xy, 5.);
-  wQ.y = abs(wQ.y);
+  // pModPolar(wQ.xy, 5.);
+  // wQ.y = abs(wQ.y);
 
   wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzwx + localCosT);
   wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.zwxy + localCosT);
   wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.05 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.wxyz + localCosT);
 
-  pModPolar(wQ.zw, 6.);
-  wQ.w = abs(wQ.w);
+  // pModPolar(wQ.zw, 6.);
+  // wQ.w = abs(wQ.w);
 
   wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.15 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.wxyz + localCosT);
@@ -1489,7 +1489,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   r *= 0.65;
   b = vec3(sdHollowBox(q, vec3(r), 0.25 * r), 1, 0);
   d = dMin(d, b);
-
 
   // float crop = length(p) - 3.0 * r;
   // d.x = max(d.x, crop);
@@ -1727,6 +1726,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1892,8 +1892,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 1.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      float dispersionI = 1.0;
+      float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
