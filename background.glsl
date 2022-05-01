@@ -21,7 +21,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(#501E5B, vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(.275, .2, .2), vec3(0, 0.075, 0.02), bgIndex);
   // vec3 color = mix(vec3(0.15), vec3(0.0), bgIndex);
-  vec3 color = 1.2 * mix(vec3(0.4), vec3(0.90), bgIndex);
+  vec3 color = 1.0 * mix(vec3(0.4), vec3(0.90), bgIndex);
   // vec3 color = mix(#BD96E5, #9498F2, bgIndex);
   // color *= mix(colors1, vec3(1), 1. - length(coord));
   // color = mix(color, vec3(1), 0.30);
@@ -91,7 +91,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // color = pow(color, vec3(2.2));
 
-  color *= vec3(1.0, 0.92, 0.87);
+  color *= vec3(0.82, 1.0, 0.77);
   // color = mix(color, vec3(0.5), 0.30); // desaturate
   // color = mix(color, vec3(1), 0.4); // lighten
   // color *= 1.1;
