@@ -1464,15 +1464,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   for (float i = 0.; i < 5.; i++) {
-    q = abs(q);
+    // q = abs(q);
+    q = tetraFold(q);
 
-    // q *= rotationMatrix(vec3(1, -1, 1), 0.01 * cos(localCosT - length(p)));
+    q *= rotationMatrix(vec3(1, -1, 1), 0.075 * PI * cos(localCosT - 2. * length(p)));
     q = (vec4(q, 1) * kifsM).xyz;
 
     rollingScale *= scale;
   }
 
-  q *= rotationMatrix(vec3(1), localCosT + dot(p, vec3(-1.0)));
+  q *= rotationMatrix(vec3(1), localCosT + dot(p, vec3(-2.0)));
 
   // vec3 b = vec3(length(q) - r, 1, 0);
 
@@ -1712,7 +1713,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1.2);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1767,9 +1769,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.7, 1.2, 1.0), 0.7 * #FFFFFF, 1.0);
-    lights[1] = light(vec3(0.5, 0.7,1.0), #FFFFFF, 1.0);
-    lights[2] = light(vec3(0.1, 0.7,-0.7), #FFFFFF, 1.0);
+    lights[0] = light(vec3(-0.7, 1.2, 1.0), 0.7 * #FFDDDD, 1.0);
+    lights[1] = light(vec3(0.5, 0.7,1.0), #DDFFDD, 1.0);
+    lights[2] = light(vec3(0.1, 0.7,-0.7), #DDDDFF, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
