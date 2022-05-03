@@ -1463,9 +1463,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  for (float i = 0.; i < 5.; i++) {
-    // q = abs(q);
-    q = tetraFold(q);
+  for (float i = 0.; i < 2.; i++) {
+    q = abs(q);
+    // q = tetraFold(q);
 
     q *= rotationMatrix(vec3(1, -1, 1), 0.075 * PI * cos(localCosT - 2. * length(p)));
     q = (vec4(q, 1) * kifsM).xyz;
@@ -1476,8 +1476,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q *= rotationMatrix(vec3(1), localCosT + dot(p, vec3(-2.0)));
 
   // vec3 b = vec3(length(q) - r, 1, 0);
-
-  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  vec3 b = vec3(sdHollowBox(q, vec3(r), 0.3 * r), 1, 0);
   b.x /= rollingScale;
   d = dMin(d, b);
 
@@ -1811,13 +1811,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
+      float freCo = 0.85;
       float specCo = 0.5;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.4;
+      float diffMin = 0.3;
       float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
@@ -1879,16 +1879,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      // float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
+      float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
       // float dispersionI = 1.0;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
