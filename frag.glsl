@@ -1464,8 +1464,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   for (float i = 0.; i < 2.; i++) {
-    q = abs(q);
-    // q = tetraFold(q);
+    // q = abs(q);
+    q = tetraFold(q);
 
     q *= rotationMatrix(vec3(1, -1, 1), 0.075 * PI * cos(localCosT - 2. * length(p)));
     q = (vec4(q, 1) * kifsM).xyz;
@@ -1473,10 +1473,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     rollingScale *= scale;
   }
 
-  q *= rotationMatrix(vec3(1), localCosT + dot(p, vec3(-2.0)));
+  // q *= rotationMatrix(vec3(1), localCosT + dot(p, vec3(-2.0)));
 
-  // vec3 b = vec3(length(q) - r, 1, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
   vec3 b = vec3(sdHollowBox(q, vec3(r), 0.3 * r), 1, 0);
   b.x /= rollingScale;
   d = dMin(d, b);
@@ -1713,7 +1711,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.2);
+  vec3 color = vec3(1.3);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1886,7 +1884,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.4);
+      dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
