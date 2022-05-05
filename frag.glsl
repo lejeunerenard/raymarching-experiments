@@ -1424,7 +1424,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, r * vec3(1, vec2(thickness)));
 }
 
-float gR = 0.5;
+float gR = 0.45;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1450,10 +1450,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec4 wQ = vec4(q.xyz, 0.);
 
-  // wQ += warpScale * 0.100000 * cos( 3. * warpFrequency * wQ.yzwx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 7. * warpFrequency * wQ.zwxy + localCosT);
-  // wQ.xzy = twist(wQ.xyz,  1. * wQ.y + 0.05 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  // wQ += warpScale * 0.025000 * cos(13. * warpFrequency * wQ.wxyz + localCosT);
+  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzwx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.zwxy + localCosT);
+  wQ.xzy = twist(wQ.xyz,  0.9 * wQ.y + 0.05 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.wxyz + localCosT);
 
   // wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.15 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.wxyz + localCosT);
@@ -1463,23 +1463,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  for (float i = 0.; i < 2.; i++) {
-    // q = abs(q);
-    q = tetraFold(q);
+  float thickness = 0.3 * r;
+  float spacing = r * 2.2;
 
-    q *= rotationMatrix(vec3(1, -1, 1), 0.075 * PI * cos(localCosT - 2. * length(p)));
-    q = (vec4(q, 1) * kifsM).xyz;
+  q = abs(q);
 
-    rollingScale *= scale;
-  }
-
-  // q *= rotationMatrix(vec3(1), localCosT + dot(p, vec3(-2.0)));
-
-  vec3 b = vec3(sdHollowBox(q, vec3(r), 0.3 * r), 1, 0);
-  b.x /= rollingScale;
+  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  b = vec3(sdHollowBox(q - vec3(0, spacing, 0), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdHollowBox(q - vec3(0, 0, spacing), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdHollowBox(q - vec3(spacing, 0, 0), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdHollowBox(q - vec3(spacing, 0, spacing), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdHollowBox(q - vec3(0, spacing, spacing), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdHollowBox(q - vec3(spacing, spacing, 0), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  b = vec3(sdHollowBox(q - vec3(spacing, spacing, spacing), vec3(r), thickness), 1, 0);
+  d = dMin(d, b);
+
+  d.x *= 0.3;
 
   return d;
 }
@@ -1809,13 +1822,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.85;
-      float specCo = 0.5;
+      float freCo = 0.5;
+      float specCo = 0.3;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.3;
+      float diffMin = 0.7;
       float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
