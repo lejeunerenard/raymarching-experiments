@@ -1443,21 +1443,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.3;
-  float warpFrequency = 1.2;
+  float warpScale = 1.7;
+  float warpFrequency = 0.8;
   float rollingScale = 1.;
 
   // Warp
-  vec4 wQ = vec4(q.xyz, 0.);
+  vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzwx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.zwxy + localCosT);
-  wQ.xzy = twist(wQ.xyz,  0.9 * wQ.y + 0.05 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.wxyz + localCosT);
+  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.zxy + localCosT);
+  wQ.xzy = twist(wQ.xyz,  -0.4 * wQ.y + 0.01 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.xyz + localCosT);
+  wQ += warpScale * 0.012500 * snoise3( 4. * warpFrequency * wQ.yzx);
 
   // wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.15 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.wxyz + localCosT);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzwx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.xyz + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.xyz + localCosT);
+  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1466,33 +1469,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float thickness = 0.3 * r;
   float spacing = r * 2.2;
 
-  q = abs(q);
-
-  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(2, 2, 0.4)), 0, 0);
   d = dMin(d, b);
 
-  b = vec3(sdHollowBox(q - vec3(0, spacing, 0), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdHollowBox(q - vec3(0, 0, spacing), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdHollowBox(q - vec3(spacing, 0, 0), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdHollowBox(q - vec3(spacing, 0, spacing), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdHollowBox(q - vec3(0, spacing, spacing), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdHollowBox(q - vec3(spacing, spacing, 0), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdHollowBox(q - vec3(spacing, spacing, spacing), vec3(r), thickness), 1, 0);
-  d = dMin(d, b);
-
-  d.x *= 0.3;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1725,7 +1705,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.3);
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1739,7 +1718,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0,0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  color *= 1.4;
+  // color *= 1.4;
 
   gM = m;
 
@@ -1822,14 +1801,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.3;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
       // Shadow minimums
       float diffMin = 0.7;
-      float shadowMin = 0.1;
+      float shadowMin = 0.3;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1892,8 +1871,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
-      float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
-      // float dispersionI = 1.0;
+      // float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
