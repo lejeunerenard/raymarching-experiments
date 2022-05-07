@@ -1421,7 +1421,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
     q.zx = q.xz;
   }
 
-  return sdBox(q, r * vec3(1, vec2(thickness)));
+  return sdBox(q, vec3(r, vec2(thickness)));
 }
 
 float gR = 0.45;
@@ -1433,13 +1433,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = vec2(4. * r);
+  vec2 size = vec2(1.5 * r);
 
   // const float tilt = 0.080 * PI;
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
+
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
 
   vec3 q = p;
 
@@ -1450,27 +1452,41 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.zxy + localCosT);
-  wQ.xzy = twist(wQ.xyz,  -0.4 * wQ.y + 0.01 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.xyz + localCosT);
-  wQ += warpScale * 0.012500 * snoise3( 4. * warpFrequency * wQ.yzx);
+  // wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.zxy + localCosT);
+  // wQ.xzy = twist(wQ.xyz,  -0.4 * wQ.y + 0.01 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.xyz + localCosT);
+  // wQ += warpScale * 0.012500 * snoise3( 4. * warpFrequency * wQ.yzx);
 
-  // wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.15 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.xyz + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.xyz + localCosT);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+  // // wQ.xzy = twist(wQ.xyz,  2. * wQ.y + 0.15 * PI * cos(localCosT + 2. * wQ.y + 1.0 * length(wQ)));
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.xyz + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.xyz + localCosT);
+  // wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+
+  // vec2 c = pMod2(wQ.xz, vec2(size));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float thickness = 0.3 * r;
+  float thickness = 0.15 * r;
   float spacing = r * 2.2;
+  float extendFactor = 0.2;
 
-  vec3 b = vec3(sdBox(q, vec3(2, 2, 0.4)), 0, 0);
+  vec3 b = vec3(axialStar(q, r * (1. + extendFactor * cos(localCosT)), thickness), 0, 0);
   d = dMin(d, b);
+
+  vec3 starQ = q * rotationMatrix(vec3(1, 0, 1), 0.5 * PI);
+  b = vec3(axialStar(starQ, r * (1. + extendFactor * cos(localCosT + 0.3 * PI)), thickness), 0, 0);
+  d = dMin(d, b);
+
+  starQ = q * rotationMatrix(vec3(1, 0,-1), 0.5 * PI);
+  b = vec3(axialStar(starQ, r * (1. + extendFactor * cos(localCosT - 0.3 * PI)), thickness), 0, 0);
+  d = dMin(d, b);
+
+  // float crop = length(q) - 0.3;
+  // d.x = max(d.x, crop);
 
   d.x *= 0.5;
 
@@ -1711,6 +1727,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
+
+  dI += trap;
 
   dI *= angle1C;
   dI += angle2C;
