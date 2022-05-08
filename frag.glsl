@@ -2844,7 +2844,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.8;
+  const float warpScale = 0.6;
   float r = 0.2;
 
   vec2 wQ = q.xy;
@@ -2858,7 +2858,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  vec2 o = vec2(sdBox(q, vec2(0)), 0.);
+  vec2 o = vec2(length(q), 0.);
   d = dMin(d, o);
 
   // float mask = length(vec2(1, 0.75) * q) - r;
@@ -2867,11 +2867,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   float n = d.x;
 
-  // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n + 0.);
+  // // Hard Edge
+  // n = smoothstep(0., 0.5 * edge, n + 0.);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
+
+  n = abs(n);
 
   // // Solid
   // color = vec3(1);
@@ -2979,7 +2981,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
