@@ -1424,7 +1424,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, vec3(r, vec2(thickness)));
 }
 
-float gR = 0.45;
+float gR = 0.7;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1474,19 +1474,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float spacing = r * 2.2;
   float extendFactor = 0.2;
 
-  vec3 b = vec3(axialStar(q, r * (1. + extendFactor * cos(localCosT)), thickness), 0, 0);
+  vec3 b = vec3(axialStar(q, r, thickness), 0, 0);
   d = dMin(d, b);
 
   vec3 starQ = q * rotationMatrix(vec3(1, 0, 1), 0.5 * PI);
-  b = vec3(axialStar(starQ, r * (1. + extendFactor * cos(localCosT + 0.3 * PI)), thickness), 0, 0);
+  b = vec3(axialStar(starQ, r, thickness), 0, 0);
   d = dMin(d, b);
 
   starQ = q * rotationMatrix(vec3(1, 0,-1), 0.5 * PI);
-  b = vec3(axialStar(starQ, r * (1. + extendFactor * cos(localCosT - 0.3 * PI)), thickness), 0, 0);
+  b = vec3(axialStar(starQ, r, thickness), 0, 0);
   d = dMin(d, b);
 
-  // float crop = length(q) - 0.3;
-  // d.x = max(d.x, crop);
+  float crop = length(q) - 0.444444 * r;
+  d.x = max(d.x, crop);
+
+  q *= rotationMatrix(vec3(0, 1, 0), 0.25 * PI);
+  vec3 o = vec3(octahedral(q, 52., 0.3 * r), 0, 0);
+  d = dMin(d, o);
 
   d.x *= 0.5;
 
@@ -2844,8 +2848,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.6;
-  float r = 0.2;
+  const float warpScale = 1.2;
+  float r = 0.3;
 
   vec2 wQ = q.xy;
 
@@ -2861,9 +2865,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   vec2 o = vec2(length(q), 0.);
   d = dMin(d, o);
 
-  // float mask = length(vec2(1, 0.75) * q) - r;
-  // mask = smoothstep(0., 0.5 * edge, mask);
-  // mask = 1. - mask;
+  float mask = length(q) - r;
+  mask = smoothstep(0., 0.5 * edge, mask);
+  mask = 1. - mask;
 
   float n = d.x;
 
@@ -2944,7 +2948,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // color *= mask;
+  color *= mask;
 
   return color.rgb;
 }
@@ -2981,7 +2985,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT, 50.), 1);
+  // return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
@@ -3063,8 +3067,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // // Final layer
   // color.rgb += 0.3 * two_dimensional(uv, 0.);
 
-  // // Color manipulation
-  // color.rgb = 1. - color.rgb;
+  // // // Color manipulation
+  // // color.rgb = 1. - color.rgb;
 
   // return vec4(color, 1.);
 
