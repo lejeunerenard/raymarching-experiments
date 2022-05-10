@@ -1424,7 +1424,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, vec3(r, vec2(thickness)));
 }
 
-float gR = 0.7;
+float gR = 0.1;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1439,7 +1439,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
 
@@ -1466,6 +1466,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec2 c = pMod2(wQ.xz, vec2(size));
 
+  for (float i = 0.; i < 3.; i++) {
+    // wQ = abs(wQ);
+    wQ = tetraFold(wQ);
+
+    wQ *= rotationMatrix(vec3(1), 0.15 * PI * cos(localCosT + 0.3178 * PI * i + dot(wQ, vec3(2))));
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+    rollingScale *= scale;
+  }
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
@@ -1474,25 +1483,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float spacing = r * 2.2;
   float extendFactor = 0.2;
 
-  vec3 b = vec3(axialStar(q, r, thickness), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
-  vec3 starQ = q * rotationMatrix(vec3(1, 0, 1), 0.5 * PI);
-  b = vec3(axialStar(starQ, r, thickness), 0, 0);
-  d = dMin(d, b);
-
-  starQ = q * rotationMatrix(vec3(1, 0,-1), 0.5 * PI);
-  b = vec3(axialStar(starQ, r, thickness), 0, 0);
-  d = dMin(d, b);
-
-  float crop = length(q) - 0.444444 * r;
-  d.x = max(d.x, crop);
-
-  q *= rotationMatrix(vec3(0, 1, 0), 0.25 * PI);
-  vec3 o = vec3(octahedral(q, 52., 0.3 * r), 0, 0);
-  d = dMin(d, o);
-
-  d.x *= 0.5;
+  d.x *= 0.8;
 
   return d;
 }
