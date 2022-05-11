@@ -2843,10 +2843,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.2;
+  const float warpScale = 1.0;
   float r = 0.3;
 
   vec2 wQ = q.xy;
+
+  vec2 size = vec2(0.0075);
+  vec2 c = floor((wQ + size*0.5)/size);
+  wQ = c * size;
 
   wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
   wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
@@ -2860,14 +2864,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   vec2 o = vec2(length(q), 0.);
   d = dMin(d, o);
 
-  float mask = length(q) - r;
+  float mask = sdBox(q, vec2(r));
   mask = smoothstep(0., 0.5 * edge, mask);
   mask = 1. - mask;
 
   float n = d.x;
 
-  // // Hard Edge
-  // n = smoothstep(0., 0.5 * edge, n + 0.);
+  // Hard Edge
+  n = smoothstep(0., edge, n + 0.);
 
   // // Invert
   // n = 1. - n;
@@ -2894,13 +2898,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // dI *= 0.75;
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // // Stripes
-  // const float numStripes = 60.;
-  // vec2 axis = vec2(1, 0) * rotMat2(TWO_PI * n);
-  // float line = dot(q, axis);
-  // line = sin(TWO_PI * numStripes * line);
-  // line = smoothstep(0., 2. * edge, line);
-  // color = vec3(line);
+  // Stripes
+  const float numStripes = 21.;
+  vec2 axis = vec2(1, 0); // * rotMat2(TWO_PI * n);
+  float line = dot(q, axis);
+  line = sin(TWO_PI * numStripes * line);
+  line = smoothstep(0., 2. * edge, line);
+  color = vec3(line);
 
   // // radial stripes
   // float angle = atan(q.y, q.x);
@@ -2911,13 +2915,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // color = vec3(line);
   // color = mix(vec3(0), color, step(edge, n));
 
-  // Grid spinners?
-  float gridSize = 0.020;
-  vec2 c = pMod2(q, vec2(gridSize));
-  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  float line = abs(q.y) - 0.015625 * gridSize;
-  line = smoothstep(0.5 * edge, 0., line);
-  color = vec3(line);
+  // // Grid spinners?
+  // float gridSize = 0.020;
+  // vec2 c = pMod2(q, vec2(gridSize));
+  // q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  // float line = abs(q.y) - 0.015625 * gridSize;
+  // line = smoothstep(0.5 * edge, 0., line);
+  // color = vec3(line);
 
   // // Grid crosses
   // float gridSize = 0.0175;
@@ -2980,7 +2984,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
