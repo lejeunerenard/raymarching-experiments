@@ -2843,17 +2843,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.0;
+  const float warpScale = 1.5;
   float r = 0.3;
 
   vec2 wQ = q.xy;
 
-  vec2 size = vec2(0.0075);
+  vec2 size = vec2(0.005);
   vec2 c = floor((wQ + size*0.5)/size);
   wQ = c * size;
 
+  vec2 center = 0.05 * vec2(0, 1) * rotMat2(localCosT);
   wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
-  wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 7.2 * length(wQ)));
+  wQ += center;
+  wQ *= rotMat2(0.9 * PI + length(wQ) - 0.025 * PI * cos(localCosT - 1.2 * length(wQ)));
+  wQ -= center;
   wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
   wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
   wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
@@ -2864,19 +2867,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   vec2 o = vec2(length(q), 0.);
   d = dMin(d, o);
 
-  float mask = sdBox(q, vec2(r));
-  mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
+  // float mask = sdBox(q, vec2(r));
+  // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
 
   float n = d.x;
 
-  // Hard Edge
-  n = smoothstep(0., edge, n + 0.);
+  // // Hard Edge
+  // n = smoothstep(0., edge, n + 0.);
 
   // // Invert
   // n = 1. - n;
 
-  n = abs(n);
+  // n = abs(n);
 
   // // Solid
   // color = vec3(1);
@@ -2899,7 +2902,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // Stripes
-  const float numStripes = 21.;
+  const float numStripes = 20.;
   vec2 axis = vec2(1, 0); // * rotMat2(TWO_PI * n);
   float line = dot(q, axis);
   line = sin(TWO_PI * numStripes * line);
@@ -2947,7 +2950,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
