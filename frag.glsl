@@ -1424,7 +1424,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, vec3(r, vec2(thickness)));
 }
 
-float gR = 0.1;
+float gR = 0.075;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1466,24 +1466,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec2 c = pMod2(wQ.xz, vec2(size));
 
-  for (float i = 0.; i < 3.; i++) {
-    // wQ = abs(wQ);
+  for (float i = 0.; i < 7.; i++) {
     wQ = tetraFold(wQ);
 
     wQ *= rotationMatrix(vec3(1), 0.15 * PI * cos(localCosT + 0.3178 * PI * i + dot(wQ, vec3(2))));
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     rollingScale *= scale;
+
+    float trap = length(wQ.xy);
+    minD.x = min(minD.x, trap);
   }
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float thickness = 0.15 * r;
-  float spacing = r * 2.2;
-  float extendFactor = 0.2;
-
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, minD);
   b.x /= rollingScale;
   d = dMin(d, b);
 
@@ -1727,7 +1725,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
 
-  dI += trap;
+  dI += 5. * trap;
 
   dI *= angle1C;
   dI += angle2C;
@@ -1818,14 +1816,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.5;
       float specCo = 0.5;
 
       float specAll = 0.0;
 
       // Shadow minimums
       float diffMin = 0.7;
-      float shadowMin = 0.3;
+      float shadowMin = 0.2;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1886,16 +1884,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       // float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
-      float dispersionI = 1.0;
-      dispersionColor *= dispersionI;
+      // float dispersionI = 1.0;
+      // dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.4);
+      // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
@@ -2987,7 +2985,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT, 50.), 1);
+  // return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
