@@ -1424,7 +1424,7 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, vec3(r, vec2(thickness)));
 }
 
-float gR = 0.075;
+float gR = 0.06;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1469,7 +1469,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   for (float i = 0.; i < 7.; i++) {
     wQ = tetraFold(wQ);
 
-    wQ *= rotationMatrix(vec3(1), 0.15 * PI * cos(localCosT + 0.3178 * PI * i + dot(wQ, vec3(2))));
+    wQ *= rotationMatrix(vec3(0, 1, 0), 0.075 * PI * cos(localCosT + 0.3178 * PI * i + dot(wQ, vec3(2))));
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     rollingScale *= scale;
 
