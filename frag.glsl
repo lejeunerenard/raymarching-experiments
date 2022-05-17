@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1424,7 +1424,44 @@ float axialStar (in vec3 q, in float r, in float thickness) {
   return sdBox(q, vec3(r, vec2(thickness)));
 }
 
+vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) {
+  vec2 d = vec2(maxDistance, -1);
+
+  float beltSpacing = beltDims.y;
+  float ridgeSpacing = 0.15 * beltDims.x;
+
+  vec3 beltTopQ = vec3(q);
+  beltTopQ.y = abs(beltTopQ.y) - beltSpacing;
+  vec2 beltTop = vec2(sdBox(beltTopQ, vec3(beltDims.x, thickness, beltDims.z)), 0);
+
+  float ridgeDepth = 0.25 * thickness;
+  vec3 ridgesQ = beltTopQ;
+
+  ridgesQ.x += sign(q.y) * ridgeSpacing * t;
+
+  pMod1(ridgesQ.x, ridgeSpacing);
+  ridgesQ.y -= thickness;
+  float ridges = sdBox(ridgesQ, vec3(ridgeDepth, ridgeDepth, beltDims.z * 2.));
+  beltTop.x = max(beltTop.x, - ridges);
+  d.xy = dMin(d.xy, beltTop);
+
+  // axis
+  float rollerR = beltSpacing - thickness;
+  vec3 axisQ = q;
+
+  pMod1(axisQ.x, 3.5 * rollerR);
+  axisQ.zy = axisQ.yz;
+
+  vec2 roller = vec2(sdCappedCylinder(axisQ, vec2(rollerR, beltDims.z * 0.96)), 1);
+  d.xy = dMin(d.xy, roller);
+  vec2 axis = vec2(sdCappedCylinder(axisQ, vec2(rollerR * 0.5, beltDims.z * 1.02)), 2);
+  d.xy = dMin(d.xy, axis);
+
+  return d;
+}
+
 float gR = 0.7;
+bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1434,6 +1471,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float r = gR;
   vec2 size = vec2(1.5 * r);
+
+  vec3 beltDims = vec3(2.0, 0.065, 0.175);
 
   // const float tilt = 0.080 * PI;
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
@@ -1452,26 +1491,46 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
-  // vec2 c = pMod2(wQ.xz, vec2(size));
+  float c = pMod1(wQ.z, 3. * beltDims.z);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  d = dMin(d, b);
+  float beltT = t;
 
-  float crop = icosahedral(q, 52., 0.6 * r);
-  d.x = max(d.x, -crop);
+  beltT *= 1. + mod(c, 2.);
+  beltT = mod(beltT, 1.);
+
+  if (!isDispersion) {
+    float thickness = 0.01125;
+    vec2 conveyer = conveyerBelt(q + vec3(0, beltDims.y + thickness, 0), beltDims, thickness, mod(2. * beltT, 1.));
+    d.xy = dMin(d.xy, conveyer);
+  }
+
+  // interesting. it seems the raymarching for the dispersion is bleeding through the gap between the block and conveyer
+  float blockR = 0.1;
+  float blockSpacing = 2. * 0.15 * beltDims.x;
+  vec3 blockQ = q;
+  blockQ.x += blockSpacing * beltT;
+
+  // Random Offset
+  blockQ.x += snoise2(1.7238 * vec2(c));
+
+  pMod1(blockQ.x, blockSpacing);
+  blockQ -= vec3(0, blockR, 0);
+  vec3 b = vec3(sdBox(blockQ, vec3(blockR)), 3, 0);
+  b.x -= 0.002 * cellular(9. * blockQ);
+  d = dMin(b, d);
 
   d.x *= 0.8;
 
@@ -1665,7 +1724,6 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   float d = 0.0;
 
   float angle = ncnoise3(rd);
-
   rd *= rotationMatrix(vec3(1, 4, 2), smoothstep(0.5, 0.6, angle));
 
   #if 1
@@ -1685,7 +1743,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   #endif
 
   vec3 reflectionPoint = gPos - gNor * 0.1 + rd * d;
-  vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001);
+  vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001, sine(norT));
   dNor = reflectionPointNor;
   reflectionPointNor = normalize(reflectionPointNor);
 
@@ -1705,7 +1763,10 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.3);
+  vec3 color = 0.8 * vec3(0.2, 0.2, 0.3);
+
+  color = mix(color, vec3(1), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0), isMaterialSmooth(m, 2.));
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1718,10 +1779,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0,0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  vec3 blockColor = vec3(0);
+  blockColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0,0.33, 0.67)));
+  // blockColor += 0.5 + 0.5 * cos(TWO_PI * (blockColor + dI + vec3(0, 0.2, 0.4)));
 
-  // color *= 1.4;
+  // blockColor *= 1.4;
+
+  color = mix(color, blockColor, isMaterialSmooth(m, 3.));
 
   gM = m;
 
@@ -1798,7 +1862,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isBall = isMaterialSmooth(t.y, 1.);
+      float isBlock = isMaterialSmooth(t.y, 3.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -1871,11 +1935,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
+      isDispersion = true;
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      isDispersion = false;
 
       // float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
-      float dispersionI = 1.0;
+      float dispersionI = isBlock;
       dispersionColor *= dispersionI;
 
       dispersionColor.r = pow(dispersionColor.r, 0.7);
