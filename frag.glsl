@@ -1460,7 +1460,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.7;
+float gR = 1.0;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1491,45 +1491,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
-
-  float c = pMod1(wQ.z, 3. * beltDims.z);
+  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float beltT = t;
-
-  beltT *= 1. + mod(c, 2.);
-  beltT = mod(beltT, 1.);
-
-  if (!isDispersion) {
-    float thickness = 0.01125;
-    vec2 conveyer = conveyerBelt(q + vec3(0, beltDims.y + thickness, 0), beltDims, thickness, mod(2. * beltT, 1.));
-    d.xy = dMin(d.xy, conveyer);
-  }
-
-  // interesting. it seems the raymarching for the dispersion is bleeding through the gap between the block and conveyer
-  float blockR = 0.1;
-  float blockSpacing = 2. * 0.15 * beltDims.x;
-  vec3 blockQ = q;
-  blockQ.x += blockSpacing * beltT;
-
-  // Random Offset
-  blockQ.x += snoise2(1.7238 * vec2(c));
-
-  pMod1(blockQ.x, blockSpacing);
-  blockQ -= vec3(0, blockR, 0);
-  vec3 b = vec3(sdBox(blockQ, vec3(blockR)), 3, 0);
-  b.x -= 0.002 * cellular(9. * blockQ);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 3, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 3, 0);
+  b.x -= 0.002 * cellular(9. * q);
   d = dMin(b, d);
 
   d.x *= 0.8;
@@ -1763,10 +1740,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = 0.8 * vec3(0.2, 0.2, 0.3);
-
-  color = mix(color, vec3(1), isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(0), isMaterialSmooth(m, 2.));
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1779,13 +1753,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  vec3 blockColor = vec3(0);
-  blockColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0,0.33, 0.67)));
-  // blockColor += 0.5 + 0.5 * cos(TWO_PI * (blockColor + dI + vec3(0, 0.2, 0.4)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1.1, 0.9) * dI + vec3(0,0.33, 0.67)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  // blockColor *= 1.4;
-
-  color = mix(color, blockColor, isMaterialSmooth(m, 3.));
+  // color *= 1.4;
 
   gM = m;
 
