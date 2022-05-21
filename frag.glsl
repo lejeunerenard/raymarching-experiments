@@ -2867,25 +2867,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   localT = t;
 
   const float warpScale = 1.2;
-  float r = 0.04;
-
-  vec2 c = pMod2(q, vec2(r));
+  float r = 0.09;
 
   vec2 wQ = q.xy;
 
-  wQ = c * r;
+  vec2 c = pMod2(wQ, vec2(2. * r));
 
+  wQ *= rotMat2(0.1 * PI * cos(localCosT + dot(c, vec2(1))));
   wQ += warpScale * 0.10000 * cos( -3. * vec2( 1, 1) * wQ.yx + 0. * localCosT + 0.3837 + length(wQ));
   wQ += warpScale * 0.05000 * cos(  9. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ *= rotMat2(0.1 * length(wQ));
   wQ += warpScale * 0.02500 * cos(-16. * vec2( 1,-1) * wQ.yx + 1. * localCosT + length(wQ));
   wQ += warpScale * 0.01250 * cos( 23. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  // q = wQ;
-  q += 0.5125 * r * wQ;
+  q = wQ;
   mUv = q;
-  // I wonder what happens if i make a grid of super small cirlces
-  vec2 o = vec2(length(q) - 0.00325 * r, 0.);
+
+  vec2 o = vec2(dot(q, vec2(1)), 0.);
+  o.x = sin(TWO_PI * 50. * o.x);
   d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(r));
@@ -3008,7 +3006,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
