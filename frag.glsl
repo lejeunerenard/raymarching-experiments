@@ -1484,32 +1484,41 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.6;
+  float warpScale = 1.1;
   float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  float rollingOffset = 0.;
+  for (float i = 0.; i < 6.; i++) {
+    wQ = abs(wQ);
+
+    rollingOffset += 1.5 * i * length(wQ);
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+    rollingScale *= scale;
+  }
+
+  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 3, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 3, 0);
-  b.x -= 0.002 * cellular(9. * q);
+  // uh what... has is that offset not affecting it?
+  vec3 b = vec3(length(q) - 0.25, 0, 0);
+  b.x /= rollingScale;
   d = dMin(b, d);
 
-  d.x *= 0.8;
+  d.x *= 0.4;
 
   return d;
 }
@@ -1756,7 +1765,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1.1, 0.9) * dI + vec3(0,0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  // color *= 1.4;
+  color *= 1.3;
 
   gM = m;
 
@@ -1833,20 +1842,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isBlock = isMaterialSmooth(t.y, 3.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.7;
+      float freCo = 1.4;
       float specCo = 0.75;
 
       float specAll = 0.0;
 
       // Shadow minimums
       float diffMin = 0.85;
-      float shadowMin = 0.2;
+      float shadowMin = 0.6;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1896,7 +1904,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1906,13 +1914,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #ifndef NO_MATERIALS
 
-      isDispersion = true;
+      isDispersion = true; // Global flag
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      // float dispersionI = 2.0 * pow(1. - 1.0 * dot(nor, -rayDirection), 2.00);
-      float dispersionI = isBlock;
+      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      // float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
       dispersionColor.r = pow(dispersionColor.r, 0.7);
@@ -3007,7 +3015,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT, 50.), 1);
+  // return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 

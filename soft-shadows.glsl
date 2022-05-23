@@ -5,7 +5,7 @@
 
 // Source: https://www.shadertoy.com/view/Xds3zN
 float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float generalT ) {
-  const float k = 12.;
+  const float k =  8.;
 
   float res = 1.0;
   float t = mint;
