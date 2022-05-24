@@ -1478,7 +1478,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
 
@@ -1492,10 +1492,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   float rollingOffset = 0.;
-  for (float i = 0.; i < 6.; i++) {
+  for (float i = 0.; i < 3.; i++) {
     wQ = abs(wQ);
 
     rollingOffset += 1.5 * i * length(wQ);
+    wQ *= rotationMatrix(vec3(1, 1, 0), 0.05 * PI * sin(localCosT + rollingOffset));
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     rollingScale *= scale;
   }
@@ -1503,7 +1504,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
