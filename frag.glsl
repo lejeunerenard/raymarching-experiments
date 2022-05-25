@@ -1492,7 +1492,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   float rollingOffset = 0.;
-  for (float i = 0.; i < 3.; i++) {
+  for (float i = 0.; i < 5.; i++) {
     wQ = abs(wQ);
 
     rollingOffset += 1.5 * i * length(wQ);
@@ -1514,8 +1514,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // uh what... has is that offset not affecting it?
-  vec3 b = vec3(length(q) - 0.25, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(0.25)), 0, 0);
   b.x /= rollingScale;
   d = dMin(b, d);
 
