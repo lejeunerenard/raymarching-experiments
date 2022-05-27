@@ -1492,23 +1492,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   float rollingOffset = 0.;
-  for (float i = 0.; i < 5.; i++) {
+  for (float i = 0.; i < 4.; i++) {
     wQ = abs(wQ);
 
-    rollingOffset += 1.5 * i * length(wQ);
-    wQ *= rotationMatrix(vec3(1, 1, 0), 0.05 * PI * sin(localCosT + rollingOffset));
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     rollingScale *= scale;
   }
 
   wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.050000 * triangleWave( 4. * warpFrequency * wQ.yzx + t + rollingOffset);
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
   wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
+  wQ += warpScale * 0.001562 * triangleWave(37. * warpFrequency * wQ.yzx + t + rollingOffset);
 
   // Commit warp
   q = wQ.xyz;
@@ -1919,15 +1917,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 1.;
+      // float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
       dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.4);
+      // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      color += saturate(dispersionColor);
-      // color = saturate(dispersionColor);
+      // color += saturate(dispersionColor);
+      color = saturate(dispersionColor);
 
 #endif
 
@@ -2879,21 +2877,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + 1. * localCosT + 0.3837 + length(wQ));
-  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  wQ *= rotMat2(0.05 * PI *cos(localCosT + 0. * length(q)));
-  wQ += warpScale * 0.02500 * triangleWave( -8. * vec2( 1,-1) * wQ.yx + 1. * t + length(wQ));
-  wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
-  wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + 1. * localCosT + 0.3837 + length(wQ));
+  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
+  // wQ *= rotMat2(0.05 * PI *cos(localCosT + 0. * length(q)));
+  // wQ += warpScale * 0.02500 * triangleWave( -8. * vec2( 1,-1) * wQ.yx + 1. * t + length(wQ));
+  // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
+  // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
   q = wQ;
   mUv = q;
 
-  const float numStripes = 60.;
-  q += 0.5 * t;
-
-  // vec2 o = vec2(dot(q, vec2(1)), 0.);
-  // d = dMin(d, o);
+  vec2 o = vec2(sdBox(q, vec2(r)), 0.);
+  d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(r));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -2901,8 +2896,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   float n = d.x;
 
-  // Hard Edge
-  n = smoothstep(0., edge, n + 0.);
+  // // Hard Edge
+  // n = smoothstep(0., edge, n + 0.);
 
   // Invert
   n = 1. - n;
@@ -2921,22 +2916,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // JS colors
   // color = mix(colors1, colors2, n);
 
-  // // Cosine Palette
-  // vec3 dI = vec3(n);
-  // // dI += 0.125 * fallOff;
-  // dI += dot(uv, vec2(0.4));
-  // dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
-  // dI *= 0.75;
-  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // Cosine Palette
+  vec3 dI = vec3(n);
+  // dI += 0.125 * fallOff;
+  dI += dot(uv, vec2(0.4));
+  dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
+  dI *= 0.75;
+  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // Stripes
-  // const float numStripes = 30.;
-  vec2 axis = vec2(1, 0); // * rotMat2(TWO_PI * n);
-  float line = dot(q, axis);
-  line = sin(TWO_PI * numStripes * line);
-  line -= 0.9;
-  line = smoothstep(0., 2. * edge, line);
-  color = vec3(line);
+  // // Stripes
+  // // const float numStripes = 30.;
+  // vec2 axis = vec2(1, 0); // * rotMat2(TWO_PI * n);
+  // float line = dot(q, axis);
+  // line = sin(TWO_PI * numStripes * line);
+  // line -= 0.9;
+  // line = smoothstep(0., 2. * edge, line);
+  // color = vec3(line);
 
   // // radial stripes
   // float angle = atan(q.y, q.x);
@@ -3016,7 +3011,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT, 50.), 1);
+  // return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
