@@ -1484,39 +1484,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.1;
-  float warpFrequency = 1.5;
+  float warpScale = 1.0;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  float rollingOffset = 0.;
-  for (float i = 0.; i < 4.; i++) {
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-    rollingScale *= scale;
-  }
-
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ += warpScale * 0.050000 * triangleWave( 4. * warpFrequency * wQ.yzx + t + rollingOffset);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT + rollingOffset);
-  wQ += warpScale * 0.001562 * triangleWave(37. * warpFrequency * wQ.yzx + t + rollingOffset);
+  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(0.25)), 0, 0);
-  b.x /= rollingScale;
+  vec3 b = vec3(icosahedral(q, 52., 0.25), 0, 0);
   d = dMin(b, d);
 
-  d.x *= 0.4;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1761,7 +1752,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1.1, 0.9) * dI + vec3(0,0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   color *= 1.3;
 
