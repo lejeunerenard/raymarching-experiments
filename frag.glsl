@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1491,23 +1491,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+
+  float c = pModPolar(wQ.xz, 8.);
+  float cY = pMod1(wQ.y, 0.075);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., 0.25), 0, 0);
+  float thickness = 0.015;
+  r = 0.25;
+  q.xz *= rotMat2(0.2 * sin(localCosT + 0.2 * PI * cY - 0.3 * c));
+  q.x -= 1.2 * r;
+  vec3 b = vec3(sdBox(q, vec3(r, thickness, thickness)), 0, 0);
   d = dMin(b, d);
 
-  d.x *= 0.8;
+  if (!isDispersion) {
+    d.x *= 0.125;
+  }
 
   return d;
 }
@@ -1752,9 +1761,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1.1, 0.9) * dI + vec3(0,0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  color *= 1.3;
+  // color *= 1.3;
 
   gM = m;
 
@@ -1915,8 +1924,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      // color += saturate(dispersionColor);
-      color = saturate(dispersionColor);
+      color += saturate(dispersionColor);
+      // color = saturate(dispersionColor);
 
 #endif
 
