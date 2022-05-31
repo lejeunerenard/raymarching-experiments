@@ -1460,7 +1460,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 1.0;
+float gR = 0.35;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1470,7 +1470,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = vec2(1.5 * r);
+  vec2 size = vec2(0.25 * r);
 
   vec3 beltDims = vec3(2.0, 0.065, 0.175);
 
@@ -1491,33 +1491,46 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
-
-  float c = pModPolar(wQ.xz, 8.);
-  float cY = pMod1(wQ.y, 0.075);
+  // wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float thickness = 0.015;
-  r = 0.25 - 0.05 * abs(cY);
-  q.xz *= rotMat2(0.2 * sin(localCosT + 0.2 * PI * cY - 0.3 * c));
-  q.x -= 1.2 * r;
-  // vec3 b = vec3(sdBox(q, vec3(r, thickness, thickness)), 0, 0);
-  vec3 b = vec3(sdCapsule(q, vec3(r, 0, 0), vec3(-r, 0, 0), thickness), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(b, d);
 
-  if (!isDispersion) {
-    d.x *= 0.125;
-  }
+  // my idea to play with today is using a grid for cutting a lattice into an
+  // object. I'm sure i've done this before but at least I don't think I have
+  // often.
+  float thickness = 0.4 * size.x;
+  q = wQ.xyz;
+  vec2 c = pMod2(q.yz, size);
+  vec3 crop = vec3(-sdBox(q, vec3(3., thickness, thickness)), 0, 0);
+  d = dMax(crop, d);
+
+  q = wQ.xyz;
+  c = pMod2(q.xy, size);
+  crop = vec3(-sdBox(q, vec3(thickness, thickness, 3.)), 0, 0);
+  d = dMax(crop, d);
+
+  q = wQ.xyz;
+  c = pMod2(q.xz, size);
+  crop = vec3(-sdBox(q, vec3(thickness, 3., thickness)), 0, 0);
+  d = dMax(crop, d);
+
+  q = wQ.xyz;
+  crop = vec3(-sdBox(q, vec3(0.7 * r)), 0, 0);
+  d = dMax(crop, d);
+
+  // d.x *= 0.125;
 
   return d;
 }
@@ -1748,7 +1761,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  // vec3 color = vec3(2.75 * saturate(pos.y + 1.3 * gR));
+  vec3 color = mix(background, vec3(1.35), saturate(pos.y + gR));
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
@@ -1806,7 +1821,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     lights[0] = light(vec3(-0.7, 1.2, 1.0), 0.7 * #FFDDDD, 1.0);
-    lights[1] = light(vec3(0.5, 0.7,1.0), #DDFFDD, 1.0);
+    lights[1] = light(vec3(-0.5, 0.7,1.0), #DDFFDD, 1.0);
     lights[2] = light(vec3(0.1, 0.7,-0.7), #DDDDFF, 1.0);
 
     const float universe = 0.;
@@ -1846,14 +1861,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.7;
+      float freCo = 0.5;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.80;
-      float shadowMin = 0.0;
+      float diffMin = 1.0;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1868,9 +1883,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
         // TODO Debug shadow spots on a sphere
         float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
-        // dif *= sha;
+        dif *= sha;
 
-        dif *= occ;
+        // dif *= occ;
 
         vec3 lin = vec3(0.);
 
@@ -1901,10 +1916,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
