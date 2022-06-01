@@ -1127,7 +1127,7 @@ vec3 splitParams (in float i, in float t) {
     // Collapse together
     // * (1. - range(0.7 + 0.002 * i, 0.8 + 0.001 * i, t));
 
-  float gapAmount = 0.0220 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
+  float gapAmount = 0.220 * (0.95 * mod(133.2830 * i, 1.0) + 0.05);
   float gap = gapAmount * quart(localT);
 
   float angle = snoise2(vec2(3.157143 * i) + 1.482349) * PI;
@@ -1478,59 +1478,50 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
 
   vec3 q = p;
 
-  float warpScale = 0.125;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  // float mask = 0.;
+  // for (float i = 0.; i < 3.; i++) {
+  //   float localMask = 0.;
+  //   vec3 params = splitParams(i, 0.5 + 0.5 * cos(localCosT));
+  //   q.xy = split(q.xy, localMask, params.x, params.y, params.z);
+  //   mask = max(mask, localMask);
+  // }
+
+  q *= rotationMatrix(vec3(1), 0.3 * PI);
+  // Okay i was watching the idaten deities know only peace and was super
+  // inspired by their color. I'm going to try to recreate elements of their
+  // style.
+  // vec3 b = vec3(length(q) - r, 0, 0);
   vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // b.x = max(b.x, mask);
   d = dMin(b, d);
 
-  // my idea to play with today is using a grid for cutting a lattice into an
-  // object. I'm sure i've done this before but at least I don't think I have
-  // often.
-  float thickness = 0.4 * size.x;
-  q = wQ.xyz;
-  vec2 c = pMod2(q.yz, size);
-  vec3 crop = vec3(-sdBox(q, vec3(3., thickness, thickness)), 0, 0);
-  d = dMax(crop, d);
-
-  q = wQ.xyz;
-  c = pMod2(q.xy, size);
-  crop = vec3(-sdBox(q, vec3(thickness, thickness, 3.)), 0, 0);
-  d = dMax(crop, d);
-
-  q = wQ.xyz;
-  c = pMod2(q.xz, size);
-  crop = vec3(-sdBox(q, vec3(thickness, 3., thickness)), 0, 0);
-  d = dMax(crop, d);
-
-  q = wQ.xyz;
-  crop = vec3(-sdBox(q, vec3(0.7 * r)), 0, 0);
-  d = dMax(crop, d);
-
-  // d.x *= 0.125;
+  d.x *= 0.4;
 
   return d;
 }
@@ -1761,12 +1752,10 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  // vec3 color = vec3(2.75 * saturate(pos.y + 1.3 * gR));
-  vec3 color = mix(background, vec3(1.35), saturate(pos.y + gR));
-  return color;
+  vec3 color = vec3(0);
 
   float dNR = dot(nor, -rd);
-  vec3 dI = vec3(dot(nor, vec3(-1, -1, 1)));
+  vec3 dI = vec3(dot(nor, vec3(1)));
 
   dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
@@ -1776,8 +1765,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, 1.1, 0.9) * dI + vec3(0,0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  dI += 0.03 * snoise2(252. * fragCoord.xy);
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // color *= 1.3;
 
@@ -1861,7 +1851,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 1.0;
       float specCo = 0.2;
 
       float specAll = 0.0;
@@ -1877,6 +1867,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         vec3 nLightPos = normalize(lightPos);
 
         float dif = max(diffMin, diffuse(nor, nLightPos));
+
+        vec2 ditherQ = fragCoord.xy;
+        const float ditherSize = 0.0065;
+        vec2 ditherC = pMod2(ditherQ, vec2(ditherSize));
+        // float dither = length(ditherQ) - ditherSize * 0.25;
+        float dither = vmax(abs(ditherQ)) - ditherSize * 0.125;
+        float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
+        dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
+        // dif = mix(1., ditherAmount, pow(1. - diffuse(nor, nLightPos), 2.));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1916,10 +1915,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1945,11 +1944,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
+      color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
