@@ -105,6 +105,7 @@ vec4 qCube ( in vec4 q ) {
       q.yzw*(3.0*q2.x -     q2.y -     q2.z -     q2.w));
 }
 
+// return: [0, 1]
 float triangleWave (in float t) {
   return 2. * abs(mod(t, 1.) - 0.5);
 }
@@ -1485,7 +1486,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 1.0;
+  float warpFrequency = 1.4;
   float rollingScale = 1.;
 
   // Warp
@@ -1493,12 +1494,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.100000 * cos( 2. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.001562 * cos(37. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1513,12 +1513,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // }
 
   q *= rotationMatrix(vec3(1), 0.3 * PI);
-  // Okay i was watching the idaten deities know only peace and was super
-  // inspired by their color. I'm going to try to recreate elements of their
-  // style.
-  // vec3 b = vec3(length(q) - r, 0, 0);
   vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // b.x = max(b.x, mask);
+  b.x -= 0.01 * cellular(7. * q);
   d = dMin(b, d);
 
   d.x *= 0.4;
@@ -1762,14 +1758,21 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // dI += 5. * trap;
 
+  dI.x = pow(dI.x, 2.);
+
   dI *= angle1C;
   dI += angle2C;
 
-  dI += 0.03 * snoise2(252. * fragCoord.xy);
+  // dI += 0.03 * snoise2(252. * fragCoord.xy);
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  // color *= 1.3;
+  // Triangle wave
+  dI += color;
+  color = triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67));
+  // color += triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67) + 0.5);
+
+  // color *= 0.5;
 
   gM = m;
 
@@ -1852,7 +1855,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.2;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
@@ -1868,14 +1871,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
-        vec2 ditherQ = fragCoord.xy;
-        const float ditherSize = 0.0065;
-        vec2 ditherC = pMod2(ditherQ, vec2(ditherSize));
-        // float dither = length(ditherQ) - ditherSize * 0.25;
-        float dither = vmax(abs(ditherQ)) - ditherSize * 0.125;
-        float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
-        dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
-        // dif = mix(1., ditherAmount, pow(1. - diffuse(nor, nLightPos), 2.));
+        // // "Dithered" shadows
+        // vec2 ditherQ = fragCoord.xy;
+        // const float ditherSize = 0.0065;
+        // vec2 ditherC = pMod2(ditherQ, vec2(ditherSize));
+        // // float dither = length(ditherQ) - ditherSize * 0.25;
+        // float dither = vmax(abs(ditherQ)) - ditherSize * 0.125;
+        // float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
+        // dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
@@ -1928,18 +1931,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       isDispersion = true; // Global flag
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      // float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 1.;
-      // dispersionColor *= dispersionI;
+      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      // float dispersionI = 0.35;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.4);
+      dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
