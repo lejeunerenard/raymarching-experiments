@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -63,7 +63,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.16;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1461,7 +1461,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.35;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1504,17 +1504,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // float mask = 0.;
-  // for (float i = 0.; i < 3.; i++) {
-  //   float localMask = 0.;
-  //   vec3 params = splitParams(i, 0.5 + 0.5 * cos(localCosT));
-  //   q.xy = split(q.xy, localMask, params.x, params.y, params.z);
-  //   mask = max(mask, localMask);
-  // }
-
-  q *= rotationMatrix(vec3(1), 0.3 * PI);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  b.x -= 0.01 * cellular(7. * q);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(b, d);
 
   d.x *= 0.4;
@@ -1646,10 +1637,10 @@ vec3 textures (in vec3 rd) {
 
   dI += 1.1 * gPos;
 
-  dI *= 0.4;
+  dI *= 0.3;
 
   // -- Colors --
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1, -1, 1) * dI + vec3(0, 0.33, 0.67) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
@@ -1767,12 +1758,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  // Triangle wave
-  dI += color;
-  color = triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67));
-  // color += triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67) + 0.5);
+  // // Triangle wave
+  // dI += color;
+  // color = triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67));
+  // // color += triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67) + 0.5);
 
-  // color *= 0.5;
+  color *= 0.75;
 
   gM = m;
 
@@ -1831,13 +1822,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 2.8;
-      // float bumpIntensity = 0.020;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 2.8;
+      float bumpIntensity = 0.090;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1854,8 +1845,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.5;
+      float freCo = 1.2;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -1918,10 +1909,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1935,12 +1926,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
-      // float dispersionI = 0.35;
+      // float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.4);
+      // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
