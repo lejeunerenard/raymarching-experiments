@@ -697,6 +697,22 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
 
+// vec3 versions
+vec3 expo (in vec3 x) {
+  return vec3(
+      expo(x.x),
+      expo(x.y),
+      expo(x.z)
+      );
+}
+vec3 quad (in vec3 x) {
+  return vec3(
+      quad(x.x),
+      quad(x.y),
+      quad(x.z)
+      );
+}
+
 #pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness, mask=sqrMask)
 #pragma glslify: sdFBM = require(./model/sdf-fbm, REPS=7, smoothness=0.6, clipFactor=0.1, smax=smax, smin=smin);
 // #pragma glslify: band = require(./band-filter)
@@ -716,7 +732,18 @@ vec3 nsin (in vec3 t) {
 }
 
 // Logistic function
+// TODO figure out if this outputs from [0, 1]
 float sigmoid ( in float x ) {
+  const float L = 1.0;
+  const float k = 1.0;
+  const float x0 = 4.0;
+
+  x *= 8.0; // Scale so x [0, 1]
+
+  return L / ( 1.0 + exp(-k * (x - x0)) );
+}
+
+vec3 sigmoid ( in vec3 x ) {
   const float L = 1.0;
   const float k = 1.0;
   const float x0 = 4.0;
@@ -1461,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.4;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1485,7 +1512,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.2;
+  float warpScale = 0.6;
   float warpFrequency = 1.4;
   float rollingScale = 1.;
 
@@ -1495,9 +1522,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.x *= -1.;
 
   wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.100000 * 2. * (quad(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
+  wQ += warpScale * 0.100000 * 2. * (sigmoid(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
+  // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * 2. * (sigmoid(2. * triangleWave( 2. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
   wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
   wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.005 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
@@ -1508,11 +1539,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
+  // debating whether to further explore this motion style or going to 2D land for something trippy...
+  // for this motion style i'd like to try to do something dramatic like this but using something different.
+  // the sigmoid does something but requires a much smaller warp scale.
   vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(b, d);
 
-  d.x *= 0.4;
+  d.x *= 0.3;
+
+  float c = length(p) - 1.1 * r;
+  d.x = max(-d.x, c);
+
+  float opening = length(p - vec3(0, 0, 0.34)) - 0.6 * r;
+  d.x = smax(d.x, -opening, 0.15 * r);
 
   return d;
 }
@@ -1853,7 +1893,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 1.2;
       float specCo = 0.8;
 
       float specAll = 0.0;
@@ -1930,18 +1970,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
       isDispersion = true; // Global flag
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      // float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 1.00);
+      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 8.00);
       // float dispersionI = 1.;
-      // dispersionColor *= dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.4);
+      dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
 
 #endif
