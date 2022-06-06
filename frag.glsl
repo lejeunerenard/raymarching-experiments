@@ -1520,16 +1520,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   wQ.x *= -1.;
+  wQ.y *= 0.8;
 
   wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.100000 * 2. * (quad(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  wQ += warpScale * 0.100000 * 2. * (sigmoid(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * 2. * (sigmoid(2. * triangleWave( 2. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
+  // wQ += warpScale * 0.100000 * 2. * (sigmoid(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
+  wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * 2. * (sigmoid(2. * triangleWave( 2. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
+  // wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
+  wQ.xzy = twist(wQ.xyz, 7. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.005 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
@@ -1542,17 +1542,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // debating whether to further explore this motion style or going to 2D land for something trippy...
   // for this motion style i'd like to try to do something dramatic like this but using something different.
   // the sigmoid does something but requires a much smaller warp scale.
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(b, d);
 
   d.x *= 0.3;
 
-  float c = length(p) - 1.1 * r;
-  d.x = max(-d.x, c);
+  // float c = length(p) - 1.1 * r;
+  // d.x = max(-d.x, c);
 
-  float opening = length(p - vec3(0, 0, 0.34)) - 0.6 * r;
-  d.x = smax(d.x, -opening, 0.15 * r);
+  // float opening = length(p - vec3(0, 0, 0.34)) - 0.6 * r;
+  // d.x = smax(d.x, -opening, 0.15 * r);
 
   return d;
 }
@@ -1783,7 +1783,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.025);
 
   float n = dot(mPos, vec3(1));
   n = sin(TWO_PI * 30. * n);
@@ -1893,8 +1893,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.2;
-      float specCo = 0.8;
+      float freCo = 1.5;
+      float specCo = 0.65;
 
       float specAll = 0.0;
 
@@ -1974,7 +1974,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 8.00);
+      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 6.00);
       // float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
