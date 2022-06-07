@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.5;
+float gR = 0.25;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1512,15 +1512,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.6;
+  float warpScale = 0.3;
   float warpFrequency = 1.4;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ.x *= -1.;
-  wQ.y *= 0.8;
+  // wQ.x *= -1.;
 
   wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.100000 * 2. * (sigmoid(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
@@ -1529,7 +1528,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  wQ.xzy = twist(wQ.xyz, 7. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.005 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
@@ -1539,14 +1538,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // debating whether to further explore this motion style or going to 2D land for something trippy...
-  // for this motion style i'd like to try to do something dramatic like this but using something different.
-  // the sigmoid does something but requires a much smaller warp scale.
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // viola. hide the flat side for an easy fix!
+  q *= rotationMatrix(vec3(0, 1, 0), angle3C);
+
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+
+  vec2 pyramidSpace = q.xy;
+  float maxCoord = vmax(abs(q));
+  if (maxCoord == q.x) {
+    pyramidSpace = q.yz;
+  } else if (maxCoord == q.y) {
+    pyramidSpace = q.xz;
+  }
+  vec2 pyramidC = pMod2(pyramidSpace, vec2(0.15 * r));
+  b.x += 0.3 * vmax(abs(pyramidSpace));
   d = dMin(b, d);
 
-  d.x *= 0.3;
+  d.x *= 0.6;
 
   // float c = length(p) - 1.1 * r;
   // d.x = max(-d.x, c);
@@ -1783,7 +1792,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.025);
+  vec3 color = vec3(0);
 
   float n = dot(mPos, vec3(1));
   n = sin(TWO_PI * 30. * n);
