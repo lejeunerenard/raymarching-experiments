@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.22;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1528,7 +1528,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 5. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.005 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
@@ -1538,30 +1538,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // viola. hide the flat side for an easy fix!
-  q *= rotationMatrix(vec3(0, 1, 0), angle3C);
-
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  d = dMin(d, b);
 
-  vec2 pyramidSpace = q.xy;
-  float maxCoord = vmax(abs(q));
-  if (maxCoord == q.x) {
-    pyramidSpace = q.yz;
-  } else if (maxCoord == q.y) {
-    pyramidSpace = q.xz;
-  }
-  vec2 pyramidC = pMod2(pyramidSpace, vec2(0.15 * r));
-  b.x += 0.3 * vmax(abs(pyramidSpace));
-  d = dMin(b, d);
-
-  d.x *= 0.6;
-
-  // float c = length(p) - 1.1 * r;
-  // d.x = max(-d.x, c);
-
-  // float opening = length(p - vec3(0, 0, 0.34)) - 0.6 * r;
-  // d.x = smax(d.x, -opening, 0.15 * r);
+  d.x *= 0.4;
 
   return d;
 }
@@ -1903,7 +1884,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.5;
-      float specCo = 0.65;
+      float specCo = 0.72;
 
       float specAll = 0.0;
 
