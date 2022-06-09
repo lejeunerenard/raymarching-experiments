@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.22;
+float gR = 0.25;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1512,7 +1512,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.3;
+  float warpScale = 0.2;
   float warpFrequency = 1.4;
   float rollingScale = 1.;
 
@@ -1538,11 +1538,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // Hmmm. i naively thought that cropping the center would show the lovely
+  // 'glancing' dispersion but in the center. Of course that doesn't work as
+  // dispersion is masked to be glancing based on the entrance normal not on the
+  // exit normal.... can I change that?
+  // vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.4;
+  // the sphere is more visible but the cube is more interesting.
+  // float crop = length(q) - 0.8 * r;
+  float crop = sdBox(q, vec3(0.55 * r));
+  d.x = max(d.x, -crop);
+
+  // d.x *= 0.4;
 
   return d;
 }
@@ -1883,8 +1892,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
-      float specCo = 0.72;
+      float freCo = 1.0;
+      float specCo = 0.80;
 
       float specAll = 0.0;
 
@@ -1964,7 +1973,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = pow(1. - 1.0 * dot(nor, -rayDirection), 6.00);
+      float dispersionI = pow(0. + 1.0 * dot(dNor, -rayDirection), 6.00);
       // float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
