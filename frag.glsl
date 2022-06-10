@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.20;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1506,14 +1506,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
 
   vec3 q = p;
 
   float warpScale = 0.2;
-  float warpFrequency = 1.4;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1528,7 +1528,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  wQ.xzy = twist(wQ.xyz, 5. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.005 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
   wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
@@ -1538,20 +1538,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // Hmmm. i naively thought that cropping the center would show the lovely
-  // 'glancing' dispersion but in the center. Of course that doesn't work as
-  // dispersion is masked to be glancing based on the entrance normal not on the
-  // exit normal.... can I change that?
-  // vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // the sphere is more visible but the cube is more interesting.
-  // float crop = length(q) - 0.8 * r;
-  float crop = sdBox(q, vec3(0.55 * r));
+  float crop = length(q) - 0.8 * r;
+  // float crop = sdBox(q, vec3(0.55 * r));
   d.x = max(d.x, -crop);
 
-  // d.x *= 0.4;
+  d.x *= 0.7;
 
   return d;
 }
@@ -1893,7 +1889,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.80;
+      float specCo = 0.70;
 
       float specAll = 0.0;
 
@@ -3175,7 +3171,7 @@ void main() {
 // #define pixelated
 #ifdef pixelated
     // Pixelate UVs
-    const float pixelSize = 2.5 * 0.009375;
+    const float pixelSize = 1.0 * 0.009375;
     vec2 innerUV = uv;
     pMod2(innerUV, vec2(pixelSize));
     uv = floor((uv + pixelSize * 0.5) / pixelSize) * pixelSize;
