@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.20;
+float gR = 0.40;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1531,14 +1531,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.005 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
-  wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(31. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(23. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(31. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(3., 3., r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.1 * cellular(3. * q);
   d = dMin(d, b);
@@ -1970,7 +1970,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = pow(0. + 1.0 * dot(dNor, -rayDirection), 6.00);
+      float dispersionI = 1.7 * pow(0. + 1.0 * dot(dNor, -rayDirection), 6.00);
       // float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
