@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.30;
+float gR = 0.65;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1512,8 +1512,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.55;
-  float warpFrequency = 1.7;
+  float warpScale = 0.5;
+  float warpFrequency = 2.7;
   float rollingScale = 1.;
 
   // Warp
@@ -1526,7 +1526,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.050000 * 2. * (sigmoid(2. * triangleWave( 2. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
   // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
@@ -1539,16 +1539,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.1 * cellular(3. * q);
   //
-  float innerR = 0.7 * r;
+  float innerR = 0.4 * r;
   q *= rotationMatrix(vec3(1), 0.15 * PI);
-  float inner = sdHollowBox(q, vec3(innerR), 0.7 * innerR);
-  // float inner = icosahedral(q, 52., innerR);;
-  b.x = max(b.x, -inner);
+  // float inner = sdHollowBox(q, vec3(innerR), 0.7 * innerR);
+  float inner = sdBox(q, vec3(innerR));
+  // float inner = icosahedral(q, 52., innerR); // never seems to work as an interior. The light just dies.
+  // b.x = max(b.x, -inner);
 
   d = dMin(d, b);
 
@@ -1902,7 +1903,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.5;
-      float specCo = 0.85;
+      float specCo = 0.2;
 
       float specAll = 0.0;
 
