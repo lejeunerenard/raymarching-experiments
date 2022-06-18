@@ -1488,7 +1488,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.65;
+float gR = 0.30;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1512,7 +1512,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.3;
   float warpFrequency = 2.7;
   float rollingScale = 1.;
 
@@ -1553,8 +1553,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   d = dMin(d, b);
 
-  // b = vec3(octahedral(q, 62., 1.125 * r), 0, 0);
-  // d = dMin(d, b);
+  float crop = sdBox(p * rotationMatrix(vec3(1), -0.4 * PI), vec3(1, 0.2 * r, 1));
+  d.x = max(d.x, crop);
+
+  // q = p;
+  float antiCrop = sdBox(q, vec3(1));
+  b = vec3(icosahedral(q, 62., r), 1, 0);
+  b.x *= 0.8;
+  antiCrop = max(antiCrop, -crop);
+  b.x = max(b.x, antiCrop);
+  d = dMin(d, b);
 
   // // the sphere is more visible but the cube is more interesting.
   // float crop = length(q) - 0.8 * r;
@@ -1820,6 +1828,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color = triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67));
   // // color += triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67) + 0.5);
 
+  color = mix(color, vec3(0.025), isMaterialSmooth(m, 1.));
   // color *= 0.75;
 
   gM = m;
@@ -1902,8 +1911,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.2;
+      float freCo = 1.0;
+      float specCo = 0.5;
 
       float specAll = 0.0;
 
@@ -1985,7 +1994,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       float dispersionI = 1.7 * pow(0. + 1.0 * dot(dNor, -rayDirection), 6.00);
       // float dispersionI = 1.;
-      dispersionColor *= dispersionI;
+      dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
