@@ -1522,15 +1522,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x *= -1.;
 
   wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.100000 * 2. * (sigmoid(2. * triangleWave( 1. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
   wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * 2. * (sigmoid(2. * triangleWave( 2. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
+  wQ += warpScale * 0.05000 * snoise3(vec3(10, 5., 5.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.025000 * 2. * (sigmoid(2. * triangleWave( 3. * warpFrequency * wQ.yzx + t) - 1.) - 0.5);
-  // wQ.xzy = twist(wQ.xyz, 3. * wQ.y);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * triangleWave( 9. * warpFrequency * wQ.yzx + t);
   wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
   wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
@@ -1552,22 +1548,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x = max(b.x, -inner);
 
   d = dMin(d, b);
-
-  float crop = sdBox(p * rotationMatrix(vec3(1), -0.4 * PI), vec3(1, 0.2 * r, 1));
-  d.x = max(d.x, crop);
-
-  // q = p;
-  float antiCrop = sdBox(q, vec3(1));
-  b = vec3(icosahedral(q, 62., r), 1, 0);
-  b.x *= 0.8;
-  antiCrop = max(antiCrop, -crop);
-  b.x = max(b.x, antiCrop);
-  d = dMin(d, b);
-
-  // // the sphere is more visible but the cube is more interesting.
-  // float crop = length(q) - 0.8 * r;
-  // // float crop = sdBox(q, vec3(0.55 * r));
-  // d.x = max(d.x, -crop);
 
   d.x *= 0.7;
 
