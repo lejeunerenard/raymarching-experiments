@@ -1512,7 +1512,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.3;
+  float warpScale = 0.4;
   float warpFrequency = 2.7;
   float rollingScale = 1.;
 
@@ -1527,7 +1527,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx);
+  wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
   wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
@@ -1535,8 +1535,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.1 * cellular(3. * q);
   //
@@ -1868,7 +1868,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 2.8;
+      float bumpsScale = 3.8;
       float bumpIntensity = 0.090;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
@@ -1972,7 +1972,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 1.7 * pow(0. + 1.0 * dot(dNor, -rayDirection), 6.00);
+      float dispersionI = 1.7 * pow(0. + 1.0 * dot(dNor, -rayDirection), 4.00);
       // float dispersionI = 1.;
       dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
 
