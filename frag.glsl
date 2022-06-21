@@ -1506,7 +1506,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
 
@@ -1521,35 +1521,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.x *= -1.;
 
-  wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.05000 * snoise3(vec3(10, 5., 5.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  // wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.05000 * snoise3(vec3(10, 5., 5.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // b.x -= 0.1 * cellular(3. * q);
-  //
-  float innerR = 0.4 * r;
-  q *= rotationMatrix(vec3(1), 0.15 * PI);
-  // float inner = sdHollowBox(q, vec3(innerR), 0.7 * innerR);
-  float inner = sdBox(q, vec3(innerR));
-  // float inner = icosahedral(q, 52., innerR); // never seems to work as an interior. The light just dies.
-  // b.x = max(b.x, -inner);
+  float m = step(0.125, abs(dot(q, vec3(1))));
+  // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), m, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
+  // vec3 b = vec3(length(q) - r, m, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
+  // b.x -= 0.01 * cellular(3. * q);
 
   d = dMin(d, b);
 
-  d.x *= 0.7;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1892,7 +1887,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.5;
+      float specCo = mix(0.5, 1.0, isMaterialSmooth(t.y, 0.));
 
       float specAll = 0.0;
 
@@ -1972,9 +1967,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 1.7 * pow(0. + 1.0 * dot(dNor, -rayDirection), 4.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -rayDirection), 4.00);
       // float dispersionI = 1.;
-      dispersionColor *= isMaterialSmooth(t.y, 0.) * dispersionI;
+      dispersionColor *= isMaterialSmooth(t.y, 1.) * dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
