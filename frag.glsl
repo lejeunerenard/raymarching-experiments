@@ -1521,20 +1521,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.x *= -1.;
 
-  // wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.05000 * snoise3(vec3(10, 5., 5.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.05000 * snoise3(vec3(10, 5., 5.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float m = step(0.125, abs(dot(q, vec3(1))));
+  float m = 1.; // step(0.125, abs(dot(q, vec3(1))));
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), m, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
   // vec3 b = vec3(length(q) - r, m, 0);
@@ -1542,6 +1542,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
   // b.x -= 0.01 * cellular(3. * q);
 
+  d = dMin(d, b);
+
+  b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
