@@ -55,6 +55,7 @@ vec3 gPos = vec3(0.0);
 vec3 gNor = vec3(0.0);
 vec3 gRd = vec3(0.0);
 vec3 dNor = vec3(0.0);
+vec3 dRd = vec3(0.0);
 
 const vec3 un = vec3(1., -1., 0.);
 #pragma glslify: import(./time)
@@ -1512,7 +1513,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.4;
+  float warpScale = 0.3;
   float warpFrequency = 2.7;
   float rollingScale = 1.;
 
@@ -1538,14 +1539,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), m, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
   // vec3 b = vec3(length(q) - r, m, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
   // b.x -= 0.01 * cellular(3. * q);
 
   d = dMin(d, b);
 
-  b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
-  d = dMin(d, b);
+  // b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
+  // d = dMin(d, b);
 
   d.x *= 0.3;
 
@@ -1760,6 +1761,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   vec3 reflectionPoint = gPos - gNor * 0.1 + rd * d;
   vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001, sine(norT));
   dNor = reflectionPointNor;
+  dRd = rd;
   reflectionPointNor = normalize(reflectionPointNor);
 
   vec3 disp = min(1.5, 1.0 / d) * dispersion(reflectionPointNor, rd, n2, n1);
@@ -1970,7 +1972,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -rayDirection), 4.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 4.00);
       // float dispersionI = 1.;
       dispersionColor *= isMaterialSmooth(t.y, 1.) * dispersionI;
 
