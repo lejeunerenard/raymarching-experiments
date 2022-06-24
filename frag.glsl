@@ -1507,13 +1507,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  p *= globalRot;
+  p = abs(p);
 
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * t);
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.3;
+  float warpScale = 0.2;
   float warpFrequency = 2.7;
   float rollingScale = 1.;
 
@@ -1529,18 +1529,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  q *= rotationMatrix(vec3(1), 0.3 * PI );
+
   float m = 1.; // step(0.125, abs(dot(q, vec3(1))));
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), m, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
   // vec3 b = vec3(length(q) - r, m, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
   // b.x -= 0.01 * cellular(3. * q);
 
   d = dMin(d, b);
