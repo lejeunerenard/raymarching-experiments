@@ -1509,46 +1509,67 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // p *= globalRot;
 
+  p *= rotationMatrix(vec3(1), -0.3 * PI);
+
   vec3 q = p;
 
-  float warpScale = 0.7;
-  float warpFrequency = 0.3;
+  float warpScale = 0.3;
+  float warpFrequency = 0.7;
   float rollingScale = 1.;
+
+  float separate = 0.3 * r * (0.5 + 0.5 * cos(localCosT));
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ = abs(wQ);
-
-  wQ *= rotationMatrix(vec3(1), localCosT);
-
   wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.05000 * snoise3(vec3(10, 5., 5.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  wQ += warpScale * 0.15000 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  vec3 outerP = p;
+  outerP -= vec3(0, separate, 0);
+
   float m = 1.; // step(0.125, abs(dot(q, vec3(1))));
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), m, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
-  // vec3 b = vec3(length(q) - r, m, 0);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(0.9 * r, separate)), m, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
   // b.x -= 0.01 * cellular(3. * q);
 
+  // Crop top off
+  b.x = max(b.x, outerP.y);
+
+  d = dMin(d, b);
+  d.x *= 0.2;
+
+  // Outer
+  outerP = p;
+  outerP += vec3(0, separate, 0);
+  float bump = cellular(8. * outerP);
+
+  b = vec3(length(outerP) - r, 0, 0);
+  b.x -= 0.025 * bump;
+  b.x = max(b.x, outerP.y);
+  b.x *= 0.6;
   d = dMin(d, b);
 
-  // b = vec3(sdBox(q, vec3(0.8 * r)), 0, 0);
-  // d = dMin(d, b);
-
-  d.x *= 0.7;
+  outerP = p;
+  outerP -= vec3(0, separate, 0);
+  bump = cellular(8. * outerP);
+  b = vec3(length(outerP) - r, 0, 0);
+  b.x -= 0.025 * bump;
+  b.x = max(b.x, -outerP.y);
+  b.x *= 0.6;
+  d = dMin(d, b);
 
   return d;
 }
@@ -1808,7 +1829,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color = triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67));
   // // color += triangleWave(vec3(1) * dI + vec3(0.33, 0, 0.67) + 0.5);
 
-  color = mix(color, vec3(0.025), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
   // color *= 0.75;
 
   gM = m;
@@ -1891,8 +1912,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = mix(0.5, 1.0, isMaterialSmooth(t.y, 0.));
+      float freCo = mix(0.7, 1., isMaterialSmooth(t.y, 1.));
+      float specCo = mix(1.0, 0.7, isMaterialSmooth(t.y, 0.));
 
       float specAll = 0.0;
 
@@ -1957,7 +1978,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // reflectColor += isMaterialSmooth(t.y, 1.) * 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
