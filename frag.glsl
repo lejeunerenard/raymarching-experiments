@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 128
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.0625;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1509,7 +1509,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // p *= globalRot;
 
-  p *= rotationMatrix(vec3(1), -0.3 * PI);
+  // p *= rotationMatrix(vec3(1), -0.3 * PI);
 
   vec3 q = p;
 
@@ -1522,54 +1522,57 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.15000 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  // wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.15000 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
+  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  // // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  // // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 outerP = p;
-  outerP -= vec3(0, separate, 0);
+  float numTreads = 28.;
+  float baseR = 3. * r;
+  float baseThick = 0.25;
 
-  float m = 1.; // step(0.125, abs(dot(q, vec3(1))));
-  // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.7 * r), m, 0);
-  vec3 b = vec3(sdCappedCylinder(q, vec2(0.9 * r, separate)), m, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
-  // b.x -= 0.01 * cellular(3. * q);
+  vec3 spiralQ = (q);
+  spiralQ.z = abs(spiralQ.z);
+  spiralQ.z -= 0.3 * r;
+  spiralQ *= rotationMatrix(vec3(1, 0, 0), -0.05 * PI);
+  spiralQ.xy *= rotMat2(spiralQ.z + localCosT);
 
-  // Crop top off
-  b.x = max(b.x, outerP.y);
+  float c = pModPolar(spiralQ.xy, numTreads);
 
-  d = dMin(d, b);
-  d.x *= 0.2;
-
-  // Outer
-  outerP = p;
-  outerP += vec3(0, separate, 0);
-  float bump = cellular(8. * outerP);
-
-  b = vec3(length(outerP) - r, 0, 0);
-  b.x -= 0.025 * bump;
-  b.x = max(b.x, outerP.y);
-  b.x *= 0.6;
+  vec3 b = vec3(sdBox(spiralQ - vec3(baseR, 0, 0), r * vec3(vec2(baseThick), 1)), 1, 0);
   d = dMin(d, b);
 
-  outerP = p;
-  outerP -= vec3(0, separate, 0);
-  bump = cellular(8. * outerP);
-  b = vec3(length(outerP) - r, 0, 0);
-  b.x -= 0.025 * bump;
-  b.x = max(b.x, -outerP.y);
-  b.x *= 0.6;
+  spiralQ = q;
+  spiralQ.z = abs(spiralQ.z);
+  spiralQ.z -= 2. * r;
+  spiralQ.xy *= rotMat2(-spiralQ.z - localCosT);
+
+  pModPolar(spiralQ.xy, 8. + numTreads);
+
+  b = vec3(sdBox(spiralQ - vec3(0.9 * baseR, 0, 0), r * vec3(vec2(baseThick), 1)), 1, 0);
   d = dMin(d, b);
+
+  float numberOfTreadsInBack = 54. + numTreads;
+  spiralQ = q;
+  spiralQ.x -= (3. + 4.) * baseR;
+  spiralQ.y += 1.75 * baseR;
+  spiralQ.z = abs(spiralQ.z);
+  spiralQ.xy *= rotMat2(-spiralQ.z + localCosT * 2. / numberOfTreadsInBack);
+
+  pModPolar(spiralQ.xy, numberOfTreadsInBack);
+
+  b = vec3(sdBox(spiralQ - vec3(6.0 * baseR, 0, 0), r * vec3(vec2(2. * baseThick), 19)), 1, 0);
+  d = dMin(d, b);
+
+  d.x *= 0.8;
 
   return d;
 }
@@ -1889,13 +1892,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 3.8;
-      float bumpIntensity = 0.090;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 3.8;
+      // float bumpIntensity = 0.090;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1912,8 +1915,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(0.7, 1., isMaterialSmooth(t.y, 1.));
-      float specCo = mix(1.0, 0.7, isMaterialSmooth(t.y, 0.));
+      float freCo = 0.7;
+      float specCo = 0.7;
 
       float specAll = 0.0;
 
@@ -1976,10 +1979,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += isMaterialSmooth(t.y, 1.) * 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
