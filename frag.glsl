@@ -1507,7 +1507,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(1), -0.3 * PI);
 
@@ -1525,7 +1525,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   // // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.15000 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
-  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 3. * wQ.z);
   // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
   // // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
@@ -1535,42 +1535,52 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float numTreads = 28.;
+  float numTreads = 38.;
   float baseR = 3. * r;
   float baseThick = 0.25;
 
-  vec3 spiralQ = (q);
+  vec3 spiralQ = q;
+
+  spiralQ *= rotationMatrix(vec3(-0.2, 1, 0.5), 0.2 * PI);
+
   spiralQ.z = abs(spiralQ.z);
   spiralQ.z -= 0.3 * r;
   spiralQ *= rotationMatrix(vec3(1, 0, 0), -0.05 * PI);
-  spiralQ.xy *= rotMat2(spiralQ.z + localCosT);
+  spiralQ.xy *= rotMat2(spiralQ.z + localCosT * 18. / numTreads);
 
   float c = pModPolar(spiralQ.xy, numTreads);
 
   vec3 b = vec3(sdBox(spiralQ - vec3(baseR, 0, 0), r * vec3(vec2(baseThick), 1)), 1, 0);
   d = dMin(d, b);
 
+  // Ring 2
   spiralQ = q;
+
+  spiralQ += vec3(-0.075, 0.08, -0.05);
+  spiralQ *= rotationMatrix(-1. * vec3(-0.2, 1, 0.75), 0.6 * PI);
+
   spiralQ.z = abs(spiralQ.z);
-  spiralQ.z -= 2. * r;
-  spiralQ.xy *= rotMat2(-spiralQ.z - localCosT);
+  spiralQ.z -= 0.3 * r;
+  spiralQ *= rotationMatrix(vec3(1, 0, 0), -0.05 * PI);
+  spiralQ.xy *= rotMat2(spiralQ.z - localCosT * 22. / numTreads);
 
-  pModPolar(spiralQ.xy, 8. + numTreads);
+  c = pModPolar(spiralQ.xy, numTreads);
 
-  b = vec3(sdBox(spiralQ - vec3(0.9 * baseR, 0, 0), r * vec3(vec2(baseThick), 1)), 1, 0);
+  b = vec3(sdBox(spiralQ - vec3(baseR, 0, 0), r * vec3(vec2(baseThick), 1)), 1, 0);
   d = dMin(d, b);
 
-  float numberOfTreadsInBack = 54. + numTreads;
-  spiralQ = q;
-  spiralQ.x -= (3. + 4.) * baseR;
-  spiralQ.y += 1.75 * baseR;
-  spiralQ.z = abs(spiralQ.z);
-  spiralQ.xy *= rotMat2(-spiralQ.z + localCosT * 2. / numberOfTreadsInBack);
 
-  pModPolar(spiralQ.xy, numberOfTreadsInBack);
+  // float numberOfTreadsInBack = 54. + numTreads;
+  // spiralQ = q;
+  // spiralQ.x -= (3. + 4.) * baseR;
+  // spiralQ.y += 1.75 * baseR;
+  // spiralQ.z = abs(spiralQ.z);
+  // spiralQ.xy *= rotMat2(-spiralQ.z + localCosT * 2. / numberOfTreadsInBack);
 
-  b = vec3(sdBox(spiralQ - vec3(6.0 * baseR, 0, 0), r * vec3(vec2(2. * baseThick), 19)), 1, 0);
-  d = dMin(d, b);
+  // pModPolar(spiralQ.xy, numberOfTreadsInBack);
+
+  // b = vec3(sdBox(spiralQ - vec3(6.0 * baseR, 0, 0), r * vec3(vec2(2. * baseThick), 19)), 1, 0);
+  // d = dMin(d, b);
 
   d.x *= 0.8;
 
@@ -1981,7 +1991,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.40 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1996,7 +2006,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 4.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 3.00);
       // float dispersionI = 1.;
       dispersionColor *= isMaterialSmooth(t.y, 1.) * dispersionI;
 
