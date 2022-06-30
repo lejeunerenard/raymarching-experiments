@@ -1507,13 +1507,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   // p *= rotationMatrix(vec3(1), -0.3 * PI);
 
   vec3 q = p;
 
-  float warpScale = 0.3;
+  float warpScale = 0.2;
   float warpFrequency = 0.7;
   float rollingScale = 1.;
 
@@ -1521,17 +1521,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
+  wQ.z = abs(wQ.z);
 
-  wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   // // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.15000 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
-  wQ.xzy = twist(wQ.xyz, 5. * wQ.y);
-  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // // wQ += warpScale * 0.00500 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  // // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  wQ += warpScale * 0.07500 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 7. * wQ.y + 1.0 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.00250 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
+  wQ += warpScale * 0.006250 * cos(29. * warpFrequency * wQ.yzx + localCosT);
 
-  wQ.y *= 0.7;
+  // wQ.y *= 0.7;
 
   // Commit warp
   q = wQ.xyz;
@@ -1543,19 +1545,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 spiralQ = q;
 
-  spiralQ *= rotationMatrix(vec3(-0.2, 1, 0.5), 0.2 * PI);
+  // spiralQ *= rotationMatrix(vec3(-0.2, 1, 0.5), 0.2 * PI);
 
   spiralQ.z = abs(spiralQ.z);
   spiralQ.z -= 0.3 * r;
-  spiralQ *= rotationMatrix(vec3(1, 0, 0), -0.05 * PI);
-  spiralQ.xy *= rotMat2(spiralQ.z + localCosT * 18. / numTreads);
+  // spiralQ.xy *= rotMat2(spiralQ.z + localCosT * 18. / numTreads);
 
-  float c = pModPolar(spiralQ.xy, numTreads);
+  pMod1(spiralQ.y, 0.90 * 2. * r * baseThick);
+  // float c = pModPolar(spiralQ.xy, numTreads);
 
-  vec3 b = vec3(sdBox(spiralQ - vec3(baseR, 0, 0), r * vec3(vec2(baseThick), 1)), 1, 0);
+  spiralQ *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
+  // spiralQ *= rotationMatrix(vec3(1, 0, 0), -0.05 * PI);
+
+  vec3 b = vec3(sdBox(spiralQ, r * vec3(vec2(baseThick), 1)), 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  d.x *= 0.6;
 
   return d;
 }
