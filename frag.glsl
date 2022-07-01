@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.0625;
+float gR = 0.30;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1503,17 +1503,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 beltDims = vec3(2.0, 0.065, 0.175);
 
-  // const float tilt = 0.080 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
+  const float tilt = 0.080 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
   // p *= globalRot;
 
-  // p *= rotationMatrix(vec3(1), -0.3 * PI);
-
   vec3 q = p;
 
-  float warpScale = 0.2;
+  float warpScale = 0.7;
   float warpFrequency = 0.7;
   float rollingScale = 1.;
 
@@ -1521,46 +1519,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
-  wQ.z = abs(wQ.z);
 
-  // wQ += warpScale * 0.100000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // // wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.07500 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
-  wQ.xzy = twist(wQ.xyz, 7. * wQ.y + 1.0 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
+  wQ.xzy = twist(wQ.xyz, 8. * wQ.y + 1.0 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.00250 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
+  // wQ += warpScale * 0.00250 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
   // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
-  wQ += warpScale * 0.006250 * cos(29. * warpFrequency * wQ.yzx + localCosT);
-
-  // wQ.y *= 0.7;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float numTreads = 78.;
-  float baseR = 3. * r;
-  float baseThick = 0.12125;
-
-  vec3 spiralQ = q;
-
-  // spiralQ *= rotationMatrix(vec3(-0.2, 1, 0.5), 0.2 * PI);
-
-  spiralQ.z = abs(spiralQ.z);
-  spiralQ.z -= 0.3 * r;
-  // spiralQ.xy *= rotMat2(spiralQ.z + localCosT * 18. / numTreads);
-
-  pMod1(spiralQ.y, 0.90 * 2. * r * baseThick);
-  // float c = pModPolar(spiralQ.xy, numTreads);
-
-  spiralQ *= rotationMatrix(vec3(0, 0, 1), 0.25 * PI);
-  // spiralQ *= rotationMatrix(vec3(1, 0, 0), -0.05 * PI);
-
-  vec3 b = vec3(sdBox(spiralQ, r * vec3(vec2(baseThick), 1)), 1, 0);
+  vec3 b = vec3(length(q) - r, 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.6;
+  d.x *= 0.9;
 
   return d;
 }
@@ -1880,13 +1856,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 3.8;
-      // float bumpIntensity = 0.090;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 3.8;
+      float bumpIntensity = 0.090;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1903,8 +1879,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.9;
+      float freCo = 0.7;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
@@ -1984,9 +1960,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 3.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 6.00);
       // float dispersionI = 1.;
-      dispersionColor *= isMaterialSmooth(t.y, 1.) * dispersionI;
+      dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
@@ -2064,14 +2040,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // // Glow
-      // float stepScaleAdjust = 1.0;
-      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // vec3 glowColor = vec3(1);
-      // const float stopPoint = 0.5;
-      // // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // // i = pow(i, 0.90);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      // Glow
+      float stepScaleAdjust = 1.0;
+      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      vec3 glowColor = vec3(1);
+      const float stopPoint = 0.5;
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.90);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
