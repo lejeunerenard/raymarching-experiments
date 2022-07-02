@@ -1511,8 +1511,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.7;
-  float warpFrequency = 0.7;
+  float warpScale = 1.0;
+  float warpFrequency = 1.7;
   float rollingScale = 1.;
 
   float separate = 0.3 * r * (0.5 + 0.5 * cos(localCosT));
@@ -1523,20 +1523,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
-  wQ.xzy = twist(wQ.xyz, 8. * wQ.y + 1.0 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.00250 * snoise3(vec3(20., 20., 10.) * wQ.yzx + cos(PI * vec3(0, 0.5, 1) + localCosT));
-  // wQ += warpScale * 0.00250 * snoise3(2. * vec3(10., 20., 20.) * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 1, 0);
+  // vec3 b = vec3(length(q) - r, 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.9;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1879,7 +1879,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.8;
       float specCo = 0.6;
 
       float specAll = 0.0;
