@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.30;
+float gR = 0.50;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1511,8 +1511,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.7;
+  float warpScale = 0.7;
+  float warpFrequency = 2.3;
   float rollingScale = 1.;
 
   float separate = 0.3 * r * (0.5 + 0.5 * cos(localCosT));
@@ -1531,10 +1531,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 1, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  vec3 b = vec3(length(q) - r, 1, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
   d = dMin(d, b);
+
+  // float crop = sdBox(q, vec3(0.5 * r));
+  // d.x = max(d.x, -crop);
 
   d.x *= 0.5;
 
@@ -1659,7 +1662,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.2 * snoise3(0.1 * rd);
   dI += 0.2 * pow(dNR, 3.);
 
-  dI += 0.25 * sin(TWO_PI * rd.x);
+  // dI += 0.25 * sin(TWO_PI * rd.x);
   dI *= angle1C;
   dI += angle2C;
 
