@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.50;
+float gR = 0.30;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1511,7 +1511,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.7;
+  float warpScale = 0.5;
   float warpFrequency = 2.3;
   float rollingScale = 1.;
 
@@ -1523,17 +1523,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz, 5. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
+  // wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos(19. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 1, 0);
+  // vec3 b = vec3(length(q) - r, 1, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
   d = dMin(d, b);
 
   // float crop = sdBox(q, vec3(0.5 * r));
@@ -1957,6 +1957,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += refractColor;
 
 #ifndef NO_MATERIALS
+
+      dNor = gNor;
 
       isDispersion = true; // Global flag
       vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
