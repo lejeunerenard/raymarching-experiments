@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.65;
+float gR = 0.22;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1511,7 +1511,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5;
+  float warpScale = 0.5;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1530,8 +1530,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 1, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 1, 0);
+  // vec3 b = vec3(length(q) - r, 1, 0);
+  vec3 b = vec3(octahedral(q, 52., r), 1, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
   d = dMin(d, b);
 
@@ -2044,12 +2044,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float stepScaleAdjust = 1.0;
+      float stepScaleAdjust = 0.5;
       float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(1);
-      const float stopPoint = 0.5;
+      vec3 glowColor = vec3(0.9, 0.95, 1);
+      // const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.90);
+      i = pow(i, 0.90);
       color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
