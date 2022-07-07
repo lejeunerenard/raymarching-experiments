@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.22;
+float gR = 0.25;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1511,8 +1511,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.0;
+  float warpScale = 1.5;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   float separate = 0.3 * r * (0.5 + 0.5 * cos(localCosT));
@@ -1520,25 +1520,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.050000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * snoise3(vec3(10, 0.2, 10) * wQ.yzx);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
   wQ.xzy = twist(wQ.xyz, 7. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 1, 0);
-  vec3 b = vec3(octahedral(q, 52., r), 1, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
+  vec3 b = vec3(length(q) - r, 1, 0);
   d = dMin(d, b);
 
-  // float crop = sdBox(q, vec3(0.5 * r));
-  // d.x = max(d.x, -crop);
-
-  d.x *= 0.5;
+  d.x *= 0.8;
 
   return d;
 }
