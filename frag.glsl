@@ -1521,18 +1521,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 7. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(13. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(17. * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 4, r)), 1, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  d.x *= 0.6;
 
   return d;
 }
@@ -1664,7 +1666,8 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.3;
 
   // -- Colors --
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
@@ -2037,14 +2040,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float stepScaleAdjust = 0.5;
-      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(0.9, 0.95, 1);
-      // const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      i = pow(i, 0.90);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float stepScaleAdjust = 0.5;
+      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // vec3 glowColor = vec3(0.9, 0.95, 1);
+      // // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.90);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
