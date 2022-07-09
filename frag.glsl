@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.13;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1520,18 +1520,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4.123 * warpFrequency * wQ.yzx + localCosT);
   wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 5. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos( 7. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(13. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(17. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.025000 * cos( 5.716 * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos( 7.933 * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(13.242 * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(17.749 * warpFrequency * wQ.yzx + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r, 4, r)), 1, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 0.4, r)), 1, 0);
   d = dMin(d, b);
 
   d.x *= 0.6;
@@ -1667,7 +1667,8 @@ vec3 textures (in vec3 rd) {
 
   // -- Colors --
   // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
+  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
+  color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
@@ -1960,7 +1961,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 6.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 4.00);
       // float dispersionI = 1.;
       dispersionColor *= dispersionI;
 
