@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.13;
+float gR = 0.07;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1520,19 +1520,50 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.050000 * cos( 4.123 * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 5.716 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos( 7.933 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(13.242 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(17.749 * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.050000 * cos( 4.123 * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
+  // wQ += warpScale * 0.025000 * cos( 5.716 * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos( 7.933 * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(13.242 * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(17.749 * warpFrequency * wQ.yzx + localCosT);
+
+  // pModPolar(wQ.zx, 4.);
+  // pModPolar(wQ.zy, 4.);
+
+  // float cellCount = 2.;
+
+  // wQ = abs(wQ);
+  // wQ.z -= (cellCount * 1.5) * r;
+
+  // wQ.xy = opRepLim(wQ.xy, r, vec2(cellCount));
+  vec2 c = pMod2(wQ.xy, vec2(r));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r, 0.4, r)), 1, 0);
+  q.xy = abs(q.xy);
+
+  if (q.y > q.x) {
+    q.yx = q.xy;
+  }
+  q.x -= 0.5 * r;
+
+  vec3 localQ = q;
+  localQ.yz *= rotMat2(0.2 * PI);
+  vec3 b = vec3(sdBox(localQ, vec3(0.5 * r, vec2(0.1 * r))), 1, 0);
   d = dMin(d, b);
+
+  localQ = q;
+  localQ.y -= 0.30 * r;
+  localQ.yz *= rotMat2(0.25 * PI);
+  localQ.xy *= rotMat2(-0.1 * PI + localCosT + 0.025 * PI * dot(c, vec2(1)));
+  b = vec3(sdBox(localQ, vec3(0.5 * r, vec2(0.1 * r))), 1, 0);
+  d = dMin(d, b);
+
+  // q = p;
+  // b = vec3(sdBox(q, r * vec3(cellCount + 1.0) - 0.1 * r), 1, 0);
+  // d = dMin(d, b);
 
   d.x *= 0.6;
 
@@ -1855,13 +1886,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 3.8;
-      float bumpIntensity = 0.090;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 3.8;
+      // float bumpIntensity = 0.090;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
