@@ -2952,17 +2952,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   vec2 wQ = q.xy;
 
-  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + 1. * localCosT + 0.3837 + length(wQ));
-  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + 1. * localCosT + 4.937);
-  // wQ *= rotMat2(0.05 * PI *cos(localCosT + 0. * length(q)));
-  // wQ += warpScale * 0.02500 * triangleWave( -8. * vec2( 1,-1) * wQ.yx + 1. * t + length(wQ));
+  vec2 c = pMod2(wQ, vec2(0.03));
+
+  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
+  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  // wQ *= rotMat2(0.05 * PI *cos(localCosT));
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+
+  wQ *= rotMat2(0.2 * snoise2(c + cos(localCosT)) + localCosT + 0.1 * dot(c, vec2(-1, 1)) + 0.15 * length(c));
 
   q = wQ;
   mUv = q;
 
-  vec2 o = vec2(sdBox(q, vec2(r)), 0.);
+  vec2 o = vec2(sdBox(q, vec2(0.015, 0.00006)), 0.);
+  // o.x = sin(TWO_PI * 20. * o.x);
   d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(r));
@@ -2971,8 +2975,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   float n = d.x;
 
-  // // Hard Edge
-  // n = smoothstep(0., edge, n + 0.);
+  // Hard Edge
+  n = smoothstep(0., edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -2982,8 +2986,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Solid
   // color = vec3(1);
 
-  // // B&W
-  // color = vec3(n);
+  // B&W
+  color = vec3(n);
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -2991,13 +2995,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // JS colors
   // color = mix(colors1, colors2, n);
 
-  // Cosine Palette
-  vec3 dI = vec3(n);
-  // dI += 0.125 * fallOff;
-  dI += dot(uv, vec2(0.4));
-  dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
-  dI *= 0.75;
-  color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // // Cosine Palette
+  // vec3 dI = vec3(n);
+  // // dI += 0.125 * fallOff;
+  // dI += dot(uv, vec2(0.4));
+  // dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
+  // dI *= 0.75;
+  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // // Stripes
   // // const float numStripes = 30.;
@@ -3086,7 +3090,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   // vec3 color = vec3(0);
 
