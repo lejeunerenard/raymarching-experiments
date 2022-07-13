@@ -2949,11 +2949,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   const float warpScale = 1.2;
   float r = 0.09;
-  float size = 0.06;
+  float size = 0.05;
 
   vec2 wQ = q.xy;
 
   vec2 c = pMod2(wQ, vec2(size));
+
+  c *= 0.6;
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -2961,18 +2963,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  wQ *= rotMat2(0.3 * snoise2(c + cos(localCosT)) + localCosT + 0.1 * dot(c, vec2(-1,-1)) - 0.15 * length(c));
+  wQ *= rotMat2(0.1 * PI * cos(localCosT + 0.1 * length(c)) + 0.1 * snoise2(c) + 0.15 * length(c));
 
   q = wQ;
   mUv = q;
 
   vec2 o = vec2(sdBox(q, vec2(0.2 * size, 0.00006)), 0.);
-  // o.x = sin(TWO_PI * 20. * o.x);
   d = dMin(d, o);
 
-  float mask = sdBox(c, vec2(5));
-  mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
+  // float mask = sdBox(c, vec2(9));
+  // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
 
   float n = d.x;
 
@@ -3054,7 +3055,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
@@ -3091,7 +3092,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   vec3 color = vec3(0);
 
