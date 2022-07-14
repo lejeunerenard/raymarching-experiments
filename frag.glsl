@@ -2949,7 +2949,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   const float warpScale = 1.2;
   float r = 0.09;
-  float size = 0.05;
+  float size = 0.015;
 
   vec2 wQ = q.xy;
 
@@ -2963,12 +2963,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  wQ *= rotMat2(0.1 * PI * cos(localCosT + 0.1 * length(c)) + 0.1 * snoise2(c) + 0.15 * length(c));
+  wQ *= rotMat2(0.5 * PI * cos(localCosT - 0.1 * dot(abs(c), vec2(1))) + 0.5 * snoise2(c) + 0.15 * length(c));
 
   q = wQ;
   mUv = q;
 
-  vec2 o = vec2(sdBox(q, vec2(0.2 * size, 0.00006)), 0.);
+  vec2 o = vec2(sdBox(q, vec2(0.4 * size, 0.00006)), 0.);
   d = dMin(d, o);
 
   // float mask = sdBox(c, vec2(9));
