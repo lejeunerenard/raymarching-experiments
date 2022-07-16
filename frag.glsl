@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.07;
+float gR = 0.3;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1515,8 +1515,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpFrequency = 2.0;
   float rollingScale = 1.;
 
-  float separate = 0.3 * r * (0.5 + 0.5 * cos(localCosT));
-
   // Warp
   vec3 wQ = q.xyz;
 
@@ -1527,35 +1525,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.006250 * cos(13.242 * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.003125 * cos(17.749 * warpFrequency * wQ.yzx + localCosT);
 
-  // float cellCount = 2.;
-
-  // wQ = abs(wQ);
-  // wQ.z -= (cellCount * 1.5) * r;
-
-  // wQ.xy = opRepLim(wQ.xy, r, vec2(cellCount));
-  vec2 c = pMod2(wQ.xy, vec2(r));
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q.xy = abs(q.xy);
-
-  if (q.y > q.x) {
-    q.yx = q.xy;
-  }
-  q.x -= 0.5 * r;
-
-  vec3 localQ = q;
-  localQ.yz *= rotMat2(0.2 * PI);
-  vec3 b = vec3(sdBox(localQ, vec3(0.5 * r, vec2(0.1 * r))), 1, 0);
-  d = dMin(d, b);
-
-  localQ = q;
-  localQ.y -= 0.30 * r;
-  localQ.yz *= rotMat2(0.25 * PI);
-  localQ.xy *= rotMat2(-0.025 * PI * (10. + dot(c, vec2(1))));
-  b = vec3(sdBox(localQ, vec3(0.5 * r, vec2(0.1 * r))), 1, 0);
+  vec3 b = vec3(length(q) - r, 1, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 1, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
