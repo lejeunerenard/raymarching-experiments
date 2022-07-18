@@ -1511,38 +1511,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.7;
   float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  pModPolar(wQ.xy, 5.);
-  wQ.y = abs(wQ.y);
-
   wQ += warpScale * 0.050000 * cos( 4.123 * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 3. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 5.716 * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos( 7.933 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * snoise3(wQ);
   wQ += warpScale * 0.006250 * cos(13.242 * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.003125 * cos(17.749 * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.0125 * iqFBM(10. * wQ);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   float m = 1.; // step(0., q.y);
-  r += 0.2 * snoise3(2.  * q + 0.5);
+  r += 0.20 * snoise3(2.  * q + 0.5);
   vec3 b = vec3(length(q) - r, m, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
   d = dMin(d, b);
 
-  float crop = sdBox(q, vec3(2, 0.001, 2));
-  d.x = max(d.x, -crop);
-
-  d.x *= 0.1;
+  d.x *= 0.4;
 
   return d;
 }
