@@ -1511,19 +1511,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.7;
+  float warpScale = 1.4;
   float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.050000 * cos( 4.123 * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 5.716 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos( 7.933 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(13.242 * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(17.749 * warpFrequency * wQ.yzx + localCosT);
+  float depthOffset = localCosT;
+  wQ.z += depthOffset;
+
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xyz = twist(wQ.xzy, 4. * wQ.z + 0.2 * PI * cos(localCosT + wQ.z));
+  wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.0125 * iqFBM(10. * wQ);
 
   // Commit warp
@@ -1531,8 +1534,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.; // step(0., q.y);
-  r += 0.20 * snoise3(2.  * q + 0.5);
-  vec3 b = vec3(length(q) - r, m, 0);
+  vec3 nonMovingSpace = q - vec3(0,0,depthOffset);
+  r -= max(0., -0.075 * (nonMovingSpace.z));
+  r += 0.025 * snoise3(2.  * nonMovingSpace + 0.5);
+  vec3 b = vec3(r - length(q.xy), m, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
   d = dMin(d, b);
 
@@ -1964,7 +1969,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 4.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 1.00);
       // float dispersionI = 1.;
       dispersionI *= isMaterialSmooth(t.y, 1.);
       dispersionColor *= dispersionI;
