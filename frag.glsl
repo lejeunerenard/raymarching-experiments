@@ -1511,33 +1511,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.4;
+  float warpScale = 1.0;
   float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  float depthOffset = localCosT;
-  wQ.z += depthOffset;
-
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xyz = twist(wQ.xzy, 4. * wQ.z + 0.2 * PI * cos(localCosT + wQ.z));
-  wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.0125 * iqFBM(10. * wQ);
+  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  // wQ.xyz = twist(wQ.xzy, 4. * wQ.z + 0.2 * PI * cos(localCosT + wQ.z));
+  // wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
+  // wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.0025 * iqFBM(3.0 * warpFrequency * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  q = vec3(
+      atan(q.y, q.x),
+      length(q.xy) - 0.5,
+      q.z);
+
+  q.yz *= rotMat2(0.5 * q.x + 0.25 * PI * cos(q.x + localCosT));
+
   float m = 1.; // step(0., q.y);
-  vec3 nonMovingSpace = q - vec3(0,0,depthOffset);
-  r -= max(0., -0.075 * (nonMovingSpace.z));
-  r += 0.025 * snoise3(2.  * nonMovingSpace + 0.5);
-  vec3 b = vec3(r - length(q.xy), m, 0);
+  vec3 b = vec3(sdBox(q, vec3(PI, r, r)), m, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
   d = dMin(d, b);
 
@@ -1952,7 +1953,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.70 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.90 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -1969,13 +1970,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 1.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.00);
       // float dispersionI = 1.;
       dispersionI *= isMaterialSmooth(t.y, 1.);
       dispersionColor *= dispersionI;
 
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.8);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
+
+      dispersionColor = mix(dispersionColor, vec3(0.5), 0.1);
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
