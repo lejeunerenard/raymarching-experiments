@@ -1535,11 +1535,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
       length(q.xy) - 0.5,
       q.z);
 
-  q.yz *= rotMat2(0.5 * q.x + 0.25 * PI * cos(q.x + localCosT));
+  q.yz *= rotMat2(-localCosT
+      + 0.125 * q.x
+      // + 0.125 * PI * cos(q.x + localCosT)
+      + 0.01 * snoise2(0.5 * vec2(cos(q.x)))
+      );
 
   float m = 1.; // step(0., q.y);
   vec3 b = vec3(sdBox(q, vec3(PI, r, r)), m, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  d = dMin(d, b);
+
+  q.yz *= rotMat2(0.25 * PI);
+
+  b = vec3(sdBox(q, vec3(PI, r, r)), m, 0);
   d = dMin(d, b);
 
   d.x *= 0.4;
@@ -1893,7 +1901,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.6;
+      float diffMin = 0.0;
       float shadowMin = 0.6;
 
       vec3 directLighting = vec3(0);
@@ -1970,12 +1978,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.00);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 4.00);
       // float dispersionI = 1.;
       dispersionI *= isMaterialSmooth(t.y, 1.);
       dispersionColor *= dispersionI;
 
-      dispersionColor.r = pow(dispersionColor.r, 0.8);
+      // dispersionColor.r = pow(dispersionColor.r, 0.8);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       dispersionColor = mix(dispersionColor, vec3(0.5), 0.1);
