@@ -1534,7 +1534,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q = vec3(
       atan(q.y, q.x),
-      length(q.xy) - 0.5,
+      vmax(abs(q.xy)) - 0.5,
       q.z);
 
   q.yz *= rotMat2(-localCosT
