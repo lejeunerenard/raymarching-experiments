@@ -1507,52 +1507,48 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 2.0;
+  float warpScale = 1.2;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xyz = twist(wQ.xzy, 4. * wQ.z + 0.2 * PI * cos(localCosT + wQ.z));
-  // wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.0025 * iqFBM(3.0 * warpFrequency * wQ.yzx);
-
   wQ.x *= -1.;
+
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.2 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.0025 * iqFBM(3.0 * warpFrequency * wQ.yzx);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q = vec3(
-      atan(q.y, q.x),
-      dot(abs(q.xy), vec2(1)) - 0.5,
-      q.z);
+  // q = vec3(
+  //     atan(q.y, q.x),
+  //     dot(abs(q.xy), vec2(1)) - 0.5,
+  //     q.z);
 
-  q.yz *= rotMat2(-localCosT
-      + -0.5 * q.x
-      // + 0.125 * PI * cos(q.x + localCosT)
-      // + 0.01 * snoise2(0.5 * vec2(cos(q.x)))
-      );
+  // q.yz *= rotMat2(-localCosT
+  //     + -0.5 * q.x
+  //     // + 0.125 * PI * cos(q.x + localCosT)
+  //     // + 0.01 * snoise2(0.5 * vec2(cos(q.x)))
+  //     );
 
   float m = 1.; // step(0., q.y);
-  vec3 b = vec3(sdBox(q, vec3(PI, r, r)), m, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
+  vec3 b = vec3(length(q) - r, m, 0);
   d = dMin(d, b);
 
-  q.yz *= rotMat2(0.25 * PI);
-
-  // b = vec3(sdBox(q, vec3(PI, r, r)), m, 0);
-  // d = dMin(d, b);
-
-  d.x *= 0.4;
+  d.x *= 0.6;
 
   return d;
 }
@@ -1808,7 +1804,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  color *= 0.25;
+  color *= mix(0.4, 0., dNR);
 
   gM = m;
 
@@ -1890,13 +1886,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.8;
+      float freCo = 0.9;
+      float specCo = 0.9;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.0;
+      float diffMin = 0.7;
       float shadowMin = 0.6;
 
       vec3 directLighting = vec3(0);
@@ -1973,9 +1969,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
       isDispersion = false;
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.00);
+      float dispersionI = 1.5 * pow(0. + 1.0 * dot(dNor, -dRd), 1.50);
       // float dispersionI = 1.;
-      dispersionI *= isMaterialSmooth(t.y, 1.);
       dispersionColor *= dispersionI;
 
       // dispersionColor.r = pow(dispersionColor.r, 0.8);
