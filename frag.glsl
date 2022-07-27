@@ -1511,7 +1511,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5;
+  float warpScale = 0.;
   float warpFrequency = 2.5;
   float rollingScale = 1.;
 
@@ -1521,7 +1521,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.x *= -1.;
 
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  // wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
@@ -1532,19 +1532,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // q = vec3(
-  //     atan(q.y, q.x),
-  //     dot(abs(q.xy), vec2(1)) - 0.5,
-  //     q.z);
+  float a = atan(q.y, q.x);
+  q = vec3(
+      a,
+      length(q) - (0.35 + 0.05 * cos(5. * a + 0.125 * PI * cos(3. * a))),
+      q.z);
 
-  // q.yz *= rotMat2(-localCosT
-  //     + -0.5 * q.x
-  //     // + 0.125 * PI * cos(q.x + localCosT)
-  //     // + 0.01 * snoise2(0.5 * vec2(cos(q.x)))
-  //     );
+  q.yz *= rotMat2(-localCosT
+      + -1.5 * q.x
+      // + 0.125 * PI * cos(q.x + localCosT)
+      // + 0.01 * snoise2(0.5 * vec2(cos(q.x)))
+      );
 
   float m = 1.; // step(0., q.y);
-  vec3 b = vec3(sdBox(q, vec3(0.4, 0.4, 0.05)), m, 0);
+  vec3 b = vec3(sdBox(q, vec3(PI, vec2(0.1))), m, 0);
   // vec3 b = vec3(length(q) - r, m, 0);
   d = dMin(d, b);
 
@@ -1677,7 +1678,7 @@ vec3 textures (in vec3 rd) {
 
   dI += 1.1 * gPos;
 
-  // dI *= 0.3;
+  dI *= 0.3;
 
   // -- Colors --
   // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
