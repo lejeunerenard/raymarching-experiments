@@ -2929,7 +2929,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   const float warpScale = 1.2;
   float r = 0.09;
-  float size = 0.015;
+  vec2 size = vec2(0.125 * PI, 0.1);
 
   vec2 wQ = q.xy;
 
@@ -2942,16 +2942,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  q *= rotMat2(localCosT);
+  float yOffset = 0.125 * size.y;
+  float yC = floor((length(q) - yOffset + size.y*0.5)/size.y);
 
-  const float num = 7.;
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(TWO_PI * i / num);
-    localQ.x += r * (1.5 + 2.0 * quart(triangleWave(2. * t + i * 0.05)));
-    vec2 o = vec2(abs(length(localQ) - r) - 0.0025, 0.);
-    d = dMin(d, o);
-  }
+  float alternate = 1. - 2. * mod(yC, 2.);
+  float wave = 2. * size.x * sin(localCosT + 0.23 * PI * yC);
+  q *= rotMat2(t * (4. + yC) * size.x * alternate + wave);
+
+  q = polarCoords(q);
+  q.y -= yOffset;
+
+  vec2 c = pMod2(q, size);
+
+  vec2 o = vec2(sdBox(q, vec2((0.025 - 0.01 * yC * 0.2) * size.x, 0.3 * size.y)), 0.);
+  o.x = max(o.x, -(length(uv) - 0.6 * size.y));
+  d = dMin(d, o);
 
   // float mask = sdBox(c, vec2(9));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3121,7 +3126,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.17;
+    const float maxDelayLength = 0.02;
     float layerT = norT
       - maxDelayLength * fI / float(slices);
     float mask = two_dimensional(uv, layerT, fI).x;
@@ -3155,8 +3160,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   color = pow(color, vec3(1.50));
   color /= float(slices);
 
-  // Final layer
-  color.rgb += 0.7 * two_dimensional(uv, norT);
+  // // Final layer
+  // color.rgb += 0.7 * two_dimensional(uv, norT);
 
   // // Color manipulation
   // color.rgb = 1. - color.rgb;
