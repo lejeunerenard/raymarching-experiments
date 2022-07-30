@@ -1166,7 +1166,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.30);
+const vec2 gSize = vec2(0.05, 0.10);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1198,10 +1198,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.05 * length(c);
-  locallocalT += 0.01 * dC;
+  locallocalT -= 0.05 * length(c);
+  locallocalT -= 0.01 * dC;
   // locallocalT += 0.02 * odd;
-  locallocalT += 2.00 * q.x;
+  // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
   // Might fix some of the gaps caused by the time offset
   // A hack but getting closer to a general solution
@@ -1214,14 +1214,14 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Local C that transitions from one cell to another
   float shift = 2.;
-  vec2 shiftDir = vec2(0, 1);
+  vec2 shiftDir = vec2(1, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  float r = 0.30 * size;
+  vec2 r = 0.20 * gSize;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
@@ -1236,28 +1236,28 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += t * size * 0.5 * mod((shift * shiftDir).y, 2.);
 
   vec2 center = vec2(size * c);
-  center += size * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  center += size * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center += size * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  center -= size * c;
-  q += center;
+  // center += size * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  // center += size * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  // center += size * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  // center -= size * c;
+  // q += center;
 
-  // q -= shiftDir * shift * size * t;
+  q -= shiftDir * shift * size * expo(t);
 
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = abs(length(q) - 0.125 * size) - 0.05 * size;
+  // float internalD = abs(length(q) - 0.125 * size) - 0.05 * size;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
-  internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
+  // internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  // float internalD = sdBox(q, vec2(r));
+  float internalD = sdBox(q, r);
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
@@ -1300,7 +1300,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=2.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
@@ -2929,7 +2929,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   const float warpScale = 1.2;
   float r = 0.09;
-  vec2 size = vec2(0.125 * PI, 0.1);
+  vec2 size = gSize;
 
   vec2 wQ = q.xy;
 
@@ -2942,21 +2942,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  float yOffset = 0.125 * size.y;
-  float yC = floor((length(q) - yOffset + size.y*0.5)/size.y);
-
-  float alternate = 1. - 2. * mod(yC, 2.);
-  float wave = 2. * size.x * sin(localCosT + 0.23 * PI * yC);
-  q *= rotMat2(t * (4. + yC) * size.x * alternate + wave);
-
-  q = polarCoords(q);
-  q.y -= yOffset;
-
-  vec2 c = pMod2(q, size);
-
-  vec2 o = vec2(sdBox(q, vec2((0.025 - 0.01 * yC * 0.2) * size.x, 0.3 * size.y)), 0.);
-  o.x = max(o.x, -(length(uv) - 0.6 * size.y));
+  vec2 o = neighborGrid(q, size);
   d = dMin(d, o);
+
+  // q *= rotMat2(0.25 * PI);
+
+  // vec2 c = pMod2(q, size);
+
+  // vec2 o = vec2(sdBox(q, vec2(0.125 * size.x, 0.3 * size.y)), 0.);
+  // d = dMin(d, o);
 
   // float mask = sdBox(c, vec2(9));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3085,7 +3079,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   vec3 color = vec3(0);
 
-  const int slices = 60;
+  const int slices = 20;
   for (int i = 0; i < slices; i++) {
     float fI = float(i);
     vec3 layerColor = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (fI / float(slices) + vec3(0, 0.33, 0.67)));
@@ -3126,7 +3120,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.02;
+    const float maxDelayLength = 0.12;
     float layerT = norT
       - maxDelayLength * fI / float(slices);
     float mask = two_dimensional(uv, layerT, fI).x;
