@@ -1166,7 +1166,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.05, 0.10);
+const vec2 gSize = vec2(0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1223,12 +1223,12 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   vec2 r = 0.20 * gSize;
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // q += 0.25 * size * mix(
-  //     vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
-  //     vec2(1) * snoise2(0.123 * localC + 2.37),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  q += 0.25 * size * mix(
+      vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
+      vec2(1) * snoise2(0.123 * localC + 2.37),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
@@ -2942,19 +2942,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  vec2 o = neighborGrid(q, size);
-  d = dMin(d, o);
+  // vec2 o = neighborGrid(q, size);
+  // d = dMin(d, o);
 
   // q *= rotMat2(0.25 * PI);
 
-  // vec2 c = pMod2(q, size);
+  vec2 c = pMod2(q, size);
 
-  // vec2 o = vec2(sdBox(q, vec2(0.125 * size.x, 0.3 * size.y)), 0.);
-  // d = dMin(d, o);
+  q += 0.2 * size * vec2(
+      snoise2(c + vec2(0, 0.23) + cos(localCosT)),
+      snoise2(c + vec2(3, 1.23) + sin(localCosT))
+      );
+  vec2 o = vec2(sdBox(q, 0.2 * size), 0.);
+  d = dMin(d, o);
 
-  // float mask = sdBox(c, vec2(9));
-  // mask = smoothstep(0., 0.5 * edge, mask);
-  // mask = 1. - mask;
+  float mask = sdBox(c, vec2(6));
+  mask = smoothstep(0., 0.5 * edge, mask);
+  mask = 1. - mask;
 
   float n = d.x;
 
@@ -3038,7 +3042,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // color *= mask;
+  color *= mask;
 
   return color.rgb;
 }
@@ -3120,7 +3124,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.12;
+    const float maxDelayLength = 0.075;
     float layerT = norT
       - maxDelayLength * fI / float(slices);
     float mask = two_dimensional(uv, layerT, fI).x;
