@@ -1166,7 +1166,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.05);
+const vec2 gSize = vec2(0.06);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -2949,10 +2949,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
 
   vec2 c = pMod2(q, size);
 
-  q += 0.2 * size * vec2(
-      snoise2(c + vec2(0, 0.23) + cos(localCosT)),
-      snoise2(c + vec2(3, 1.23) + sin(localCosT))
-      );
+  // q += 0.2 * size * vec2(
+  //     snoise2(c + vec2(0, 0.23) + cos(localCosT)),
+  //     snoise2(c + vec2(3, 1.23) + sin(localCosT))
+  //     );
+  q.y += 0.3 * size.y * snoise2(c + vec2(3, 1.23) + sin(localCosT + 0.2 * PI * dot(c, vec2(1))));
+
   vec2 o = vec2(sdBox(q, 0.2 * size), 0.);
   d = dMin(d, o);
 
@@ -3124,7 +3126,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.075;
+    const float maxDelayLength = 0.1;
     float layerT = norT
       - maxDelayLength * fI / float(slices);
     float mask = two_dimensional(uv, layerT, fI).x;
