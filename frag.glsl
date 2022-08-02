@@ -2942,25 +2942,48 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   q = wQ;
   mUv = q;
 
-  // vec2 o = neighborGrid(q, size);
-  // d = dMin(d, o);
+  float thickness = 0.03 * r;
+  const float num = 7.;
+  float bigR = 3. * r;
+  float dotR = 0.3 * r;
+  const float moveOffset = 2.;
 
-  // q *= rotMat2(0.25 * PI);
+  // okay so i want the ring to move first. it should move in a straight line to
+  // the position of the ring two away.
+  for (float i = 0.; i < num; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(TWO_PI * i / num);
+    localQ.x -= bigR;
 
-  vec2 c = pMod2(q, size);
+    // Move to X over position
+    localQ += mix(vec2(0.),
+        bigR * vec2(1. - cos(moveOffset * TWO_PI / num),
+          -sin(moveOffset * TWO_PI / num)),
+        saturate(localT * 2.));
 
-  // q += 0.2 * size * vec2(
-  //     snoise2(c + vec2(0, 0.23) + cos(localCosT)),
-  //     snoise2(c + vec2(3, 1.23) + sin(localCosT))
-  //     );
-  q.y += 0.3 * size.y * snoise2(c + vec2(3, 1.23) + sin(localCosT + 0.2 * PI * dot(c, vec2(1))));
+    vec2 o = vec2(abs(length(localQ) - r) - thickness, 0.);
+    d = dMin(d, o);
 
-  vec2 o = vec2(sdBox(q, 0.2 * size), 0.);
-  d = dMin(d, o);
+    // Dot
+    localQ = q;
+    localQ *= rotMat2(TWO_PI * i / num);
+    localQ.x -= bigR;
 
-  float mask = sdBox(c, vec2(6));
-  mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
+    // Move to X over position
+    float dotT = saturate((localT - 0.6 + 0.01 * i) / 0.4);
+    dotT = quart(dotT);
+    localQ += mix(vec2(0.),
+        bigR * vec2(1. - cos(moveOffset * TWO_PI / num),
+          -sin(moveOffset * TWO_PI / num)),
+        dotT);
+
+    o = vec2(length(localQ) - dotR, 0.);
+    d = dMin(d, o);
+  }
+
+  // float mask = sdBox(c, vec2(6));
+  // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
 
   float n = d.x;
 
@@ -3044,7 +3067,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
@@ -3160,8 +3183,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   color = pow(color, vec3(1.50));
   color /= float(slices);
 
-  // // Final layer
-  // color.rgb += 0.7 * two_dimensional(uv, norT);
+  // Final layer
+  color.rgb += 0.7 * two_dimensional(uv, norT);
 
   // // Color manipulation
   // color.rgb = 1. - color.rgb;
