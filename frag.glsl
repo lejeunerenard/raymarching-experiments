@@ -2931,7 +2931,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   float r = 0.09;
   vec2 size = gSize;
 
+  float ringsMul = 20.;
+  float maskRing = 0.4 * ringsMul;
+
   vec2 wQ = q.xy;
+
+  wQ *= 6.0;
+
+  wQ *= rotMat2(0.25 * PI);
+
+  vec2 c = pMod2(wQ, vec2((2.5 * maskRing) / ringsMul));
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -2948,44 +2957,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   float dotR = 0.3 * r;
   const float moveOffset = 2.;
 
-  // okay so i want the ring to move first. it should move in a straight line to
-  // the position of the ring two away.
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(TWO_PI * i / num);
-    localQ.x -= bigR;
+  float yRing = vmax(abs(q));
 
-    // Move to X over position
-    localQ += mix(vec2(0.),
-        bigR * vec2(1. - cos(moveOffset * TWO_PI / num),
-          -sin(moveOffset * TWO_PI / num)),
-        saturate(localT * 2.));
+  vec2 o = vec2(yRing, 0.);
+  d = dMin(d, o);
 
-    vec2 o = vec2(abs(length(localQ) - r) - thickness, 0.);
-    d = dMin(d, o);
+  localT *= 8.;
+  localT += 0.1 * dot(c, vec2(1));
+  localT = mod(localT, 1.);
 
-    // Dot
-    localQ = q;
-    localQ *= rotMat2(TWO_PI * i / num);
-    localQ.x -= bigR;
+  float flicker = smoothstep(1. - 3. / ringsMul, 1., triangleWave(localT * maskRing / ringsMul - (floor(o.x * ringsMul) / ringsMul)));
 
-    // Move to X over position
-    float dotT = saturate((localT - 0.6 + 0.01 * i) / 0.4);
-    dotT = quart(dotT);
-    localQ += mix(vec2(0.),
-        bigR * vec2(1. - cos(moveOffset * TWO_PI / num),
-          -sin(moveOffset * TWO_PI / num)),
-        dotT);
-
-    o = vec2(length(localQ) - dotR, 0.);
-    d = dMin(d, o);
-  }
-
-  // float mask = sdBox(c, vec2(6));
-  // mask = smoothstep(0., 0.5 * edge, mask);
-  // mask = 1. - mask;
+  float mask = sdBox(q, vec2(maskRing / ringsMul));
+  mask = smoothstep(0., 0.5 * edge, mask);
+  mask = 1. - mask;
+  mask *= flicker;
 
   float n = d.x;
+
+  // Repeat
+  n = sin(TWO_PI * ringsMul * n);
 
   // Hard Edge
   n = smoothstep(0., edge, n - 0.0);
@@ -3067,7 +3058,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // color *= mask;
+  color *= mask;
 
   return color.rgb;
 }
@@ -3104,7 +3095,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  // return vec4(two_dimensional(uv, norT, 50.), 1);
+  return vec4(two_dimensional(uv, norT, 50.), 1);
 
   vec3 color = vec3(0);
 
