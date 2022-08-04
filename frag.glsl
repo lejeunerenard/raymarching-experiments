@@ -2931,12 +2931,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   float r = 0.09;
   vec2 size = gSize;
 
-  float ringsMul = 20.;
+  float ringsMul = 10.;
   float maskRing = 0.4 * ringsMul;
 
   vec2 wQ = q.xy;
 
-  wQ *= 6.0;
+  wQ *= 20.0;
 
   wQ *= rotMat2(0.25 * PI);
 
@@ -2963,7 +2963,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT, in float layerId) {
   d = dMin(d, o);
 
   localT *= 8.;
-  localT += 0.1 * dot(c, vec2(1));
+  localT += 0.125 * length(c);
+  localT += 0.07 * snoise2(0.7138 * c);
   localT = mod(localT, 1.);
 
   float flicker = smoothstep(1. - 3. / ringsMul, 1., triangleWave(localT * maskRing / ringsMul - (floor(o.x * ringsMul) / ringsMul)));
@@ -3095,7 +3096,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 }
 
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  return vec4(two_dimensional(uv, norT, 50.), 1);
+  // return vec4(two_dimensional(uv, norT, 50.), 1);
 
   vec3 color = vec3(0);
 
@@ -3140,7 +3141,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // layerColor = pow(layerColor, vec3(4 + slices));
 
-    const float maxDelayLength = 0.1;
+    const float maxDelayLength = 0.05;
     float layerT = norT
       - maxDelayLength * fI / float(slices);
     float mask = two_dimensional(uv, layerT, fI).x;
