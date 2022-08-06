@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.275;
+float gR = 1.25;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1511,19 +1511,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.;
-  float warpFrequency = 2.5;
+  float warpScale = 1.0;
+  float warpFrequency = 1.05;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  // wQ.xzy = twist(wQ.xyz, 4. * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
-  // wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
+  wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.0025 * iqFBM(3.0 * warpFrequency * wQ.yzx);
 
   // Commit warp
@@ -1534,30 +1534,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 b = vec3(length(q) - r, m, 0);
   d = dMin(d, b);
 
-  // Moons
-  const float moonNum = 6.;
-  for (float i = 0.; i < moonNum; i++) {
-    float moonFract = i / moonNum;
-    vec3 moonQ = q;
-
-    // Tilt
-    moonQ *= rotationMatrix(vec3(1), -0.05 * i * PI);
-
-    // Orbit Ring
-    vec3 orbitQ = moonQ;
-    float orbitRadius = bigR * (1. + 1.80 * moonFract);
-    vec3 b = vec3(sdTorus(orbitQ, vec2(orbitRadius, 0.035 * r)), m, 0);
-    d = dMin(d, b);
-
-    moonQ.xz *= rotMat2(localCosT + moonFract * 3.17829 * PI);
-    moonQ.x -= orbitRadius;
-
-    float moonR = r * 0.3 * (0.5 + 0.5 * moonFract);
-    b = vec3(length(moonQ) - moonR, m, 0);
-    d = dMin(d, b);
-  }
-
-  // d.x *= 0.4;
+  d.x *= 0.6;
 
   return d;
 }
@@ -1684,7 +1661,7 @@ vec3 textures (in vec3 rd) {
   dI *= angle1C;
   dI += angle2C;
 
-  dI += 1.1 * gPos;
+  dI += 0.2 * gPos;
 
   dI *= 0.3;
 
@@ -1791,8 +1768,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.0);
-  return color; // Solid color
+  vec3 color = vec3(0);
+  // return color; // Solid color
 
   float n = dot(mPos, vec3(1));
   n = sin(TWO_PI * 30. * n);
@@ -1815,6 +1792,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   color *= mix(0.4, 0., dNR);
+
+  color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * pow(dNR, 4.) + vec3(0, 0.33, 0.67))), pow(dNR, 8.));
+
+  color *= 1.05;
 
   gM = m;
 
@@ -1896,7 +1877,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 1.0;
       float specCo = 0.0;
 
       float specAll = 0.0;
@@ -1959,11 +1940,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -1973,7 +1954,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -1986,7 +1967,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 1.5 * pow(0. + 1.0 * dot(dNor, -dRd), 1.50);
+      // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 1.0);
       float dispersionI = 1.2;
       dispersionColor *= dispersionI;
 
@@ -1994,7 +1975,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor.r = pow(dispersionColor.r, 0.8);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
 
-      dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
+      // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       color += saturate(dispersionColor);
       // color = saturate(dispersionColor);
@@ -3147,8 +3128,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 // and returns a rgba color value for that sample.
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Color delay --
   vec3 color = vec3(0);
