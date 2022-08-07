@@ -1519,19 +1519,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
   // wQ += warpScale * 0.0025 * iqFBM(3.0 * warpFrequency * wQ.yzx);
 
+  r *= 1. + 0.1 * cos(localCosT + wQ.y + 0.5 * PI * cos(localCosT + 2. * wQ.y));
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(length(q) - r, m, 0);
+  // vec3 b = vec3(length(q) - r, m, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
   d = dMin(d, b);
 
   d.x *= 0.6;
@@ -1793,7 +1796,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color *= mix(0.4, 0., dNR);
 
-  color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * pow(dNR, 4.) + vec3(0, 0.33, 0.67))), pow(dNR, 8.));
+  color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * pow(dNR, 4.) + angle3C + vec3(0, 0.1, 0.3))), pow(dNR, 8.));
 
   color *= 1.05;
 
@@ -1877,13 +1880,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.0;
+      float freCo = 1.5;
+      float specCo = 0.4;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.5;
+      float diffMin = 0.8;
       float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
@@ -1946,10 +1949,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.10 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.10 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
