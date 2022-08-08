@@ -1503,7 +1503,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float bigR = r * 2.;
 
   // Wobble Tilt
-  const float tilt = 0.180 * PI;
+  const float tilt = 0.10 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
@@ -1511,7 +1511,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.5;
   float warpFrequency = 1.05;
   float rollingScale = 1.;
 
@@ -1519,7 +1519,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
   wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
@@ -1534,7 +1534,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float m = 1.;
   // vec3 b = vec3(length(q) - r, m, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
   d = dMin(d, b);
 
   d.x *= 0.6;
