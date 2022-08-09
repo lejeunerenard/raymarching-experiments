@@ -1502,8 +1502,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec2 size = vec2(0.25 * r);
   float bigR = r * 2.;
 
+
+  // Positioning adjustments
+  p.y -= 0.6;
+
   // Wobble Tilt
-  const float tilt = 0.10 * PI;
+  const float tilt = 0.14 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
@@ -1511,31 +1515,47 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 2.0;
   float warpFrequency = 1.05;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ += warpScale * 0.050000 * cos( 4. * warpFrequency * wQ.yzx + localCosT);
-  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 6. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.012500 * cos( 8. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.006250 * cos(14. * warpFrequency * wQ.yzx + localCosT);
-  wQ += warpScale * 0.003125 * cos(18. * warpFrequency * wQ.yzx + localCosT);
-  // wQ += warpScale * 0.0025 * iqFBM(3.0 * warpFrequency * wQ.yzx);
+  float warpDirection = 1.;
 
-  r *= 1. + 0.1 * cos(localCosT + wQ.y + 0.5 * PI * cos(localCosT + 2. * wQ.y));
+  // im not sure why this isn't continuous. its just rotating in a 'circle'. why
+  // is it wobbling? I can only guess its because my distortion layers are
+  // cosines.
+  // This really isn't the greatest eh?
+  vec3 rotationT = -3.0 * length(wQ) + vec3(localCosT); // 10. * vec3(1, 0, 0) * rotationMatrix(vec3(0, 1, 0), 2. * localCosT);
+  // TODO figure out how to offset this based on angle w/o tearing
+  // rotationT += length(wQ) * atan(q.z, q.x);
+
+  wQ += warpScale * 0.050000 * cos( 4. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 6. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+
+  warpDirection = cos(3. * length(q.xz));
+  // warpDirection = sign(warpDirection) * pow(warpDirection, 0.5);
+
+  wQ += warpScale * 0.012500 * cos( 8. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * cos(14. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.003125 * cos(18. * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   float m = 1.;
-  // vec3 b = vec3(length(q) - r, m, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), m, 0);
+  vec3 b = vec3(sdPlane(q, vec4(0, 1, 0, 0)), m, 0);
+  // vec3 b = vec3(length(q) - 0.7 * r, m, 0);
   d = dMin(d, b);
+
+  // Crop
+  float cropH = 2.5;
+  float crop = sdCappedCylinder(p - vec3(0, cropH * 0.5, 0), vec2(1.5, cropH));
+  d.x = max(d.x, crop);
 
   d.x *= 0.6;
 
@@ -1880,8 +1900,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
-      float specCo = 0.4;
+      float freCo = 1.3;
+      float specCo = 0.8;
 
       float specAll = 0.0;
 
@@ -1971,7 +1991,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isDispersion = false; // Unset dispersion mode
 
       // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 1.0);
-      float dispersionI = 1.2;
+      float dispersionI = 0.8;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
