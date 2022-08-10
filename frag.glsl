@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 1.25;
+float gR = 1.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1504,7 +1504,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 
   // Positioning adjustments
-  p.y -= 0.6;
+  // p.y -= 0.6;
 
   // Wobble Tilt
   const float tilt = 0.14 * PI;
@@ -1515,7 +1515,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.0;
+  float warpScale = 2.5;
   float warpFrequency = 1.05;
   float rollingScale = 1.;
 
@@ -1524,16 +1524,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float warpDirection = 1.;
 
-  // im not sure why this isn't continuous. its just rotating in a 'circle'. why
-  // is it wobbling? I can only guess its because my distortion layers are
-  // cosines.
-  // This really isn't the greatest eh?
-  vec3 rotationT = -3.0 * length(wQ) + vec3(localCosT); // 10. * vec3(1, 0, 0) * rotationMatrix(vec3(0, 1, 0), 2. * localCosT);
+  vec3 rotationT = vec3(localCosT);
   // TODO figure out how to offset this based on angle w/o tearing
   // rotationT += length(wQ) * atan(q.z, q.x);
 
   wQ += warpScale * 0.050000 * cos( 4. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   warpDirection = cos(3. * length(q.xz));
@@ -1548,16 +1544,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(sdPlane(q, vec4(0, 1, 0, 0)), m, 0);
+  // vec3 b = vec3(sdPlane(q, vec4(-1, 1, 0, 0)), m, 0);
+  vec3 b = vec3(length(q) - r, m, 0);
   // vec3 b = vec3(length(q) - 0.7 * r, m, 0);
   d = dMin(d, b);
 
-  // Crop
-  float cropH = 2.5;
-  float crop = sdCappedCylinder(p - vec3(0, cropH * 0.5, 0), vec2(1.5, cropH));
-  d.x = max(d.x, crop);
-
-  d.x *= 0.6;
+  d.x *= 0.3;
 
   return d;
 }
