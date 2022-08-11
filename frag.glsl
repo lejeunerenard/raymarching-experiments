@@ -2941,8 +2941,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.2;
-  float r = 0.09;
+  const float warpScale = 0.2;
+  float r = 0.03;
   vec2 size = gSize;
 
   float ringsMul = 10.;
@@ -2950,48 +2950,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  wQ *= 20.0;
-
-  wQ *= rotMat2(0.25 * PI);
-
-  vec2 c = pMod2(wQ, vec2((2.5 * maskRing) / ringsMul));
-
-  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
+  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
   // wQ *= rotMat2(0.05 * PI *cos(localCosT));
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
+  vec2 c = pMod2(wQ, vec2(r));
+
   q = wQ;
   mUv = q;
 
-  float thickness = 0.03 * r;
-  const float num = 7.;
-  float bigR = 3. * r;
-  float dotR = 0.3 * r;
-  const float moveOffset = 2.;
-
-  float yRing = vmax(abs(q));
-
-  vec2 o = vec2(yRing, 0.);
+  q *= rotMat2(PI * snoise2(0.025 * c + cos(localCosT + vec2(0, 0.5 * PI) + 0.05 * dot(c, vec2(0.2, 1)))));
+  vec2 o = vec2(sdBox(q, vec2(0.01 * r, 0.3 * r)), 0.);
   d = dMin(d, o);
 
-  localT *= 8.;
-  localT += 0.125 * length(c);
-  localT += 0.07 * snoise2(0.7138 * c);
-  localT = mod(localT, 1.);
-
-  float flicker = smoothstep(1. - 3. / ringsMul, 1., triangleWave(localT * maskRing / ringsMul - (floor(o.x * ringsMul) / ringsMul)));
-
-  float mask = sdBox(q, vec2(maskRing / ringsMul));
-  mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
-  mask *= flicker;
+  // float mask = sdBox(q, vec2(4.));
+  // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
 
   float n = d.x;
 
-  // Repeat
-  n = sin(TWO_PI * ringsMul * n);
+  // // Repeat
+  // n = sin(TWO_PI * n);
 
   // Hard Edge
   n = smoothstep(0., edge, n - 0.0);
@@ -3073,7 +3054,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
@@ -3116,7 +3097,7 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
   // Okay. I want to now make a color delayed set of planet / moons
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
