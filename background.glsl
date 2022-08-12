@@ -93,7 +93,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // color = pow(color, vec3(2.2));
 
-  // color *= vec3(1, 0.63, 0.67);
+  color *= vec3(1, 0.88, 0.92);
   // color = mix(color, vec3(0.5), 0.30); // desaturate
   // color = mix(color, vec3(1), 0.4); // lighten
   // color *= 0.75;

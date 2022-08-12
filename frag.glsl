@@ -1515,7 +1515,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.5;
+  float warpScale = 1.5;
   float warpFrequency = 1.05;
   float rollingScale = 1.;
 
@@ -1529,10 +1529,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // rotationT += length(wQ) * atan(q.z, q.x);
 
   wQ += warpScale * 0.050000 * cos( 4. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  warpDirection = cos(3. * length(q.xz));
+  warpDirection = cos(5. * length(q.xz));
   // warpDirection = sign(warpDirection) * pow(warpDirection, 0.5);
 
   wQ += warpScale * 0.012500 * cos( 8. * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1545,8 +1545,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float m = 1.;
   // vec3 b = vec3(sdPlane(q, vec4(-1, 1, 0, 0)), m, 0);
-  vec3 b = vec3(length(q) - r, m, 0);
-  // vec3 b = vec3(length(q) - 0.7 * r, m, 0);
+  // vec3 b = vec3(length(q) - r, m, 0);
+  vec3 b = vec3(sdBox(q, r * vec3(0.7, 1.2, 0.7)), m, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -1800,17 +1800,20 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI.x = pow(dI.x, 2.);
 
+  dI *= 0.4;
+
   dI *= angle1C;
   dI += angle2C;
 
+
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  color *= mix(0.4, 0., dNR);
+  color *= 0.6;
 
-  color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * pow(dNR, 4.) + angle3C + vec3(0, 0.1, 0.3))), pow(dNR, 8.));
+  // color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * pow(dNR, 4.) + angle3C + vec3(0, 0.1, 0.3))), pow(dNR, 8.));
 
-  color *= 1.05;
+  // color *= 1.05;
 
   gM = m;
 
@@ -3095,9 +3098,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-  // Okay. I want to now make a color delayed set of planet / moons
-
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
