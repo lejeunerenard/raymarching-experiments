@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1502,14 +1502,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec2 size = vec2(0.25 * r);
   float bigR = r * 2.;
 
-
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // Wobble Tilt
-  const float tilt = 0.14 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement _-
+  // // Wobble Tilt
+  // const float tilt = 0.14 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1529,10 +1529,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // rotationT += length(wQ) * atan(q.z, q.x);
 
   wQ += warpScale * 0.050000 * cos( 4. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  warpDirection = cos(5. * length(q.xz));
+  // warpDirection = cos(5. * length(q.xz));
   // warpDirection = sign(warpDirection) * pow(warpDirection, 0.5);
 
   wQ += warpScale * 0.012500 * cos( 8. * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1544,9 +1544,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.;
-  // vec3 b = vec3(sdPlane(q, vec4(-1, 1, 0, 0)), m, 0);
-  // vec3 b = vec3(length(q) - r, m, 0);
-  vec3 b = vec3(sdBox(q, r * vec3(0.7, 1.2, 0.7)), m, 0);
+  // vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), m, 0);
+  vec3 b = vec3(length(q) - r, m, 0);
+  // vec3 b = vec3(sdBox(q, r * vec3(0.7, 1.2, 0.7)), m, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -1805,15 +1805,31 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  color *= 0.6;
+  color *= 0.4;
 
-  // color = mix(color, 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * pow(dNR, 4.) + angle3C + vec3(0, 0.1, 0.3))), pow(dNR, 8.));
+  vec3 beforeColor = color;
 
-  // color *= 1.05;
+  const float numSteps = 30.;
+  const float stepSize = 0.15;
+  // vec3 holoRd = refract(nor, rd, 1.04);
+  vec3 holoRd = rd;
+  holoRd += 0.2 * refract(nor, rd, 1.04);
+  for (float i = 0.; i < numSteps; i++) {
+    vec3 holoPos = pos + i * stepSize * holoRd;
+    // float inclusion = snoise3(0.5 * holoPos);
+    vec3 s = vec3(0);
+    float inclusion = fbmWarp(0.2 * holoPos, s);
+    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * 0.1 * i + vec3(0, 0.33, 0.67)));
+    // color += inclusion * layerColor;
+    color = mix(color, layerColor, inclusion);
+  }
+
+  color /= pow(numSteps, 0.3);
+
+  // color += beforeColor;
 
   gM = m;
 
@@ -1895,14 +1911,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.3;
-      float specCo = 0.8;
+      float freCo = 1.2;
+      float specCo = 1.0;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.8;
-      float shadowMin = 1.0;
+      float diffMin = 0.3;
+      float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1966,13 +1982,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       vec3 refractColor = vec3(0);
       vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.10 * textures(refractionRd);
+      refractColor += 0.05 * textures(refractionRd);
       color += refractColor;
 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
