@@ -1515,12 +1515,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5;
-  float warpFrequency = 1.05;
+  float warpScale = 0.00;
+  float warpFrequency = 0.5;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
+
+  wQ.y *= 0.8;
 
   float warpDirection = 1.;
 
@@ -1532,7 +1534,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 6. * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  // warpDirection = cos(5. * length(q.xz));
+  warpDirection = cos(5. * length(q.xz));
   // warpDirection = sign(warpDirection) * pow(warpDirection, 0.5);
 
   wQ += warpScale * 0.012500 * cos( 8. * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1545,8 +1547,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float m = 1.;
   // vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), m, 0);
-  vec3 b = vec3(length(q) - r, m, 0);
-  // vec3 b = vec3(sdBox(q, r * vec3(0.7, 1.2, 0.7)), m, 0);
+  // vec3 b = vec3(length(q) - r, m, 0);
+  // vec3 b = vec3(r - length(q.xy) - r, m, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  // vec3 b = vec3(sdBox(q, vec3(0.8 * r, r, 0.8 * r)), m, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -1805,10 +1809,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  color *= 0.4;
+  // color *= 0.4;
 
   vec3 beforeColor = color;
 
@@ -1827,7 +1831,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     color = mix(color, layerColor, inclusion);
   }
 
-  color /= pow(numSteps, 0.3);
+  color /= pow(numSteps, 0.1);
+  // color /= numSteps;
 
   // color += beforeColor;
 
@@ -1917,8 +1922,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.3;
-      float shadowMin = 0.9;
+      float diffMin = 0.0;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
