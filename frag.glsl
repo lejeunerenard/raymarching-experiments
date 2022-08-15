@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
-// #define ORTHO 1
+#define SS 2
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 1.4;
+float gR = 0.8;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1515,31 +1515,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.00;
-  float warpFrequency = 0.5;
+  float warpScale = 5.00;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  wQ.y *= 0.8;
+  // wQ.y *= 0.8;
 
   float warpDirection = 1.;
 
   vec3 rotationT = vec3(localCosT);
-  // TODO figure out how to offset this based on angle w/o tearing
-  // rotationT += length(wQ) * atan(q.z, q.x);
 
-  wQ += warpScale * 0.050000 * cos( 4. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 6. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-
-  warpDirection = cos(5. * length(q.xz));
-  // warpDirection = sign(warpDirection) * pow(warpDirection, 0.5);
-
-  wQ += warpScale * 0.012500 * cos( 8. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * cos(14. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.003125 * cos(18. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.050000 * cos( 3. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 7. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * cos(11. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * cos(17. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.003125 * cos(23. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.001562 * cos(43. * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1547,9 +1542,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float m = 1.;
   // vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), m, 0);
-  // vec3 b = vec3(length(q) - r, m, 0);
-  // vec3 b = vec3(r - length(q.xy) - r, m, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), m, 0);
+  vec3 b = vec3(length(q) - r, m, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
   // vec3 b = vec3(sdBox(q, vec3(0.8 * r, r, 0.8 * r)), m, 0);
   d = dMin(d, b);
 
@@ -1787,8 +1781,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-  // return color; // Solid color
+  vec3 color = vec3(0.5, 0.5, 0.55);
+  return color; // Solid color
 
   float n = dot(mPos, vec3(1));
   n = sin(TWO_PI * 30. * n);
@@ -1809,32 +1803,33 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // color *= 0.4;
 
-  vec3 beforeColor = color;
+  // // -- Holo --
+  // vec3 beforeColor = color;
 
-  const float numSteps = 30.;
-  const float stepSize = 0.15;
-  // vec3 holoRd = refract(nor, rd, 1.04);
-  vec3 holoRd = rd;
-  holoRd += 0.2 * refract(nor, rd, 1.04);
-  for (float i = 0.; i < numSteps; i++) {
-    vec3 holoPos = pos + i * stepSize * holoRd;
-    // float inclusion = snoise3(0.5 * holoPos);
-    vec3 s = vec3(0);
-    float inclusion = fbmWarp(0.2 * holoPos, s);
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * 0.1 * i + vec3(0, 0.33, 0.67)));
-    // color += inclusion * layerColor;
-    color = mix(color, layerColor, inclusion);
-  }
+  // const float numSteps = 30.;
+  // const float stepSize = 0.15;
+  // // vec3 holoRd = refract(nor, rd, 1.04);
+  // vec3 holoRd = rd;
+  // holoRd += 0.2 * refract(nor, rd, 1.04);
+  // for (float i = 0.; i < numSteps; i++) {
+  //   vec3 holoPos = pos + i * stepSize * holoRd;
+  //   // float inclusion = snoise3(0.5 * holoPos);
+  //   vec3 s = vec3(0);
+  //   float inclusion = fbmWarp(0.2 * holoPos, s);
+  //   vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * 0.1 * i + vec3(0, 0.33, 0.67)));
+  //   // color += inclusion * layerColor;
+  //   color = mix(color, layerColor, inclusion);
+  // }
 
-  color /= pow(numSteps, 0.1);
-  // color /= numSteps;
+  // color /= pow(numSteps, 0.1);
+  // // color /= numSteps;
 
-  // color += beforeColor;
+  // // color += beforeColor;
 
   gM = m;
 
@@ -1923,7 +1918,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.0;
-      float shadowMin = 0.5;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1985,15 +1980,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.05 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.05 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
