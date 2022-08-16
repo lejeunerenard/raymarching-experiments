@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1489,7 +1489,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 0.8;
+float gR = 1.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1505,36 +1505,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement _-
-  // // Wobble Tilt
-  // const float tilt = 0.14 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.14 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 5.00;
-  float warpFrequency = 1.0;
+  float warpScale = 3.00;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
 
-  // wQ.y *= 0.8;
-
   float warpDirection = 1.;
 
   vec3 rotationT = vec3(localCosT);
 
-  wQ += warpScale * 0.050000 * cos( 3. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 7. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * cos(11. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * cos(17. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.003125 * cos(23. * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.001562 * cos(43. * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.025000 * cos( 1.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * cos( 1.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.003125 * cos( 2.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.001562 * cos( 3.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1547,7 +1545,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(sdBox(q, vec3(0.8 * r, r, 0.8 * r)), m, 0);
   d = dMin(d, b);
 
-  d.x *= 0.3;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1911,14 +1909,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.2;
+      float freCo = 1.5;
       float specCo = 1.0;
 
       float specAll = 0.0;
 
       // Shadow minimums
       float diffMin = 0.0;
-      float shadowMin = 1.0;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1980,10 +1978,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.05 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.10 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
