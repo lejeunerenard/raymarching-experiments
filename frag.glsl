@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1522,6 +1522,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
+  wQ.y *= 0.7;
+
   float warpDirection = 1.;
 
   vec3 rotationT = vec3(localCosT);
@@ -1530,7 +1532,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.25 * PI * cos(localCosT + wQ.z));
   wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1547,7 +1548,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1637,6 +1638,8 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float gM = 0.;
+vec3 gC = vec3(0.);
+
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
 
@@ -1673,6 +1676,8 @@ vec3 textures (in vec3 rd) {
   // dI += 0.25 * sin(TWO_PI * rd.x);
   dI *= angle1C;
   dI += angle2C;
+
+  // dI += gC.z;
 
   dI += 0.2 * gPos;
 
@@ -1781,8 +1786,11 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5, 0.5, 0.55);
-  return color; // Solid color
+  vec3 color = vec3(0);
+
+  // gC = voronoi(2. * mPos, 0.);
+
+  // return color; // Solid color
 
   float n = dot(mPos, vec3(1));
   n = sin(TWO_PI * 30. * n);
@@ -1798,13 +1806,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI.x = pow(dI.x, 2.);
 
-  dI *= 0.4;
+  dI *= 0.3;
 
   dI *= angle1C;
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // color *= 0.4;
 
@@ -1980,10 +1988,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.10 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.10 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
@@ -2001,13 +2009,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 1.0);
-      float dispersionI = 0.8;
+      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
+      // float dispersionI = 0.8;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      // dispersionColor.r = pow(dispersionColor.r, 0.8);
-      dispersionColor.b = pow(dispersionColor.b, 0.4);
+      dispersionColor.r = pow(dispersionColor.r, 0.8);
+      // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
