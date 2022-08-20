@@ -1515,8 +1515,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.00;
-  float warpFrequency = 2.0;
+  float warpScale = 0.50;
+  float warpFrequency = 3.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1532,6 +1532,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
   wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1540,11 +1541,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
+  q.xy = polarCoords(q.xy);
+  q.y -= 0.4;
+
+  q.yz *= rotMat2(0.5 * q.x);
+
   float m = 1.;
   // vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), m, 0);
-  vec3 b = vec3(length(q) - r, m, 0);
+  // vec3 b = vec3(length(q) - r, m, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
-  // vec3 b = vec3(sdBox(q, vec3(0.8 * r, r, 0.8 * r)), m, 0);
+  vec3 b = vec3(sdBox(q, vec3(1.1 * PI, vec2(0.15))), m, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
@@ -1671,7 +1677,7 @@ vec3 textures (in vec3 rd) {
 
   vec3 dI = vec3(dNR);
   dI += 0.2 * snoise3(0.1 * rd);
-  dI += 0.2 * pow(dNR, 3.);
+  dI += 0.5 * pow(dNR, 5.);
 
   // dI += 0.25 * sin(TWO_PI * rd.x);
   dI *= angle1C;
@@ -1812,7 +1818,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // color *= 0.4;
 
@@ -2009,7 +2015,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 3.0);
       // float dispersionI = 0.8;
       dispersionColor *= dispersionI;
 
