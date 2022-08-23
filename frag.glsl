@@ -2964,6 +2964,24 @@ float roseCircles (in vec2 q, in float d, in float r) {
   return d;
 }
 
+float uiBoxCorners (in vec2 q, in vec2 bigBoxR) {
+  vec2 boxR = vec2(3.0e-4, 0.009);
+
+  q = abs(q.xy);
+
+  q.x *= -1.;
+  q -= vec2(-1, 1) * bigBoxR;
+
+  // Reflect diagonally
+  if (q.y > -q.x) {
+    q.xy = -q.yx;
+  }
+  // Move "down" so full height of box is shown
+  q.y += boxR.y;
+
+  return sdBox(q, boxR);
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -2986,20 +3004,51 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
+  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
   // wQ *= rotMat2(0.05 * PI *cos(localCosT));
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  vec2 c = pMod2(wQ, vec2(r));
-
   q = wQ;
   mUv = q;
 
-  q *= rotMat2(PI * snoise2(0.025 * c + cos(localCosT + vec2(0, 0.5 * PI) + 0.05 * dot(c, vec2(0.2, 1)))));
-  vec2 o = vec2(sdBox(q, vec2(0.01 * r, 0.3 * r)), 0.);
+  vec2 bigBoxBaseR = vec2(0.05);
+  vec2 basePos = vec2(0.005);
+  float inset = 0.005;
+
+  vec2 c = pMod2(q, 3. * bigBoxBaseR);
+
+  t += 0.02 * dot(c, vec2(-0.25, 1));
+  t = abs(triangleWave(t));
+
+  vec2 bigBoxR = basePos + (bigBoxBaseR - basePos) * vec2(
+      expo(range(0.2, 0.5, t)),
+      expo(range(0.4, 0.6, t)));
+  vec2 o = vec2(uiBoxCorners(q, bigBoxR), 0.);
   d = dMin(d, o);
+
+  float timeOffset = 0.05;
+  bigBoxR = basePos + (bigBoxBaseR - inset - basePos) * vec2(
+      expo(range(0.2, 0.5, t - timeOffset)),
+      expo(range(0.4, 0.6, t - timeOffset)));
+  o = vec2(uiBoxCorners(q, bigBoxR), 0.);
+  d = dMin(d, o);
+
+  vec2 stripeR = vec2(3.0e-4, 0.5);
+  vec2 stripeQ = q;
+  stripeQ *= rotMat2(0.25 * PI);
+  vec2 rotStripeQ = stripeQ;
+  pMod1(stripeQ.x, 0.01);
+
+  vec2 s = vec2(sdBox(stripeQ, stripeR),1);
+  float stripeMask = sdBox(q, bigBoxBaseR - 2. * inset);
+  s.x = max(s.x, stripeMask);
+
+  // Slider mask
+  float sliderHalfDist = length(bigBoxBaseR - 2. * inset);
+  s.x = max(s.x, rotStripeQ.x + sliderHalfDist * (1. - 2. * range(0.62, 0.66, t)));
+  d = dMin(d, s);
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3011,7 +3060,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = sin(TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., edge, n - 0.0);
+  n = smoothstep(0., 0.5 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3131,7 +3180,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
