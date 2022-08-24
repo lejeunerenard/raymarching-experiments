@@ -2964,10 +2964,8 @@ float roseCircles (in vec2 q, in float d, in float r) {
   return d;
 }
 
-float uiBoxCorners (in vec2 q, in vec2 bigBoxR) {
+float uiBoxCorner (in vec2 q, in vec2 bigBoxR) {
   vec2 boxR = vec2(3.0e-4, 0.009);
-
-  q = abs(q.xy);
 
   q.x *= -1.;
   q -= vec2(-1, 1) * bigBoxR;
@@ -2980,6 +2978,27 @@ float uiBoxCorners (in vec2 q, in vec2 bigBoxR) {
   q.y += boxR.y;
 
   return sdBox(q, boxR);
+}
+
+float uiBoxCorners (in vec2 q, in vec2 bigBoxR) {
+  q = abs(q.xy);
+  return uiBoxCorner(q, bigBoxR);
+}
+
+float stripedBox (in vec2 q, in vec2 r, in float stripeFreq, in float stripeThick, in float angle) {
+  vec2 stripeR = vec2(stripeFreq * stripeThick, 0.5);
+  vec2 stripeQ = q;
+  stripeQ *= rotMat2(angle);
+  vec2 rotStripeQ = stripeQ;
+  pMod1(stripeQ.x, stripeFreq);
+
+  float s = sdBox(stripeQ, stripeR);
+  float stripeMask = sdBox(q, r);
+  return max(s, stripeMask);
+}
+
+float stripedBox (in vec2 q, in vec2 r, in float stripeFreq, in float stripeThick) {
+  return stripedBox(q, r, stripeFreq, stripeThick, 0.25 * PI);
 }
 
 vec2 mUv = vec2(0);
@@ -3016,39 +3035,55 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 bigBoxBaseR = vec2(0.05);
   vec2 basePos = vec2(0.005);
   float inset = 0.005;
+  float gutter = 0.125;
 
-  vec2 c = pMod2(q, 3. * bigBoxBaseR);
+  q *= rotMat2(0.25 * PI + 0.05 * PI * cos(cosT));
 
-  t += 0.02 * dot(c, vec2(-0.25, 1));
-  t = abs(triangleWave(t));
+  // vec2 c = pMod2(q, 3. * bigBoxBaseR);
 
-  vec2 bigBoxR = basePos + (bigBoxBaseR - basePos) * vec2(
-      expo(range(0.2, 0.5, t)),
-      expo(range(0.4, 0.6, t)));
-  vec2 o = vec2(uiBoxCorners(q, bigBoxR), 0.);
-  d = dMin(d, o);
+  // t += 0.02 * dot(c, vec2(-0.25, 1));
+  // t = abs(triangleWave(t));
 
-  float timeOffset = 0.05;
-  bigBoxR = basePos + (bigBoxBaseR - inset - basePos) * vec2(
-      expo(range(0.2, 0.5, t - timeOffset)),
-      expo(range(0.4, 0.6, t - timeOffset)));
-  o = vec2(uiBoxCorners(q, bigBoxR), 0.);
-  d = dMin(d, o);
+  size = vec2(0.3);
 
-  vec2 stripeR = vec2(3.0e-4, 0.5);
-  vec2 stripeQ = q;
-  stripeQ *= rotMat2(0.25 * PI);
-  vec2 rotStripeQ = stripeQ;
-  pMod1(stripeQ.x, 0.01);
+  vec2 c = pMod2(q, size);
+  float id = mod(dot(c, vec2(1)), 2.);
+  // float id = step(0., snoise2(c));
 
-  vec2 s = vec2(sdBox(stripeQ, stripeR),1);
-  float stripeMask = sdBox(q, bigBoxBaseR - 2. * inset);
-  s.x = max(s.x, stripeMask);
+  vec2 boxR = 0.25 * size;
 
-  // Slider mask
-  float sliderHalfDist = length(bigBoxBaseR - 2. * inset);
-  s.x = max(s.x, rotStripeQ.x + sliderHalfDist * (1. - 2. * range(0.62, 0.66, t)));
-  d = dMin(d, s);
+  if (id == 0.) {
+    float angle = 0.25 * PI;
+    vec2 boxQ = q;
+    // boxQ.x -= gutter;
+    vec2 rotStripeQ = boxQ;
+    rotStripeQ *= rotMat2(angle);
+    vec2 s = vec2(stripedBox(boxQ, boxR, 0.02, 0.25, angle),1);
+
+    // // Slider mask
+    // float sliderHalfDist = length(boxR);
+    // s.x = max(s.x, rotStripeQ.x + sliderHalfDist * (1. - 2. * range(0.62, 0.66, t)));
+
+    d = dMin(d, s);
+
+    vec2 corner = vec2(uiBoxCorners(q, boxR * 1.15), 0);
+    d = dMin(d, corner);
+  } else {
+    // Bar Graph
+    float barWidth = 0.025;
+    vec2 barQ = q;
+    // barQ.x -= -gutter;
+    float barMask = sdBox(barQ, vec2(2.5 * barWidth, 0.5));
+
+    float barC = pMod1(barQ.x, barWidth);
+    float h = 0.1 + 0.05 * snoise2(vec2(barC) + 0.217 * c + cos(localCosT + vec2(0, PI)));
+    barQ.y -= h; // baseline align bars
+    barQ.y += boxR.y; // Align that to the bottom of the striped box
+    vec2 bar = vec2(sdBox(barQ, vec2(0.3 * barWidth, h)), 0);
+    bar.x = max(bar.x, barMask);
+    d = dMin(d, bar);
+
+  }
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3206,13 +3241,20 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 // - `uv` : UV coordinate for a 'screen space'
 // and returns a rgba color value for that sample.
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
-
-  // -- Color delay --
   vec3 color = vec3(0);
 
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
+
+  // -- Echoed Layers --
+  const float echoSlices = 3.;
+  for (float i = 0.; i < echoSlices; i++) {
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.05 * i).rgb;
+    uv.y += 0.05;
+  }
+  return vec4(color, 1);
+
+  // -- Color delay --
   const float slices = 20.;
   const float delayLength = 0.15;
 
