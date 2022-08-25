@@ -3023,6 +3023,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
+  wQ *= rotMat2(0.25 * PI);
+
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
   // wQ *= rotMat2(0.05 * PI *cos(localCosT));
@@ -3032,58 +3034,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  vec2 bigBoxBaseR = vec2(0.05);
-  vec2 basePos = vec2(0.005);
-  float inset = 0.005;
-  float gutter = 0.125;
-
-  q *= rotMat2(0.25 * PI + 0.05 * PI * cos(cosT));
-
-  // vec2 c = pMod2(q, 3. * bigBoxBaseR);
-
-  // t += 0.02 * dot(c, vec2(-0.25, 1));
-  // t = abs(triangleWave(t));
-
-  size = vec2(0.3);
+  size = vec2(0.15);
 
   vec2 c = pMod2(q, size);
   float id = mod(dot(c, vec2(1)), 2.);
   // float id = step(0., snoise2(c));
 
-  vec2 boxR = 0.25 * size;
+  float thickness = 0.016667 * size.x;
 
-  if (id == 0.) {
-    float angle = 0.25 * PI;
-    vec2 boxQ = q;
-    // boxQ.x -= gutter;
-    vec2 rotStripeQ = boxQ;
-    rotStripeQ *= rotMat2(angle);
-    vec2 s = vec2(stripedBox(boxQ, boxR, 0.02, 0.25, angle),1);
-
-    // // Slider mask
-    // float sliderHalfDist = length(boxR);
-    // s.x = max(s.x, rotStripeQ.x + sliderHalfDist * (1. - 2. * range(0.62, 0.66, t)));
-
-    d = dMin(d, s);
-
-    vec2 corner = vec2(uiBoxCorners(q, boxR * 1.15), 0);
-    d = dMin(d, corner);
-  } else {
-    // Bar Graph
-    float barWidth = 0.025;
-    vec2 barQ = q;
-    // barQ.x -= -gutter;
-    float barMask = sdBox(barQ, vec2(2.5 * barWidth, 0.5));
-
-    float barC = pMod1(barQ.x, barWidth);
-    float h = 0.1 + 0.05 * snoise2(vec2(barC) + 0.217 * c + cos(localCosT + vec2(0, PI)));
-    barQ.y -= h; // baseline align bars
-    barQ.y += boxR.y; // Align that to the bottom of the striped box
-    vec2 bar = vec2(sdBox(barQ, vec2(0.3 * barWidth, h)), 0);
-    bar.x = max(bar.x, barMask);
-    d = dMin(d, bar);
-
-  }
+  r = size.x * (0.1 + 0.05 * cos(localCosT - 0.2 * PI * length(c)));
+  vec2 o = vec2(abs(length(q) - r) - thickness, 0);
+  d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3250,7 +3211,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   const float echoSlices = 3.;
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.05 * i).rgb;
-    uv.y += 0.05;
+    uv.y += 0.02;
   }
   return vec4(color, 1);
 
