@@ -3036,13 +3036,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   size = vec2(0.15);
 
-  vec2 c = pMod2(q, size);
-  float id = mod(dot(c, vec2(1)), 2.);
-  // float id = step(0., snoise2(c));
+  float thickness = 0.02 * size.x;
 
-  float thickness = 0.016667 * size.x;
-
-  r = size.x * (0.1 + 0.05 * cos(localCosT - 0.2 * PI * length(c)));
+  r = 0.2 + 0.1 * cos(localCosT);
   vec2 o = vec2(abs(length(q) - r) - thickness, 0);
   d = dMin(d, o);
 
@@ -3208,7 +3204,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
-  const float echoSlices = 3.;
+  const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.05 * i).rgb;
     uv.y += 0.02;
