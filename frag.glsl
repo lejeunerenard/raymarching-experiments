@@ -3023,8 +3023,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(0.25 * PI);
-
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
   // wQ *= rotMat2(0.05 * PI *cos(localCosT));
@@ -3036,11 +3034,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   size = vec2(0.15);
 
-  float thickness = 0.02 * size.x;
+  float thickness = 0.01 * size.x;
 
-  r = 0.2 + 0.1 * cos(localCosT);
-  vec2 o = vec2(abs(length(q) - r) - thickness, 0);
-  d = dMin(d, o);
+  r = 0.3;
+
+  for (float i = 0.; i < 4.; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(0.5 * PI * expo(mod(localT - 0.05 * i, 1.)));
+
+    vec2 o = vec2(abs(sdBox(localQ, vec2(r))) - thickness, 0);
+    d = dMin(d, o);
+
+    r *= 0.5;
+    q *= rotMat2(0.25 * PI);
+  }
+
+  q = uv;
+
+  r = 0.25;
+  for (float i = 0.; i < 2.; i++) {
+    vec2 o = vec2(abs(length(q) - r) - thickness, 0);
+    d = dMin(d, o);
+
+    r *= 0.5;
+  }
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3204,10 +3221,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 16.;
   for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.05 * i).rgb;
-    uv.y += 0.02;
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.01 * i).rgb;
+    uv.y += 0.01;
   }
   return vec4(color, 1);
 
