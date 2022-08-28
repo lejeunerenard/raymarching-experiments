@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1489,7 +1489,9 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-float gR = 1.1;
+// #pragma glslify: loopNoise = require(./loop-noise, noise=snoise3)
+
+float gR = 0.1;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1500,16 +1502,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float r = gR;
   vec2 size = vec2(0.25 * r);
-  float bigR = r * 2.;
+  float bigR = r * 3.;
 
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.14 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.14 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1521,43 +1523,69 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
+  wQ *= rotationMatrix(vec3(1, 0, 0), 0.1 * PI);
 
-  wQ.y *= 0.8;
+  // float warpDirection = 1.;
 
-  float warpDirection = 1.;
+  // vec3 rotationT = vec3(localCosT);
 
-  vec3 rotationT = vec3(localCosT);
-
-  wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
-  wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.000700 * cos(23.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  // wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
+  // wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // // wQ += warpScale * 0.000700 * cos(23.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // q.xy = polarCoords(q.xy);
-  // q.y -= 0.4;
+  q.xy = polarCoords(q.xy);
+  q.y -= bigR;
+  q.yz *= rotMat2(2. * q.x + localCosT);
+  q.x /= PI;
 
-  // q.yz *= rotMat2(0.5 * q.x);
+  // ok. so i want to make a glowing ring w/ goopy magic something.
+  //
+  // Probably doomed to fail as i seem to remember that the seam at -PI ^ PI
+  // is non-continuous Lets try a torus.
+  //
+  // hmm this is running into the same problem. I want the noise to be dependant
+  // on the angle but the angle can't be continuous.... i have to figure out how
+  // to loop the noise. The only trick I can think of was one from connor bell
+  // (sp?).
+  //
+  // The idea is to transition from the normal noise to a noise starting from
+  // 'behind' the starting point of the original noise so that it matches up
+  // with the start. That way it loops though the transition usually is lower
+  // quality noise then.
+  //
+  // That's looking correct. it was partially caused by the rotation on the .yz
+  // not being all the way around so things were mirrored-ish.
+  vec3 noiseQ = vec3(1, 10, 10) * q;
+  noiseQ.x += 1.;
+  noiseQ.x *= 0.5;
+  float n1 = snoise3(noiseQ);
+  float n2 = snoise3(vec3(1, 0, 0) + vec3(-1, 1, 1) * noiseQ);
+  float startNoise = 0.4;
+  float endNoise = 0.5;
+  float noiseIndex = saturate((noiseQ.x - startNoise) / (endNoise - startNoise));
+  float n = mix(n1, n2, noiseIndex);
+  // n = noiseQ.x;
+  // n = noiseIndex;
+
+  r += 0.1 * n;
 
   float m = 1.;
-  // vec3 b = vec3(sdPlane(q, vec4(0, 0, 1, 0)), m, 0);
-  // vec3 b = vec3(length(q) - r, m, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), m, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), m, 0);
+  // vec3 b = vec3(sdTorus(q.xzy, vec2(bigR, r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, n);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x /= rollingScale;
-
-  d.x *= 0.8;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1795,7 +1823,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(trap);
+  // return color;
 
   // gC = voronoi(2. * mPos, 0.);
 
@@ -3189,7 +3218,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3217,8 +3246,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 16.;
