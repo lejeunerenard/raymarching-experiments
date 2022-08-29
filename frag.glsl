@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1523,14 +1523,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
-  wQ *= rotationMatrix(vec3(1, 0, 0), 0.1 * PI);
+  // wQ *= rotationMatrix(vec3(1, 0, 0), 0.1 * PI);
 
   // float warpDirection = 1.;
 
   // vec3 rotationT = vec3(localCosT);
 
   // wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
   // wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
@@ -1565,19 +1565,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   //
   // That's looking correct. it was partially caused by the rotation on the .yz
   // not being all the way around so things were mirrored-ish.
-  vec3 noiseQ = vec3(1, 10, 10) * q;
+  vec3 noiseQ = vec3(1, 15, 15) * q;
+  // Normalize to [0, 1]
   noiseQ.x += 1.;
   noiseQ.x *= 0.5;
+
   float n1 = snoise3(noiseQ);
   float n2 = snoise3(vec3(1, 0, 0) + vec3(-1, 1, 1) * noiseQ);
-  float startNoise = 0.4;
+  float startNoise = 0.2;
   float endNoise = 0.5;
   float noiseIndex = saturate((noiseQ.x - startNoise) / (endNoise - startNoise));
   float n = mix(n1, n2, noiseIndex);
   // n = noiseQ.x;
   // n = noiseIndex;
 
-  r += 0.1 * n;
+  r += 0.15 * n;
 
   float m = 1.;
   // vec3 b = vec3(sdTorus(q.xzy, vec2(bigR, r)), 0, 0);
@@ -1585,7 +1587,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.1;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1963,7 +1965,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.0;
+      float diffMin = 0.3;
       float shadowMin = 0.6;
 
       vec3 directLighting = vec3(0);
@@ -2023,7 +2025,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.17 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2042,13 +2044,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.0);
-      // float dispersionI = 0.8;
+      // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.0);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
