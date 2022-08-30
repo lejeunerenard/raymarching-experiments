@@ -1530,7 +1530,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 rotationT = vec3(localCosT);
 
   // wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.15 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.15 * PI * 0. * cos(localCosT + wQ.y));
   // wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
@@ -1570,8 +1570,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   noiseQ.x += 1.;
   noiseQ.x *= 0.5;
 
-  float n1 = snoise3(noiseQ);
-  float n2 = snoise3(vec3(1, 0, 0) + vec3(-1, 1, 1) * noiseQ);
+  float n1 = cnoise3(noiseQ);
+  float n2 = cnoise3(vec3(1, 0, 0) + vec3(-1, 1, 1) * noiseQ);
   float startNoise = 0.2;
   float endNoise = 0.5;
   float noiseIndex = saturate((noiseQ.x - startNoise) / (endNoise - startNoise));
@@ -1583,7 +1583,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float m = 1.;
   // vec3 b = vec3(sdTorus(q.xzy, vec2(bigR, r)), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, n);
+  // vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, n);
+  vec3 b = vec3(sdCappedCylinder(q, vec2(2, r)), 0, n);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
