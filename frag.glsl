@@ -1530,7 +1530,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 rotationT = vec3(localCosT);
 
   // wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.15 * PI * 0. * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y));
   // wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
@@ -1545,7 +1545,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q.xy = polarCoords(q.xy);
   q.y -= bigR;
-  q.yz *= rotMat2(2. * q.x + localCosT);
+  q.yz *= rotMat2(2. * q.x + 0.8 * snoise2(2. * cos(0.2 * cos(localCosT + q.x) + vec2(1, 2) * q.xy)) + localCosT);
   q.x /= PI;
 
   // ok. so i want to make a glowing ring w/ goopy magic something.
@@ -1576,19 +1576,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float endNoise = 0.5;
   float noiseIndex = saturate((noiseQ.x - startNoise) / (endNoise - startNoise));
   float n = mix(n1, n2, noiseIndex);
-  // n = noiseQ.x;
-  // n = noiseIndex;
 
-  r += 0.15 * n;
+  // r += 0.15 * n;
 
   float m = 1.;
-  // vec3 b = vec3(sdTorus(q.xzy, vec2(bigR, r)), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, n);
-  vec3 b = vec3(sdCappedCylinder(q, vec2(2, r)), 0, n);
+  // vec3 b = vec3(sdTorus(q.xyz, vec2(bigR, r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, n);
+  // vec3 b = vec3(sdCappedCylinder(q, vec2(2, r)), 0, n);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.05;
+  d.x *= 0.5;
 
   return d;
 }
@@ -2026,7 +2024,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.22 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
