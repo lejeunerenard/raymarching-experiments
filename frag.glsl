@@ -1489,9 +1489,9 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-// #pragma glslify: loopNoise = require(./loop-noise, noise=snoise3)
+#pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.1;
+float gR = 0.07;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1523,14 +1523,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
-  // wQ *= rotationMatrix(vec3(1, 0, 0), 0.1 * PI);
+  wQ *= rotationMatrix(vec3(0, 0, 1), 0.15 * PI);
 
   // float warpDirection = 1.;
 
   // vec3 rotationT = vec3(localCosT);
 
   // wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y));
+  // wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y));
   // wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
@@ -1539,50 +1539,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // // wQ += warpScale * 0.000700 * cos(23.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
+  float c = pMod1(wQ.y, 3. * r);
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q.xy = polarCoords(q.xy);
-  q.y -= bigR;
-  q.yz *= rotMat2(2. * q.x + 0.8 * snoise2(2. * cos(0.2 * cos(localCosT + q.x) + vec2(1, 2) * q.xy)) + localCosT);
-  q.x /= PI;
-
-  // ok. so i want to make a glowing ring w/ goopy magic something.
-  //
-  // Probably doomed to fail as i seem to remember that the seam at -PI ^ PI
-  // is non-continuous Lets try a torus.
-  //
-  // hmm this is running into the same problem. I want the noise to be dependant
-  // on the angle but the angle can't be continuous.... i have to figure out how
-  // to loop the noise. The only trick I can think of was one from connor bell
-  // (sp?).
-  //
-  // The idea is to transition from the normal noise to a noise starting from
-  // 'behind' the starting point of the original noise so that it matches up
-  // with the start. That way it loops though the transition usually is lower
-  // quality noise then.
-  //
-  // That's looking correct. it was partially caused by the rotation on the .yz
-  // not being all the way around so things were mirrored-ish.
-  vec3 noiseQ = vec3(1, 15, 15) * q;
-  // Normalize to [0, 1]
-  noiseQ.x += 1.;
-  noiseQ.x *= 0.5;
-
-  float n1 = cnoise3(noiseQ);
-  float n2 = cnoise3(vec3(1, 0, 0) + vec3(-1, 1, 1) * noiseQ);
-  float startNoise = 0.2;
-  float endNoise = 0.5;
-  float noiseIndex = saturate((noiseQ.x - startNoise) / (endNoise - startNoise));
-  float n = mix(n1, n2, noiseIndex);
-
-  // r += 0.15 * n;
+  q.yz *= rotMat2(2. * q.x
+      + 0.2 * c
+      + 0.9 * snoise2(1.723 * (c + 2.)
+        + 2. * cos(
+          0.2 * cos(1.123 * c + localCosT + q.x)
+          + 0.5 * (c + 1.)
+          + vec2(1, 2) * q.xy)
+        )
+      + localCosT);
 
   float m = 1.;
   // vec3 b = vec3(sdTorus(q.xyz, vec2(bigR, r)), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, n);
-  // vec3 b = vec3(sdCappedCylinder(q, vec2(2, r)), 0, n);
+  vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, 0);
+  // vec3 b = vec3(sdCappedCylinder(q, vec2(2, r)), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
