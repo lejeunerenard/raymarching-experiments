@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.3;
 const float amount = 0.05;
 
 // Dof
@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.07;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1518,47 +1518,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.25;
-  float warpFrequency = 2.4;
+  float warpFrequency = 3.4;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
   wQ *= rotationMatrix(vec3(0, 0, 1), 0.15 * PI);
 
-  // float warpDirection = 1.;
+  float warpDirection = 1.;
 
-  // vec3 rotationT = vec3(localCosT);
+  vec3 rotationT = vec3(localCosT);
 
-  // wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y));
-  // wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
-  // wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // // wQ += warpScale * 0.000700 * cos(23.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-
-  float c = pMod1(wQ.y, 3. * r);
+  wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
+  wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q.yz *= rotMat2(2. * q.x
-      + 0.2 * c
-      + 0.9 * snoise2(1.723 * (c + 2.)
-        + 2. * cos(
-          0.2 * cos(1.123 * c + localCosT + q.x)
-          + 0.5 * (c + 1.)
-          + vec2(1, 2) * q.xy)
-        )
-      + localCosT);
-
   float m = 1.;
-  // vec3 b = vec3(sdTorus(q.xyz, vec2(bigR, r)), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(2., r, r)), 0, 0);
-  // vec3 b = vec3(sdCappedCylinder(q, vec2(2, r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
