@@ -1517,7 +1517,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.25;
+  float warpScale = 1.0;
   float warpFrequency = 3.4;
   float rollingScale = 1.;
 
@@ -1530,7 +1530,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 rotationT = vec3(localCosT);
 
   wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y + 0.37 * PI * cos(-localCosT + wQ.y)));
   wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
@@ -1543,7 +1543,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
@@ -1985,7 +1986,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.22 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
