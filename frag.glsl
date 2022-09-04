@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.5;
+float gR = 0.75;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1518,7 +1518,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 3.4;
+  float warpFrequency = 4.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1543,8 +1543,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.;
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdTorus88(q.xzy, vec2(1.1 * r, r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
@@ -1897,13 +1897,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 3.8;
-      // float bumpIntensity = 0.090;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 3.8;
+      float bumpIntensity = 0.090;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -1926,8 +1926,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.3;
-      float shadowMin = 0.6;
+      float diffMin = 0.5;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2011,7 +2011,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isDispersion = false; // Unset dispersion mode
 
       // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.0);
-      float dispersionI = 1.0;
+      float dispersionI = 1.4;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
