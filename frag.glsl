@@ -3007,8 +3007,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.15;
-  vec2 size = gSize;
+  float r = 0.045;
+  vec2 size = vec2(r * 2.5);
 
   float ringsMul = 10.;
   float maskRing = 0.4 * ringsMul;
@@ -3021,26 +3021,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
+	vec2 c = floor((wQ + size*0.5)/size);
+  wQ.x += 0.5 * size.x * mod(c.y, 2.);
+
+  c = pMod2(wQ, size);
+  t += dot(c, vec2(0.02));
+  t = mod(t, 1.);
+
   q = wQ;
   mUv = q;
 
   float thickness = 0.05 * r;
 
-  float step1T = circ(range(0., 0.33, t));
-  float step2T = circ(range(0.33, 0.67, t));
-  float step3T = circ(range(0.67, 1., t));
+  float step1T = expo(range(0., 0.33, mod(t + q.x, 1.)));
+  float step2T = expo(range(0.33, 0.67, mod(t + q.x, 1.)));
+  float step3T = expo(range(0.67, 1., mod(t + q.x, 1.)));
 
-  q += mix(
-      vec2(0, 0.2),
-      mix(
-        vec2(0.2, -0.2),
-        vec2(-0.2, -0.2),
-        step2T),
-      step1T - step3T);
+  // this makes it look almost randomly laid out. Likely because of the small
+  // distance doesn't hit a sweat spot of 'order'
+  q.y += (1. - 2. * mod(c.x, 2.)) * (step2T - step3T) * 0.05 * size.y;
 
   float dist = sdBox(q, vec2(r));
   dist = mix(dist, length(q) - r, step1T);
-  dist = mix(dist, dot(abs(q), vec2(1)) - r, step2T);
+  dist = mix(dist, dot(abs(q), vec2(1)) - r * 1.1, step2T);
   dist = mix(dist, sdBox(q, vec2(r)), step3T);
 
   dist = abs(dist) - thickness;
@@ -3206,8 +3209,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
