@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.75;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1518,32 +1518,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 4.0;
+  float warpFrequency = 1.7;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
-  wQ *= rotationMatrix(vec3(0, 0, 1), 0.15 * PI);
 
   float warpDirection = 1.;
 
   vec3 rotationT = vec3(localCosT);
 
-  wQ += warpScale * 0.050000 * cos( 1.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.08 * PI * cos(localCosT + wQ.y + 0.37 * PI * cos(-localCosT + wQ.y)));
-  wQ += warpScale * 0.025000 * cos( 2.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * cos( 3.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xyz = twist(wQ.xzy, 1.0 * wQ.z + 0.15 * PI * cos(localCosT + wQ.z));
-  wQ += warpScale * 0.006250 * cos( 5.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.003125 * cos( 8.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.001562 * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz,
+        2.0 * wQ.y
+      + 0.08 * PI * cos(
+          localCosT
+        + wQ.y
+        + 0.0 * PI * cos(-localCosT + wQ.y))
+      );
+  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(sdTorus88(q.xzy, vec2(1.1 * r, r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
@@ -1920,14 +1922,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 1.0;
       float specCo = 1.0;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.8;
+      float diffMin = 0.65;
+      float shadowMin = 0.85;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -3181,7 +3183,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);

@@ -93,9 +93,13 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // color = pow(color, vec3(2.2));
 
+  // Gradient tint
+  vec3 gradientColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(uv, cos(dot(uv, vec2(1)))) + vec3(0, 0.33, 0.67)));
+  color *= mix(gradientColor, vec3(1), (0.70 + 0.2 * length(uv)));
+
   // color *= vec3(0.70, 0.65, 1.);
   // color = mix(color, vec3(0.5), 0.30); // desaturate
-  // color = mix(color, vec3(1), 0.35); // lighten
+  color = mix(color, vec3(1), 0.30); // lighten
   // color *= 0.95;
 
   return color;
