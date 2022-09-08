@@ -1517,35 +1517,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.7;
+  float warpScale = 4.7;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
-  vec3 wQ = q.xyz;
+  vec4 wQ = vec4(q.xyz, 1.);
 
   float warpDirection = 1.;
 
-  vec3 rotationT = vec3(localCosT);
+  vec4 rotationT = vec4(localCosT);
 
-  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz,
-        2.0 * wQ.y
-      + 0.08 * PI * cos(
-          localCosT
-        + wQ.y
-        + 0.0 * PI * cos(-localCosT + wQ.y))
-      );
-  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
+  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(wQ) - angle3C, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
