@@ -1513,7 +1513,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1531,6 +1531,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
   wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
   wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ *= mat4(
+         1,   0,   0, 0.7,
+         0,   1,   0, 0.2,
+      -0.1,   0,   1, 0.0,
+         0, 0.2,   0, 1.0);
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
   wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
 
@@ -1539,12 +1544,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(length(wQ) - angle3C, 0, 0);
+  // vec3 b = vec3(length(wQ) - angle3C, 0, 0);
+  vec3 b = vec3(sdTorus(q.xzy, angle3C * vec2(1., 0.5)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.25;
 
   return d;
 }
@@ -2001,8 +2007,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 

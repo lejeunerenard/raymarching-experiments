@@ -1,7 +1,5 @@
 #pragma glslify: pModPolarBack = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
-#pragma glslify: rotMat2Back = require(./rotation-matrix2)
-// #pragma glslify: snoise2 = require(glsl-noise/simplex/2d)
 
 vec3 getBackground (in vec2 uv, in float universe) {
   // Convert from [-1,1] -> [0, 1]
@@ -12,7 +10,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   float bgIndex = saturate(length(uv));
   // bgIndex = pow(bgIndex, 4.);
   // bgIndex += 0.1 * dot(sin(6. * uv), vec2(1));
-  // bgIndex = 1. - bgIndex; // Flip
+  bgIndex = 1. - bgIndex; // Flip
 
   // Metadata
 
@@ -20,8 +18,8 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(#501E5B, vec3(0.0), bgIndex);
   // vec3 color = mix(vec3(.27, .275, .2), vec3(0.06, 0, 0.15), bgIndex);
-  // vec3 color = mix(vec3(0.15, 0.01, 0.15), vec3(0.0), bgIndex);
-  vec3 color = mix(vec3(0.85, 0.75, 0.9), vec3(0.95), bgIndex);
+  // vec3 color = mix(vec3(0.25, 0.25, 0.25), vec3(0.0), bgIndex);
+  vec3 color = mix(vec3(0.65, 0.55, 0.7), vec3(0.95), bgIndex);
   // vec3 color = 0.9 * mix(0.2 * #ff1412, mix(#981907, vec3(1), 0.3), bgIndex);
   // color *= mix(colors1, vec3(1), 1. - length(coord));
   // color = mix(color, vec3(1), 0.30);
@@ -54,6 +52,18 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = #5927F8;
 
   // -- Patterns --
+
+  // vec2 nQ = uv;
+  // float warpScale = 2.;
+  // nQ += warpScale * 0.10000 * cos( 2. * nQ.yx );
+  // nQ += warpScale * 0.05000 * cos( 4. * nQ.yx );
+  // nQ += warpScale * 0.02500 * cos( 8. * nQ.yx );
+
+  // float n = dot(cos(23.78 * nQ), sin(71.29 * nQ));
+  // n = dot(cos(vec2(0.2, 23.78) * nQ + n), sin(vec2(11.29, 0.7) * nQ));
+  // n = dot(uv, vec2(0.1)) + 0.2 * n + 8. * dot(uv, uv * cos(vec2(1,3) * uv));
+
+  // vec3 color = 0.5 + 0.5 * cos(TWO_PI * (n + vec3(uv, 1) + vec3(0, 0.33, 0.67)));
 
   // // Grid
   // const float size = 0.007;
@@ -93,14 +103,14 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // color = pow(color, vec3(2.2));
 
-  // Gradient tint
-  vec3 gradientColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(uv, cos(dot(uv, vec2(1)))) + vec3(0, 0.33, 0.67)));
-  color *= mix(gradientColor, vec3(1), (0.70 + 0.2 * length(uv)));
+  // // Gradient tint
+  // vec3 gradientColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(uv, cos(dot(uv, vec2(1)))) + vec3(0, 0.33, 0.67)));
+  // color *= mix(gradientColor, vec3(1), (0.70 + 0.2 * length(uv)));
 
   // color *= vec3(0.70, 0.65, 1.);
   // color = mix(color, vec3(0.5), 0.30); // desaturate
-  color = mix(color, vec3(1), 0.30); // lighten
-  color *= 0.91;
+  // color = mix(color, vec3(1), 0.30); // lighten
+  // color *= 0.91;
 
   return color;
 }
