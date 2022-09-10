@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.3;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.5;
+float gR = 1.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1513,12 +1513,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 4.7;
-  float warpFrequency = 1.0;
+  float warpScale = 1.5;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1528,29 +1528,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec4 rotationT = vec4(localCosT);
 
+  wQ.y *= 0.6;
+
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
   wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
   wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
-  wQ *= mat4(
-         1,   0,   0, 0.7,
-         0,   1,   0, 0.2,
-      -0.1,   0,   1, 0.0,
-         0, 0.2,   0, 1.0);
+  // wQ *= mat4(
+  //        1,   0,   0, 0.1,
+  //        0,   1,   0, 0.2,
+  //     -0.1, 0.7,   1, 0.0,
+  //        0, 0.2,   0, 1.0);
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
   wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  vec3 s = vec3(0);
+  // r += 0.01 * fbmWarp(q, s);
+
   float m = 1.;
-  // vec3 b = vec3(length(wQ) - angle3C, 0, 0);
-  vec3 b = vec3(sdTorus(q.xzy, angle3C * vec2(1., 0.5)), 0, 0);
+  vec3 b = vec3(length(wQ) - r, 0, 0);
+  // vec3 b = vec3(sdTorus(q.xzy, angle3C * vec2(1., 0.5)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
-  d.x *= 0.25;
+  // d.x *= 1.0;
 
   return d;
 }
@@ -1899,13 +1905,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 3.8;
-      float bumpIntensity = 0.090;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 3.8;
+      // float bumpIntensity = 0.090;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2012,13 +2018,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.0);
-      float dispersionI = 1.4;
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
+      // float dispersionI = 1.4;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      // dispersionColor.r = pow(dispersionColor.r, 0.8);
-      dispersionColor.b = pow(dispersionColor.b, 0.4);
+      dispersionColor.r = pow(dispersionColor.r, 0.8);
+      // dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
