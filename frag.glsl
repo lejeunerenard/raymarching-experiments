@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 1.2;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1518,29 +1518,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.5;
-  float warpFrequency = 2.0;
+  float warpFrequency = 3.0;
   float rollingScale = 1.;
 
   // Warp
-  vec4 wQ = vec4(q.xyz, 1.);
+  // vec4 wQ = vec4(q.xyz, 1.);
+  vec3 wQ = q.xyz;
 
   float warpDirection = 1.;
 
-  vec4 rotationT = vec4(localCosT);
+  vec3 rotationT = vec3(localCosT + 0.4 * PI);
 
-  wQ.y *= 0.6;
+  wQ.y *= 0.7;
 
-  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 2.0 * wQ.y);
-  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT + cos(wQ));
   // wQ *= mat4(
   //        1,   0,   0, 0.1,
   //        0,   1,   0, 0.2,
   //     -0.1, 0.7,   1, 0.0,
   //        0, 0.2,   0, 1.0);
-  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
-  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
-  wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1548,10 +1549,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 s = vec3(0);
   // r += 0.01 * fbmWarp(q, s);
+  // r += 0.1 * r * snoise3(q);
 
   float m = 1.;
   vec3 b = vec3(length(wQ) - r, 0, 0);
-  // vec3 b = vec3(sdTorus(q.xzy, angle3C * vec2(1., 0.5)), 0, 0);
+  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
+  // vec3 b = vec3(sdTorus(q, vec2(1, 0.2) * r), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
@@ -1795,15 +1798,24 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(trap);
-  // return color;
+
+  float a = atan(mPos.z, mPos.x);
+
+  float n = cos(50. * a + 40. * TWO_PI * mPos.y);
+  n = smoothstep(0.7, 0.8, n);
+  n *= 1.4; // False brighten
+
+  color = vec3(n);
+
+  return color;
 
   // gC = voronoi(2. * mPos, 0.);
 
   // return color; // Solid color
 
-  float n = dot(mPos, vec3(1));
-  n = sin(TWO_PI * 30. * n);
-  n = smoothstep(0., edge, n);
+  // float n = dot(mPos, vec3(1));
+  // n = sin(TWO_PI * 30. * n);
+  // n = smoothstep(0., edge, n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -1935,7 +1947,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.65;
-      float shadowMin = 0.85;
+      float shadowMin = 0.6;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2005,7 +2017,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
