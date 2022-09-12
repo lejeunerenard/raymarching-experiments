@@ -3027,8 +3027,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.045;
-  vec2 size = vec2(r * 2.5);
+  float r = 0.05;
+  vec2 size = vec2(r * 3.5);
 
   float ringsMul = 10.;
   float maskRing = 0.4 * ringsMul;
@@ -3053,22 +3053,47 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.05 * r;
 
-  float step1T = expo(range(0., 0.33, mod(t + q.x, 1.)));
-  float step2T = expo(range(0.33, 0.67, mod(t + q.x, 1.)));
-  float step3T = expo(range(0.67, 1., mod(t + q.x, 1.)));
+  // ok. so i have an idea going into today but well see. the idea is based
+  // on my reflections on how automation has impacted my life. I automate
+  // many things in my life and ive noticed how automation has reenforced my
+  // perfectionism alot over recent years. I think of automation as a metronome
+  // but with the knowledge of time it becomes really easy to sense when youre
+  // going fast or (most likely) slow . So i feel like the beat is keeping
+  // me faster than normal but i feel like i'm always catching up in a rush.
+  // In this cycle of burn out and rushing So what if i make that a visual
+  // representation.
 
-  // this makes it look almost randomly laid out. Likely because of the small
-  // distance doesn't hit a sweat spot of 'order'
-  q.y += (1. - 2. * mod(c.x, 2.)) * (step2T - step3T) * 0.05 * size.y;
+  // whoa that's confusing. we'll come back to this if the above doesn't pan
+  // out. not sure if this adds or subtracts from it. It makes what is going
+  // on less clear. but at the same time. i kinda feel like this too. I am not
+  // alone in this struggle and that brings me comfort and assurance. but at the
+  // same time it lessens what i feel about myself as i down play things being
+  // intense or a struggle. TO be clear, not many people have this struggle to
+  // keep up issue with automation. That's just my metronome. People have other
+  // things that are their pace setter or that thing which dictates their level
+  // of performance.
+  //
+  // I think I'll keep the grid. Makes it feel a bit better. And its more
+  // visually interesting.
 
-  float dist = sdBox(q, vec2(r));
-  dist = mix(dist, length(q) - r, step1T);
-  dist = mix(dist, dot(abs(q), vec2(1)) - r * 1.1, step2T);
-  dist = mix(dist, sdBox(q, vec2(r)), step3T);
+  float bigR = 0.5 * size.x;
+  q.x -= bigR;
+  vec2 referenceQ = q;
 
-  dist = abs(dist) - thickness;
+  float leftToRight = range(0.0, 0.5, t);
+  float rightToLeft = range(0.5, 1.0, t);
+  // now its oscillating.
+  q.x += 2. * bigR * (leftToRight - rightToLeft);
 
-  vec2 o = vec2(dist, 0);
+  vec2 o = vec2(sdBox(q, vec2(0.1, 1) * r), 0);
+  d = dMin(d, o);
+
+  q = referenceQ;
+  leftToRight = pow(leftToRight, 2.);
+  rightToLeft = pow(rightToLeft, 2. + 0.1 * cos(localCosT));
+  // leftToRight = pow(leftToRight, 2.);
+  q.x += 2. * bigR * (leftToRight - rightToLeft);
+  o = vec2(sdBox(q, vec2(0.1, 1) * r), 1);
   d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(4.));
@@ -3102,13 +3127,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // TODO This is too messy. Move it into functions / modules
 
-  // // Cosine Palette
-  // vec3 dI = vec3(n);
-  // // dI += 0.125 * fallOff;
-  // dI += dot(uv, vec2(0.4));
-  // dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
-  // dI *= 0.75;
-  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
+  // Cosine Palette
+  vec3 dI = vec3(n);
+  // dI += 0.125 * fallOff;
+  dI += dot(uv, vec2(0.4));
+  dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
+  dI *= 0.75;
+  color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
 
   // // Stripes
   // // const float numStripes = 30.;
@@ -3201,7 +3226,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3229,8 +3254,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
