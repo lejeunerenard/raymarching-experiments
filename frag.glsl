@@ -3046,6 +3046,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   c = pMod2(wQ, size);
   t += dot(c, vec2(0.02));
+  // t -= length(0.05 * c);
   t = mod(t, 1.);
 
   q = wQ;
@@ -3053,47 +3054,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.05 * r;
 
-  // ok. so i have an idea going into today but well see. the idea is based
-  // on my reflections on how automation has impacted my life. I automate
-  // many things in my life and ive noticed how automation has reenforced my
-  // perfectionism alot over recent years. I think of automation as a metronome
-  // but with the knowledge of time it becomes really easy to sense when youre
-  // going fast or (most likely) slow . So i feel like the beat is keeping
-  // me faster than normal but i feel like i'm always catching up in a rush.
-  // In this cycle of burn out and rushing So what if i make that a visual
-  // representation.
+  float step1 = circ(range(0.00, 0.20, t));
+  float step2 = quart(bounceOut(range(0.22, 0.40, t)));
+  float step3 = circ(range(0.40, 0.60, t));
+  float step4 = range(0.60, 0.80, t);
+  float step5 = circ(range(0.80, 1.00, t));
 
-  // whoa that's confusing. we'll come back to this if the above doesn't pan
-  // out. not sure if this adds or subtracts from it. It makes what is going
-  // on less clear. but at the same time. i kinda feel like this too. I am not
-  // alone in this struggle and that brings me comfort and assurance. but at the
-  // same time it lessens what i feel about myself as i down play things being
-  // intense or a struggle. TO be clear, not many people have this struggle to
-  // keep up issue with automation. That's just my metronome. People have other
-  // things that are their pace setter or that thing which dictates their level
-  // of performance.
-  //
-  // I think I'll keep the grid. Makes it feel a bit better. And its more
-  // visually interesting.
+  vec2 dim = vec2(
+      r * (0.2 + 0.8 * step3 - step5),
+      r * (step1 - 0.8 * step5)
+      );
 
-  float bigR = 0.5 * size.x;
-  q.x -= bigR;
-  vec2 referenceQ = q;
+  q *= rotMat2(0.5 * PI * step2);
 
-  float leftToRight = range(0.0, 0.5, t);
-  float rightToLeft = range(0.5, 1.0, t);
-  // now its oscillating.
-  q.x += 2. * bigR * (leftToRight - rightToLeft);
-
-  vec2 o = vec2(sdBox(q, vec2(0.1, 1) * r), 0);
-  d = dMin(d, o);
-
-  q = referenceQ;
-  leftToRight = pow(leftToRight, 2.);
-  rightToLeft = pow(rightToLeft, 2. + 0.1 * cos(localCosT));
-  // leftToRight = pow(leftToRight, 2.);
-  q.x += 2. * bigR * (leftToRight - rightToLeft);
-  o = vec2(sdBox(q, vec2(0.1, 1) * r), 1);
+  vec2 o = vec2(sdBox(q, dim), 0);
+  o.x = mix(o.x, abs(sdBox(q, dim)) - thickness, step4 - step5);
   d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(4.));
@@ -3254,8 +3229,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
