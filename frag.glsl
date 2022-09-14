@@ -1517,7 +1517,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5;
+  float warpScale = 2.0;
   float warpFrequency = 3.0;
   float rollingScale = 1.;
 
@@ -1529,19 +1529,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT + 0.4 * PI);
 
-  wQ.y *= 0.7;
+  // wQ.y *= 0.7;
 
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
-  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT + cos(wQ));
-  // wQ *= mat4(
-  //        1,   0,   0, 0.1,
-  //        0,   1,   0, 0.2,
-  //     -0.1, 0.7,   1, 0.0,
-  //        0, 0.2,   0, 1.0);
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.25 * PI * cos(localCosT + wQ.y));
+  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzwx + rotationT);
+  wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1552,10 +1547,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // r += 0.1 * r * snoise3(q);
 
   float m = 1.;
-  vec3 b = vec3(length(wQ) - r, 0, 0);
+  // vec3 b = vec3(length(wQ) - r, 0, 0);
   // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
   // vec3 b = vec3(sdTorus(q, vec2(1, 0.2) * r), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
@@ -1801,9 +1796,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float a = atan(mPos.z, mPos.x);
 
-  float n = cos(50. * a + 40. * TWO_PI * mPos.y);
+  float n = cos(20. * a + 10. * TWO_PI * mPos.y);
   n = smoothstep(0.7, 0.8, n);
-  n *= 1.4; // False brighten
+  // n *= 1.4; // False brighten
 
   color = vec3(n);
 
@@ -1940,14 +1935,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 0.65;
-      float shadowMin = 0.6;
+      float diffMin = 1.;
+      float shadowMin = 1.;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2003,11 +1998,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * vec3(pow(specAll, 8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -3027,15 +3022,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.015;
+  float r = 0.15;
   vec2 size = vec2(r * 21.);
-
-  float ringsMul = 10.;
-  float maskRing = 0.4 * ringsMul;
 
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(localCosT * 0.125);
+  wQ *= rotMat2(0.5 * PI * cos(localCosT + uv.x));
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3043,72 +3035,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  pModPolar(wQ, 8.);
-  wQ.x -= 18. * r;
-
   q = wQ;
   mUv = q;
 
   float thickness = 0.05 * r;
 
-  for (float i = 1.; i < 9.; i++) {
-    vec2 localQ = q;
-    float thisT = t + i * 0.02;
-    thisT = mod(thisT, 1.0);
-    thisT = range(0., 0.4, thisT) - range(0.6, 1.0, thisT);
-
-    localQ *= rotMat2(PI * i * 0.25 - t * PI);
-
-    localQ.x -= 3. * r;
-
-    // vec2 o = vec2(abs(sdBox(localQ, vec2(r))) - thickness, 0);
-    // d = dMin(d, o);
-
-    vec2 o = vec2(sdBox(localQ, vec2(r)), 0);
-    if (o.x <= 0.) {
-      d.x = maxDistance - d.x;
-    }
-    // d = dMin(d, o);
-  }
-
-  for (float i = 0.; i < 8.; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(TWO_PI * i * 0.125 + t * TWO_PI);
-
-    localQ.x -= 4. * r;
-
-    vec2 o = vec2(length(localQ) - 1.2 * r, 0);
-    if (o.x <= 0.) {
-      d.x = maxDistance - d.x;
-    }
-    // d = dMin(d, o);
-  }
-
-  for (float i = 0.; i < 16.; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(TWO_PI * i * 0.0625 - t * 0.25 * TWO_PI);
-
-    localQ.x -= 6. * r;
-
-    vec2 o = vec2(length(localQ) - 2.0 * r, 0);
-    if (o.x <= 0.) {
-      d.x = maxDistance - d.x;
-    }
-    // d = dMin(d, o);
-  }
-
-  for (float i = 0.; i < 10.; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(TWO_PI * i * 0.1 + t * 0.5 * TWO_PI);
-
-    localQ.x -= 8. * r;
-
-    vec2 o = vec2(sdBox(localQ, vec2(2. * r)), 0);
-    if (o.x <= 0.) {
-      d.x = maxDistance - d.x;
-    }
-    // d = dMin(d, o);
-  }
+  vec2 o = vec2(abs(vmax(abs(q)) - r) - thickness, 0);
+  d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3240,7 +3173,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3268,13 +3201,13 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.01 * i).rgb;
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.005 * i).rgb;
     uv.y += 0.01;
   }
   return vec4(color, 1);
