@@ -3027,13 +3027,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.05;
-  vec2 size = vec2(r * 3.5);
+  float r = 0.015;
+  vec2 size = vec2(r * 21.);
 
   float ringsMul = 10.;
   float maskRing = 0.4 * ringsMul;
 
   vec2 wQ = q.xy;
+
+  wQ *= rotMat2(localCosT * 0.125);
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3041,35 +3043,72 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-	vec2 c = floor((wQ + size*0.5)/size);
-  wQ.x += 0.5 * size.x * mod(c.y, 2.);
-
-  c = pMod2(wQ, size);
-  t += dot(c, vec2(0.02));
-  // t -= length(0.05 * c);
-  t = mod(t, 1.);
+  pModPolar(wQ, 8.);
+  wQ.x -= 18. * r;
 
   q = wQ;
   mUv = q;
 
   float thickness = 0.05 * r;
 
-  float step1 = circ(range(0.00, 0.20, t));
-  float step2 = quart(bounceOut(range(0.22, 0.40, t)));
-  float step3 = circ(range(0.40, 0.60, t));
-  float step4 = range(0.60, 0.80, t);
-  float step5 = circ(range(0.80, 1.00, t));
+  for (float i = 1.; i < 9.; i++) {
+    vec2 localQ = q;
+    float thisT = t + i * 0.02;
+    thisT = mod(thisT, 1.0);
+    thisT = range(0., 0.4, thisT) - range(0.6, 1.0, thisT);
 
-  vec2 dim = vec2(
-      r * (0.2 + 0.8 * step3 - step5),
-      r * (step1 - 0.8 * step5)
-      );
+    localQ *= rotMat2(PI * i * 0.25 - t * PI);
 
-  q *= rotMat2(0.5 * PI * step2);
+    localQ.x -= 3. * r;
 
-  vec2 o = vec2(sdBox(q, dim), 0);
-  o.x = mix(o.x, abs(sdBox(q, dim)) - thickness, step4 - step5);
-  d = dMin(d, o);
+    // vec2 o = vec2(abs(sdBox(localQ, vec2(r))) - thickness, 0);
+    // d = dMin(d, o);
+
+    vec2 o = vec2(sdBox(localQ, vec2(r)), 0);
+    if (o.x <= 0.) {
+      d.x = maxDistance - d.x;
+    }
+    // d = dMin(d, o);
+  }
+
+  for (float i = 0.; i < 8.; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(TWO_PI * i * 0.125 + t * TWO_PI);
+
+    localQ.x -= 4. * r;
+
+    vec2 o = vec2(length(localQ) - 1.2 * r, 0);
+    if (o.x <= 0.) {
+      d.x = maxDistance - d.x;
+    }
+    // d = dMin(d, o);
+  }
+
+  for (float i = 0.; i < 16.; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(TWO_PI * i * 0.0625 - t * 0.25 * TWO_PI);
+
+    localQ.x -= 6. * r;
+
+    vec2 o = vec2(length(localQ) - 2.0 * r, 0);
+    if (o.x <= 0.) {
+      d.x = maxDistance - d.x;
+    }
+    // d = dMin(d, o);
+  }
+
+  for (float i = 0.; i < 10.; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(TWO_PI * i * 0.1 + t * 0.5 * TWO_PI);
+
+    localQ.x -= 8. * r;
+
+    vec2 o = vec2(sdBox(localQ, vec2(2. * r)), 0);
+    if (o.x <= 0.) {
+      d.x = maxDistance - d.x;
+    }
+    // d = dMin(d, o);
+  }
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
