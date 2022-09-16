@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1517,8 +1517,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.0;
-  float warpFrequency = 3.0;
+  float warpScale = 1.1;
+  float warpFrequency = 0.85;
   float rollingScale = 1.;
 
   // Warp
@@ -1532,7 +1532,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y *= 0.7;
 
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.25 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.25 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
   wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1542,19 +1542,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 s = vec3(0);
-  // r += 0.01 * fbmWarp(q, s);
-  // r += 0.1 * r * snoise3(q);
-
   float m = 1.;
-  // vec3 b = vec3(length(wQ) - r, 0, 0);
-  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
-  // vec3 b = vec3(sdTorus(q, vec2(1, 0.2) * r), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // b.x -= 0.01 * cellular(3. * q);
+  vec3 b = vec3(length(wQ) - r, 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 1.0;
+  // d.x *= 0.6;
 
   return d;
 }
@@ -1794,16 +1786,6 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(trap);
 
-  float a = atan(mPos.z, mPos.x);
-
-  float n = cos(20. * a + 10. * TWO_PI * mPos.y);
-  n = smoothstep(0.7, 0.8, n);
-  // n *= 1.4; // False brighten
-
-  color = vec3(n);
-
-  return color;
-
   // gC = voronoi(2. * mPos, 0.);
 
   // return color; // Solid color
@@ -1822,7 +1804,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI.x = pow(dI.x, 2.);
 
-  dI *= 0.3;
+  // dI *= 0.3;
 
   dI *= angle1C;
   dI += angle2C;
@@ -1935,14 +1917,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 0.6;
 
       float specAll = 0.0;
 
       // Shadow minimums
-      float diffMin = 1.;
-      float shadowMin = 1.;
+      float diffMin = 0.7;
+      float shadowMin = 0.75;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2012,7 +1994,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2025,7 +2007,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.0);
       // float dispersionI = 1.4;
       dispersionColor *= dispersionI;
 
@@ -3201,8 +3183,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
