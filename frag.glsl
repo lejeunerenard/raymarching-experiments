@@ -3004,12 +3004,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.15;
+  float r = 0.04;
   vec2 size = vec2(r * 21.);
 
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(0.5 * PI * cos(localCosT + uv.x));
+  wQ.y *= 1.3;
+
+  // wQ *= rotMat2(0.5 * PI * cos(localCosT));
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3020,10 +3022,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  float thickness = 0.05 * r;
+  float thickness = 0.1 * r;
 
-  vec2 o = vec2(abs(vmax(abs(q)) - r) - thickness, 0);
-  d = dMin(d, o);
+  for (float i = 0.; i < 12.; i++) {
+    vec2 localQ = q;
+
+    localQ *= rotMat2(PI * 0.171 * i);
+
+    float c = pModPolar(localQ, 6.);
+
+    float sliceT = t;
+    sliceT += 0.1 * c;
+    sliceT += 0.1 * i;
+    sliceT += 0.05 * snoise2(0.7198 * vec2(c, i));
+    sliceT = mod(sliceT, 1.);
+
+    localQ.x -= (18. - i) * r * sliceT;
+
+    localQ *= 2. + (4. - 0.1 * i) * sliceT;
+    localQ *= rotMat2(localCosT + 0.2 * c);
+
+    vec2 o = vec2(abs(vmin(abs(localQ))) - thickness, 0);
+    float crop = sdBox(localQ, vec2(r));
+    o.x = max(o.x, crop);
+    d = dMin(d, o);
+  }
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3155,7 +3178,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3183,14 +3206,14 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.005 * i).rgb;
-    uv.y += 0.01;
+    uv.y += 0.004;
   }
   return vec4(color, 1);
 
