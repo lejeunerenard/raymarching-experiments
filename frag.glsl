@@ -3009,7 +3009,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  wQ.y *= 1.3;
+  wQ.y *= 1.05;
 
   // wQ *= rotMat2(0.5 * PI * cos(localCosT));
 
@@ -3024,7 +3024,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.1 * r;
 
-  for (float i = 0.; i < 12.; i++) {
+  const float num = 18.;
+  for (float i = 0.; i < num; i++) {
     vec2 localQ = q;
 
     localQ *= rotMat2(PI * 0.171 * i);
@@ -3033,18 +3034,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
     float sliceT = t;
     sliceT += 0.1 * c;
-    sliceT += 0.1 * i;
+    sliceT += 0.137 * i;
     sliceT += 0.05 * snoise2(0.7198 * vec2(c, i));
     sliceT = mod(sliceT, 1.);
 
-    localQ.x -= (18. - i) * r * sliceT;
+    localQ.x -= (23. + 20. * i / num) * r * (1. - sliceT);
 
-    localQ *= 2. + (4. - 0.1 * i) * sliceT;
-    localQ *= rotMat2(localCosT + 0.2 * c);
+    localQ *= 2. + (6. - 0.1 * i) * pow(sliceT, 8.);
 
-    vec2 o = vec2(abs(vmin(abs(localQ))) - thickness, 0);
-    float crop = sdBox(localQ, vec2(r));
-    o.x = max(o.x, crop);
+    vec2 o = vec2(abs(length(localQ) - r) - thickness, 0);
     d = dMin(d, o);
   }
 
