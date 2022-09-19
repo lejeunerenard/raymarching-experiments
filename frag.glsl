@@ -3004,14 +3004,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.04;
+  float r = 0.02;
   vec2 size = vec2(r * 21.);
 
   vec2 wQ = q.xy;
 
   wQ.y *= 1.05;
 
-  // wQ *= rotMat2(0.5 * PI * cos(localCosT));
+  wQ *= rotMat2(0.25 * PI);
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3024,23 +3024,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.1 * r;
 
-  const float num = 18.;
-  for (float i = 0.; i < num; i++) {
+  for (float i = 0.; i < 8.; i++) {
     vec2 localQ = q;
+    float locallocalT = t;
 
-    localQ *= rotMat2(PI * 0.171 * i);
+    localQ.x += cos(TWO_PI * 9.17823 * i);
+    localQ *= 2. + 1. * snoise2(9.71823 * vec2(i));
 
-    float c = pModPolar(localQ, 6.);
+    float c = pMod1(localQ.x, 4. * r);
 
-    float sliceT = t;
-    sliceT += 0.1 * c;
-    sliceT += 0.137 * i;
-    sliceT += 0.05 * snoise2(0.7198 * vec2(c, i));
-    sliceT = mod(sliceT, 1.);
+    locallocalT += 0.1 * cos(1.791 * c + localCosT);
+    locallocalT += c * snoise2(vec2(c, c + i) + 100.);
+    locallocalT = mod(locallocalT, 1.);
 
-    localQ.x -= (23. + 20. * i / num) * r * (1. - sliceT);
-
-    localQ *= 2. + (6. - 0.1 * i) * pow(sliceT, 8.);
+    localQ.y -= (1. + mod(i, 2.)) * (1. - 2. * locallocalT);
 
     vec2 o = vec2(abs(length(localQ) - r) - thickness, 0);
     d = dMin(d, o);
@@ -3204,8 +3201,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
