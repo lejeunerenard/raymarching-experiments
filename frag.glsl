@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1507,11 +1507,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.14 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.14 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1529,24 +1529,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT + 0.4 * PI);
 
-  // wQ.y *= 0.7;
-
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.25 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
   wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(length(wQ) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // b.x += 0.1 * cellular(0.5 * q);
   d = dMin(d, b);
 
-  // d.x *= 0.6;
+  d.x *= 0.6;
 
   return d;
 }
@@ -1677,13 +1677,13 @@ vec3 textures (in vec3 rd) {
 
   // dI += gC.z;
 
-  dI += 0.2 * gPos;
+  // dI += 0.2 * gPos;
 
   dI *= 0.3;
 
   // -- Colors --
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
-  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
+  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
   // color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
@@ -1800,9 +1800,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
 
+  dI *= rotationMatrix(vec3(-1, 1,-1), 0.25 * PI * cos(cosT));
+
   // dI += 5. * trap;
 
-  dI.x = pow(dI.x, 2.);
+  // dI.x = pow(dI.x, 2.);
 
   // dI *= 0.3;
 
@@ -1917,7 +1919,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 2.0;
       float specCo = 0.6;
 
       float specAll = 0.0;
@@ -2007,13 +2009,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 8.0);
+      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
       // float dispersionI = 1.4;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.8);
-      // dispersionColor.b = pow(dispersionColor.b, 0.4);
+      // dispersionColor.r = pow(dispersionColor.r, 0.8);
+      dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
@@ -3009,7 +3011,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
-  wQ.y *= 1.05;
+  // wQ.y *= 1.05;
 
   wQ *= rotMat2(0.25 * PI);
 
@@ -3024,20 +3026,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.1 * r;
 
-  for (float i = 0.; i < 8.; i++) {
+  for (float i = 0.; i < 4.; i++) {
     vec2 localQ = q;
     float locallocalT = t;
 
     localQ.x += cos(TWO_PI * 9.17823 * i);
     localQ *= 2. + 1. * snoise2(9.71823 * vec2(i));
 
-    float c = pMod1(localQ.x, 4. * r);
+    float c = pMod1(localQ.x, 2.5 * r);
 
     locallocalT += 0.1 * cos(1.791 * c + localCosT);
-    locallocalT += c * snoise2(vec2(c, c + i) + 100.);
+    // locallocalT += c * snoise2(vec2(c, c + i) + 100.);
     locallocalT = mod(locallocalT, 1.);
 
-    localQ.y -= (1. + mod(i, 2.)) * (1. - 2. * locallocalT);
+    localQ.y -= 1.2 * (1. + mod(i, 2.)) * (1. - 2. * locallocalT);
 
     vec2 o = vec2(abs(length(localQ) - r) - thickness, 0);
     d = dMin(d, o);
@@ -3173,7 +3175,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
