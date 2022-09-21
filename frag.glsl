@@ -1518,7 +1518,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.1;
-  float warpFrequency = 0.85;
+  float warpFrequency = 1.85;
   float rollingScale = 1.;
 
   // Warp
@@ -1528,6 +1528,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpDirection = 1.;
 
   vec3 rotationT = vec3(localCosT + 0.4 * PI);
+
+  // I'm going to explore some more of this simple and colorful style today. Not
+  // sure if that's where it will end but that's what my plan is right now. ha.
 
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
@@ -1541,12 +1544,40 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float m = 1.;
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., 0.8 * r), 0, 0);
+  b.x *= 0.6;
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // b.x += 0.1 * cellular(0.5 * q);
   d = dMin(d, b);
 
-  d.x *= 0.6;
+  // Bubbles
+  q = p;
+  b = vec3(length(q + r * vec3(0.55, -0.8,-0.2)) - 0.1 * r, 2, 0);
+  d = dMin(d, b);
+
+  b = vec3(length(q + r * vec3(0.45, -1.0,-0.25)) - 0.05 * r, 2, 0);
+  d = dMin(d, b);
+
+  b = vec3(length(q + r * vec3(-0.45, 1.0, 0.25)) - 0.075 * r, 2, 0);
+  d = dMin(d, b);
+
+  // an 'X'
+  q = p;
+  // q -= vec3(0, 0.4, 0.4);
+  q *= rotationMatrix(vec3(-1, 1, 0), -1.125);
+  r *= 1.3;
+  // Reflect diagonally
+  q = abs(q);
+  // if (q.y > q.x) {
+  //   q.xy = -q.yx;
+  // }
+  float xD = maxDistance; // sdBox(q, vec3(r, 0.1 * r, 0.01));
+  xD = min(xD, sdTorus(q.xzy, vec2(1, 0.07) * r));
+  vec3 x = vec3(xD, 1, 0);
+  d = dMin(d, x);
+
+  // d.x *= 0.6;
 
   return d;
 }
@@ -1797,10 +1828,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
-  dI += 2. * mPos.y;
+  // dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
 
-  dI *= rotationMatrix(vec3(-1, 1,-1), 0.25 * PI * cos(cosT));
+  // dI *= rotationMatrix(vec3(-1, 1,-1), 0.25 * PI * cos(cosT));
 
   // dI += 5. * trap;
 
@@ -1808,13 +1839,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // dI *= 0.3;
 
-  dI *= angle1C;
+  dI *= angle1C * mix(1., 0.25, isMaterialSmooth(m, 2.));
   dI += angle2C;
 
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // color *= 0.4;
+
+  color = mix(color, vec3(0.025), isMaterialSmooth(m, 1.));
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1878,9 +1911,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.7, 1.2, 1.0), #FFFFFF, 1.0);
-    lights[1] = light(vec3(-0.5, 0.7,1.0), #FFFFFF, 1.0);
-    lights[2] = light(vec3(0.1, 0.7,-0.7), #FFFFFF, 1.0);
+    lights[0] = light(vec3(-0.7, 1.2, 1.0), #FFDDDD, 1.0);
+    lights[1] = light(vec3(-0.5, 0.7,1.0), #DDFFFF, 1.0);
+    lights[2] = light(vec3(0.1, 0.7,-0.7), #FFDDFF, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -1914,15 +1947,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
+      float isRing = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
-      float specCo = 0.6;
+      float freCo = mix(2.0, 1., isRing);
+      float specCo = mix(1.0, 2., isRing);
 
-      float specAll = 0.0;
+      vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.7;
@@ -1957,7 +1991,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // Specular Lighting
         fre *= freCo * dif * occ;
         lin += fre; // Commit Fresnel
-        specAll += specCo * spec * dif;
+        specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * dif;
 
         // // Ambient
         // lin += 0.400 * amb * diffuseColor;
@@ -1980,13 +2014,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       }
 
       color *= 1.0 / float(NUM_OF_LIGHTS);
-      color += 1.0 * vec3(pow(specAll, 8.0));
+      color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.12 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2011,6 +2045,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
       // float dispersionI = 1.4;
+      dispersionI *= mix(1., 0., isRing);
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
