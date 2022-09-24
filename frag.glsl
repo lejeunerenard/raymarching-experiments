@@ -1529,23 +1529,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT + cosT);
 
-  if (isDispersion) {
-    wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-    wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
-    wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-    wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-    wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-    wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  }
+  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
+  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  // d.x *= 0.6;
+  d.x *= 0.6;
 
   return d;
 }
@@ -1811,8 +1810,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
   dI += 0.33 * m;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+
+  float angle = 70.13 * PI + 0.1 * pos.y;
+  mat3 rot = rotationMatrix(vec3(1), angle);
+
+  color = vec3(0);
+  color += vec3(1, 0, 0) * rot * cos(dI);
+  color += vec3(0, 1, 0) * rot * dNR;
+  color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
 
   // color *= 0.4;
 
