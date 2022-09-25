@@ -3015,13 +3015,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.2;
   float r = 0.02;
-  vec2 size = vec2(r * 21.);
+  vec2 size = vec2(r * 2.325);
 
   vec2 wQ = q.xy;
 
-  // wQ.y *= 1.05;
-
   wQ *= rotMat2(0.25 * PI);
+
+  // wQ.y *= 1.05;
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3029,29 +3029,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
+  vec2 c = floor((wQ + size*0.5)/size);
+
+  float localT = t + 0.123 * c.y;
+  localT = mod(localT, 1.);
+
+  wQ.x += size.x * quart(range(0.3, 1.0, localT));
+  // This is basically it but screen recording is having issues. I'll tweak the
+  // animation via easing etc.
+
+  c = pMod2(wQ, size);
+
   q = wQ;
   mUv = q;
 
   float thickness = 0.1 * r;
 
-  for (float i = 0.; i < 4.; i++) {
-    vec2 localQ = q;
-    float locallocalT = t;
-
-    localQ.x += cos(TWO_PI * 9.17823 * i);
-    localQ *= 2. + 1. * snoise2(9.71823 * vec2(i));
-
-    float c = pMod1(localQ.x, 2.5 * r);
-
-    locallocalT += 0.1 * cos(1.791 * c + localCosT);
-    // locallocalT += c * snoise2(vec2(c, c + i) + 100.);
-    locallocalT = mod(locallocalT, 1.);
-
-    localQ.y -= 1.2 * (1. + mod(i, 2.)) * (1. - 2. * locallocalT);
-
-    vec2 o = vec2(abs(length(localQ) - r) - thickness, 0);
-    d = dMin(d, o);
-  }
+  vec2 o = vec2(length(q) - r, 0);
+  d = dMin(d, o);
 
   // float mask = sdBox(q, vec2(4.));
   // mask = smoothstep(0., 0.5 * edge, mask);
@@ -3084,13 +3079,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // TODO This is too messy. Move it into functions / modules
 
-  // Cosine Palette
-  vec3 dI = vec3(n);
-  // dI += 0.125 * fallOff;
-  dI += dot(uv, vec2(0.4));
-  dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
-  dI *= 0.75;
-  color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
+  // // Cosine Palette
+  // vec3 dI = vec3(n);
+  // // dI += 0.125 * fallOff;
+  // dI += dot(uv, vec2(0.4));
+  // dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
+  // dI *= 0.75;
+  // color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
 
   // // Stripes
   // // const float numStripes = 30.;
@@ -3183,7 +3178,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
