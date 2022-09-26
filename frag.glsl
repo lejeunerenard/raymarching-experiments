@@ -3015,13 +3015,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 0.2;
   float r = 0.02;
-  vec2 size = vec2(r * 2.325);
+  vec2 size = vec2(r * 1.5);
 
   vec2 wQ = q.xy;
-
-  wQ *= rotMat2(0.25 * PI);
-
-  // wQ.y *= 1.05;
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3029,28 +3025,23 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  vec2 c = floor((wQ + size*0.5)/size);
-
-  float localT = t + 0.123 * c.y;
-  localT = mod(localT, 1.);
-
-  wQ.x += size.x * quart(range(0.3, 1.0, localT));
-  // This is basically it but screen recording is having issues. I'll tweak the
-  // animation via easing etc.
-
-  c = pMod2(wQ, size);
+  vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  float thickness = 0.1 * r;
+  t -= 0.025 * length(c);
+  t += 0.025 * snoise2(vec2(0.7123, 0.8) * c);
+  t = 2. * mod(t, .5);
+  t = range(0.0, 0.7, t);
+  q *= rotMat2(PI * t);
 
-  vec2 o = vec2(length(q) - r, 0);
+  vec2 o = vec2(sdBox(q, r * vec2(0.025, 0.5)), 0);
   d = dMin(d, o);
 
-  // float mask = sdBox(q, vec2(4.));
+  float mask = triangleWave(t);
   // mask = smoothstep(0., 0.5 * edge, mask);
-  // mask = 1. - mask;
+  mask = 1. - mask;
 
   float n = d.x;
 
@@ -3137,7 +3128,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // color *= mask;
+  color *= mask;
 
   return color.rgb;
 }
