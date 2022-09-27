@@ -3030,7 +3030,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  t -= 0.025 * length(c);
+  t -= 0.05 * sin(0.2 * c.y + localCosT);
+  t -= 0.12 * dot(c, vec2(1, 0.4));
   t += 0.025 * snoise2(vec2(0.7123, 0.8) * c);
   t = 2. * mod(t, .5);
   t = range(0.0, 0.7, t);
@@ -3042,6 +3043,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float mask = triangleWave(t);
   // mask = smoothstep(0., 0.5 * edge, mask);
   mask = 1. - mask;
+  mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
 
