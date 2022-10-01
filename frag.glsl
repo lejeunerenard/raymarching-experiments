@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.7;
+float gR = 0.80;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1507,18 +1507,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.14 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.14 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.5;
+  float warpScale = 0.5;
+  float warpFrequency = 1.7;
   float rollingScale = 1.;
 
   // Warp
@@ -1542,7 +1542,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.6;
@@ -1807,20 +1807,19 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // dI *= 0.3;
 
-  dI *= angle1C * mix(1., 0.25, isMaterialSmooth(m, 2.));
+  dI *= angle1C;
   dI += angle2C;
-  dI += 0.33 * m;
 
-  // color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  float angle = 70.13 * PI + 0.1 * pos.y;
-  mat3 rot = rotationMatrix(vec3(1), angle);
+  // float angle = 70.13 * PI + 0.1 * pos.y;
+  // mat3 rot = rotationMatrix(vec3(1), angle);
 
-  color = vec3(0);
-  color += vec3(1, 0, 0) * rot * cos(dI);
-  color += vec3(0, 1, 0) * rot * dNR;
-  color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
+  // color = vec3(0);
+  // color += vec3(1, 0, 0) * rot * cos(dI);
+  // color += vec3(0, 1, 0) * rot * dNR;
+  // color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
 
   // color *= 0.4;
 
