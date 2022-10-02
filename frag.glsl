@@ -3014,8 +3014,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.02;
-  vec2 size = vec2(r * 1.5);
+  float r = 0.0125;
+  vec2 size = vec2(r * 1.4);
 
   vec2 wQ = q.xy;
 
@@ -3030,17 +3030,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  t -= 0.05 * sin(0.2 * c.y + localCosT);
-  t -= 0.12 * dot(c, vec2(1, 0.4));
-  t += 0.025 * snoise2(vec2(0.7123, 0.8) * c);
-  t = 2. * mod(t, .5);
-  t = range(0.0, 0.7, t);
+  // t -= 0.05 * sin(0.2 * c.y + localCosT);
+  t -= 0.12 * dot(abs(c), vec2(1, 0.5));
+  t += 0.080 * snoise2(vec2(0.7123, 0.8) * c);
+  // t = 2. * mod(t, .5);
+  // t = range(0.0, 0.7, t);
   q *= rotMat2(PI * t);
 
   vec2 o = vec2(sdBox(q, r * vec2(0.025, 0.5)), 0);
   d = dMin(d, o);
 
-  float mask = triangleWave(t);
+  float mask = 0.;
   // mask = smoothstep(0., 0.5 * edge, mask);
   mask = 1. - mask;
   mask = 0.05 + 0.95 * mask;
@@ -3171,7 +3171,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
