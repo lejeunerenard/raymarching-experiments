@@ -1518,7 +1518,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 0.5;
-  float warpFrequency = 1.7;
+  float warpFrequency = 1.4;
   float rollingScale = 1.;
 
   // Warp
@@ -1529,8 +1529,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT + cosT);
 
+  float jiggleT = t + 0.3 * wQ.y;
+  jiggleT = mod(jiggleT, 1.);
+
+  float scaleJiggle = pow(0.5 * (1. + cos(TWO_PI * jiggleT)), 2.);
+  scaleJiggle = 1.;
+  wQ.xz *= 0.7 + 0.25 * scaleJiggle * 0.5 * (1. + cos(TWO_PI * range(0., 0.4, jiggleT)));
+
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
+  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
   wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1542,7 +1549,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.6;
@@ -1933,7 +1940,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.6;
+      float diffMin = 0.8;
       float shadowMin = 0.7;
 
       vec3 directLighting = vec3(0);
@@ -3171,7 +3178,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
