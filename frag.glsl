@@ -3021,10 +3021,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.0125;
+  float r = 0.4;
   vec2 size = vec2(r * 1.4);
 
   vec2 wQ = q.xy;
+
+  wQ.y *= 1.5;
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3032,25 +3034,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  vec2 c = pMod2(wQ, size);
-
   q = wQ;
   mUv = q;
 
-  // t -= 0.05 * sin(0.2 * c.y + localCosT);
-  t -= 0.12 * dot(abs(c), vec2(1, 0.5));
-  t += 0.080 * snoise2(vec2(0.7123, 0.8) * c);
-  // t = 2. * mod(t, .5);
-  // t = range(0.0, 0.7, t);
-  q *= rotMat2(PI * t);
+  float thickness = 0.015;
 
-  vec2 o = vec2(sdBox(q, r * vec2(0.025, 0.5)), 0);
+  localT -= length(q) / r;
+  localT = sin(TWO_PI * localT);
+
+  r = r * localT;
+
+  vec2 o = vec2(abs(length(q) - r) - thickness, 0);
   d = dMin(d, o);
 
-  float mask = 0.;
-  // mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
-  mask = 0.05 + 0.95 * mask;
+  // o = vec2(length(q) - 0.125 * 0.25, 0);
+  // d = dMin(d, o);
+
+  // float mask = 0.;
+  // // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
+  // mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
 
@@ -3137,7 +3140,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
@@ -3178,7 +3181,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3206,14 +3209,14 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.005 * i).rgb;
-    uv.y += 0.004;
+    uv.y += 0.006;
   }
   return vec4(color, 1);
 
