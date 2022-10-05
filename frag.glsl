@@ -3021,12 +3021,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.4;
-  vec2 size = vec2(r * 1.4);
+  float r = 0.024;
+  vec2 size = vec2(r * 3.4);
 
   vec2 wQ = q.xy;
 
-  wQ.y *= 1.5;
+  // wQ.y *= 1.5;
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
@@ -3034,15 +3034,24 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
   // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
+  vec2 c = floor((q + size*0.5)/size);
+
+  float step1T = range(0.07, 0.5, localT - 0.019 * c.y);
+  float step2T = range(0.55, 1.0, mod(localT - 0.025 * c.x, 1.));
+  float step3T = range(0.7, 1.0, localT);
+
+  vec2 dir = vec2(1. - 2. * mod(c.y, 2.), 0);
+  wQ += dir * size * expo(step1T);
+
+  dir = vec2(0, 1. - 2. * mod(c.x, 2.));
+  wQ += dir * size * quart(step2T);
+
+  c = pMod2(wQ, size);
+
   q = wQ;
   mUv = q;
 
-  float thickness = 0.015;
-
-  localT -= length(q) / r;
-  localT = sin(TWO_PI * localT);
-
-  r = r * localT;
+  float thickness = 0.035 * r;
 
   vec2 o = vec2(abs(length(q) - r) - thickness, 0);
   d = dMin(d, o);
@@ -3209,8 +3218,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 12.;
