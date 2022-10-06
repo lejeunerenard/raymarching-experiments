@@ -1507,13 +1507,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.14 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.14 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1525,6 +1525,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
+  wQ = abs(wQ);
+
   float warpDirection = 1.;
 
   vec3 rotationT = vec3(localCosT + cosT);
@@ -1532,25 +1534,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float jiggleT = t + 0.3 * wQ.y;
   jiggleT = mod(jiggleT, 1.);
 
-  float scaleJiggle = pow(0.5 * (1. + cos(TWO_PI * jiggleT)), 2.);
-  scaleJiggle = 1.;
-  wQ.xz *= 0.7 + 0.25 * scaleJiggle * 0.5 * (1. + cos(TWO_PI * range(0., 0.4, jiggleT)));
+  float scaleJiggle = 1.;
+  // wQ.xz *= 0.7 + 0.25 * scaleJiggle * 0.5 * (1. + cos(TWO_PI * range(0., 0.4, jiggleT)));
 
-  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
-  wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
+  // wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // // wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // // wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  d = dMin(d, b);
+  // // vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
+  // // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdTorus88(q.xzy, r * vec2(1, 0.2)), 1, 0);
+  // d = dMin(d, b);
+
+  wQ = p;
+  wQ += 2. * warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
+  wQ += 2. * warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += 2. * warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  // wQ += 2. * warpScale * 0.010000 * snoise3(vec3(1, 2, 1) * q.yzx);
+  q = wQ;
+
+  vec3 s = vec3(length(q) - r, 0, 0);
+  d = dMin(d, s);
 
   d.x *= 0.6;
 
@@ -1820,15 +1832,17 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  // float angle = 70.13 * PI + 0.1 * pos.y;
-  // mat3 rot = rotationMatrix(vec3(1), angle);
+  float angle = 70.13 * PI + 0.1 * pos.y;
+  mat3 rot = rotationMatrix(vec3(1), angle);
 
-  // color = vec3(0);
-  // color += vec3(1, 0, 0) * rot * cos(dI);
-  // color += vec3(0, 1, 0) * rot * dNR;
-  // color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
+  color = vec3(0);
+  color += vec3(1, 0, 0) * rot * cos(dI);
+  color += vec3(0, 1, 0) * rot * dNR;
+  color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
 
-  // color *= 0.4;
+  color *= 0.4;
+
+  color = mix(color, vec3(0), isMaterialSmooth(m, 0.));
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1928,13 +1942,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isRing = isMaterialSmooth(t.y, 1.);
+      float isFrame = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 2.0;
+      float freCo = 1.2;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
@@ -2026,6 +2040,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
       // float dispersionI = 1.4;
+      dispersionI *= isFrame;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
@@ -3190,7 +3205,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
