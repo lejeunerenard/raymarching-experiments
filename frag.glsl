@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.75;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1507,11 +1507,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.14 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.14 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   p *= globalRot;
 
@@ -1529,9 +1529,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT + cosT);
 
-  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y + length(wQ.xz)));
+  // wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ.xyz = twist(wQ.xzy, 0.8 * wQ.z + 0.125 * PI * cos(localCosT + wQ.y));
   wQ += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1540,8 +1541,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)) - 0.15 * r, 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
@@ -1691,12 +1692,12 @@ vec3 textures (in vec3 rd) {
   // color += 0.4 * cos(TWO_PI * 2.2 * gPos);
 
   // - Rotated Components -
-  float angle = 70.13 * PI + 1.0 * gPos.y;
+  float angle = 1.0 * gPos.y;
   mat3 rot = rotationMatrix(vec3(1), angle);
 
   color = vec3(0);
-  color += vec3(1, 1, 0) * rot * dI;
-  color += vec3(0, 1, 1) * rot * dNR;
+  color += vec3(1, 1, 0) * rot * snoise3(0.2 * dI);
+  color += vec3(0, 1, 1) * rot * -dNR;
   color += vec3(1, 0, 1) * rot * cos(TWO_PI * (snoise3(0.3 * gPos) + vec3(0, 0.33, 0.67)));
 
   color *= 0.6;
@@ -2035,7 +2036,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      // dispersionColor.r = pow(dispersionColor.r, 0.8);
+      dispersionColor.r = pow(dispersionColor.r, 0.8);
       dispersionColor.b = pow(dispersionColor.b, 0.4);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
