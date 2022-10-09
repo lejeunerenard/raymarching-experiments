@@ -1491,7 +1491,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.5;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1541,8 +1541,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)) - 0.15 * r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)) - 0.15 * r, 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
@@ -1643,7 +1643,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = 1.; // saturate(1.0 - 1.0 * pow(dNR, 9.));
+  float spread = saturate(1.0 - 1.0 * pow(dNR, 9.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -1696,9 +1696,9 @@ vec3 textures (in vec3 rd) {
   mat3 rot = rotationMatrix(vec3(1), angle);
 
   color = vec3(0);
-  color += vec3(1, 1, 0) * rot * snoise3(0.2 * dI);
-  color += vec3(0, 1, 1) * rot * -dNR;
-  color += vec3(1, 0, 1) * rot * cos(TWO_PI * (snoise3(0.3 * gPos) + vec3(0, 0.33, 0.67)));
+  color += vec3(1, 0, 1) * rot * snoise3(0.2 * dI);
+  color += vec3(1, 0, 1) * rot * -dNR;
+  color += vec3(1, 1, 0) * rot * cos(TWO_PI * (snoise3(0.3 * gPos) + vec3(0, 0.33, 0.67)));
 
   color *= 0.6;
 
@@ -1833,9 +1833,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color += vec3(0, 1, 0) * rot * dNR;
   color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
 
-  color *= 0.4;
-
-  color = mix(color, vec3(0), isMaterialSmooth(m, 0.));
+  color *= 0.1;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1941,7 +1939,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 2.0;
       float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
@@ -2115,14 +2113,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // // Glow
-      // float stepScaleAdjust = 0.5;
-      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // vec3 glowColor = vec3(0.9, 0.95, 1);
-      // // const float stopPoint = 0.5;
-      // // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.90);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      // Glow
+      float stepScaleAdjust = 0.3;
+      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      vec3 glowColor = vec3(0.3, 1, 0.5);
+      // const float stopPoint = 0.5;
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      i = pow(i, 0.90);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
