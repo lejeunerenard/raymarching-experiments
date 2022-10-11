@@ -1546,23 +1546,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(sdBox(q, vec3(r)) - 0.15 * r, 0, 0);
   float a = atan(q.y, q.x);
 
+  float step1T = range(0., 0.4, t);
+  float step2T = range(0.7, 1., t);
+  float scale = expo(step1T) - (step2T);
+  q /= scale;
+
+  q.xz *= rotMat2(PI * expo(step1T));
+
   vec3 ringNQ = q;
   ringNQ = ringNQ.xzy;
 
-  ringNQ *= rotationMatrix(vec3(0, 1, 0), 5. * length(q) - localCosT);
+  ringNQ *= rotationMatrix(vec3(0, 1, 0), 7. * length(q) - localCosT);
   ringNQ = rotTorus(ringNQ, a, r);
 
-  float ringR = r * (1. + 0.2 * snoise3(vec3(1, vec2(5)) * ringNQ));
+  float ringR = r * (1. + 0.2 * snoise3(vec3(2, vec2(3)) * ringNQ));
 
-  vec3 b = vec3(sdTorus(q.xzy, ringR * vec2(1, 0.2)), 0, 0);
+  vec3 b = vec3(sdTorus82(q.xzy, ringR * vec2(1, 0.2)), 0, 0);
   b.x *= 0.2;
+  if (scale >= 0.05) {
+    b.x *= scale;
+  }
   d = dMin(d, b);
 
   q = p;
-  b = vec3(length(q) - 0.5 * r, 1, 0);
+  b = vec3(length(q) - 0.5 * r * scale, 1, 0);
   d = dMin(d, b);
-
-  // d.x *= 0.6;
 
   return d;
 }
@@ -1851,7 +1859,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color *= 0.1;
 
-  color = mix(color, vec3(0), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(1), isMaterialSmooth(m, 1.));
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -2042,13 +2050,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 5.0);
-      // float dispersionI = 1.0;
+      // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
+      float dispersionI = 1.0;
       dispersionI *= mix(1., 0.20, isMaterialSmooth(t.y, 1.));
       dispersionColor *= dispersionI;
 
@@ -2059,7 +2067,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       color += saturate(dispersionColor);
-      // color = saturate(dispersionColor);
+      // color = (saturate(dispersionColor));
 #endif
 
 #endif
