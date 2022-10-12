@@ -525,6 +525,19 @@ float sdTorus82( vec3 p, vec2 t )
   vec2 q = vec2(length(p.xz)-t.x,p.y);
   return length8(q)-t.y;
 }
+float sdTorus28( vec3 p, vec2 t )
+{
+  vec2 q = vec2(length8(p.xz)-t.x,p.y);
+  return length(q)-t.y;
+}
+
+// Maximetric in radius direction & euclidean round the radius loci
+float sdTorus2M( vec3 p, vec3 t )
+{
+  vec2 d = abs(p.xz) - t.xy;
+  vec2 q = vec2(min(vmax(d), 0.) + length(max(d, 0.)),p.y);
+  return length(q)-t.z;
+}
 
 float sdPlane( vec3 p, vec4 n )
 {
@@ -1507,11 +1520,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.14 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.14 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1525,7 +1538,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  wQ *= rotationMatrix(vec3(1, 0, 0), 0.15 * PI);
+  wQ *= rotationMatrix(vec3(1, 0, 0), 0.10 * PI);
 
   float warpDirection = 1.;
 
@@ -1548,28 +1561,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float step1T = range(0., 0.4, t);
   float step2T = range(0.7, 1., t);
-  float scale = expo(step1T) - (step2T);
-  q /= scale;
 
-  q.xz *= rotMat2(PI * expo(step1T));
-
+  vec2 ringBaseR = r * vec2(1, -0.2);
   vec3 ringNQ = q;
   ringNQ = ringNQ.xzy;
 
-  ringNQ *= rotationMatrix(vec3(0, 1, 0), 7. * length(q) - localCosT);
-  ringNQ = rotTorus(ringNQ, a, r);
+  ringNQ = rotTorus(ringNQ, a - localCosT, vmax(abs(ringNQ.xy) - ringBaseR));
 
-  float ringR = r * (1. + 0.2 * snoise3(vec3(2, vec2(3)) * ringNQ));
+  float ringR = r * (1. + 0.2 * snoise3(vec3(1, 3, 3) * ringNQ));
 
-  vec3 b = vec3(sdTorus82(q.xzy, ringR * vec2(1, 0.2)), 0, 0);
+  vec3 b = vec3(sdTorus2M(q.xzy, ringR * vec3(1, 1.2, 0.2)), 0, 0);
   b.x *= 0.2;
-  if (scale >= 0.05) {
-    b.x *= scale;
-  }
   d = dMin(d, b);
 
   q = p;
-  b = vec3(length(q) - 0.5 * r * scale, 1, 0);
+  warpScale = 3. * (expo(range(0.4, 0.5, t)) - circ(range(0.5, 0.7, t)));
+  q += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * q.yzx + rotationT);
+  q.xzy = twist(q.xyz, 1.2 * q.y + 0.125 * PI * cos(localCosT + q.y));
+  q += warpScale * 0.025000 * cos( 3.5 * warpDirection * warpFrequency * q.yzx + rotationT);
+  q.xyz = twist(q.xzy, 0.8 * q.z + 0.125 * PI * cos(localCosT + q.y));
+  q += warpScale * 0.012500 * cos( 7.7 * warpDirection * warpFrequency * q.yzx + rotationT);
+  q += warpScale * 0.006250 * cos(13.3 * warpDirection * warpFrequency * q.yzx + rotationT);
+  q += warpScale * 0.003125 * cos(23.3 * warpDirection * warpFrequency * q.yzx + rotationT);
+
+  b = vec3(length(q) - 0.5 * r, 1, 0);
   d = dMin(d, b);
 
   return d;
@@ -1849,17 +1864,17 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  float angle = 70.13 * PI + 0.1 * pos.y;
-  mat3 rot = rotationMatrix(vec3(1), angle);
+  // float angle = 70.13 * PI + 0.1 * pos.y;
+  // mat3 rot = rotationMatrix(vec3(1), angle);
 
-  color = vec3(0);
-  color += vec3(1, 0, 0) * rot * cos(dI);
-  color += vec3(0, 1, 0) * rot * dNR;
-  color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
+  // color = vec3(0);
+  // color += vec3(1, 0, 0) * rot * cos(dI);
+  // color += vec3(0, 1, 0) * rot * dNR;
+  // color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
 
-  color *= 0.1;
+  // color *= 0.4;
 
-  color = mix(color, vec3(1), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1965,7 +1980,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(1.7, 1.0, isMaterialSmooth(t.y, 1.));
+      float freCo = 1.7;
       float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
@@ -2057,12 +2072,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
       float dispersionI = 1.0;
-      dispersionI *= mix(1., 0.20, isMaterialSmooth(t.y, 1.));
+      dispersionI *= mix(1., 0.00, isMaterialSmooth(t.y, 1.));
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.8);
-      dispersionColor.b = pow(dispersionColor.b, mix(0.2, 0.6, isMaterialSmooth(t.y, 1.)));
+      dispersionColor.b = pow(dispersionColor.b, mix(0.2, 1.0, isMaterialSmooth(t.y, 1.)));
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
@@ -2140,14 +2155,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float stepScaleAdjust = 0.3;
-      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      vec3 glowColor = vec3(0.3, 0.5, 1);
-      // const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      i = pow(i, 0.90);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float stepScaleAdjust = 0.3;
+      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // vec3 glowColor = vec3(0.3, 0.5, 1);
+      // // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.90);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
