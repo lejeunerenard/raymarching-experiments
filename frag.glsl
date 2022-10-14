@@ -1544,17 +1544,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT + cosT);
 
-  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.025000 * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.012500 * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.006250 * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
 
   // d.x *= 0.2;
@@ -1808,6 +1809,8 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(trap);
 
+  return vec3(0.01);
+
   // gC = voronoi(2. * mPos, 0.);
 
   // return color; // Solid color
@@ -1952,14 +1955,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.275;
+      float specCo = 1.6;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.5;
-      float shadowMin = 0.7;
+      float shadowMin = 0.3;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -1978,7 +1981,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
         // dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 128.0);
+        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         // TODO Debug shadow spots on a sphere
@@ -1988,13 +1991,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * dif * occ;
+        fre *= freCo * occ;
         lin += fre; // Commit Fresnel
-        specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * dif;
+        specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // // Ambient
-        // lin += 0.400 * amb * diffuseColor;
-        // dif += 0.400 * amb;
+        // Ambient
+        lin += 0.400 * amb * diffuseColor;
+        dif += 0.400 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -2029,7 +2032,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
