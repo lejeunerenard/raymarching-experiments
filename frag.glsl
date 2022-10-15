@@ -1504,7 +1504,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.9;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1538,25 +1538,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  wQ *= rotationMatrix(vec3(1, 0, 0), 0.10 * PI);
+  wQ *= rotationMatrix(vec3(1, 0, 0), 0.05 * PI);
 
   float warpDirection = 1.;
-
+  vec3 h = vec3(-0.1, 0.5, 0);
+  float o = 0.;
+  wQ = opElogate(wQ, h, o);
   vec3 rotationT = vec3(localCosT + cosT);
 
-  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y));
-  wQ += warpScale * 0.025000 * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ += warpScale * 0.012500 * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ += warpScale * 0.006250 * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y));
+  // wQ += warpScale * 0.025000 * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ += warpScale * 0.012500 * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ += warpScale * 0.006250 * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  b.x -= 0.01 * cellular(3. * q);
   d = dMin(d, b);
+
+  q *= rotationMatrix(vec3(1), 3.7 * PI);
+  float crop = dodecahedral(q, 42., 0.95 * r);
+  d.x = max(d.x, crop);
+
+  d.x -= 0.02 * cellular(1. * p);
 
   // d.x *= 0.2;
 
@@ -1809,8 +1816,6 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(trap);
 
-  return vec3(0.01);
-
   // gC = voronoi(2. * mPos, 0.);
 
   // return color; // Solid color
@@ -1839,7 +1844,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  float angle = 70.13 * PI + 0.1 * pos.y;
+  float angle = 70.13 * PI + 0.8 * pos.y;
   mat3 rot = rotationMatrix(vec3(1), angle);
 
   // color = vec3(0);
@@ -1847,9 +1852,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color += vec3(0, 1, 0) * rot * dNR;
   color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
 
-  color *= 0.7;
-
-  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
+  color *= 0.5;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1955,8 +1958,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.275;
-      float specCo = 1.6;
+      float freCo = 1.00;
+      float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
 
@@ -1981,7 +1984,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
         // dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 64.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         // TODO Debug shadow spots on a sphere
@@ -2032,7 +2035,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2045,8 +2048,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 2.0 * pow(0. + 1.0 * dot(dNor, -dRd), 2.0);
-      float dispersionI = 1.0;
+      float dispersionI = 1.4 * pow(0. + 1.0 * dot(dNor, -dRd), 3.0);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
