@@ -1504,7 +1504,22 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
 
 #pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
 
-float gR = 0.7;
+float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
+  float d = maxDistance;
+
+  float o = 0.;
+  q = opElogate(q, h, o);
+
+  float b = icosahedral(q, 42., r);
+  d = min(d, b);
+
+  q *= rotationMatrix(vec3(1), angle);
+  float crop = dodecahedral(q, 42., 0.95 * r);
+  d = max(d, crop);
+
+  return d;
+}
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1526,7 +1541,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1541,9 +1556,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ *= rotationMatrix(vec3(1, 0, 0), 0.05 * PI);
 
   float warpDirection = 1.;
-  vec3 h = vec3(-0.1, 0.5, 0);
-  float o = 0.;
-  wQ = opElogate(wQ, h, o);
   vec3 rotationT = vec3(localCosT + cosT);
 
   // wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
@@ -1556,16 +1568,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  vec3 h = vec3(-0.1, 0.714286 * r, 0);
+  vec3 b = vec3(crystal(q, 0.9 * r, h, 3.7 * PI), 0, 0);
   d = dMin(d, b);
 
-  q *= rotationMatrix(vec3(1), 3.7 * PI);
-  float crop = dodecahedral(q, 42., 0.95 * r);
+  float c = pModPolar(q.xz, 6.);
+
+  q.x -= r * 1.0;
+  q.y += r * 1.15;
+
+  float n = snoise2(12.23 * c * vec2(1.01237, 7.23));
+  float localH = 0.7 + 0.8 * n;
+  // q.x -= localH * 0.3;
+
+  q *= rotationMatrix(vec3(0, 0, 1), (0.175 + 0.15 * n) * PI);
+
+  b = vec3(crystal(q, 0.6 * r, vec3(1, localH, 1) * h, (3.7 + 0.4 * n) * PI), 0, 0);
+  d = dMin(d, b);
+
+  q = p;
+  float crop = max(0., -(q.y + 2.491 * h.y));
   d.x = max(d.x, crop);
 
-  d.x -= 0.02 * cellular(1. * p);
+  // d.x -= 0.02 * cellular(1. * p);
 
-  // d.x *= 0.2;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1841,18 +1868,18 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67)));
+  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.2, 0.47)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
-  float angle = 70.13 * PI + 0.8 * pos.y;
-  mat3 rot = rotationMatrix(vec3(1), angle);
+  // float angle = 20.13 * PI + 0.8 * pos.y;
+  // mat3 rot = rotationMatrix(vec3(1), angle);
 
-  // color = vec3(0);
-  color += vec3(1, 0, 0) * rot * cos(dI);
-  color += vec3(0, 1, 0) * rot * dNR;
-  color += vec3(0, 0, 1) * rot * snoise3(0.3 * pos);
+  // // color = vec3(0);
+  // color += vec3(1, 0, 0) * rot * cos(dI);
+  // color += vec3(0, 1, 0) * rot * dNR;
+  // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  color *= 0.5;
+  // color *= 0.4;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1964,7 +1991,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
+      float diffMin = 0.7;
       float shadowMin = 0.3;
 
       vec3 directLighting = vec3(0);
@@ -2043,18 +2070,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.4 * pow(0. + 1.0 * dot(dNor, -dRd), 3.0);
+      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 1.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.8);
-      dispersionColor.b = pow(dispersionColor.b, 0.2);
+      // dispersionColor.b = pow(dispersionColor.b, 0.2);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
