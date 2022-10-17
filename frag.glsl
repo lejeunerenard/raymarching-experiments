@@ -1519,7 +1519,8 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
 
   return d;
 }
-float gR = 0.4;
+
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1545,52 +1546,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.4;
+  float warpScale = 2.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  wQ *= rotationMatrix(vec3(1, 0, 0), 0.05 * PI);
+  wQ.y *= 0.8;
 
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT);
 
-  // wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  // wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + wQ.y));
-  // wQ += warpScale * 0.025000 * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  // wQ += warpScale * 0.012500 * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  // wQ += warpScale * 0.006250 * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
+  wQ += warpScale * 0.025000 * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.012500 * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.006250 * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 h = vec3(-0.1, 0.714286 * r, 0);
-  vec3 b = vec3(crystal(q, 0.9 * r, h, 3.7 * PI), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
-
-  float c = pModPolar(q.xz, 6.);
-
-  q.x -= r * 1.0;
-  q.y += r * 1.15;
-
-  float n = snoise2(12.23 * c * vec2(1.01237, 7.23));
-  float localH = 0.7 + 0.8 * n;
-  // q.x -= localH * 0.3;
-
-  q *= rotationMatrix(vec3(0, 0, 1), (0.175 + 0.15 * n) * PI);
-
-  b = vec3(crystal(q, 0.6 * r, vec3(1, localH, 1) * h, (3.7 + 0.4 * n) * PI), 0, 0);
-  d = dMin(d, b);
-
-  q = p;
-  float crop = max(0., -(q.y + 2.491 * h.y));
-  d.x = max(d.x, crop);
-
-  // d.x -= 0.02 * cellular(1. * p);
 
   d.x *= 0.5;
 
@@ -2025,9 +2006,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // Ambient
-        lin += 0.400 * amb * diffuseColor;
-        dif += 0.400 * amb;
+        // // Ambient
+        // lin += 0.400 * amb * diffuseColor;
+        // dif += 0.400 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -2070,12 +2051,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 1.0);
+      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
