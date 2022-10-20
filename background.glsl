@@ -20,7 +20,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 color = mix(vec3(.27, .275, .2), vec3(0.06, 0, 0.15), bgIndex);
   // vec3 color = mix(vec3(0.1), vec3(0.05), bgIndex);
   // vec3 color = mix(vec3(0.75), vec3(0.95, 0.95, 1), bgIndex);
-  vec3 color = mix(#ff1482, #FF7020, 0.6 * bgIndex);
+  vec3 color = mix(#1482ff, #5030FF, bgIndex);
   // color *= mix(colors1, vec3(1), 1. - length(coord));
   // color = mix(color, vec3(1), 0.30);
 

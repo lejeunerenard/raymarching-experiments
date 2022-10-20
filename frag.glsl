@@ -1546,16 +1546,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 3.0;
-  float warpFrequency = 1.5;
+  float warpScale = 2.0;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
+  wQ.y *= 0.8;
+
   float warpDirection = 1.;
-  vec3 rotationT = vec3(localCosT + cosT);
+  vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
 
   wQ += warpScale * 0.050000 * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ.xzy = twist(wQ.xyz, 1.2 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
@@ -1567,9 +1569,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
+  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   vec3 b = vec3(length(q) - r, 0, 0);
   b.x *= rollingScale;
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
