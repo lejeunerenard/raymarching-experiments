@@ -3058,39 +3058,30 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  float r = 0.024;
-  vec2 size = vec2(r * 3.4);
+  vec2 r = 0.024 * vec2(0.1, 1);
+  vec2 size = r * vec2(10, 2.5);
 
   vec2 wQ = q.xy;
 
   // wQ.y *= 1.5;
 
-  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  // wQ *= rotMat2(0.05 * PI *cos(localCosT));
-  // wQ *= rotMat2(0.02 * PI * sin(localCosT + 3. * dot(q, vec2(1))));
-  // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
+  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  wQ *= 1. + 0.2 * cos(localCosT + 2.0 * length(wQ));
+  wQ *= rotMat2(0.05 * PI *cos(localCosT));
+  wQ *= rotMat2(0.02 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
+  wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  vec2 c = floor((q + size*0.5)/size);
+  vec2 c = floor((wQ + size*0.5)/size);
 
-  float step1T = range(0.07, 0.5, localT - 0.019 * c.y);
-  float step2T = range(0.55, 1.0, mod(localT - 0.025 * c.x, 1.));
-  float step3T = range(0.7, 1.0, localT);
-
-  vec2 dir = vec2(1. - 2. * mod(c.y, 2.), 0);
-  wQ += dir * size * expo(step1T);
-
-  dir = vec2(0, 1. - 2. * mod(c.x, 2.));
-  wQ += dir * size * quart(step2T);
+  wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
   c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  float thickness = 0.035 * r;
-
-  vec2 o = vec2(abs(length(q) - r) - thickness, 0);
+  vec2 o = vec2(sdBox(q, r), 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
@@ -3227,7 +3218,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
