@@ -3058,25 +3058,27 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  vec2 r = 0.028 * vec2(1, 0.2);
-  vec2 size = r * vec2(2.5, 6);
+  vec2 r = 0.035 * vec2(1, 0.4);
+  vec2 size = r * 2. + 0.7 * vmax(r);
 
   vec2 wQ = q.xy;
 
   // wQ.y *= 1.5;
 
-  wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  wQ *= 1. + 0.05 * cos(localCosT + 5.5 * length(wQ));
-  wQ *= rotMat2(0.05 * PI *cos(localCosT));
-  wQ *= rotMat2(0.02 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
-  wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
+  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  // wQ *= 1. + 0.05 * cos(localCosT + 5.5 * length(wQ));
+  // wQ *= rotMat2(0.05 * PI *cos(localCosT));
+  // wQ *= rotMat2(0.02 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
+  // wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
   vec2 c = floor((wQ + size*0.5)/size);
 
   float odd = mod(c.y, 2.);
   wQ.x += 0.5 * size.x * odd;
-  wQ.x += (1. - 2. * odd) * size.x * localT;
+  float layerT = localT + dot(c, vec2(0., 0.02));
+  layerT = mod(layerT, 1.);
+  wQ.x += (1. - 2. * odd) * size.x * expo(layerT);
 
   c = pMod2(wQ, size);
 
@@ -3251,13 +3253,13 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // // -- Single layer --
   // return renderSceneLayer(ro, rd, uv);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 12.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.005 * i).rgb;
-  //   uv.y += 0.006;
-  // }
-  // return vec4(color, 1);
+  // -- Echoed Layers --
+  const float echoSlices = 8.;
+  for (float i = 0.; i < echoSlices; i++) {
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.005 * i).rgb;
+    uv.y += 0.006;
+  }
+  return vec4(color, 1);
 
   // -- Color delay --
   const float slices = 10.;

@@ -19,7 +19,7 @@ const TWO_PI = 2 * Math.PI
 // const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_PASSES = 2
 const BLOOM_WET = 1.0
 const BLOOM_MIN_BRIGHTNESS = 0.99
