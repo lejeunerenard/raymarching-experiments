@@ -3058,8 +3058,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.2;
-  vec2 r = 0.035 * vec2(0.1, 1);
-  vec2 size = r * vec2(7, 3.5);
+  vec2 r = 0.0295 * vec2(0.31, 1);
+  vec2 size = r * vec2(12, 3.5);
 
   vec2 wQ = q.xy;
 
@@ -3072,13 +3072,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= rotMat2(0.02 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
   wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
+  wQ = polarCoords(wQ);
+  wQ.y -= 0.7 * size.y;
+
   vec2 c = floor((wQ + size*0.5)/size);
 
   float odd = mod(c.x, 2.);
   // wQ.x += 0.5 * size.x * odd;
   float layerT = localT + dot(c, vec2(0.02, 0.));
   layerT = mod(layerT, 1.);
-  wQ.y += (1. - 2. * odd) * size.y * layerT;
+  // wQ.y += (1. - 2. * odd) * size.y * layerT;
+
+  size.x -= c.y * r.y * 0.1718;
 
   c = pMod2(wQ, size);
 
