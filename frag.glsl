@@ -1547,14 +1547,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.3;
-  float warpFrequency = 1.0;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  // wQ.y *= 0.8;
+  wQ.y *= 1.0 - 0.35 * (0.5 - 0.5 * cos(TWO_PI * range(0.2, 0.7, t)));
 
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
@@ -1577,7 +1577,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.7;
+  d.x *= 0.1;
 
   return d;
 }
@@ -2036,7 +2036,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.40 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.60 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
