@@ -1546,15 +1546,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.3;
-  float warpFrequency = 2.0;
+  float warpScale = 0.10;
+  float warpFrequency = 1.2;
   float rollingScale = 1.;
 
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  wQ.y *= 1.0 - 0.35 * (0.5 - 0.5 * cos(TWO_PI * range(0.2, 0.7, t)));
+  // wQ.y *= 1.0 - 0.35 * (0.5 - 0.5 * cos(TWO_PI * range(0.2, 0.7, t)));
 
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
@@ -1563,10 +1563,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
-  wQ += warpScale * 0.025000 * waveAmount * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ += warpScale * 0.012500 * waveAmount * cos(12.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ += warpScale * 0.006250 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ += warpScale * 0.003125 * waveAmount * cos(23.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   // Commit warp
   q = wQ.xyz;
@@ -1806,7 +1806,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
 
   vec3 reflectionPoint = gPos - gNor * 0.1 + rd * d;
   vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001, sine(norT));
-  dNor = reflectionPointNor;
+  // dNor = reflectionPointNor;
   dRd = rd;
   reflectionPointNor = normalize(reflectionPointNor);
 
@@ -2060,7 +2060,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 2.0);
+      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 3.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
