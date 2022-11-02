@@ -1546,17 +1546,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.0;
-  float warpFrequency = 1.2;
+  float warpScale = 1.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  wQ = abs(wQ);
-
-  // wQ.y *= 1.0 - 0.35 * (0.5 - 0.5 * cos(TWO_PI * range(0.2, 0.7, t)));
+  // wQ = abs(wQ);
 
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
@@ -1564,41 +1562,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 3. * range(-r, r, wQ.x);
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  // wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.7 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
   wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
-  wQ *= rotationMatrix(vec3(1), 0.21 * PI);
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q -= r * vec3(0.4);
-
-  float thickness = 0.100 * r;
-
   // vec3 b = vec3(sdBox(q, vec3(r, 1.5 * r, r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  float dist = length(q) - r;
-  dist = abs(dist) - 2.00 * thickness;
-  dist = abs(dist) - 1.00 * thickness;
-  dist = abs(dist) - 0.50 * thickness;
-  vec3 b = vec3(dist, 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  // float crop = length(q) - r;
-  // d.x = max(d.x, crop);
-
-  float crop = sdBox(q - r, vec3(r));
-  d.x = max(d.x, -crop);
-
-  crop = length(q - r * vec3(0.3, -1, 1.0)) - (0.8 * r + 2. * thickness);
-  d.x = max(d.x, -crop);
-
-  crop = length(q - r * vec3(1.0, 1, 0.3)) - (0.8 * r + 2. * thickness);
+  float crop = sdBox(q - vec3(0, 0, r), vec3(1.1 * r)) + 0.02;
   d.x = max(d.x, -crop);
 
   d.x *= 0.5;
@@ -2060,7 +2039,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.70 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.50 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2079,8 +2058,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
