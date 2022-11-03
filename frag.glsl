@@ -1520,7 +1520,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.75;
+float gR = 0.90;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1546,7 +1546,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.2;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1573,14 +1573,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(sdBox(q, vec3(r, 1.5 * r, r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
   d = dMin(d, b);
 
-  float crop = sdBox(q - vec3(0, 0, r), vec3(1.1 * r)) + 0.02;
-  d.x = max(d.x, -crop);
-
-  d.x *= 0.5;
+  // d.x *= 0.5;
 
   return d;
 }
@@ -1706,6 +1704,7 @@ vec3 textures (in vec3 rd) {
   // dI += 0.5 * pow(dNR, 5.);
 
   dI += 0.25 * sin(TWO_PI * rd.x);
+
   dI *= angle1C;
   dI += angle2C;
 
@@ -1844,6 +1843,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
+
+  dI *= rotationMatrix(vec3(-1, 1,-1), 0.35 * pos.y);
 
   // dI *= rotationMatrix(vec3(-1, 1,-1), 0.25 * PI * cos(cosT));
 
