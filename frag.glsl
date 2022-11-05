@@ -3063,9 +3063,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.2;
-  vec2 r = 0.0295 * vec2(0.31, 1);
-  vec2 size = r * vec2(12, 3.5);
+  const float warpScale = 0.35;
+  vec2 r = 0.02 * vec2(0.125, 1);
+  vec2 size = r * vec2(2) + 1. * vmax(r);
 
   vec2 wQ = q.xy;
 
@@ -3073,23 +3073,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  wQ *= 1. + 0.05 * cos(localCosT + 5.5 * length(wQ));
-  wQ *= rotMat2(0.05 * PI *cos(localCosT));
+  wQ *= 1. + 0.075 * cos(localCosT + 5.5 * length(wQ));
+  wQ *= rotMat2(0.05 * PI * cos(localCosT));
   wQ *= rotMat2(0.02 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
   wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
-  wQ = polarCoords(wQ);
   wQ.y -= 0.7 * size.y;
 
   vec2 c = floor((wQ + size*0.5)/size);
 
+  const float nth = 2.;
+  wQ.y += 1./nth * size.y * mod(c.x, nth);
   float odd = mod(c.x, 2.);
   // wQ.x += 0.5 * size.x * odd;
   float layerT = localT + dot(c, vec2(0.02, 0.));
   layerT = mod(layerT, 1.);
   // wQ.y += (1. - 2. * odd) * size.y * layerT;
-
-  size.x -= c.y * r.y * 0.1718;
 
   c = pMod2(wQ, size);
 
@@ -3113,7 +3112,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = sin(TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  n = smoothstep(0., 1.0 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3233,7 +3232,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
