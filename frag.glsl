@@ -3063,9 +3063,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.35;
-  vec2 r = 0.02 * vec2(0.125, 1);
-  vec2 size = r * vec2(2) + 1. * vmax(r);
+  const float warpScale = 0.1;
+  vec2 r = 0.004 * vec2(0.025, 1);
+  vec2 size = r * vec2(2) + 5. * vmax(r);
 
   vec2 wQ = q.xy;
 
@@ -3074,16 +3074,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
   wQ *= 1. + 0.075 * cos(localCosT + 5.5 * length(wQ));
-  wQ *= rotMat2(0.05 * PI * cos(localCosT));
-  wQ *= rotMat2(0.02 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
+  // wQ *= rotMat2(0.05 * PI * cos(localCosT));
+  wQ *= rotMat2(0.03 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
   wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
-
-  wQ.y -= 0.7 * size.y;
 
   vec2 c = floor((wQ + size*0.5)/size);
 
-  const float nth = 2.;
-  wQ.y += 1./nth * size.y * mod(c.x, nth);
   float odd = mod(c.x, 2.);
   // wQ.x += 0.5 * size.x * odd;
   float layerT = localT + dot(c, vec2(0.02, 0.));
@@ -3095,6 +3091,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
+  q *= rotMat2(0.5 * PI * cos(localCosT - 0.178 * length(c)));
   vec2 o = vec2(sdBox(q, r), 0);
   d = dMin(d, o);
 
@@ -3112,7 +3109,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = sin(TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n - 0.0);
+  n = smoothstep(0., 0.5 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
