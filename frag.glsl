@@ -1546,8 +1546,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.0;
-  float warpFrequency = 1.0;
+  float warpScale = 1.5;
+  float warpFrequency = 0.2;
   float rollingScale = 1.;
 
   // Warp
@@ -1559,10 +1559,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
 
-  float waveAmount = 1.; // 3. * range(-r, r, wQ.x);
+  float waveAmount = 1. * range(-r, r, wQ.x); // Flag like movement
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
+  wQ.xzy = twist(wQ.xyz, 2.5 * wQ.y + 0.125 * PI * cos(localCosT + 2. * wQ.y));
   wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
@@ -1572,13 +1572,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float angle = atan(q.z, q.x);
-  r += 0.0125 * r * (abs(cos(10. * angle)) + 0. * snoise3(vec3(4, 0.1, 4) * q));
-
-  // vec3 b = vec3(sdBox(q, vec3(r, 1.5 * r, r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
   // d.x *= 0.5;
@@ -1847,7 +1841,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dI += 2. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
 
-  dI *= rotationMatrix(vec3(-1, 1,-1), 0.35 * pos.y);
+  // dI *= rotationMatrix(vec3(-1, 1,-1), 0.35 * pos.y);
 
   // dI *= rotationMatrix(vec3(-1, 1,-1), 0.25 * PI * cos(cosT));
 
@@ -1860,7 +1854,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = 0.5 + 0.5 * cos(TWO_PI * (vec3(1, -1, 1) * dI + vec3(0, 0.33, 0.66)));
+  color = 0.5 + vec3(-0.5, 0.3, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.5) * dI + vec3(0.0, 0.33, 0.67)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
@@ -2054,7 +2048,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3229,7 +3223,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
