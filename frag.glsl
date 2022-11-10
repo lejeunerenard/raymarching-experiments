@@ -1546,8 +1546,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.7;
-  float warpFrequency = 0.5;
+  float warpScale = 1.0;
+  float warpFrequency = 0.7;
   float rollingScale = 1.;
 
   // Warp
@@ -1556,14 +1556,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ = abs(wQ);
 
+  // wQ *= rotationMatrix(vec3(0, 1, 0), -0.01 * PI);
+
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
 
-  float waveAmount = 5. * range(2., -2., wQ.z); // Flag like movement
+  float waveAmount = 3. * range(r, -r, wQ.y); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 3.5 * wQ.z);
   wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
@@ -1574,9 +1576,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  r -= 0.75 * r * expo(range(2., -2., q.z));
-  vec3 b = vec3(r - length(q.xy), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.2;
