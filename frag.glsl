@@ -1542,12 +1542,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 0.7;
+  float warpScale = 5.0;
+  float warpFrequency = 0.2;
   float rollingScale = 1.;
 
   // Warp
@@ -1561,11 +1561,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
 
-  float waveAmount = 3. * range(r, -r, wQ.y); // Flag like movement
+  float waveAmount = 1.; // 3. * range(r, -r, wQ.y); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xyz = twist(wQ.xzy, 3.5 * wQ.z);
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y);
   wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
@@ -1975,8 +1975,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.70;
-      float specCo = 0.75;
+      float freCo = 1.;
+      float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
 
@@ -2060,8 +2060,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
