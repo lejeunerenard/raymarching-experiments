@@ -9,7 +9,7 @@
 #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -1567,8 +1567,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   // wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
-  for (float i = 0.; i < 11.; i++) {
-    wQ = abs(wQ);
+  for (float i = 0.; i < 10.; i++) {
+    // wQ = abs(wQ);
+    wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
     rollingScale *= scale;
