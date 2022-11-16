@@ -1572,6 +1572,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
+    wQ *= rotationMatrix(vec3(0, 0, 1), 0.2 * cos(localCosT + TWO_PI * wQ.x));
     rollingScale *= scale;
 
     minD.x = min(minD.x, length(wQ));
@@ -1586,7 +1587,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   b.x /= rollingScale;
   d = dMin(d, b);
 
-  // d.x *= 0.2;
+  d.x *= 0.4;
 
   return d;
 }

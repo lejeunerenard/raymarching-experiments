@@ -50,7 +50,7 @@ export default class App {
       },
       d: 0.52,
       scale: 1.8467,
-      rot2angle: [1.761, 3.632, 3.077],
+      rot2angle: [6.283, 2.8, 2.73],
       cameraAngles: [0.102, 0.032, 0.025]
     }
 
@@ -77,7 +77,7 @@ export default class App {
     this.angle2C = -1.867
     this.angle3C = 1.341
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
