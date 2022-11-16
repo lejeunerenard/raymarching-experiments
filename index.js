@@ -12,8 +12,8 @@ const capturing = false
 let app = new App()
 window.app = app
 
-app.width = 1080
-app.height = 1920
+app.width = window.devicePixelRatio * 1080
+app.height = window.devicePixelRatio * 1920
 
 let sceneRenderer = new DefaultSceneRenderer(app.gl)
 app.sceneRenderer = sceneRenderer.render.bind(sceneRenderer)
