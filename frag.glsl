@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1568,11 +1568,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   for (float i = 0.; i < 10.; i++) {
-    // wQ = abs(wQ);
-    wQ = tetraFold(wQ);
+    if (mod(i, 2.) == 0.) {
+      wQ = abs(wQ);
+    } else {
+      wQ = tetraFold(wQ);
+    }
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(0, 0, 1), 0.2 * cos(localCosT + TWO_PI * wQ.x));
+    wQ *= rotationMatrix(vec3(0, 0, 1), 0.265 * (0.5 + 0.5 * cos(localCosT + 2. * wQ.x)));
     rollingScale *= scale;
 
     minD.x = min(minD.x, length(wQ));
