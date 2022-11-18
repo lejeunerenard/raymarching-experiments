@@ -1546,8 +1546,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.22;
-  float warpFrequency = 1.1;
+  float warpScale = 1.8;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1560,37 +1560,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.; // 3. * range(r, -r, wQ.x); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
-  // wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y);
-  // wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  // wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  // wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  // wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-
-  for (float i = 0.; i < 10.; i++) {
-    if (mod(i, 2.) == 0.) {
-      wQ = abs(wQ);
-    } else {
-      wQ = tetraFold(wQ);
-    }
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(0, 0, 1), 0.265 * (0.5 + 0.5 * cos(localCosT + 2. * wQ.x)));
-    rollingScale *= scale;
-
-    minD.x = min(minD.x, length(wQ));
-  }
+  wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  vec3 b = vec3(length(q) - angle3C, 0, minD.x);
-  b.x /= rollingScale;
+  float n = abs(cellular(1.5 * vec3(.1, .1, 0.85) * q)) - 0.00001;
+  vec3 b = vec3(n, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.4;
+  float crop = length(p) - r;
+  d.x = max(d.x, crop);
+
+  crop = length(p) - 0.75 * r;
+  d.x = max(d.x, -crop);
+
+  d.x *= 0.175;
 
   return d;
 }
@@ -1840,10 +1831,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5 * trap);
-  color += 0.75;
-  return color;
-  return vec3(1.5);
+  vec3 color = vec3(trap);
 
   // gC = voronoi(2. * mPos, 0.);
 
@@ -1873,7 +1861,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = vec3(0.5, 0.3, 0.9) + vec3(-0.5, 0.7, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.5) * dI + vec3(0.0, 0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -1995,8 +1983,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.2;
-      float shadowMin = 0.1;
+      float diffMin = 0.8;
+      float shadowMin = 0.4;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2066,7 +2054,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
