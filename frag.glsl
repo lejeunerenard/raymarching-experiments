@@ -1520,7 +1520,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.70;
+float gR = 0.10;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1561,7 +1561,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 2.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI);
+  vec3 cropQ = wQ;
   wQ += warpScale * 0.025000 * waveAmount * cos(17.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
@@ -1571,15 +1572,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float n = abs(cellular(1.5 * vec3(.1, .1, 0.85) * q)) - 0.00001;
+  q.zy = opRepLim(q.zy, 3. * r, vec2(5));
+  float n = sdCylinder(q, vec3(vec2(0), r));
   vec3 b = vec3(n, 0, 0);
   d = dMin(d, b);
 
-  float crop = length(p) - r;
-  d.x = max(d.x, crop);
+  // float crop = sdBox(wQ, vec3(5.0 * r));
+  // d.x = max(d.x, crop);
 
-  crop = length(p) - 0.75 * r;
-  d.x = max(d.x, -crop);
+  // crop = length(p) - 0.75 * r;
+  // d.x = max(d.x, -crop);
 
   d.x *= 0.175;
 
