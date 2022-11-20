@@ -1520,7 +1520,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.10;
+float gR = 0.50;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1542,12 +1542,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.8;
-  float warpFrequency = 1.0;
+  float warpScale = 1.0;
+  float warpFrequency = 0.2;
   float rollingScale = 1.;
 
   // Warp
@@ -1572,9 +1572,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  q.zy = opRepLim(q.zy, 3. * r, vec2(5));
-  float n = sdCylinder(q, vec3(vec2(0), r));
-  vec3 b = vec3(n, 0, 0);
+  float n1 = length(q) - r;
+  float n2 = sdBox(q, vec3(r / 1.414214));
+  vec3 b = vec3(mix(n1, n2, expo(triangleWave(t))), 0, 0);
   d = dMin(d, b);
 
   // float crop = sdBox(wQ, vec3(5.0 * r));
