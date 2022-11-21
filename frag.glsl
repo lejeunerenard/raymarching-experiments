@@ -1568,13 +1568,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
+  for (float i = 0.; i < 1.; i++) {
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+    rollingScale *= scale;
+  }
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float n1 = length(q) - r;
-  float n2 = sdBox(q, vec3(r / 1.414214));
-  vec3 b = vec3(mix(n1, n2, expo(triangleWave(t))), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
   // float crop = sdBox(wQ, vec3(5.0 * r));
@@ -1583,7 +1589,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // crop = length(p) - 0.75 * r;
   // d.x = max(d.x, -crop);
 
-  d.x *= 0.175;
+  d.x *= 0.7;
 
   return d;
 }
