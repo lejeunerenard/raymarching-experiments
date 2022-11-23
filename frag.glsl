@@ -1567,14 +1567,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.012500 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   // wQ += warpScale * 0.006250 * waveAmount * cos(39.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   // wQ += warpScale * 0.003125 * waveAmount * cos(51.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ.xy *= rotMat2(0.5 * localCosT);
+
   // Commit warp
   q = wQ.xyz;
 
-  float numBlades = 10.;
-  float amplitude = 0.2 * r;
+  float numBlades = 6.;
+  float amplitude = 0.; // 0.2 * r;
   float numOfValleys = 4.;
   float width = 0.075 * r;
 
+  q.xy *= rotMat2(localCosT); // Rotate
   float c = pModPolar(q.xy, numBlades);
 
   q.y -= 0.5 * amplitude;
@@ -1590,7 +1593,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q.y *= -1.; // Flip
   q.z += 2. * width; // Push back
-  q.xy *= rotMat2(localCosT); // Rotate
 
   c = pModPolar(q.xy, numBlades);
   q.y -= 0.5 * amplitude;
@@ -1604,7 +1606,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Layer 3
   q = wQ.xyz;
   q.z += 4. * width; // Push back
-  q.xy *= rotMat2(localCosT + 0.5 * PI); // Rotate
+  q.xy *= rotMat2(0.5 * localCosT + 0.5 * PI); // Rotate
   c = pModPolar(q.xy, numBlades);
 
   q.y -= 0.5 * amplitude;
@@ -1630,6 +1632,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   b = vec3(sdBox(q, vec3(r, vec2(width))), 0, 0);
   d = dMin(d, b);
 
+  q = wQ.xyz;
+
+  q.y *= -1.; // Flip
+  q.z += 6. * width; // Push back
+  q.xy *= rotMat2(-0.5 * localCosT + 0.5 * PI); // Rotate
+
+  c = pModPolar(q.xy, numBlades);
+  q.y -= 0.5 * amplitude;
+  q.x -= r;
+  q.y += amplitude * abs(cos(0.5 * numOfValleys * PI * q.x / r));
+
+  mPos = q;
+  b = vec3(sdBox(q, vec3(r, vec2(width))), 0, 0);
+  d = dMin(d, b);
   // float crop = sdBox(wQ, vec3(5.0 * r));
   // d.x = max(d.x, crop);
 
@@ -2122,7 +2138,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 3.0);
+      float dispersionI = 1. * pow(0. + 1.0 * dot(dNor, -gRd), 5.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -2132,8 +2148,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      color += saturate(dispersionColor);
-      // color = (saturate(dispersionColor));
+      // color += saturate(dispersionColor);
+      color = (saturate(dispersionColor));
 #endif
 
 #endif
