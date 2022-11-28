@@ -1520,7 +1520,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.025;
+float gR = 0.05;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1531,7 +1531,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float r = gR;
   vec2 size = vec2(0.25 * r);
-  float bigR = r * 3.;
+  float bigR = r * 12.;
 
   // Positioning adjustments
   // p.y -= 0.6;
@@ -1560,28 +1560,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.; //1. * range(r, -r, wQ.x); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
-  wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI);
-  wQ += warpScale * 0.025000 * waveAmount * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
-  wQ += warpScale * 0.012500 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ += warpScale * 0.006250 * waveAmount * cos(11.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
-  wQ += warpScale * 0.003125 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI);
+  // wQ += warpScale * 0.025000 * waveAmount * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
+  // wQ += warpScale * 0.012500 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  // wQ += warpScale * 0.006250 * waveAmount * cos(11.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  // wQ += warpScale * 0.003125 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
-  float dimSize = 4.5 * r;
-  vec2 c = floor((wQ.xz + 0.5 * dimSize) / dimSize);
-  wQ.xz = opRepLim(wQ.xz, dimSize, vec2(11));
+  wQ.xy = polarCoords(wQ.xy);
+  wQ.y -= bigR;
+
+  wQ.yz *= rotMat2(0.75 * wQ.x + 0.05 * cos(localCosT + wQ.x));
+
+  wQ.zy = opRepLim(wQ.zy, 2.75 * r, vec2(2));
 
   // Commit warp
   q = wQ.xyz;
 
-  q.y += 0.5 * r * snoise2(0.9237 * c);
-
   mPos = q;
-  vec3 b = vec3(sdCappedCylinder(q, vec2(r, 0.2)), mod(dot(c, vec2(1)), 2.), 0);
+  vec3 b = vec3(sdBox(q, vec3(PI, vec2(r))), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.2;
+  d.x *= 0.8;
 
   return d;
 }
@@ -1831,11 +1832,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = #EB5526;
-
-  color = mix(color, #83EB26, m);
-
-  color *= 1.15;
+  vec3 color = vec3(1.20);
 
   return color;
 
@@ -1979,14 +1976,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.7;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 0.9;
+      float diffMin = 0.5;
+      float shadowMin = 0.79;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
