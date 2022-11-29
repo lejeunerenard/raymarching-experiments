@@ -1536,13 +1536,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.04 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.04 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1571,18 +1571,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  wQ.yz *= rotMat2(0.75 * wQ.x + 0.05 * cos(localCosT + wQ.x));
+  wQ.yz *= rotMat2(0.75 * wQ.x + 0.2 * cos(1. * localCosT + wQ.x));
 
-  wQ.zy = opRepLim(wQ.zy, 2.75 * r, vec2(2));
+  // wQ.zy = opRepLim(wQ.zy, 2.75 * r, vec2(2));
 
   // Commit warp
   q = wQ.xyz;
-
   mPos = q;
-  vec3 b = vec3(sdBox(q, vec3(PI, vec2(r))), 0, 0);
+
+  float mobiusLength = PI + 0.1;
+
+  float repSize = 2.75 * r;
+  float crop = length(q.zy) - 2. * repSize;
+
+  vec3 b = vec3(sdBox(q, vec3(mobiusLength, vec2(r))), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  float polC = pModPolar(q.zy, 8.);
+  q.z -= repSize;
+
+  b = vec3(sdBox(q, vec3(mobiusLength, vec2(r))), 0, 0);
+  d = dMin(d, b);
+
+  polC = pModPolar(q.zy, 6.);
+  q.z -= 2. * repSize;
+
+  b = vec3(sdBox(q, vec3(mobiusLength, vec2(r))), 0, 0);
+  d = dMin(d, b);
+
+  // d.x = max(d.x, crop);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -1832,9 +1851,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.20);
+  vec3 color = vec3(0);
 
-  return color;
+  // return color;
 
   // gC = voronoi(2. * mPos, 0.);
 
@@ -1847,7 +1866,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
-  dI += 1. * mPos.y;
+  // dI += 1. * mPos.y;
   dI += 0.3 * snoise3(0.3 * pos);
 
   // dI += 5. * trap;
@@ -2053,7 +2072,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
