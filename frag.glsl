@@ -9,7 +9,7 @@
 // #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -68,7 +68,7 @@ float n2 = angle3C;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = angle1C;
+float doFDistance = angle3C;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1585,18 +1585,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float crop = length(q.zy) - 2. * repSize;
 
   vec3 b = vec3(sdBox(q, vec3(mobiusLength, vec2(r))), 0, 0);
-  d = dMin(d, b);
+  // d = dMin(d, b);
 
   float polC = pModPolar(q.zy, 8.);
   q.z -= repSize;
 
-  b = vec3(sdBox(q, vec3(mobiusLength, vec2(r))), 0, 0);
+  b = vec3(sdBox(q, vec3(mobiusLength, vec2(1.0 * r))), 0, 0);
   d = dMin(d, b);
 
-  polC = pModPolar(q.zy, 6.);
-  q.z -= 2. * repSize;
+  q = wQ;
+  polC = pModPolar(q.zy, 8.);
+  q.z -= 3. * repSize;
 
-  b = vec3(sdBox(q, vec3(mobiusLength, vec2(r))), 0, 0);
+  b = vec3(sdBox(q, vec3(mobiusLength, vec2(0.9 * r))), 0, 0);
   d = dMin(d, b);
 
   // d.x = max(d.x, crop);
@@ -2091,7 +2092,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       dispersionColor.r = pow(dispersionColor.r, 0.4);
-      // dispersionColor.b = pow(dispersionColor.b, 0.2);
+      dispersionColor.b = pow(dispersionColor.b, 0.3125);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
@@ -3419,7 +3420,7 @@ void main() {
       glRs, 0.0,  glRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.01;
+    const float dofCoeficient = 0.025;
 #endif
 
     #ifdef SS
@@ -3449,8 +3450,8 @@ void main() {
             // source: shadertoy.con/view/WtSfWK
             vec3 fp = ssRo + rd * doFDistance;
             ssRo.xy += dofCoeficient * vec2(
-                cnoise2(238. * uv + 123. + 2384. * vec2(x, y)),
-                cnoise2(323. * uv + 2034.123 * vec2(x, y)));
+                cnoise2(238. * (uv + rd.xy) + 100. * cos(cosT) + 123. + 2384. * vec2(x, y)),
+                cnoise2(323. * (uv + rd.xy) + 100. * cos(cosT) + 2034.123 * vec2(x, y)));
             rd = normalize(fp - ssRo);
 #endif
 
@@ -3485,8 +3486,8 @@ void main() {
     // source: shadertoy.con/view/WtSfWK
     vec3 fp = ro + rd * doFDistance;
     ro.xy += dofCoeficient * vec2(
-        cnoise2(238. * uv + 123.),
-        cnoise2(323. * uv + 20034.123));
+        cnoise2(238. * (uv + rd.xy) + 100. * cos(cosT) + 123.),
+        cnoise2(323. * (uv + rd.xy) + 100. * cos(cosT) + 20034.123));
     rd = normalize(fp - ro);
 #endif
 
