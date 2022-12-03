@@ -1520,7 +1520,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.9;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1536,17 +1536,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.04 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.08 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.8;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1560,23 +1560,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.; //1. * range(r, -r, wQ.x); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
-  wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI);
+  wQ += warpScale * 0.050000 * waveAmount * cos( vec3(1, 0.2, 1) * 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  wQ.xzy = twist(wQ.xyz, 0.6 * wQ.y + 0.45 * PI);
   wQ += warpScale * 0.025000 * waveAmount * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
   wQ += warpScale * 0.012500 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(11.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.003125 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
+  // float c = pMod1(wQ.z, 2. * r);
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(2. * r)), 0, 0);
+  // vec3 b = vec3(length(q) - 4. * r, 0, 0);
+  vec3 b = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(3. * r)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1854,7 +1856,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   const float numSteps = 30.;
   const float stepSize = 0.15;
-  const float holoIoR = 0.9;
+  const float holoIoR = 0.8;
   // vec3 holoRd = refract(nor, rd, holoIoR);
   vec3 holoRd = rd;
   holoRd += 0.2 * refract(nor, rd, holoIoR);
@@ -1862,13 +1864,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     vec3 holoPos = mPos + i * stepSize * holoRd;
     // float inclusion = snoise3(0.5 * holoPos);
     vec3 s = vec3(0);
-    float inclusion = fbmWarp(2.2 * holoPos, s);
-    vec3 layerColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(1) * 0.05 * i + vec3(0, 0.2, 0.4)));
+    float inclusion = fbmWarp(0.4 * vec3(2, 0.1, 2) * holoPos, s);
+    // inclusion = step(0.25, inclusion);
+    vec3 layerColor = vec3(0.6, 0.4, 0.4) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(1) * 0.05 * i + vec3(0,-0.2, 0.4)));
     // color += inclusion * layerColor;
     color = mix(color, layerColor, inclusion);
   }
 
   color /= pow(numSteps, 0.1);
+  color *= 1.5;
   // color /= numSteps;
 
   // color += beforeColor;
@@ -1954,8 +1958,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 0.8;
+      float specCo = 0.4;
 
       vec3 specAll = vec3(0.0);
 
