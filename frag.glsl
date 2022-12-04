@@ -3045,27 +3045,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.1;
-  vec2 r = 0.004 * vec2(0.025, 1);
-  vec2 size = r * vec2(2) + 5. * vmax(r);
+  vec2 r = 0.010 * vec2(1);
+  vec2 size = r * vec2(2) + 1.25 * vmax(r);
 
   vec2 wQ = q.xy;
-
-  // wQ.y *= 1.5;
 
   wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
   wQ *= 1. + 0.075 * cos(localCosT + 5.5 * length(wQ));
-  // wQ *= rotMat2(0.05 * PI * cos(localCosT));
-  wQ *= rotMat2(0.03 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
+  wQ *= rotMat2(0.05 * PI * cos(localCosT + 3. * length(wQ)));
+  // wQ *= rotMat2(0.03 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
   wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
 
   vec2 c = floor((wQ + size*0.5)/size);
 
-  float odd = mod(c.x, 2.);
-  // wQ.x += 0.5 * size.x * odd;
   float layerT = localT + dot(c, vec2(0.02, 0.));
   layerT = mod(layerT, 1.);
-  // wQ.y += (1. - 2. * odd) * size.y * layerT;
 
   c = pMod2(wQ, size);
 
@@ -3073,7 +3068,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   mUv = q;
 
   q *= rotMat2(0.5 * PI * cos(localCosT - 0.178 * length(c)));
-  vec2 o = vec2(sdBox(q, r), 0);
+
+  pModPolar(q, 4.);
+  // vec2 o = vec2(sdBox(q, r), 0);
+  vec2 o = vec2(length(q) - vmax(r), 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
@@ -3210,7 +3208,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
