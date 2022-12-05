@@ -3044,34 +3044,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.1;
-  vec2 r = 0.010 * vec2(1);
+  const float warpScale = 1.0;
+  vec2 r = vec2(0.007);
   vec2 size = r * vec2(2) + 1.25 * vmax(r);
 
   vec2 wQ = q.xy;
 
   wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
   wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  wQ *= 1. + 0.075 * cos(localCosT + 5.5 * length(wQ));
-  wQ *= rotMat2(0.05 * PI * cos(localCosT + 3. * length(wQ)));
-  // wQ *= rotMat2(0.03 * PI * sin(localCosT + 5. * dot(q, vec2(1))));
-  wQ += warpScale * 0.01250 * cos( 7. * vec2( 1, 1) * wQ.yx + 1. * localCosT + length(wQ));
+  wQ *= rotMat2(0.1 * PI * cos(localCosT + length(wQ)) + 0.2 * length(wQ));
+  wQ += warpScale * 0.02500 * cos(  7. * vec2( 1, 1) * cos(wQ.yx) + 1. * localCosT + length(wQ));
 
   vec2 c = floor((wQ + size*0.5)/size);
-
-  float layerT = localT + dot(c, vec2(0.02, 0.));
-  layerT = mod(layerT, 1.);
-
   c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  q *= rotMat2(0.5 * PI * cos(localCosT - 0.178 * length(c)));
+  // q *= rotMat2(0.5 * PI * cos(localCosT - 0.178 * length(c)));
+  q *= rotMat2(0.5 * PI * (0.5 * range(0., 0.4, t) + 0.5 * range(0.6, 1., t)) - 0.178 * length(c) + 0.2 * snoise2(0.9182 * c));
 
   pModPolar(q, 4.);
   // vec2 o = vec2(sdBox(q, r), 0);
-  vec2 o = vec2(length(q) - vmax(r), 0);
+  vec2 o = vec2(sdBox(q, vec2(0.2, 1) * r), 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
