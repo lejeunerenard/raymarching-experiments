@@ -1546,7 +1546,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.8;
+  float warpScale = 1.4;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1561,7 +1561,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
   wQ += warpScale * 0.050000 * waveAmount * cos( vec3(1, 0.2, 1) * 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.6 * wQ.y + 0.45 * PI);
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.45 * PI);
   wQ += warpScale * 0.025000 * waveAmount * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
   wQ += warpScale * 0.012500 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
@@ -1573,9 +1573,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - 4. * r, 0, 0);
-  vec3 b = vec3(sdCylinder(q, vec3(0, 0, r)), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(3. * r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -1864,14 +1862,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     vec3 holoPos = mPos + i * stepSize * holoRd;
     // float inclusion = snoise3(0.5 * holoPos);
     vec3 s = vec3(0);
-    float inclusion = fbmWarp(0.4 * vec3(2, 0.1, 2) * holoPos, s);
+    float inclusion = fbmWarp(0.225 * vec3(1) * holoPos, s);
     // inclusion = step(0.25, inclusion);
     vec3 layerColor = vec3(0.6, 0.4, 0.4) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(1) * 0.05 * i + vec3(0,-0.2, 0.4)));
     // color += inclusion * layerColor;
-    color = mix(color, layerColor, inclusion);
+    color = mix(color, layerColor, saturate(inclusion));
   }
 
-  color /= pow(numSteps, 0.1);
+  // color /= pow(numSteps, 0.1);
   color *= 1.5;
   // color /= numSteps;
 
@@ -2048,12 +2046,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 0.1 * pow(0. + 1.0 * dot(dNor, -gRd), 3.0);
+      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 3.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
-      // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.4);
+      // // Dispersion color post processing
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.3125);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
@@ -3203,7 +3201,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
