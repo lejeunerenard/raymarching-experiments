@@ -1536,11 +1536,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.08 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.08 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1550,12 +1550,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
+  float budSeparate = r * 4.;
+  float budT = (quart(range(0., 0.3, t)) - expo(range(0.3, 1., t)));
+  float splitPan = 0.2 * budSeparate * budT;
+  float splitDolly = 3. * budT;
+
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
+  wQ.x -= splitPan;
+  wQ.z += splitDolly;
+  wQ.x -= budSeparate * expo(range(0.3, 1., t));
+
   float warpDirection = 1.;
-  vec3 rotationT = vec3(localCosT + cosT - 2. * wQ.x);
+  vec3 rotationT = vec3(localCosT);
 
   float waveAmount = 1.; //1. * range(r, -r, wQ.x); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
@@ -1571,10 +1580,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float c = pMod1(wQ.z, 2. * r);
   // Commit warp
   q = wQ.xyz;
-  mPos = q;
 
   vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
+
+  // -- Bud --
+  wQ = p;
+
+  wQ.x -= splitPan;
+  wQ.z += splitDolly;
+  wQ.x += 0.5 * budSeparate * budT;
+  wQ += warpScale * 0.050000 * waveAmount * cos( vec3(1, 0.2, 1) * 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.45 * PI);
+  wQ += warpScale * 0.025000 * waveAmount * cos( 7.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
+  wQ += warpScale * 0.012500 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
+  wQ += warpScale * 0.006250 * waveAmount * cos(11.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.003125 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+
+  q = wQ.xyz;
+  mPos = q;
+
+  float budR = mix(0.4 * r, r, range(0.2, 1., t));
+  b = vec3(length(q) - budR, 0, 0);
+  d = dSMin(d, b, 0.5 * r);
+  d.x = mix(d.x, b.x, range(0.8, 1., t));
 
   d.x *= 0.3;
 
@@ -2019,11 +2049,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.25 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.15 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
