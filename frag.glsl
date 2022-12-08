@@ -3074,14 +3074,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   const float warpScale = 1.0;
   vec2 r = vec2(0.007);
-  vec2 size = r * vec2(2) + 1.25 * vmax(r);
+  vec2 size = r * vec2(10);
 
   vec2 wQ = q.xy;
 
-  wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  wQ *= rotMat2(0.1 * PI * cos(localCosT + length(wQ)) + 0.2 * length(wQ));
-  wQ += warpScale * 0.02500 * cos(  7. * vec2( 1, 1) * cos(wQ.yx) + 1. * localCosT + length(wQ));
+  wQ.y *= 1.3;
+  wQ *= rotMat2(0.125 * PI);
+
+  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
+  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  // wQ *= rotMat2(0.1 * PI * cos(localCosT + length(wQ)) + 0.2 * length(wQ));
+  // wQ += warpScale * 0.02500 * cos(  7. * vec2( 1, 1) * cos(wQ.yx) + 1. * localCosT + length(wQ));
 
   vec2 c = floor((wQ + size*0.5)/size);
   c = pMod2(wQ, size);
@@ -3089,12 +3092,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  // q *= rotMat2(0.5 * PI * cos(localCosT - 0.178 * length(c)));
-  q *= rotMat2(0.5 * PI * (0.5 * range(0., 0.4, t) + 0.5 * range(0.6, 1., t)) - 0.178 * length(c) + 0.2 * snoise2(0.9182 * c));
+  float floatT = range(0.4, 1., 0.5 + 0.5 * cos(localCosT - 0.225 * dot(abs(c), vec2(1))));
 
-  pModPolar(q, 4.);
-  // vec2 o = vec2(sdBox(q, r), 0);
-  vec2 o = vec2(sdBox(q, vec2(0.2, 1) * r), 0);
+  q += normalize(vec2(0.5, -1)) * size * 0.45 * floatT;
+
+  vec2 o = vec2(sdBox(q, r * floatT), 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
@@ -3111,7 +3113,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = sin(TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  n = smoothstep(0., 0.01 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3231,7 +3233,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3259,8 +3261,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
