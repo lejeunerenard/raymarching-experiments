@@ -3072,19 +3072,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.0;
+  const float warpScale = 1.5;
   vec2 r = vec2(0.007);
   vec2 size = r * vec2(10);
 
   vec2 wQ = q.xy;
 
-  wQ.y *= 1.3;
-  wQ *= rotMat2(0.125 * PI);
+  wQ.y *= 1.5;
+  wQ *= rotMat2(localCosT);
 
   // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  // wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  // wQ *= rotMat2(0.1 * PI * cos(localCosT + length(wQ)) + 0.2 * length(wQ));
-  // wQ += warpScale * 0.02500 * cos(  7. * vec2( 1, 1) * cos(wQ.yx) + 1. * localCosT + length(wQ));
+  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
+  wQ *= rotMat2(0.1 * PI * cos(localCosT + length(wQ)) + 0.2 * length(wQ));
+  wQ += warpScale * 0.02500 * cos(  7. * vec2( 1, 1) * cos(wQ.yx) + 1. * localCosT + length(wQ));
 
   vec2 c = floor((wQ + size*0.5)/size);
   c = pMod2(wQ, size);
@@ -3092,11 +3092,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  float floatT = range(0.4, 1., 0.5 + 0.5 * cos(localCosT - 0.225 * dot(abs(c), vec2(1))));
+  float floatT = 0.5 + 0.5 * cos(localCosT - 0.325 * length(c));
 
-  q += normalize(vec2(0.5, -1)) * size * 0.45 * floatT;
+  // q += normalize(vec2(0.5, -1)) * size * 0.45 * floatT;
 
-  vec2 o = vec2(sdBox(q, r * floatT), 0);
+  vec2 o = vec2(sdBox(q, r * (0.3 + 0.7 * floatT)), 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
