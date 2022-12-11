@@ -1547,7 +1547,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 1.2;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1567,6 +1567,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.012500 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(11.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
   wQ += warpScale * 0.003125 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
+  wQ += warpScale * 0.001562 * waveAmount * cos(27.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
 
   // Commit warp
   q = wQ.xyz;
@@ -1862,6 +1863,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     // float inclusion = snoise3(0.5 * holoPos);
     vec3 s = vec3(0);
     float inclusion = fbmWarp(0.225 * vec3(1) * holoPos, s);
+    // float inclusion = snoise3(1.225 * vec3(1) * holoPos);
     // inclusion = step(0.25, inclusion);
 
     // // Basic layer
@@ -1869,6 +1871,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
     // Single Noise
     dI = vec3(snoise3(holoPos + 0.08 * i));
+    // dI = vec3(fbmWarp(holoPos + 0.08 * i, s));
 
     // // Multi-noise
     // dI = vec3(
@@ -1876,9 +1879,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     //     snoise3(vec3(0.99, 1, 0.7) * holoPos + 0.08 * i),
     //     snoise3(vec3(1, 0.2, 1.1) * holoPos + 0.15 * i));
 
-    vec3 layerColor = vec3(0.6, 0.4, 0.4) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0,-0.2, 0.4)));
-    // color += inclusion * layerColor;
-    color = mix(color, layerColor, saturate(inclusion));
+    vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0,0.2, 0.4)));
+    color += saturate(inclusion) * layerColor;
+    // color = mix(color, layerColor, saturate(inclusion));
   }
 
   // color /= pow(numSteps, 0.1);
@@ -1968,8 +1971,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 0.8;
+      float specCo = 0.6;
 
       vec3 specAll = vec3(0.0);
 
@@ -2037,10 +2040,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.25 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.10 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor -= 0.05 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
