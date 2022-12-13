@@ -1546,8 +1546,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.25;
+  float warpScale = 1.9;
+  float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1575,7 +1575,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdCylinder(q, vec3(vec2(0), r)), 0, 0);
-  b.x -= 0.05 * cellular(3.2 * q);
   d = dMin(d, b);
 
   d.x *= 0.8;
@@ -1872,7 +1871,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     // dI = vec3(0.05 * i);
 
     // Single Noise
-    dI = vec3(snoise3(holoPos + 0.08 * i));
+    dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.08 * i));
 
     // // Multi-noise
     // dI = vec3(
@@ -1883,12 +1882,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     dI += angle2C;
 
     vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0,0.2, 0.4)));
-    color += saturate(inclusion) * layerColor;
-    // color = mix(color, layerColor, saturate(inclusion));
+    // color += saturate(inclusion) * layerColor;
+    color = mix(color, layerColor, saturate(inclusion));
   }
 
   // color /= pow(numSteps, 0.1);
-  // color *= 1.5;
+  color *= 1.5;
   // color /= numSteps;
 
   // color.r = pow(color.r, 0.7);
