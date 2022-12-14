@@ -1546,8 +1546,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.9;
-  float warpFrequency = 1.5;
+  float warpScale = 1.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1560,10 +1560,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.; //1. * range(r, -r, wQ.x); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
-  wQ += warpScale * 0.050000 * waveAmount * cos( vec3(1, 0.2, 1) * 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI + 0.3 * PI *cos(localCosT + wQ.y));
+  wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+
+  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI + localCosT + 0.2 * PI * cos(localCosT + wQ.y));
+
   wQ += warpScale * 0.025000 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
+
   wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
+
   wQ += warpScale * 0.012500 * waveAmount * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.003125 * waveAmount * cos(23.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y);
@@ -1572,8 +1576,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdCylinder(q, vec3(vec2(0), r)), 0, 0);
   d = dMin(d, b);
 
@@ -1871,7 +1875,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     // dI = vec3(0.05 * i);
 
     // Single Noise
-    dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.08 * i));
+    dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
 
     // // Multi-noise
     // dI = vec3(
@@ -2044,10 +2048,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.25 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor -= 0.05 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.15 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
@@ -2071,7 +2075,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // // Dispersion color post processing
       dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.3125);
+      dispersionColor.b = pow(dispersionColor.b, 0.3125);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
