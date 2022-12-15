@@ -1554,6 +1554,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
+  wQ.y *= 0.8;
+
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT);
 
@@ -1562,11 +1564,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI + localCosT + 0.2 * PI * cos(localCosT + wQ.y));
+  float a = atan(wQ.z, wQ.x);
+
+  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI + localCosT + 0.2 * PI * cos(localCosT + wQ.y) + abs(cos(4. * a + 2. * wQ.y)));
 
   wQ += warpScale * 0.025000 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z + abs(cos(4. * a + 2. * wQ.y)));
 
   wQ += warpScale * 0.012500 * waveAmount * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1576,8 +1580,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdCylinder(q, vec3(vec2(0), r)), 0, 0);
   d = dMin(d, b);
 
@@ -2048,10 +2052,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.25 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.15 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.15 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
