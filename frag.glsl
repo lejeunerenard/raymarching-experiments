@@ -1554,6 +1554,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
+  wQ *= rotationMatrix(vec3(0, 1, 0), -0.3 * PI);
+
   float warpDirection = 1.;
   vec3 rotationT = vec3(localCosT);
 
@@ -1562,11 +1564,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI + localCosT + 0.2 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.45 * PI + 0.2 * PI * cos(localCosT + wQ.y));
 
   wQ += warpScale * 0.025000 * waveAmount * cos( 9.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
 
-  wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z + abs(cos(2. * wQ.y)));
+  wQ.xyz = twist(wQ.xzy, 0.3 * wQ.z);
 
   wQ += warpScale * 0.012500 * waveAmount * cos(13.1 * warpDirection * warpFrequency * wQ.yzx + rotationT + wQ.y + length(wQ));
   wQ += warpScale * 0.006250 * waveAmount * cos(19.1 * warpDirection * warpFrequency * wQ.yzx + rotationT);
@@ -1576,13 +1578,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  float a = atan(q.y, q.x);
+
+  float tubeR = 0.7 * r;
+  vec2 tubeQ = vec2(length(q.xy) - r, q.z);
+  tubeQ *= rotMat2(a);
+  float tubeA = atan(tubeQ.y, tubeQ.x);
+  tubeR += 0.15 * r * abs(cos(4. * tubeA));
+
+  // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(sdCylinder(q, vec3(vec2(0), r)), 0, 0);
+  vec3 b = vec3(sdTorus(q.xzy, vec2(r, tubeR)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.8;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1867,10 +1877,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   for (float i = 0.; i < numSteps; i++) {
     vec3 holoPos = mPos + i * stepSize * holoRd;
     // float inclusion = snoise3(0.5 * holoPos);
-    vec3 s = vec3(0);
-    float inclusion = fbmWarp(0.125 * vec3(1, 2, 1) * holoPos, s);
-    // float inclusion = snoise3(1.225 * vec3(1) * holoPos);
-    // inclusion = step(0.25, inclusion);
+    // vec3 s = vec3(0);
+    // float inclusion = fbmWarp(0.425 * vec3(1, 2, 1) * holoPos, s);
+    float inclusion = snoise3(1.225 * vec3(1) * holoPos);
+    inclusion = step(0.25, inclusion);
 
     // // Basic layer
     // dI = vec3(0.05 * i);
@@ -1980,14 +1990,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.5;
       float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.8;
-      float shadowMin = 0.9;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2020,9 +2030,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // Ambient
-        lin += 0.200 * amb * diffuseColor;
-        dif += 0.200 * amb;
+        // // Ambient
+        // lin += 0.200 * amb * diffuseColor;
+        // dif += 0.200 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
@@ -2043,11 +2053,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.25 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.25 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
