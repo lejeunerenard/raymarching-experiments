@@ -1542,12 +1542,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 0.6;
+  float warpScale = 2.5;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1577,19 +1577,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
+  mPos = q;
 
-  float a = atan(q.y, q.x);
-
-  float tubeR = 0.7 * r;
-  vec2 tubeQ = vec2(length(q.xy) - r, q.z);
-  tubeQ *= rotMat2(a);
-  float tubeA = atan(tubeQ.y, tubeQ.x);
-  tubeR += 0.15 * r * abs(cos(4. * tubeA));
-
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(sdTorus(q.xzy, vec2(r, tubeR)), 0, 0);
+  // vec3 b = vec3(sdTorus(q.xzy, vec2(r, tubeR)), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
@@ -1869,18 +1862,18 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 beforeColor = color;
 
   const float numSteps = 20.;
-  const float stepSize = 0.15;
+  const float stepSize = 0.05;
   const float holoIoR = 1.0;
   // vec3 holoRd = refract(nor, rd, holoIoR);
   vec3 holoRd = rd;
   holoRd += 0.2 * refract(nor, rd, holoIoR);
   for (float i = 0.; i < numSteps; i++) {
-    vec3 holoPos = mPos + i * stepSize * holoRd;
+    vec3 holoPos = pos + i * stepSize * holoRd;
     // float inclusion = snoise3(0.5 * holoPos);
-    // vec3 s = vec3(0);
+    vec3 s = vec3(0);
     // float inclusion = fbmWarp(0.425 * vec3(1, 2, 1) * holoPos, s);
-    float inclusion = snoise3(1.225 * vec3(1) * holoPos);
-    inclusion = step(0.25, inclusion);
+    float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
+    // inclusion = step(0.25, inclusion);
 
     // // Basic layer
     // dI = vec3(0.05 * i);
@@ -1889,10 +1882,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     // dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
 
     // Multi-noise
+    vec3 nQ = holoPos;
+    nQ *= rotationMatrix(vec3(1), length(holoPos));
+
     dI = vec3(
-        snoise3(vec3(0.8, 1, 1.1) * holoPos + 0.05 * i),
-        snoise3(vec3(0.99, 1, 0.7) * holoPos + 0.08 * i),
-        snoise3(vec3(1, 0.2, 1.1) * holoPos + 0.15 * i));
+        snoise3(length(nQ) + vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
+        snoise3(length(nQ) + vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
+        snoise3(length(nQ) + vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
+
     dI *= angle1C;
     dI += angle2C;
 
@@ -1990,7 +1987,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
+      float freCo = 1.0;
       float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
@@ -2084,9 +2081,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
-      // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.3125);
+      // // Dispersion color post processing
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.3125);
 
       dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
