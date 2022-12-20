@@ -1547,7 +1547,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 0.5;
-  float warpFrequency = 2.0;
+  float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1566,14 +1566,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += warpScale * 0.025000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
 
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdTorus(q.xzy, vec2(r, tubeR)), 0, 0);
   d = dMin(d, b);
 
@@ -1834,10 +1833,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   dI += 0.3 * snoise3(0.3 * pos);
 
+
   dI *= angle1C;
   dI += angle2C;
 
-  // color = vec3(0.5) + vec3(-0.5, 0.7, 0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.3,-0.2)));
+  color = vec3(0.5) + vec3(-0.5, 0.7, 0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.3,-0.2)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
@@ -1853,18 +1853,17 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // -- Holo --
   vec3 beforeColor = color;
 
-  const float numSteps = 10.;
-  const float stepSize = 0.1;
-  const float holoIoR = 0.9;
-  // vec3 holoRd = refract(nor, rd, holoIoR);
-  vec3 holoRd = rd;
-  holoRd += 0.2 * refract(nor, rd, holoIoR);
+  const float numSteps = 40.;
+  const float stepSize = 0.025;
+  const float holoIoR = 1.0;
+  vec3 holoRd = refract(nor, rd, holoIoR);
+  // vec3 holoRd = rd;
+  // holoRd += 0.2 * refract(nor, rd, holoIoR);
   for (float i = 0.; i < numSteps; i++) {
     vec3 holoPos = mPos + i * stepSize * holoRd;
-    holoPos += 0.2 * cos(localCosT + mPos);
     // float inclusion = snoise3(0.5 * holoPos);
     vec3 s = vec3(0);
-    // float inclusion = fbmWarp(0.425 * vec3(1, 2, 1) * holoPos, s);
+    // float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
     float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
     // inclusion = step(0.25, inclusion);
 
@@ -1885,21 +1884,26 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
         snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
         snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
 
+    // dI += s;
+
     dI *= angle1C;
     dI += angle2C;
 
     vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.8) * dI + vec3(0,0.2, 0.4)));
     // color += saturate(inclusion) * layerColor;
-    color = mix(color, layerColor, saturate(inclusion));
+    // color = mix(color, layerColor, saturate(inclusion));
+    color = mix(pow(color, vec3(2.2)), pow(layerColor, vec3(2.2)), saturate(inclusion));
+    color = pow(color, vec3(0.454545));
   }
 
-  // color /= pow(numSteps, 0.1);
-  color *= 1.2;
+  // color /= pow(numSteps, 0.50);
+  // color *= 1.2;
   // color /= numSteps;
 
-  color.r = pow(color.r, 0.7);
+  // color.r = pow(color.r, 0.7);
+  // color.b = pow(color.b, 0.7);
 
-  // color += beforeColor;
+  // color += 0.4 * beforeColor;
 
   gM = m;
 
@@ -1988,7 +1992,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
+      float diffMin = 0.9;
       float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
