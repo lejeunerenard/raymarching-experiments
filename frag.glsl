@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
-#define ORTHO 1
+#define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1546,8 +1546,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5;
-  float warpFrequency = 2.0;
+  float warpScale = 0.5;
+  float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1556,13 +1556,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 rotationT = vec3(localCosT);
 
-  float waveAmount = 1.; //1. * range(r, -r, wQ.x); // Flag like movement
+  float waveAmount = 2.; //1. * range(r, -r, wQ.x); // Flag like movement
   // warpFrequency += 1. * quart(range(-r, r, wQ.x));
 
   wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
   wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y);
   wQ += warpScale * 0.025000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * waveAmount * cos(17.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.003125 * waveAmount * cos(23.3 * warpFrequency * wQ.yzx + rotationT);
 
   // Commit warp
   q = wQ.xyz;
@@ -1847,19 +1849,19 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // -- Holo --
   vec3 beforeColor = color;
 
-  const float numSteps = 20.;
-  const float stepSize = 0.05;
+  const float numSteps = 30.;
+  const float stepSize = 0.10;
   const float holoIoR = 1.0;
   vec3 holoQ = pos;
-  vec3 holoRd = refract(nor, rd, holoIoR);
-  // vec3 holoRd = rd;
-  // holoRd += 0.2 * refract(nor, rd, holoIoR);
+  // vec3 holoRd = refract(nor, rd, holoIoR);
+  vec3 holoRd = rd;
+  holoRd += 0.2 * refract(nor, rd, holoIoR);
   for (float i = 0.; i < numSteps; i++) {
     vec3 holoPos = holoQ + i * stepSize * holoRd;
     // float inclusion = snoise3(0.5 * holoPos);
     vec3 s = vec3(0);
-    // float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
-    float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
+    float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
+    // float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
     // inclusion = step(0.25, inclusion);
 
     float colorSpeed = 0.5;
@@ -1867,17 +1869,17 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     // // Basic layer
     // dI = vec3(0.05 * i);
 
-    // // Single Noise
-    // dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
+    // Single Noise
+    dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
 
-    // Multi-noise
-    vec3 nQ = holoPos;
-    // nQ *= rotationMatrix(vec3(1), length(holoPos));
+    // // Multi-noise
+    // vec3 nQ = holoPos;
+    // // nQ *= rotationMatrix(vec3(1), length(holoPos));
 
-    dI = vec3(
-        snoise3(length(nQ) + colorSpeed * vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
-        snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
-        snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
+    // dI = vec3(
+    //     snoise3(length(nQ) + colorSpeed * vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
+    //     snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
+    //     snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
 
     // dI += s;
 
@@ -2059,7 +2061,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3069,30 +3071,26 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 1.5;
-  vec2 r = vec2(0.007);
+  vec2 r = vec2(0.2);
   vec2 size = r * vec2(10);
 
   vec2 wQ = q.xy;
 
-  wQ.y *= 1.5;
-  wQ *= rotMat2(localCosT);
-
-  // wQ += warpScale * 0.10000 * cos( -1. * vec2( 1, 1) * wQ.yx + localCosT);
-  wQ += warpScale * 0.05000 * cos(  3. * vec2(-1, 1) * wQ.yx + localCosT + 4.937);
-  wQ *= rotMat2(0.1 * PI * cos(localCosT + length(wQ)) + 0.2 * length(wQ));
-  wQ += warpScale * 0.02500 * cos(  7. * vec2( 1, 1) * cos(wQ.yx) + 1. * localCosT + length(wQ));
-
-  vec2 c = floor((wQ + size*0.5)/size);
-  c = pMod2(wQ, size);
-
   q = wQ;
   mUv = q;
 
-  float floatT = 0.5 + 0.5 * cos(localCosT - 0.325 * length(c));
+  float nAmount = range(-0.5 * r.x, 1., -q.y);
 
-  // q += normalize(vec2(0.5, -1)) * size * 0.45 * floatT;
+  q.y /= 1. + 0.2 * nAmount;
 
-  vec2 o = vec2(sdBox(q, r * (0.3 + 0.7 * floatT)), 0);
+  vec2 nQ = 3. * q;
+  float n1 = fbmWarp(nQ - t);
+  float n2 = fbmWarp(nQ + t);
+  float noise = mix(n1, n2, t);
+
+  r.x += 3.0 * r.x * (nAmount * noise);
+
+  vec2 o = vec2(length(q) - r.x, 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
@@ -3111,8 +3109,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Hard Edge
   n = smoothstep(0., 0.01 * edge, n - 0.0);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // n = abs(n);
 
@@ -3270,7 +3268,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // -- Color delay --
   const float slices = 10.;
-  const float delayLength = 0.04;
+  const float delayLength = 0.1;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
@@ -3313,9 +3311,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // layerTint *= 0.65;
     // layerTint *= vec3(1.0, 0.6, 0.60);
 
-    // -- Layer Post Processing --
-    layerTint *= colors1; // Tint w/ color 1
-    layerTint *= 1.5;
+    // // -- Layer Post Processing --
+    // layerTint *= colors1; // Tint w/ color 1
+    // layerTint *= 1.5;
 
     // Add black layer as first layer
     // layerTint *= step(0.5, i);
@@ -3350,14 +3348,15 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color *= layerColor;
 
     // // Pseudo Multiply
+    // float mask = layerColor.x;
     // color = mix(color, color * layerColor, mask);
   }
 
   color = pow(color, vec3(1.50));
   color /= slices;
 
-  // Final layer
-  color.rgb += 1.0 * renderSceneLayer(ro, rd, uv, norT).rgb;
+  // // Final layer
+  // color.rgb += 1.0 * renderSceneLayer(ro, rd, uv, norT).rgb;
 
   // // Color manipulation
   // color.rgb = 1. - color.rgb;
