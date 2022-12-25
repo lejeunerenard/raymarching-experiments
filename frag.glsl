@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1551,26 +1551,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float rollingScale = 1.;
 
   // Warp
-  // vec4 wQ = vec4(q.xyz, 1.);
-  vec3 wQ = q.xyz;
+  vec4 wQ = vec4(q.xyz, 1.);
+  // vec3 wQ = q.xyz;
 
   vec3 rotationT = vec3(localCosT);
 
-  float waveAmount = 2.; //1. * range(r, -r, wQ.x); // Flag like movement
-  // warpFrequency += 1. * quart(range(-r, r, wQ.x));
+  float waveAmount = 1.;
+  // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y);
-  wQ += warpScale * 0.025000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * waveAmount * cos(17.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.003125 * waveAmount * cos(23.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.050000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y);
+  // wQ += warpScale * 0.025000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.012500 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
+
+  for (float i = 0.; i < 10.; i++) {
+    float c = pModPolar(wQ.xy, 6.);
+    wQ.y = abs(wQ.y);
+    wQ.zw = abs(wQ.zw);
+
+    wQ = wQ * kifsM;
+
+    rollingScale *= scale;
+  }
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - angle3C, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(angle3C)), 0, 0);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
   // d.x *= 0.6;
@@ -1823,7 +1833,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(2);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -1941,8 +1952,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.7, 1.2, 1.0), #FFBBBB, 1.0);
-    lights[1] = light(vec3(-0.1, 1.5,1.0), #BBFFFF, 1.0);
+    lights[0] = light(vec3(-0.7, 0.2, 1.0), #FFBBBB, 1.0);
+    lights[1] = light(vec3(-0.1, 0.5,1.0), #BBFFFF, 1.0);
     lights[2] = light(vec3(0.1, 1.0,-0.7), #EEFFEE, 0.5);
 
     const float universe = 0.;
@@ -1983,14 +1994,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.9;
+      float freCo = 0.5;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.9;
-      float shadowMin = 0.9;
+      float diffMin = 0.2;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2047,11 +2058,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.2 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2061,7 +2072,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)

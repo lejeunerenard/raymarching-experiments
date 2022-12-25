@@ -17,7 +17,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // --- Set colors / gradient ---
   // Gradients
   // vec3 color = mix(#501E5B, vec3(0.0), bgIndex);
-  vec3 color = mix(vec3(.27, .275, .2), vec3(0.06, 0, 0.15), bgIndex);
+  // vec3 color = mix(vec3(.27, .275, .2), vec3(0.06, 0, 0.15), bgIndex);
   // vec3 color = mix(vec3(0.05), vec3(0), bgIndex);
   // vec3 color = mix(vec3(0.8, 0.9, 0.8), vec3(0.95, 0.85, 0.85), bgIndex);
   // vec3 color = mix(#0D36EB, #86ABAD, bgIndex);
@@ -44,7 +44,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // color = mix(color, 0.7 * vec3(0, 1,0.8), bgIndex);
 
   // Solid colors
-  // vec3 color = vec3(0.5);
+  vec3 color = vec3(0.5);
   // vec3 color = vec3(1);
   // vec3 color = vec3(0, 0, 1);
   // vec3 color = vec3(0);
