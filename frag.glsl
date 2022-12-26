@@ -1564,10 +1564,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += warpScale * 0.025000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
   // wQ += warpScale * 0.012500 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
 
-  for (float i = 0.; i < 10.; i++) {
+  for (float i = 0.; i < 6.; i++) {
     float c = pModPolar(wQ.xy, 6.);
     wQ.y = abs(wQ.y);
-    wQ.zw = abs(wQ.zw);
+    // wQ.zw = abs(wQ.zw);
+    wQ.zwy = tetraFold(wQ.zwy);
 
     wQ = wQ * kifsM;
 
@@ -1952,8 +1953,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.7, 0.2, 1.0), #FFBBBB, 1.0);
-    lights[1] = light(vec3(-0.1, 0.5,1.0), #BBFFFF, 1.0);
+    lights[0] = light(vec3(-0.7, 0.2, 1.0), #FFFFBB, 1.0);
+    lights[1] = light(vec3(-0.1, 0.5,1.0), #BBBBFF, 1.0);
     lights[2] = light(vec3(0.1, 1.0,-0.7), #EEFFEE, 0.5);
 
     const float universe = 0.;
@@ -2000,7 +2001,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.2;
+      float diffMin = 0.1;
       float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
@@ -2034,9 +2035,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // // Ambient
-        // lin += 0.200 * amb * diffuseColor;
-        // dif += 0.200 * amb;
+        // Ambient
+        lin += 0.100 * amb * diffuseColor;
+        dif += 0.100 * amb;
 
         // float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         float distIntensity = lights[i].intensity; // / pow(length(lightPos - gPos), 1.0);
