@@ -3083,26 +3083,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 1.5;
-  vec2 r = vec2(0.2);
-  vec2 size = r * vec2(10);
+  vec2 r = 0.5 * vec2(0.01, 0.1);
+  vec2 size = 0.10 * vmax(r) + r * vec2(2.);
 
   vec2 wQ = q.xy;
+
+  vec2 c = floor((wQ + 0.5 * size) / size);
+  wQ.y += size.y * 0.5 * mod(c.x, 2.);
+  localT = t + 0.0025 * dot(c, vec2(1, 0.2));
+  localT = mod(4. * localT, 1.);
+  wQ.y += 2.0 * size.y * expo(localT);
+  c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  float nAmount = range(-0.5 * r.x, 1., -q.y);
-
-  q.y /= 1. + 0.2 * nAmount;
-
-  vec2 nQ = 3. * q;
-  float n1 = fbmWarp(nQ - t);
-  float n2 = fbmWarp(nQ + t);
-  float noise = mix(n1, n2, t);
-
-  r.x += 3.0 * r.x * (nAmount * noise);
-
-  vec2 o = vec2(length(q) - r.x, 0);
+  vec2 o = vec2(sdBox(q, r), 0);
   d = dMin(d, o);
 
   // o = vec2(length(q) - 0.125 * 0.25, 0);
@@ -3121,8 +3117,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Hard Edge
   n = smoothstep(0., 0.01 * edge, n - 0.0);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // n = abs(n);
 
@@ -3239,7 +3235,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
