@@ -3083,20 +3083,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 1.5;
-  vec2 r = 0.5 * vec2(0.01, 0.1);
-  vec2 size = 0.10 * vmax(r) + r * vec2(2.);
+  vec2 r = 0.175 * vec2(0.015, 0.1);
+  vec2 size = vmax(r) * vec2(4.);
 
   vec2 wQ = q.xy;
 
+  wQ *= rotMat2(0.25 * PI);
+
   vec2 c = floor((wQ + 0.5 * size) / size);
-  wQ.y += size.y * 0.5 * mod(c.x, 2.);
-  localT = t + 0.0025 * dot(c, vec2(1, 0.2));
-  localT = mod(4. * localT, 1.);
-  wQ.y += 2.0 * size.y * expo(localT);
+
+  // // Offset
+  // wQ.y += size.y * 0.5 * mod(c.x, 2.);
+
+  // // adjust local time
+  // localT = t + 0.0025 * dot(c, vec2(1, 0.2));
+  // localT = mod(4. * localT, 1.);
+
+  // // Move down
+  // wQ.y += 2.0 * size.y * expo(localT);
+
   c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
+
+  q *= rotMat2(localCosT + 0. * dot(c, vec2(1)) + snoise2(0.1 * c) + 0.125 * PI * cos(localCosT - length(c) + snoise2(0.025 * c + 9.2378)));
 
   vec2 o = vec2(sdBox(q, r), 0);
   d = dMin(d, o);
@@ -3263,13 +3274,13 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.005 * i).rgb;
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
     uv.y += 0.005;
   }
   return vec4(color, 1);
