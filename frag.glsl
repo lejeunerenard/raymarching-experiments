@@ -3082,13 +3082,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.5;
-  vec2 r = 0.175 * vec2(0.015, 0.1);
-  vec2 size = vmax(r) * vec2(4.);
+  const float warpScale = 1.0;
+  vec2 r = 0.1 * vec2(0.015, 0.1);
+  vec2 size = vmax(r) * vec2(2.);
 
   vec2 wQ = q.xy;
-
-  wQ *= rotMat2(0.25 * PI);
 
   vec2 c = floor((wQ + 0.5 * size) / size);
 
@@ -3102,22 +3100,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Move down
   // wQ.y += 2.0 * size.y * expo(localT);
 
-  c = pMod2(wQ, size);
+  // Warp
+  wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
+  wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
+  wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
+  wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
+
+  // c = pMod2(wQ, size);
+  c.x = pMod1(wQ.x, size.x);
+
+  // wQ *= rotMat2(localCosT + 0. * dot(abs(c), vec2(1)) + snoise2(0.1 * c));
 
   q = wQ;
   mUv = q;
 
-  q *= rotMat2(localCosT + 0. * dot(c, vec2(1)) + snoise2(0.1 * c) + 0.125 * PI * cos(localCosT - length(c) + snoise2(0.025 * c + 9.2378)));
-
-  vec2 o = vec2(sdBox(q, r), 0);
+  // vec2 o = vec2(sdBox(q, r), 0);
+  vec2 o = vec2(abs(q.x) - r.x, 0);
   d = dMin(d, o);
 
-  // o = vec2(length(q) - 0.125 * 0.25, 0);
-  // d = dMin(d, o);
-
-  // float mask = 0.;
-  // // mask = smoothstep(0., 0.5 * edge, mask);
-  // mask = 1. - mask;
+  float mask = sdBox(uv, vec2(0.375, 0.7));
+  mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
+  mask = smoothstep(0., 0.5 * edge, mask);
+  mask = 1. - mask;
   // mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
@@ -3139,6 +3143,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // B&W
   color = vec3(n);
 
+  // // B&W Repeating
+  // color = vec3(0.5 + 0.5 * cos(TWO_PI * n));
+
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
 
@@ -3153,7 +3160,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // dI += dot(uv, vec2(0.4));
   // dI += 0.2 * cos(localCosT + dot(uv, vec2(0.2, -0.4)));
   // dI *= 0.75;
-  // color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
+  // // color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
+  // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // // Stripes
   // // const float numStripes = 30.;
@@ -3205,7 +3213,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // color *= mask;
+  color *= mask;
 
   return color.rgb;
 }
@@ -3274,8 +3282,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
