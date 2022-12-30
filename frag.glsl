@@ -3082,7 +3082,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 1.0;
+  const float warpScale = 0.5;
   vec2 r = 0.1 * vec2(0.015, 0.1);
   vec2 size = vmax(r) * vec2(2.);
 
@@ -3102,14 +3102,18 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // Warp
   wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
-  wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
+  vec2 cosQ = cos( 9. * wQ.yx + localCosT - length(wQ));
+  // wQ += 0.0500 * warpScale * vec2(
+  //     quart(cosQ.x),
+  //     quart(cosQ.y)
+  // );
   wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
   wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
 
+  wQ *= rotMat2(localCosT + 0. * dot(abs(c), vec2(1)) + snoise2(0.1 * c));
+
   // c = pMod2(wQ, size);
   c.x = pMod1(wQ.x, size.x);
-
-  // wQ *= rotMat2(localCosT + 0. * dot(abs(c), vec2(1)) + snoise2(0.1 * c));
 
   q = wQ;
   mUv = q;
@@ -3118,11 +3122,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec2 o = vec2(abs(q.x) - r.x, 0);
   d = dMin(d, o);
 
-  float mask = sdBox(uv, vec2(0.375, 0.7));
-  mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
-  mask = smoothstep(0., 0.5 * edge, mask);
-  mask = 1. - mask;
-  // mask = 0.05 + 0.95 * mask;
+  // float mask = sdBox(uv, vec2(0.375, 0.7));
+  // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
+  // mask = smoothstep(0., 0.5 * edge, mask);
+  // mask = 1. - mask;
+  // // mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
 
@@ -3213,7 +3217,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color *= mask;
+  // color *= mask;
 
   return color.rgb;
 }
