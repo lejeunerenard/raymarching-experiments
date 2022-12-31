@@ -3088,6 +3088,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 wQ = q.xy;
 
+  wQ *= rotMat2(-0.25 * PI);
+
   vec2 c = floor((wQ + 0.5 * size) / size);
 
   // // Offset
@@ -3103,17 +3105,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Warp
   wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
   vec2 cosQ = cos( 9. * wQ.yx + localCosT - length(wQ));
-  // wQ += 0.0500 * warpScale * vec2(
-  //     quart(cosQ.x),
-  //     quart(cosQ.y)
-  // );
+  wQ += 0.0500 * warpScale * vec2(
+      expo(cosQ.x),
+      quart(cosQ.y)
+  );
   wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
   wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
 
-  wQ *= rotMat2(localCosT + 0. * dot(abs(c), vec2(1)) + snoise2(0.1 * c));
+  // wQ *= rotMat2(localCosT + 0. * dot(abs(c), vec2(1)) + snoise2(0.1 * c));
 
   // c = pMod2(wQ, size);
   c.x = pMod1(wQ.x, size.x);
+
+  wQ.y += t * mod(c.x, 2.);
+
+  wQ.x += 0.25 * size.x * triangleWave(40. * wQ.y);
 
   q = wQ;
   mUv = q;
