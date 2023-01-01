@@ -23,7 +23,7 @@ uniform vec4 offsetC;
 uniform mat4 cameraMatrix;
 uniform mat4 orientation;
 uniform mat4 projectionMatrix;
-uniform sampler2D textTex;
+uniform sampler2D sdf2DTexture;
 
 uniform float angle1C;
 uniform float angle2C;
@@ -3082,50 +3082,45 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.5;
+  const float warpScale = 0.7;
   vec2 r = 0.1 * vec2(0.015, 0.1);
   vec2 size = vmax(r) * vec2(2.);
 
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(-0.25 * PI);
+  // wQ *= rotMat2(-0.25 * PI);
 
   vec2 c = floor((wQ + 0.5 * size) / size);
 
-  // // Offset
-  // wQ.y += size.y * 0.5 * mod(c.x, 2.);
+  // -- Warp --
 
-  // // adjust local time
-  // localT = t + 0.0025 * dot(c, vec2(1, 0.2));
-  // localT = mod(4. * localT, 1.);
-
-  // // Move down
-  // wQ.y += 2.0 * size.y * expo(localT);
-
-  // Warp
   wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
-  vec2 cosQ = cos( 9. * wQ.yx + localCosT - length(wQ));
-  wQ += 0.0500 * warpScale * vec2(
-      expo(cosQ.x),
-      quart(cosQ.y)
-  );
+  wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
+  // vec2 cosQ = cos( 9. * wQ.yx + localCosT - length(wQ));
+  // wQ += 0.0500 * warpScale * vec2(
+  //     expo(cosQ.x),
+  //     quart(cosQ.y)
+  // );
   wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
   wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
 
   // wQ *= rotMat2(localCosT + 0. * dot(abs(c), vec2(1)) + snoise2(0.1 * c));
 
-  // c = pMod2(wQ, size);
-  c.x = pMod1(wQ.x, size.x);
-
-  wQ.y += t * mod(c.x, 2.);
-
-  wQ.x += 0.25 * size.x * triangleWave(40. * wQ.y);
+  wQ *= 0.5;
 
   q = wQ;
   mUv = q;
 
   // vec2 o = vec2(sdBox(q, r), 0);
-  vec2 o = vec2(abs(q.x) - r.x, 0);
+  // vec2 o = vec2(abs(q.x) - r.x, 0);
+
+  // Convert from center 0 to center 0.5
+  q += 0.5;
+  float sdf2D = texture2D(sdf2DTexture, q).r;
+  // Unpack from [0, 1] to [-1, 1]
+  sdf2D -= 0.5;
+  sdf2D *= 2.;
+  vec2 o = vec2(sdf2D, 0);
   d = dMin(d, o);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
@@ -3136,14 +3131,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float n = d.x;
 
-  // // Repeat
-  // n = sin(TWO_PI * n);
+  n -= localT;
+
+  // Repeat
+  n = sin(30. * TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., 0.01 * edge, n - 0.0);
+  n = smoothstep(0., 0.01 * edge, n - 0.9);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // n = abs(n);
 

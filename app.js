@@ -4,6 +4,7 @@ import createFBO from 'gl-fbo'
 
 import ndarray from 'ndarray'
 import TWEEN from 'tween.js'
+import fill from 'ndarray-fill'
 import makeContext from 'gl-context'
 import { rot4 } from './utils'
 import drawTriangle from 'a-big-triangle'
@@ -12,6 +13,8 @@ import defined from 'defined'
 import assert from 'assert'
 import { vec3, mat4 } from 'gl-matrix'
 import { getLuminance, getColorWFixedLuminance } from './luminance'
+
+import convert from './svg-to-glsl.js'
 
 const dpr = 1.0 / window.devicePixelRatio
 
@@ -40,6 +43,7 @@ export default class App {
     }
 
     this.LOOKAT = true
+    this.SHOW_SVG_SDF = false
 
     this.presets = {}
     const preset = {
@@ -88,10 +92,29 @@ export default class App {
     this.audioTex = createTexture(gl, this.audioNday)
     this.pulseGoal = 0
 
+    // -- Shapes --
+    this.shapeOptions = {
+      cube: 0,
+      sphere: 1,
+      cigar: 2,
+      pyramid: 3,
+      torus: 4,
+      octahedron: 5,
+      none: -1
+    }
+    this.shapeMode = 'cube'
+    this.shapeScale = [1, 1, 1]
+    this._shape2DSDFTextures = {}
+
     // Capturing state
     this.capturing = defined(options.capturing, false)
 
     this.loaded = Promise.resolve()
+      .then(() => {
+        const { glsl, metadata } = convert(require('./year-6.svg.js'))
+        const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
+        this.add2DSDFTexture('year-6', fbo.color[0])
+      })
       .then(() => {
         this.setupAudio()
       })
@@ -137,6 +160,47 @@ export default class App {
     this.state[3].color.minFilter = gl.LINEAR
     this.state[4].color.magFilter = gl.LINEAR
     this.state[4].color.minFilter = gl.LINEAR
+  }
+
+  renderSVGSDF (svgToSDF, viewBox = { x1: 0, y1: 0, x2: 100, y2: 100 }, fbo, gl = this.gl) {
+    const t = 0
+    const MAX_TEXTURE_SIZE = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+    let dim = [MAX_TEXTURE_SIZE / 2, MAX_TEXTURE_SIZE / 2]
+
+    let svgSDF
+    // By default create a FBO to return
+    if (!fbo) {
+      try {
+        svgSDF = createFBO(gl, dim, { preferFloat: true, depth: false })
+      } catch (e) {
+        svgSDF = createFBO(gl, dim, { depth: false })
+      }
+    } else {
+      svgSDF = fbo
+    }
+    svgSDF.color[0].wrap = [gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE]
+    svgSDF.color[0].magFilter = gl.LINEAR
+    svgSDF.color[0].minFilter = gl.LINEAR
+    svgSDF.color[0].mipSamples = 12
+
+    svgToSDF.bind()
+    svgToSDF.uniforms.resolution = dim
+    svgToSDF.uniforms.scale = Math.min(dim[0], dim[1]) / Math.max(viewBox.x2 - viewBox.x1, viewBox.y2 - viewBox.y1)
+    svgToSDF.uniforms.epsilon = this.epsilon
+
+    let updates = this.getCamera(t)
+    svgToSDF.uniforms.cameraRo = this.SHOW_SVG_SDF ? updates[0] : [0, 0, 1.25]
+    svgToSDF.uniforms.cameraMatrix = (updates[1])
+
+    if (this.SHOW_SVG_SDF) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    } else {
+      svgSDF.bind()
+    }
+
+    drawTriangle(gl)
+
+    return svgSDF
   }
 
   setupAnimation (preset) {
@@ -360,6 +424,12 @@ export default class App {
     this.setupShader('bright', require('./shaders/bright.shader'), gl)
     this.setupShader('bloom', require('./shaders/bloom.shader'), gl)
     this.setupShader('finalPass', require('./shaders/final-pass.shader'), gl)
+    this.generateSVGTexture('', undefined, gl)
+
+    let blankSDF = ndarray([], [2, 2])
+    // Initialize at max distance
+    fill(blankSDF, (i) => 1.0)
+    this.defaultSDFTexture = createTexture(gl, blankSDF)
 
     this.currentState = 1
     this.setupFBOs(gl)
@@ -406,6 +476,24 @@ export default class App {
     return _kifsM
   }
 
+  generateSVGTexture (svgPaths, viewBox = { x1: 0, y1: 0, x2: 100, y2: 100 }, gl = this.gl) {
+    const svgShader = require('./shaders/svgSDF')(svgPaths)
+    this.svgToSDF = createShader(gl, svgShader.vertex, svgShader.fragment)
+    this.svgViewBox = viewBox
+    return this.renderSVGSDF(this.svgToSDF, this.svgViewBox, null, gl)
+  }
+
+  add2DSDFTexture (name, texture) {
+    this.shapeOptions[name] = name
+    this._shape2DSDFTextures[name] = {
+      tex: texture,
+      filename: name,
+      _lastFilename: name,
+      isVideo: false,
+      asset: null
+    }
+  }
+
   resize (e) {
     let canvas = this.canvas
     let dim = this.getDimensions()
@@ -426,6 +514,13 @@ export default class App {
 
     this.update(t)
     this.render(t)
+    if (this.SHOW_SVG_SDF) {
+      if (this.debugSVGFBO) {
+        this.renderSVGSDF(this.svgToSDF, this.svgViewBox, this.debugSVGFBO)
+      } else {
+        this.debugSVGFBO = this.renderSVGSDF(this.svgToSDF, this.svgViewBox)
+      }
+    }
   }
 
   getCamera (t) {
@@ -460,6 +555,19 @@ export default class App {
     TWEEN.update(t)
 
     this.shader.uniforms.epsilon = this.epsilon
+
+    // Shape
+    const SDF_TEX_LOC = 2
+    const isSVG = true
+    const svgName = 'year-6'
+    if (isSVG) {
+      let sdfTexture = this._shape2DSDFTextures[svgName]
+      if (sdfTexture) {
+        this.shader.uniforms.sdf2DTexture = sdfTexture.tex.bind(SDF_TEX_LOC)
+      }
+    } else {
+      this.shader.uniforms.sdf2DTexture = this.defaultSDFTexture.bind(SDF_TEX_LOC)
+    }
 
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
