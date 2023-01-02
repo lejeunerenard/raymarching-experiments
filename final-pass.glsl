@@ -82,10 +82,10 @@ void main() {
   // gl_FragColor = mix(vec4(background, 1.), result, max(bufferColor.a, baseColor.a));
   // gl_FragColor = vec4(background + result.rgb, 1.);
 
-  // // Post process
-  // vec3 colorBefore = gl_FragColor.rgb;
-  // colorMap(gl_FragColor.rgb);
-  // gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.5);
+  // Post process
+  vec3 colorBefore = gl_FragColor.rgb;
+  colorMap(gl_FragColor.rgb);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.5);
 
   // gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.1));
 

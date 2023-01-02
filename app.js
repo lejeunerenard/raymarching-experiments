@@ -59,7 +59,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.04, 2.9)
+    this.cameraRo = vec3.fromValues(0, 0.04, 1.5)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [168, 141, 198]
@@ -79,9 +79,9 @@ export default class App {
 
     this.angle1C = 0.4489
     this.angle2C = 1.6621
-    this.angle3C = 0.9
+    this.angle3C = 1.22
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -111,7 +111,7 @@ export default class App {
 
     this.loaded = Promise.resolve()
       .then(() => {
-        const { glsl, metadata } = convert(require('./year-6.svg.js'))
+        const { glsl, metadata } = convert(require('./melt.svg.js'))
         const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
         this.add2DSDFTexture('year-6', fbo.color[0])
       })
@@ -560,11 +560,9 @@ export default class App {
     const SDF_TEX_LOC = 2
     const isSVG = true
     const svgName = 'year-6'
-    if (isSVG) {
-      let sdfTexture = this._shape2DSDFTextures[svgName]
-      if (sdfTexture) {
-        this.shader.uniforms.sdf2DTexture = sdfTexture.tex.bind(SDF_TEX_LOC)
-      }
+    let sdfTexture = this._shape2DSDFTextures[svgName]
+    if (isSVG && sdfTexture) {
+      this.shader.uniforms.sdf2DTexture = sdfTexture.tex.bind(SDF_TEX_LOC)
     } else {
       this.shader.uniforms.sdf2DTexture = this.defaultSDFTexture.bind(SDF_TEX_LOC)
     }
