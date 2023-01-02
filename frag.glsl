@@ -3083,18 +3083,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.7;
-  vec2 r = 0.1 * vec2(0.015, 0.1);
-  vec2 size = vmax(r) * vec2(2.);
+  vec2 r = vec2(1);
+  vec2 size = r * vec2(1, 0.33);
+
+  float scale = 3.;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  // vec2 c = floor((wQ + 0.5 * size) / size);
+  wQ *= scale;
+
+  wQ *= rotMat2(-0.25 * PI);
+
+  vec2 c = floor((wQ + 0.5 * size) / size);
 
   // wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
   // wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
   // wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
   // wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
+
+  wQ.x += 0.333 * size.x * mod(c.y, 3.);
+  wQ.x += quint(localT - 0.02 * c.y);
+
+  c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3103,13 +3114,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(abs(q.x) - r.x, 0);
   // d = dMin(d, o);
 
-  // // Convert from center 0 to center 0.5
-  // q += 0.5;
-  // float sdf2D = texture2D(sdf2DTexture, q).r;
-  // // Unpack from [0, 1] to [-1, 1]
-  // sdf2D -= 0.5;
-  // sdf2D *= 2.;
-  // vec2 o = vec2(sdf2D, 0);
+  // Convert from center 0 to center 0.5
+  q += 0.5;
+  float sdf2D = texture2D(sdf2DTexture, q - vec2(0, 0.030 * size.y)).r;
+  // Unpack from [0, 1] to [-1, 1]
+  sdf2D -= 0.5;
+  sdf2D *= 2.;
+  vec2 o = vec2(sdf2D, 0);
+  d = dMin(d, o);
+
+  q -= 0.5;
+  q.y = abs(q.y);
+  vec2 b = vec2(sdBox(q - vec2(0, 0.50 * size.y), vec2(1, 0.040 * size.y)), 0);
+  d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3120,10 +3137,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float n = d.x;
 
   // // Repeat
-  // n = sin(30. * TWO_PI * n);
+  // n = sin(20. * TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., 0.01 * edge, n - 0.0);
+  n = smoothstep(0., 1.0 * edge, n - 0.0);
 
   // // Invert
   // n = 1. - n;
@@ -3247,7 +3264,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);

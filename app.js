@@ -111,7 +111,7 @@ export default class App {
 
     this.loaded = Promise.resolve()
       .then(() => {
-        const { glsl, metadata } = convert(require('./melt.svg.js'))
+        const { glsl, metadata } = convert(require('./repeat.svg.js'))
         const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
         this.add2DSDFTexture('year-6', fbo.color[0])
       })
