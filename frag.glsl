@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = angle3C;
+float n2 = 1.5;
 const float amount = 0.05;
 
 // Dof
@@ -1540,7 +1540,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.8;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1556,17 +1556,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.08 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.08 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1. * (0.5 + 0.5 * cos(localCosT + range(-0.2, 0.3, q.x)));
+  float warpScale = 0.5;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1592,9 +1592,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(opExtrude(q, shape(q.xy, vec2(0)).x, 0.15), 0, 0);
-  // vec3 b = vec3(length(q) - angle3C, 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(angle3C)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
+
+  b.x += 0.01 * gridBump(q + 0.02 * snoise3(9. * q), 0.05);
+  b.x += 0.01 * cellular(3. * q);
+  // b.x += 0.0025 * snoise3(19. * q);
+
   d = dMin(d, b);
 
   d.x *= 0.4;
@@ -1848,7 +1854,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return vec3(1.85);
+  return vec3(1.5);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -1966,7 +1972,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.7, 0.2, 1.0), #FFFFBB, 1.0);
+    lights[0] = light(vec3(-0.7, 0.2, 1.0), #FFE7BB, 1.0);
     lights[1] = light(vec3(-0.1, 0.5,1.0), #BBBBFF, 1.0);
     lights[2] = light(vec3(0.1, 1.0,-0.7), #EEFFEE, 0.5);
 
@@ -2008,14 +2014,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.7;
       float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.3;
-      float shadowMin = 0.8;
+      float diffMin = 0.7;
+      float shadowMin = 0.3;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
