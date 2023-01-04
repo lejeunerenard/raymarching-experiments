@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1201,7 +1201,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float even = 1. - odd;
 
   const float warpScale = 5.0;
-  float size = gSize.y;
+  vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
   // vec2 bigSize = vec2(2);
@@ -1211,8 +1211,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.05 * length(c);
-  locallocalT -= 0.01 * dC;
+  // locallocalT -= 0.05 * length(c);
+  // locallocalT -= 0.01 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1238,22 +1238,34 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // q += 0.25 * size * mix(
+  // q += 0.25 * size.x * mix(
   //     vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
   //     vec2(1) * snoise2(0.123 * localC + 2.37),
   //     nT);
 
   // float side = step(abs(c.y), abs(c.x));
-  // q.x += sign(c.x) * side * size * (0.5 + 0.5 * cos(localCosT));
+  // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  // q.x += t * size * 0.5 * mod((shift * shiftDir).y, 2.);
+  // q.x += t * size.x * 0.5 * mod((shift * shiftDir).y, 2.);
 
-  // vec2 center = vec2(size * c);
-  // center += size * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  // center += size * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  // center += size * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  // center -= size * c;
+  // vec2 center = vec2(size.x * c);
+  // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  // center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  // center -= size.x * c;
   // q += center;
+
+
+  // // Cosine warp
+  // q += warpScale * 0.10000 * cos( 3. * q.yx + localCosT );
+  // q += warpScale * 0.05000 * cos( 9. * q.yx + localCosT );
+  // q += warpScale * 0.02500 * cos(13. * q.yx + localCosT );
+  // q += warpScale * 0.01250 * cos(23. * q.yx + localCosT );
+
+  c = floor((q + 0.5 * size) / size);
+
+  q.x += 0.333 * size.x * mod(c.y, 3.);
+  c = pMod2(q, size);
 
   // q -= shiftDir * shift * size * expo(t);
 
@@ -1554,8 +1566,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2. * (0.5 + 0.5 * cos(localCosT + range(-0.2, 0.3, q.x)));
-  float warpFrequency = 1.5;
+  float warpScale = 1. * (0.5 + 0.5 * cos(localCosT + range(-0.2, 0.3, q.x)));
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1570,7 +1582,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y *= 0.3;
 
   wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, warpScale * 2.7 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
   wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
   wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
@@ -1585,7 +1597,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(sdBox(q, vec3(angle3C)), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.05;
+  d.x *= 0.4;
 
   return d;
 }
@@ -1836,6 +1848,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  return vec3(1.85);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2002,7 +2015,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.3;
-      float shadowMin = 0.9;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2073,7 +2086,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3264,7 +3277,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);

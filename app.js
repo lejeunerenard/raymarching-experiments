@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 2
-const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.99
+const BLOOM_WET = 0.8
+const BLOOM_MIN_BRIGHTNESS = 1
 
 // Initialize shell
 export default class App {
@@ -111,7 +111,7 @@ export default class App {
 
     this.loaded = Promise.resolve()
       .then(() => {
-        const { glsl, metadata } = convert(require('./repeat.svg.js'))
+        const { glsl, metadata } = convert(require('./lorem.svg.js'))
         const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
         this.add2DSDFTexture('year-6', fbo.color[0])
       })
