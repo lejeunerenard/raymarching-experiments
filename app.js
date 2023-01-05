@@ -110,11 +110,11 @@ export default class App {
     this.capturing = defined(options.capturing, false)
 
     this.loaded = Promise.resolve()
-      .then(() => {
-        const { glsl, metadata } = convert(require('./lorem.svg.js'))
-        const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
-        this.add2DSDFTexture('year-6', fbo.color[0])
-      })
+      // .then(() => {
+      //   const { glsl, metadata } = convert(require('./lorem.svg.js'))
+      //   const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
+      //   this.add2DSDFTexture('year-6', fbo.color[0])
+      // })
       .then(() => {
         this.setupAudio()
       })

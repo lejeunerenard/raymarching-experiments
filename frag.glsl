@@ -3102,17 +3102,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   const float warpScale = 0.7;
-  vec2 r = vec2(1);
-  vec2 size = r * vec2(1, 0.33);
-
-  float scale = 3.;
+  vec2 r = vec2(0.05);
+  vec2 size = r * vec2(4);
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= scale;
+  wQ.y *= 1.2;
 
-  wQ *= rotMat2(-0.25 * PI);
+  wQ *= rotMat2(0.25 * PI);
 
   vec2 c = floor((wQ + 0.5 * size) / size);
 
@@ -3122,7 +3120,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
 
   wQ.x += 0.333 * size.x * mod(c.y, 3.);
-  wQ.x += quint(localT - 0.02 * c.y);
 
   c = pMod2(wQ, size);
 
@@ -3130,22 +3127,29 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   mUv = q;
 
   // vec2 o = vec2(sdBox(q, r), 0);
+  t -= 0.1 * length(c);
+  t = mod(t, 1.);
+  float fadeT = 1. - range(0.5, 0.9, t);
+  float thickness = 0.1 * r.x * fadeT * range(0., 0.1, t);
+  float dropR = 2. * r.x * t;
+  vec2 o = vec2(abs(length(q) - dropR) - thickness, 0);
+  o.x /= fadeT;
   // vec2 o = vec2(abs(q.x) - r.x, 0);
-  // d = dMin(d, o);
-
-  // Convert from center 0 to center 0.5
-  q += 0.5;
-  float sdf2D = texture2D(sdf2DTexture, q - vec2(0, 0.030 * size.y)).r;
-  // Unpack from [0, 1] to [-1, 1]
-  sdf2D -= 0.5;
-  sdf2D *= 2.;
-  vec2 o = vec2(sdf2D, 0);
   d = dMin(d, o);
 
-  q -= 0.5;
-  q.y = abs(q.y);
-  vec2 b = vec2(sdBox(q - vec2(0, 0.50 * size.y), vec2(1, 0.040 * size.y)), 0);
-  d = dMin(d, b);
+  // // Convert from center 0 to center 0.5
+  // q += 0.5;
+  // float sdf2D = texture2D(sdf2DTexture, q - vec2(0, 0.030 * size.y)).r;
+  // // Unpack from [0, 1] to [-1, 1]
+  // sdf2D -= 0.5;
+  // sdf2D *= 2.;
+  // vec2 o = vec2(sdf2D, 0);
+  // d = dMin(d, o);
+
+  // q -= 0.5;
+  // q.y = abs(q.y);
+  // vec2 b = vec2(sdBox(q - vec2(0, 0.50 * size.y), vec2(1, 0.040 * size.y)), 0);
+  // d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3159,10 +3163,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = sin(20. * TWO_PI * n);
 
   // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n - 0.0);
+  n = smoothstep(0., 0.5 * edge, n - 0.0);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // n = abs(n);
 
@@ -3283,7 +3287,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3311,8 +3315,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
