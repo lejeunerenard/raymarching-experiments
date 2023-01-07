@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 512
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.5;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1594,12 +1594,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
-
-  b.x += 0.01 * gridBump(q + 0.02 * snoise3(9. * q), 0.05);
-  b.x += 0.01 * cellular(3. * q);
-  // b.x += 0.0025 * snoise3(19. * q);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
 
   d = dMin(d, b);
 
@@ -1700,7 +1696,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 9.));
+  float spread = 1.; // saturate(1.0 - 1.0 * pow(dNR, 9.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -1728,7 +1724,7 @@ vec3 textures (in vec3 rd) {
   dI += 0.3 * snoise3(0.3 * gPos);
   // dI += 0.5 * pow(dNR, 5.);
 
-  dI += 0.25 * sin(TWO_PI * rd.x);
+  // dI += 0.25 * sin(TWO_PI * rd.x);
 
   dI *= angle1C;
   dI += angle2C;
@@ -1743,7 +1739,7 @@ vec3 textures (in vec3 rd) {
   color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
   // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
   // color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
-  // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
+  color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
 
@@ -1766,8 +1762,8 @@ vec3 textures (in vec3 rd) {
 
   // color = getBackground(rd.xy, 0.);
 
-  // // Identity scene color
-  // color = vec3(1);
+  // Identity scene color
+  color = vec3(1);
 
   // color *= 1.3;
 
@@ -1854,7 +1850,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return vec3(1.5);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -1864,8 +1860,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = vec3(0.5) + vec3(-0.5, 0.7, 0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.3,-0.2)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -1990,13 +1986,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 3.8;
-      // float bumpIntensity = 0.090;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor = normalize(nor);
+      float bumpsScale = 0.8;
+      float bumpIntensity = 0.090;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2014,14 +2010,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
-      float specCo = 0.7;
+      float freCo = 1.0;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.7;
-      float shadowMin = 0.3;
+      float diffMin = 0.8;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2092,7 +2088,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2105,15 +2101,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 4.0);
-      // float dispersionI = 1.0;
+      // float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 2.0);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.3125);
 
-      dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
+      // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       color += saturate(dispersionColor);
       // color = (saturate(dispersionColor));
@@ -3287,7 +3283,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3315,8 +3311,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;

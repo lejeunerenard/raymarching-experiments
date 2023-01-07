@@ -5,7 +5,7 @@
 
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
-#define HUE 1
+#define HUE 2
 #define HUE_NUM 1
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
@@ -104,8 +104,8 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     // Index into Cosine palette
     vec3 dI = vec3(dot(nor, eye));
-    // vec3 mixI = vec3(dI);
-    vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
+    vec3 mixI = vec3(dI);
+    // vec3 mixI = clamp(0.5 + 0.5 * sin(1.0 * dI + nor + vec3(0., 0.33, 0.67)), 0.0, 1.0);
     mixI += 0.2 * hue;
 
     // Cosine Palette based Hue
@@ -119,15 +119,15 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
     // thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
     // thisColor *= 0.5;
 
-    // HSV based hue
-    thisColor += hsv(vec3(hue, 1.0, 1.0));
+    // // HSV based hue
+    // thisColor += hsv(vec3(hue, 1.0, 1.0));
 
-    // Composite color
-    thisColor += #BBBB44 * (0.5 + 0.5 * sin(nor));
-    thisColor += #44BBBB * (0.5 + 0.5 * sin(eye));
-    thisColor += #BB44BB * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
+    // // Composite color
+    // thisColor += #BBBB44 * (0.5 + 0.5 * sin(nor));
+    // thisColor += #44BBBB * (0.5 + 0.5 * sin(eye));
+    // thisColor += #BB44BB * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
 
-    thisColor *= 0.5;
+    // thisColor *= 0.5;
 
     // -- Apply Scene Coloring --
     vec3 sceneResult = scene(iorRefract, ior);
