@@ -3113,6 +3113,17 @@ float stripedBox (in vec2 q, in vec2 r, in float stripeFreq, in float stripeThic
   return stripedBox(q, r, stripeFreq, stripeThick, 0.25 * PI);
 }
 
+float get2DSDF (in vec2 q) {
+  // Convert from center 0 to center 0.5
+  q += 0.5;
+  float sdf2D = texture2D(sdf2DTexture, q).r;
+  // Unpack from [0, 1] to [-1, 1]
+  sdf2D -= 0.5;
+  sdf2D *= 2.;
+
+  return sdf2D;
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -3126,54 +3137,56 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  const float warpScale = 0.7;
-  vec2 r = vec2(0.05);
-  vec2 size = r * vec2(4);
+  float warpScale = 0.7;
+  vec2 r = 0.35 * vec2(0.0025, 0.01);
+  vec2 size = vec2(3) * vmax(r);
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ.y *= 1.2;
-
   wQ *= rotMat2(0.25 * PI);
 
   vec2 c = floor((wQ + 0.5 * size) / size);
+
+  float sdfScale = 1.0;
+  vec2 sdf2DSize = sdfScale * vec2(1., 0.23);
+  vec2 cQ = c * size;
+  cQ *= 1.2;
+  cQ /= sdfScale;
+  vec2 cSDF = floor((cQ + 0.5 * sdf2DSize) / sdf2DSize);
+  cQ.x += 0.333 * sdf2DSize.x * mod(cSDF.y, 3.);
+  float sdfT = localT;
+  sdfT += 0.1 * cSDF.y;
+  sdfT = mod(sdfT, 1.);
+
+  sdfT = expo(sdfT);
+
+  cQ.x += sdf2DSize.x * sdfT;
+  c = pMod2(cQ, sdf2DSize);
+  float sdf2D = get2DSDF(cQ - 1. / sdfScale * vec2(0, -0.15 * sdf2DSize.y));
 
   // wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
   // wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
   // wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
   // wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
 
-  wQ.x += 0.333 * size.x * mod(c.y, 3.);
+  // wQ.x += 0.333 * size.x * mod(c.y, 3.);
 
   c = pMod2(wQ, size);
+
+  wQ *= rotMat2(0.5 * PI * step(0., sdf2D));
 
   q = wQ;
   mUv = q;
 
-  // vec2 o = vec2(sdBox(q, r), 0);
-  t -= 0.1 * length(c);
-  t = mod(t, 1.);
-  float fadeT = 1. - range(0.5, 0.9, t);
-  float thickness = 0.1 * r.x * fadeT * range(0., 0.1, t);
-  float dropR = 2. * r.x * t;
-  vec2 o = vec2(abs(length(q) - dropR) - thickness, 0);
-  o.x /= fadeT;
-  // vec2 o = vec2(abs(q.x) - r.x, 0);
-  d = dMin(d, o);
-
-  // // Convert from center 0 to center 0.5
-  // q += 0.5;
-  // float sdf2D = texture2D(sdf2DTexture, q - vec2(0, 0.030 * size.y)).r;
-  // // Unpack from [0, 1] to [-1, 1]
-  // sdf2D -= 0.5;
-  // sdf2D *= 2.;
+  // float sdf2D = get2DSDF(q - vec2(0, 0.030 * size.y));
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // q -= 0.5;
-  // q.y = abs(q.y);
-  // vec2 b = vec2(sdBox(q - vec2(0, 0.50 * size.y), vec2(1, 0.040 * size.y)), 0);
+  vec2 b = vec2(sdBox(q, r), 0);
+  d = dMin(d, b);
+
+  // vec2 b = vec2(sin(TWO_PI * 80. * q.x), 0);
   // d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
@@ -3222,11 +3235,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
   // // Stripes
-  // // const float numStripes = 30.;
-  // vec2 axis = vec2(1, 0); // * rotMat2(TWO_PI * n);
+  // q = uv;
+  // const float numStripes = 50.;
+  // vec2 axis = vec2(1, 0) * rotMat2(0.5 * PI * n);
   // float line = dot(q, axis);
   // line = sin(TWO_PI * numStripes * line);
-  // line -= 0.9;
+  // // line -= 0.9;
   // line = smoothstep(0., 2. * edge, line);
   // color = vec3(line);
 
@@ -3312,7 +3326,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
