@@ -1566,7 +1566,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.75;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1581,12 +1581,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.y *= 0.3;
 
-  // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  // wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
+  wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
 
   // for (float i = 0.; i < 5.; i++) {
   //   wQ = abs(wQ);
@@ -1605,14 +1605,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float bumpMask = 1.; // 0.5 + 0.5 * cos(2. * localCosT + 3. * q.x / r);
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, vmax(q.xz) - r);
+  r += 0.2 * r * cos(localCosT + length(q) + 2. * q.x);
+
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, vmax(q.xz) - r);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
 
-  b.x -= 0.10 * bumpMask * cellular(2. * q);
-
   d = dMin(d, b);
+
+  b = vec3(length(q + 0.65 * r * cos(localCosT + PI * vec3(0, 0.3, 0.6))) - 0.6 * r, 0, 0);
+  d = dSMin(d, b, 0.1 * r);
+
+  b = vec3(length(q + 0.60 * r * cos(vec3(1, 2, 0) * localCosT + PI * (vec3(0, 0.3, 0.6) + 0.5))) - 0.5 * r, 0, 0);
+  d = dSMin(d, b, 0.1 * r);
+
+  d.x -= 0.10 * bumpMask * cellular(2. * p);
 
   d.x *= 0.7;
 
@@ -1864,7 +1872,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.03);
+  vec3 color = vec3(0.05);
+  color.b += 0.05;
   return color;
 
   float dNR = dot(nor, -rd);
@@ -2025,14 +2034,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.7;
       float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
-      float shadowMin = 0.8;
+      float diffMin = 0.2;
+      float shadowMin = 0.2;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2069,8 +2078,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lin += 0.100 * amb * diffuseColor;
         // dif += 0.100 * amb;
 
-        // float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
-        float distIntensity = lights[i].intensity; // / pow(length(lightPos - gPos), 1.0);
+        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
@@ -2103,7 +2111,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2116,14 +2124,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 2.0);
+      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 5.0);
       // float dispersionI = 1.0;
-      dispersionI *= saturate(expoOut(30. * t.w));
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.3125);
+      // dispersionColor.b = pow(dispersionColor.b, 0.3125);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
@@ -2133,11 +2140,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
-      color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -2161,6 +2168,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // vec3 shaded = color;
       // color = mix(midColor, highlightColor, step(0.55, shaded.x));
       // color = mix(color, shadowColor, step(0.7, 1. - shaded.x));
+
+      // // Cut off shading
+      // color = vec3(step(0.3, length(color)));
+
+      // // Levels adjustment of sorts
+      // color = mix(color, sigmoid(color), 0.7);
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
