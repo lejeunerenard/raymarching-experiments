@@ -3137,33 +3137,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.7;
-  vec2 r = 0.35 * vec2(0.0025, 0.01);
-  vec2 size = vec2(3) * vmax(r);
+  float warpScale = 1.0;
+  vec2 r = 1.125 * vec2(0.005, 0.015);
+  vec2 size = vec2(1.) * vmax(r);
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(0.25 * PI);
+  // wQ *= rotMat2(0.25 * PI);
 
   vec2 c = floor((wQ + 0.5 * size) / size);
 
-  float sdfScale = 1.0;
-  vec2 sdf2DSize = sdfScale * vec2(1., 0.23);
-  vec2 cQ = c * size;
-  cQ *= 1.2;
-  cQ /= sdfScale;
-  vec2 cSDF = floor((cQ + 0.5 * sdf2DSize) / sdf2DSize);
-  cQ.x += 0.333 * sdf2DSize.x * mod(cSDF.y, 3.);
-  float sdfT = localT;
-  sdfT += 0.1 * cSDF.y;
-  sdfT = mod(sdfT, 1.);
-
-  sdfT = expo(sdfT);
-
-  cQ.x += sdf2DSize.x * sdfT;
-  c = pMod2(cQ, sdf2DSize);
-  float sdf2D = get2DSDF(cQ - 1. / sdfScale * vec2(0, -0.15 * sdf2DSize.y));
+  vec2 nQ = c * size;
+  nQ += 0.1000 * warpScale * cos( 3. * nQ.yx + localCosT );
+  nQ += 0.0500 * warpScale * cos( 9. * nQ.yx + localCosT );
+  nQ += 0.0250 * warpScale * cos(13. * nQ.yx + localCosT );
+  nQ += 0.0125 * warpScale * cos(19. * nQ.yx + localCosT );
 
   // wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
   // wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
@@ -3174,7 +3163,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   c = pMod2(wQ, size);
 
-  wQ *= rotMat2(0.5 * PI * step(0., sdf2D));
+  wQ *= rotMat2(PI * (0. * mod(c.x, 2.) + cos(localCosT + TWO_PI * length(nQ)) + 0. * dot(nQ, vec2(2)) + 1. * snoise2(1.0 * nQ)));
 
   q = wQ;
   mUv = q;
@@ -3183,7 +3172,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(sdBox(q, r), 0);
+  // vec2 b = vec2(sdBox(q, r), 0);
+  vec2 b = vec2(sdTriPrism(vec3(q, 0), vec2(r.x, 1)), 0);
   d = dMin(d, b);
 
   // vec2 b = vec2(sin(TWO_PI * 80. * q.x), 0);
