@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -43,7 +43,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 10.0
 #define fogMaxDistance 10.0
 
@@ -1566,7 +1566,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.75;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1574,19 +1574,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  vec3 rotationT = vec3(localCosT);
+  float rotationT = localCosT;
 
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  // wQ.y *= 0.3;
-
-  wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
   wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+
+  // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
+  // wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
 
   // for (float i = 0.; i < 5.; i++) {
   //   wQ = abs(wQ);
@@ -1603,9 +1613,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float bumpMask = 1.; // 0.5 + 0.5 * cos(2. * localCosT + 3. * q.x / r);
-
-  r += 0.2 * r * cos(localCosT + length(q) + 2. * q.x);
+  r += 0.1 * cos(localCosT + q.x);
 
   vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, vmax(q.xz) - r);
@@ -1614,15 +1622,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   d = dMin(d, b);
 
-  b = vec3(length(q + 0.65 * r * cos(localCosT + PI * vec3(0, 0.3, 0.6))) - 0.6 * r, 0, 0);
-  d = dSMin(d, b, 0.1 * r);
-
-  b = vec3(length(q + 0.60 * r * cos(vec3(1, 2, 0) * localCosT + PI * (vec3(0, 0.3, 0.6) + 0.5))) - 0.5 * r, 0, 0);
-  d = dSMin(d, b, 0.1 * r);
-
-  d.x -= 0.10 * bumpMask * cellular(2. * p);
-
-  d.x *= 0.7;
+  d.x *= 0.02;
 
   return d;
 }
@@ -1873,8 +1873,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.05);
-  color.b += 0.05;
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2010,13 +2008,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 0.8;
-      float bumpIntensity = 0.090;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor = normalize(nor);
+      // float bumpsScale = 0.8;
+      // float bumpIntensity = 0.090;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2034,14 +2032,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
-      float specCo = 1.0;
+      float freCo = 0.8;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.2;
-      float shadowMin = 0.2;
+      float diffMin = 0.4;
+      float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2100,7 +2098,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.1 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2111,7 +2109,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2124,7 +2122,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 5.0);
+      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 3.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -3316,7 +3314,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
