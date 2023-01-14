@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1262,10 +1262,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q += warpScale * 0.02500 * cos(13. * q.yx + localCosT );
   // q += warpScale * 0.01250 * cos(23. * q.yx + localCosT );
 
-  c = floor((q + 0.5 * size) / size);
+  // c = floor((q + 0.5 * size) / size);
 
-  q.x += 0.333 * size.x * mod(c.y, 3.);
-  c = pMod2(q, size);
+  // q.x += 0.333 * size.x * mod(c.y, 3.);
+  // c = pMod2(q, size);
 
   // q -= shiftDir * shift * size * expo(t);
 
@@ -1556,13 +1556,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.08 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.08 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
+
+  // p *= rotationMatrix(vec3(1, 0, 0), -0.5 * PI * (0.5 + 0.5 * cos(localCosT)));
 
   vec3 q = p;
 
@@ -1572,24 +1574,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
-  vec3 wQ = q.zyx;
+  vec3 wQ = q.xyz;
 
   float rotationT = localCosT;
 
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
-  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+  // wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+  // wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
+  // wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
+  // wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
+  // wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+  // wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
+  // wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
+  // wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
+  // wQ.y += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.z + rotationT);
+  // wQ.z += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.x + rotationT);
+  // wQ.x += warpScale * 0.500000 * waveAmount * cos( 3. * warpFrequency * wQ.y + rotationT);
 
   // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
   // wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
@@ -1613,16 +1615,52 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  r += 0.1 * cos(localCosT + q.x);
+  float rotateT = -localCosT;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  q.xy *= rotMat2(rotateT);
+
+  q.xy = polarCoords(q.xy);
+  q.x /= PI;
+  q.x *= -1.;
+  q.y -= 0.3;
+
+  q.yz *= rotMat2(0.5 * PI * q.x - rotateT);
+
+  const float width = 1.;
+  q.x -= 0.5 * width;
+  float c = pMod1(q.x, width);
+
+  // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r, 3. * r, r)), 0, vmax(q.xz) - r);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
 
+  // const float refR = 0.10325; // "Mobius"
+  const float refR = 0.105; // "Hidden"
+  // const float refR = 0.1275; // "Word"
+  // const vec2 shapeAdjust = vec2(0, 0.01625); // "Mobius"
+  const vec2 shapeAdjust = vec2(0, 0.0465); // "Hidden"
+  // const vec2 shapeAdjust = vec2(0, 0.025); // "Word"
+
+  // // Sizing guide
+  // vec3 b = vec3(sdBox(q, vec3(0.5, 0.99 * vec2(refR))), 0, 0);
+  // d = dMin(d, b);
+
+  vec3 b = vec3(opExtrude(q, shape(q.xy + shapeAdjust, vec2(0)).x, refR), 0, 0);
+  // d.x = max(d.x, -b.x);
   d = dMin(d, b);
 
-  d.x *= 0.04;
+  vec3 cropQ = q;
+  // cropQ.xz *= rotMat2(PI);
+  cropQ *= rotationMatrix(vec3(1, 0, 0), 0.5 * PI);
+  float crop = opExtrude(cropQ, shape(cropQ.xy + shapeAdjust, vec2(0)).x, refR);
+  d.x = max(d.x, crop);
+
+  // // Sizing guide
+  // b = vec3(sdBox(q, vec3(0.5, refR, refR)), 0, 0);
+  // d = dMin(d, b);
+
+  d.x *= 0.5;
 
   return d;
 }
@@ -1872,7 +1910,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.05);
+  vec3 color = vec3(1.5);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2034,14 +2073,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.5;
+      float specCo = 0.3;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.4;
-      float shadowMin = 0.3;
+      float diffMin = 0.3;
+      float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2097,11 +2136,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.05 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2111,7 +2150,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
