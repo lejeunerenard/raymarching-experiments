@@ -1568,7 +1568,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.2;
   float warpFrequency = 1.5;
   float rollingScale = 1.;
 
@@ -1581,15 +1581,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  float factor = 4.;
+  float factor = 3.;
+
   wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
   wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
+
+  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
+
+  wQ += warpScale * 0.125000 * waveAmount * snoise3( factor * warpFrequency * wQ.yzx + cos(rotationT));
+
   wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
   wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
   wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
+  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
   wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
   wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
   wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
@@ -1872,7 +1879,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
+  vec3 color = vec3(0.05);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -2036,7 +2043,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.5;
-      float specCo = 0.3;
+      float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
@@ -2101,7 +2108,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
