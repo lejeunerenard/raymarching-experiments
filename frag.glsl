@@ -1597,13 +1597,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
   // wQ.x += nudge; nudge *= -1.;
 
-
-  wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 0.5 * 1.75 * wQ.y + 0.125 * PI * cos(localCosT + wQ.x));
-  wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
-  wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ.xzy = twist(wQ.xyz, 0.5 * 1.75 * wQ.y + 0.125 * PI * cos(localCosT + wQ.x));
+  // wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
 
   // for (float i = 0.; i < 5.; i++) {
   //   wQ = abs(wQ);
@@ -1622,9 +1621,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  b.x -= 0.00125 * cellular(5. * q);
+  vec3 b = vec3(icosahedral(q, 102., r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  b.x -= 0.0015 * cellular(5. * (q + 0.5 * cos(2. * q.yzx + 0.2 * cos(4. * q.zxy))));
   d = dMin(d, b);
 
   // d.x *= 0.2;
@@ -1878,7 +1877,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.05);
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -1889,7 +1887,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -1905,7 +1903,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 beforeColor = color;
 
   const float numSteps = 30.;
-  const float stepSize = 0.10;
+  const float stepSize = 0.20;
   const float holoIoR = 1.0;
   vec3 holoQ = pos;
   // vec3 holoRd = refract(nor, rd, holoIoR);
@@ -2043,7 +2041,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.0;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
@@ -2106,11 +2104,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2128,13 +2126,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 2.0);
+      float dispersionI = 1.0 * pow(1. - 1.0 * dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
+      dispersionI *= 0.09375;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
