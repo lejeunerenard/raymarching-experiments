@@ -1556,19 +1556,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.08 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.08 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
-
-  // p *= rotationMatrix(vec3(1, 0, 0), -0.5 * PI * (0.5 + 0.5 * cos(localCosT)));
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.25;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1576,7 +1574,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
-  float rotationT = t;
+  float rotationT = localT;
 
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
@@ -1584,30 +1582,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float factor = 3.;
   float nudge = 0.1;
 
-  wQ += -1. * vec3(0.3);
-
-  wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
-  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  wQ.y += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.z + rotationT);
-  wQ.y += nudge; nudge *= -1.;
-  wQ.z += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.x + rotationT);
-  wQ.z += nudge; nudge *= -1.;
-  wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
-  wQ.x += nudge; nudge *= -1.;
-  wQ.y += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.z + rotationT);
-  wQ.y += nudge; nudge *= -1.;
-  wQ.z += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.x + rotationT);
-  wQ.z += nudge; nudge *= -1.;
-  wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
-  wQ.x += nudge; nudge *= -1.;
-
-
-  // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
   // wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  // wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
+  // wQ.y += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.z + rotationT);
+  // wQ.y += nudge; nudge *= -1.;
+  // wQ.z += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.x + rotationT);
+  // wQ.z += nudge; nudge *= -1.;
+  // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
+  // wQ.x += nudge; nudge *= -1.;
+  // wQ.y += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.z + rotationT);
+  // wQ.y += nudge; nudge *= -1.;
+  // wQ.z += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.x + rotationT);
+  // wQ.z += nudge; nudge *= -1.;
+  // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
+  // wQ.x += nudge; nudge *= -1.;
+
+
+  wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ.xzy = twist(wQ.xyz, 0.5 * 1.75 * wQ.y + 0.125 * PI * cos(localCosT + wQ.x));
+  wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
+  wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
 
   // for (float i = 0.; i < 5.; i++) {
   //   wQ = abs(wQ);
@@ -1625,12 +1621,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 32., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  b.x -= 0.00125 * cellular(5. * q);
   d = dMin(d, b);
 
-  d.x *= 0.05;
+  // d.x *= 0.2;
 
   return d;
 }
@@ -2027,6 +2024,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       //     cnoise3(bumpsScale * 490.0 * mPos),
       //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
       //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // // nor -= 0.125 * cellular(5. * mPos);
       // nor = normalize(nor);
       gNor = nor;
 
@@ -2046,7 +2044,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.5;
-      float specCo = 0.7;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
@@ -2135,7 +2133,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 3.0);
+      float dispersionI = 1.0 * pow(0. + 1.0 * dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
