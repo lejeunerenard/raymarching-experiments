@@ -1540,7 +1540,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.5;
+float gR = 1.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1556,46 +1556,60 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.08 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.08 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.25;
+  float warpScale = 1.;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
-  // vec4 wQ = vec4(q.xyz, 1.);
-  vec3 wQ = q.xyz;
+  vec4 wQ = vec4(q.xyz, 1.);
+  // vec3 wQ = q.xyz;
 
-  float rotationT = localT;
+  float rotationT = localCosT;
 
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
   float factor = 3.;
-  float nudge = 0.1;
+  float nudge = 0.2;
 
-  // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
-  // wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  // wQ.y += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.z + rotationT);
-  // wQ.y += nudge; nudge *= -1.;
-  // wQ.z += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.x + rotationT);
-  // wQ.z += nudge; nudge *= -1.;
-  // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
-  // wQ.x += nudge; nudge *= -1.;
-  // wQ.y += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.z + rotationT);
-  // wQ.y += nudge; nudge *= -1.;
-  // wQ.z += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.x + rotationT);
-  // wQ.z += nudge; nudge *= -1.;
-  // wQ.x += warpScale * 0.500000 * waveAmount * triangleWave( factor * warpFrequency * wQ.y + rotationT);
-  // wQ.x += nudge; nudge *= -1.;
+  wQ.y += 0.4;
+
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
+  wQ.x += nudge; nudge *= -1.;
+  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
+  wQ.y += nudge; nudge *= -1.;
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.w + rotationT);
+  wQ.z += nudge; nudge *= -1.;
+  wQ.w += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
+  wQ.w += nudge; nudge *= -1.;
+  wQ.ywz = twist(wQ.yzw, warpScale * 0.75 * wQ.z);
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
+  wQ.x += nudge; nudge *= -1.;
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
+  wQ.y += nudge; nudge *= -1.;
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.w + rotationT);
+  wQ.z += nudge; nudge *= -1.;
+  wQ.w += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
+  wQ.w += nudge; nudge *= -1.;
+  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
+  wQ.x += nudge; nudge *= -1.;
+  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
+  wQ.y += nudge; nudge *= -1.;
+  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.w + rotationT);
+  wQ.z += nudge; nudge *= -1.;
+  wQ.w += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
+  wQ.w += nudge; nudge *= -1.;
 
   // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
   // wQ.xzy = twist(wQ.xyz, 0.5 * 1.75 * wQ.y + 0.125 * PI * cos(localCosT + wQ.x));
@@ -1619,14 +1633,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(wQ) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 102., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 102., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  b.x -= 0.0015 * cellular(5. * (q + 0.5 * cos(2. * q.yzx + 0.2 * cos(4. * q.zxy))));
   d = dMin(d, b);
 
-  // d.x *= 0.2;
+  d.x *= 0.05;
 
   return d;
 }
@@ -1887,7 +1900,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.2, 0.4)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0,-0.3, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -1897,54 +1910,54 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += vec3(0, 1, 0) * rot * dNR;
   // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  // color *= 0.4;
+  // color *= 0.8;
 
-  // -- Holo --
-  vec3 beforeColor = color;
+  // // -- Holo --
+  // vec3 beforeColor = color;
 
-  const float numSteps = 30.;
-  const float stepSize = 0.20;
-  const float holoIoR = 1.0;
-  vec3 holoQ = pos;
-  // vec3 holoRd = refract(nor, rd, holoIoR);
-  vec3 holoRd = rd;
-  holoRd += 0.2 * refract(nor, rd, holoIoR);
-  for (float i = 0.; i < numSteps; i++) {
-    vec3 holoPos = holoQ + i * stepSize * holoRd;
-    // float inclusion = snoise3(0.5 * holoPos);
-    vec3 s = vec3(0);
-    float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
-    // float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
-    // inclusion = step(0.25, inclusion);
+  // const float numSteps = 30.;
+  // const float stepSize = 0.20;
+  // const float holoIoR = 1.0;
+  // vec3 holoQ = pos;
+  // // vec3 holoRd = refract(nor, rd, holoIoR);
+  // vec3 holoRd = rd;
+  // holoRd += 0.2 * refract(nor, rd, holoIoR);
+  // for (float i = 0.; i < numSteps; i++) {
+  //   vec3 holoPos = holoQ + i * stepSize * holoRd;
+  //   // float inclusion = snoise3(0.5 * holoPos);
+  //   vec3 s = vec3(0);
+  //   float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
+  //   // float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
+  //   // inclusion = step(0.25, inclusion);
 
-    float colorSpeed = 0.5;
+  //   float colorSpeed = 0.5;
 
-    // // Basic layer
-    // dI = vec3(0.05 * i);
+  //   // // Basic layer
+  //   // dI = vec3(0.05 * i);
 
-    // Single Noise
-    dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
+  //   // Single Noise
+  //   dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
 
-    // // Multi-noise
-    // vec3 nQ = holoPos;
-    // // nQ *= rotationMatrix(vec3(1), length(holoPos));
+  //   // // Multi-noise
+  //   // vec3 nQ = holoPos;
+  //   // // nQ *= rotationMatrix(vec3(1), length(holoPos));
 
-    // dI = vec3(
-    //     snoise3(length(nQ) + colorSpeed * vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
-    //     snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
-    //     snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
+  //   // dI = vec3(
+  //   //     snoise3(length(nQ) + colorSpeed * vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
+  //   //     snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
+  //   //     snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
 
-    // dI += s;
+  //   // dI += s;
 
-    dI *= angle1C;
-    dI += angle2C;
+  //   dI *= angle1C;
+  //   dI += angle2C;
 
-    vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.8) * dI + vec3(0,0.2, 0.4)));
-    // color += saturate(inclusion) * layerColor;
-    color = mix(color, layerColor, saturate(inclusion));
-    // color = mix(pow(color, vec3(2.2)), pow(layerColor, vec3(2.2)), saturate(inclusion));
-    // color = pow(color, vec3(0.454545));
-  }
+  //   vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.8) * dI + vec3(0,0.2, 0.4)));
+  //   // color += saturate(inclusion) * layerColor;
+  //   color = mix(color, layerColor, saturate(inclusion));
+  //   // color = mix(pow(color, vec3(2.2)), pow(layerColor, vec3(2.2)), saturate(inclusion));
+  //   // color = pow(color, vec3(0.454545));
+  // }
 
   // color /= pow(numSteps, 0.30);
   // color *= 1.2;
@@ -2041,13 +2054,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.5;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.6;
+      float diffMin = 0.7;
       float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
@@ -2104,11 +2117,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2126,14 +2139,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(1. - 1.0 * dot(dNor, -gRd), 2.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
-      dispersionI *= 0.09375;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
