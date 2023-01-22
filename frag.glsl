@@ -3158,7 +3158,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 1.0;
+  float warpScale = 0.125;
   vec2 r = 1.125 * vec2(0.005, 0.015);
   vec2 size = vec2(1.) * vmax(r);
 
@@ -3169,11 +3169,33 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = floor((wQ + 0.5 * size) / size);
 
-  vec2 nQ = c * size;
-  nQ += 0.1000 * warpScale * cos( 3. * nQ.yx + localCosT );
-  nQ += 0.0500 * warpScale * cos( 9. * nQ.yx + localCosT );
-  nQ += 0.0250 * warpScale * cos(13. * nQ.yx + localCosT );
-  nQ += 0.0125 * warpScale * cos(19. * nQ.yx + localCosT );
+  float warpFactor = 5.;
+  float nudge = 0.; // PI * 0.25;
+
+  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ += nudge; nudge *= -1.;
+  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  wQ += nudge; nudge *= -1.;
 
   // wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
   // wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
@@ -3182,9 +3204,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // wQ.x += 0.333 * size.x * mod(c.y, 3.);
 
-  c = pMod2(wQ, size);
-
-  wQ *= rotMat2(PI * (0. * mod(c.x, 2.) + cos(localCosT + TWO_PI * length(nQ)) + 0. * dot(nQ, vec2(2)) + 1. * snoise2(1.0 * nQ)));
+  // c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3194,8 +3214,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, o);
 
   // vec2 b = vec2(sdBox(q, r), 0);
-  vec2 b = vec2(sdTriPrism(vec3(q, 0), vec2(r.x, 1)), 0);
-  d = dMin(d, b);
+  // // vec2 b = vec2(sdTriPrism(vec3(q, 0), vec2(r.x, 1)), 0);
+  // d = dMin(d, b);
 
   // vec2 b = vec2(sin(TWO_PI * 80. * q.x), 0);
   // d = dMin(d, b);
@@ -3245,15 +3265,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // // Stripes
-  // q = uv;
-  // const float numStripes = 50.;
-  // vec2 axis = vec2(1, 0) * rotMat2(0.5 * PI * n);
-  // float line = dot(q, axis);
-  // line = sin(TWO_PI * numStripes * line);
-  // // line -= 0.9;
-  // line = smoothstep(0., 2. * edge, line);
-  // color = vec3(line);
+  // Stripes
+  const float numStripes = 20.;
+  vec2 axis = vec2(1, 0) * rotMat2(0.5 * PI * n);
+  float line = dot(q, axis);
+  line = sin(TWO_PI * numStripes * line);
+  line -= 0.95;
+  line = smoothstep(0., 2. * edge, line);
+  color = vec3(line);
 
   // // radial stripes
   // float angle = atan(q.y, q.x);
@@ -3337,7 +3356,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
