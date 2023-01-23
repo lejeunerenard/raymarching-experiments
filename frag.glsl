@@ -1579,6 +1579,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
+  // wQ.x -= 3. * r;
+  wQ.y -= 3. * r;
+  wQ.xy *= rotMat2(0.5 * PI);
+  // wQ.zxy = wQ.xyz;
+  wQ.zyx = wQ.xyz;
+  // wQ.yxz = wQ.xyz;
+
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
@@ -1587,8 +1595,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 wallQ = q;
 
-  float wallSize = 4. * r;
-  wallQ.x += wallSize * t;
+  float wallSize = 6. * r;
+  wallQ.x -= wallSize * t;
 
   pMod1(wallQ.x, wallSize);
 
@@ -1597,16 +1605,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
+  float crop = -q.z;
+
   // Floor
   vec3 f = vec3(sdPlane(q - vec3(0,-0.3, 0), vec4(0, 1, 0, 0)), 0, 0);
+  f.x = max(f.x, crop);
   d = dMin(d, f);
 
   // Ceiling
   vec3 ceiling = vec3(sdPlane(q + vec3(0,-0.3, 0), vec4(0,-1, 0, 0)), 0, 0);
-  float crop = -q.z;
   ceiling.x = max(ceiling.x, crop);
   d = dMin(d, ceiling);
 
+  // Floor (after rotation, wall otherwise)
+  f = vec3(sdPlane(q - vec3(0,0,  0.9), vec4(0, 0,-1, 0)), 0, 0);
+  d = dMin(d, f);
 
   // d.x *= 0.05;
 
@@ -1687,6 +1700,7 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 }
 
 #pragma glslify: softshadow = require(./soft-shadows, map=map)
+#pragma glslify: simpleshadow = require(./lighting/simple-shadow.glsl, map=map)
 #pragma glslify: calcAO = require(./ao, map=map)
 
 // --- Patterns ---
@@ -1858,8 +1872,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.05);
-
+  vec3 color = vec3(1);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1982,10 +1995,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(0.0, 0.2,-6.0), #FF0000, 6.0);
-    lights[1] = light(vec3(-0.1, 0.5, -1.0), #CCBBFF, 0.8);
-    lights[2] = light(vec3(0.1, 1.0,-0.7), #FFFFEE, 0.8);
-    lights[3] = light(vec3(0, 0, 1), #00FFFF, 3.0);
+    // // Test light
+    // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
+
+    lights[0] = light(vec3(-0.01,  6.0, 0.2), #FF0000, 6.0);
+    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #CCBBFF, 1.0);
+    lights[2] = light(vec3(  0.1,  0.7, 1.3), #FFFFEE, 0.75);
+    lights[3] = light(vec3(0.01, 0.2, 0.2), #00FFFF, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -2022,17 +2038,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Material Types
       float isFrame = isMaterialSmooth(t.y, 0.);
 
-      float occ = 0.6 + 0.4 * calcAO(pos, nor, generalT);
+      float occ = 0.5 + 0.5 * calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.5;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.0;
+      float diffMin = 0.5;
       float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
@@ -2056,7 +2072,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         // TODO Debug shadow spots on a sphere
-        float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, 2.00, generalT), 0.5));
+        float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, maxDistance, generalT), 0.5));
         dif *= sha;
 
         vec3 lin = vec3(0.);
@@ -2066,9 +2082,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // Ambient
-        lin += 0.150 * amb * diffuseColor;
-        dif += 0.150 * amb;
+        // // Ambient
+        // lin += 0.150 * amb * diffuseColor;
+        // dif += 0.150 * amb;
 
         float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         // distIntensity = saturate(distIntensity);
@@ -2089,11 +2105,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2133,11 +2149,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
+      color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -3320,43 +3336,10 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
   return pow(a, pow(vec3(2.), 2. * (0.5 - b)));
 }
 
-vec4 godRays ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in vec4 color, in float generalT) {
-  const float maxGodRaySteps = 6.;
-
-  // Light / Sun
-  vec3 sunPos = vec3(0, 0, -1);
-
-  // TODO try with gPos
-  vec3 pos = rayOrigin + rayDirection * t.x;
-
-  float godRayGlowIntensity = 1.;
-  float godRayMask = 1.; // saturate(pow(1. - dot(uv, uv), 3. * (1. - godRayGlowIntensity)));
-  if (godRayMask == 0.) {
-    return color;
-  }
-
-  // Replace this with t.y or something
-  float distanceToPos = distance(rayOrigin, pos);
-  vec3 beamStep = rayDirection * distanceToPos / maxGodRaySteps;
-
-  float illumination = 0.;
-  float jitter = h21(1. * uv) * 1.;
-  for (float i = 0.; i < maxGodRaySteps; i++) {
-    vec3 samplePoint = rayOrigin + beamStep * (i + jitter); // Jitter so smooth sampling point.
-    illumination += saturate(softshadow(samplePoint, normalize(sunPos), 0.01, 1.0, generalT)); //  / (distance(rayOrigin, sunPos));
-  }
-
-  illumination /= sqrt(maxGodRaySteps);
-  // illumination /= pow(maxGodRaySteps, 0.85);
-  // illumination *= 0.2 + 0.8 * godRayGlowIntensity;
-  illumination *= godRayMask;
-
-  vec3 sunCol = vec3(1, 0, 0);
-
-  color = mix(color, vec4(sunCol, 1.), illumination);
-
-  return color;
-}
+const vec3 sunPos = vec3(0.01,  1.0, 0.1);
+const vec3 sunColor = vec3(0.9, 0, 0);
+// #pragma glslify: godRays = require(./effects/god-rays.glsl, softshadow=softshadow, noise=h21, sunPos=sunPos, sunColor=sunColor)
+#pragma glslify: godRays = require(./effects/god-rays-poisson.glsl, shadow=simpleshadow, noise=h21, volumeNoise=vfbmWarp, sunPos=sunPos, sunColor=sunColor)
 
 // renderSceneLayer()
 // This returns a rendered scene layer. Similar to `sample()` it takes:
@@ -3377,6 +3360,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
   vec4 t = march(ro, rd, time);
   vec4 layer = shade(ro, rd, t, uv, time);
   layer = godRays(ro, rd, t, uv, layer, time);
+
+  // layer = vec4(vec3(layer.rgb), 1);
 
 #endif
 

@@ -18,8 +18,8 @@ float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax, in float
 #ifdef NEW_TECHNIQUE
     // Skip first iteration if you are getting artifact on the first iteration,
     // or unroll the first iteration out of the loop
-    float y = (i == 0) ? 0. : h * h / (2. * ph);
-    // float y = h * h / (2. * ph); // Standard version
+    // float y = (i == 0) ? 0. : h * h / (2. * ph);
+    float y = h * h / (2. * ph); // Standard version
 
     float d = sqrt(h * h - y * y);
     res = min( res, k * d / max(0., t - y) );
