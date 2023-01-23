@@ -1540,7 +1540,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 1.2;
+float gR = 0.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1562,7 +1562,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1571,75 +1571,44 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float rollingScale = 1.;
 
   // Warp
-  vec4 wQ = vec4(q.xyz, 1.);
-  // vec3 wQ = q.xyz;
+  // vec4 wQ = vec4(q.xyz, 1.);
+  vec3 wQ = q.xyz;
 
   float rotationT = localCosT;
 
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  float factor = 3.;
-  float nudge = 0.2;
-
-  wQ.y += 0.4;
-
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
-  wQ.x += nudge; nudge *= -1.;
-  wQ.xzy = twist(wQ.xyz, warpScale * 0.75 * wQ.y);
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
-  wQ.y += nudge; nudge *= -1.;
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.w + rotationT);
-  wQ.z += nudge; nudge *= -1.;
-  wQ.w += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
-  wQ.w += nudge; nudge *= -1.;
-  wQ.ywz = twist(wQ.yzw, warpScale * 0.75 * wQ.z);
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
-  wQ.x += nudge; nudge *= -1.;
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
-  wQ.y += nudge; nudge *= -1.;
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.w + rotationT);
-  wQ.z += nudge; nudge *= -1.;
-  wQ.w += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
-  wQ.w += nudge; nudge *= -1.;
-  wQ.x += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.y + rotationT);
-  wQ.x += nudge; nudge *= -1.;
-  wQ.y += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.z + rotationT);
-  wQ.y += nudge; nudge *= -1.;
-  wQ.z += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.w + rotationT);
-  wQ.z += nudge; nudge *= -1.;
-  wQ.w += warpScale * 0.500000 * waveAmount * cos( factor * warpFrequency * wQ.x + rotationT);
-  wQ.w += nudge; nudge *= -1.;
-
-  // wQ += warpScale * 0.100000 * waveAmount * cos( 3.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ.xzy = twist(wQ.xyz, 0.5 * 1.75 * wQ.y + 0.125 * PI * cos(localCosT + wQ.x));
-  // wQ += warpScale * 0.050000 * waveAmount * cos( 7.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.025000 * waveAmount * cos(13.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.012500 * waveAmount * cos(19.3 * warpFrequency * wQ.yzx + rotationT);
-  // wQ += warpScale * 0.006250 * waveAmount * cos(27.3 * warpFrequency * wQ.yzx + rotationT);
-
-  // for (float i = 0.; i < 5.; i++) {
-  //   wQ = abs(wQ);
-
-  //   wQ = (vec4(wQ, 1) * kifsM).xyz;
-
-  //   float trap = length(wQ - q);
-  //   minD.x = min(minD.x, trap);
-
-  //   rollingScale *= scale;
-  // }
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(wQ) - r, 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(length(wQ) - r, 0, 0);
+
+  vec3 wallQ = q;
+
+  float wallSize = 4. * r;
+  wallQ.x += wallSize * t;
+
+  pMod1(wallQ.x, wallSize);
+
+  vec3 b = vec3(sdBox(wallQ, vec3(r, 1, r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 102., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.05;
+  // Floor
+  vec3 f = vec3(sdPlane(q - vec3(0,-0.3, 0), vec4(0, 1, 0, 0)), 0, 0);
+  d = dMin(d, f);
+
+  // Ceiling
+  vec3 ceiling = vec3(sdPlane(q + vec3(0,-0.3, 0), vec4(0,-1, 0, 0)), 0, 0);
+  float crop = -q.z;
+  ceiling.x = max(ceiling.x, crop);
+  d = dMin(d, ceiling);
+
+
+  // d.x *= 0.05;
 
   return d;
 }
@@ -1891,6 +1860,8 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.05);
 
+  return color;
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
@@ -1997,8 +1968,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float intensity;
     };
 
-    const int NUM_OF_LIGHTS = 3;
-    const float repNUM_OF_LIGHTS = 0.333333;
+    const int NUM_OF_LIGHTS = 4; // 3;
+    const float repNUM_OF_LIGHTS = 0.25; // 0.333333;
 
     light lights[NUM_OF_LIGHTS];
 
@@ -2011,9 +1982,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     //   lightPosRef *= lightPosRefInc;
     // }
 
-    lights[0] = light(vec3(-0.7, 0.2, 1.0), #FFE7BB, 1.0);
-    lights[1] = light(vec3(-0.1, 0.5,1.0), #BBBBFF, 1.0);
-    lights[2] = light(vec3(0.1, 1.0,-0.7), #EEFFEE, 0.5);
+    lights[0] = light(vec3(0.0, 0.2,-6.0), #FF0000, 6.0);
+    lights[1] = light(vec3(-0.1, 0.5, -1.0), #CCBBFF, 0.8);
+    lights[2] = light(vec3(0.1, 1.0,-0.7), #FFFFEE, 0.8);
+    lights[3] = light(vec3(0, 0, 1), #00FFFF, 3.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -2050,18 +2022,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Material Types
       float isFrame = isMaterialSmooth(t.y, 0.);
 
-      float occ = calcAO(pos, nor, generalT);
+      float occ = 0.6 + 0.4 * calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.9;
+      float freCo = 0.9;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.7;
-      float shadowMin = 0.9;
+      float diffMin = 0.0;
+      float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2090,21 +2062,21 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * occ;
+        fre *= freCo * occ * sha;
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // // Ambient
-        // lin += 0.100 * amb * diffuseColor;
-        // dif += 0.100 * amb;
+        // Ambient
+        lin += 0.150 * amb * diffuseColor;
+        dif += 0.150 * amb;
 
-        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
-        distIntensity = saturate(distIntensity);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        // distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
-          + distIntensity * mix(lights[i].color, vec3(1), 0.0) * lin * mix(diffuseColor, vec3(1), 1.0);
+          + distIntensity * mix(lights[i].color, vec3(1), 0.2) * lin * mix(diffuseColor, vec3(1), 1.0);
 
-        // -- Add in light flare --
+        // // -- Add in light flare --
         // vec3 fromLight = rayOrigin - lightPos;
         // float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
         // float lightAngle = pow(max(0., dot(-rayDirection, normalize(fromLight))), 512.0);
@@ -2120,7 +2092,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2131,7 +2103,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2214,13 +2186,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         color.a = 1.0;
       }
 
-//       for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
-//         vec3 lightPos = lights[i].position;
-//         vec3 fromLight = rayOrigin - lightPos;
-//         float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
-//         float lightAngle = pow(dot(-rayDirection, normalize(fromLight)), 512.0);
-//         color.rgb += lightMasked * mix(lights[i].color, vec3(1), lightAngle) * pow(dot(-rayDirection, normalize(fromLight)), 512.0);
-//       }
+      // // -- Direct lighting --
+      // for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
+      //   vec3 lightPos = lights[i].position;
+      //   vec3 fromLight = rayOrigin - lightPos;
+      //   float lightMasked = 1. - smoothstep(t.x, t.x + 0.001, length(fromLight));
+      //   float lightAngle = pow(dot(-rayDirection, normalize(fromLight)), 512.0);
+      //   color.rgb += lightMasked * mix(lights[i].color, vec3(1), lightAngle) * pow(dot(-rayDirection, normalize(fromLight)), 512.0);
+      // }
 
       // // Cartoon outline
       // // Requires trap be the distance even when the object is missed
@@ -3347,6 +3320,44 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
   return pow(a, pow(vec3(2.), 2. * (0.5 - b)));
 }
 
+vec4 godRays ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in vec4 color, in float generalT) {
+  const float maxGodRaySteps = 6.;
+
+  // Light / Sun
+  vec3 sunPos = vec3(0, 0, -1);
+
+  // TODO try with gPos
+  vec3 pos = rayOrigin + rayDirection * t.x;
+
+  float godRayGlowIntensity = 1.;
+  float godRayMask = 1.; // saturate(pow(1. - dot(uv, uv), 3. * (1. - godRayGlowIntensity)));
+  if (godRayMask == 0.) {
+    return color;
+  }
+
+  // Replace this with t.y or something
+  float distanceToPos = distance(rayOrigin, pos);
+  vec3 beamStep = rayDirection * distanceToPos / maxGodRaySteps;
+
+  float illumination = 0.;
+  float jitter = h21(1. * uv) * 1.;
+  for (float i = 0.; i < maxGodRaySteps; i++) {
+    vec3 samplePoint = rayOrigin + beamStep * (i + jitter); // Jitter so smooth sampling point.
+    illumination += saturate(softshadow(samplePoint, normalize(sunPos), 0.01, 1.0, generalT)); //  / (distance(rayOrigin, sunPos));
+  }
+
+  illumination /= sqrt(maxGodRaySteps);
+  // illumination /= pow(maxGodRaySteps, 0.85);
+  // illumination *= 0.2 + 0.8 * godRayGlowIntensity;
+  illumination *= godRayMask;
+
+  vec3 sunCol = vec3(1, 0, 0);
+
+  color = mix(color, vec4(sunCol, 1.), illumination);
+
+  return color;
+}
+
 // renderSceneLayer()
 // This returns a rendered scene layer. Similar to `sample()` it takes:
 // - `ro` : Ray origin vector
@@ -3356,7 +3367,7 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3365,6 +3376,7 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
   // 3D
   vec4 t = march(ro, rd, time);
   vec4 layer = shade(ro, rd, t, uv, time);
+  layer = godRays(ro, rd, t, uv, layer, time);
 
 #endif
 
