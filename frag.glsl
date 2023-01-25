@@ -1540,7 +1540,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.2;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1579,49 +1579,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  // wQ.x -= 3. * r;
-  wQ.y -= 3. * r;
-  wQ.xy *= rotMat2(0.5 * PI);
-  // wQ.zxy = wQ.xyz;
-  wQ.zyx = wQ.xyz;
-  // wQ.yxz = wQ.xyz;
-
+  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.01250 * warpScale * cos(19. * warpFrequency * wQ.yzx + rotationT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(wQ) - r, 0, 0);
-
-  vec3 wallQ = q;
-
-  float wallSize = 6. * r;
-  wallQ.x -= wallSize * t;
-
-  pMod1(wallQ.x, wallSize);
-
-  vec3 b = vec3(sdBox(wallQ, vec3(r, 1, r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 102., r), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r, 1, r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  float crop = -q.z;
-
-  // Floor
-  vec3 f = vec3(sdPlane(q - vec3(0,-0.3, 0), vec4(0, 1, 0, 0)), 0, 0);
-  f.x = max(f.x, crop);
-  d = dMin(d, f);
-
-  // Ceiling
-  vec3 ceiling = vec3(sdPlane(q + vec3(0,-0.3, 0), vec4(0,-1, 0, 0)), 0, 0);
-  ceiling.x = max(ceiling.x, crop);
-  d = dMin(d, ceiling);
-
-  // Floor (after rotation, wall otherwise)
-  f = vec3(sdPlane(q - vec3(0,0,  0.9), vec4(0, 0,-1, 0)), 0, 0);
-  d = dMin(d, f);
-
-  // d.x *= 0.05;
+  d.x *= 0.75;
 
   return d;
 }
@@ -1998,7 +1971,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
 
-    lights[0] = light(vec3(-0.01,  6.0, 0.2), #FF0000, 6.0);
+    lights[0] = light(vec3(-0.01,  1.0, 0.2), #FFAAAA, 6.0);
     lights[1] = light(vec3(- 0.1,  1.0, 0.5), #CCBBFF, 1.0);
     lights[2] = light(vec3(  0.1,  0.7, 1.3), #FFFFEE, 0.75);
     lights[3] = light(vec3(0.01, 0.2, 0.2), #00FFFF, 1.0);
@@ -2042,14 +2015,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 1.0;
+      float specCo = 0.3;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.5;
-      float shadowMin = 0.0;
+      float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2086,7 +2059,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lin += 0.150 * amb * diffuseColor;
         // dif += 0.150 * amb;
 
-        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         // distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
@@ -2119,7 +2092,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2149,11 +2122,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
-      color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -3359,9 +3332,9 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
   // 3D
   vec4 t = march(ro, rd, time);
   vec4 layer = shade(ro, rd, t, uv, time);
-  layer = godRays(ro, rd, t, uv, layer, time);
 
-  // layer = vec4(vec3(layer.rgb), 1);
+  // // -- 3D : Effects --
+  // layer = godRays(ro, rd, t, uv, layer, time);
 
 #endif
 
