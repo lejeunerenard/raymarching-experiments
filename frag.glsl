@@ -1099,6 +1099,16 @@ vec3 sphericalCoords (in vec3 q) {
       length(q));
 }
 
+vec3 mobiusOriginPos (in vec3 q, in float bigR, in float yOffset, in float angle) {
+  // q *= rotationMatrix(vec3(0, 0, -1), angle);
+  q.xy *= rotMat2(-angle);
+  q.x -= bigR;
+  q.xz *= rotMat2(0.5 * angle);
+  q.x -= yOffset;
+
+  return q;
+}
+
 vec3 rotTorus (in vec3 q, in float angle, in float r) {
   float a = atan(q.z, q.x);
   q.xz *= rotMat2(-a);
@@ -1540,7 +1550,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.5;
+float gR = 0.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1551,18 +1561,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float localCosT = TWO_PI * t;
   float r = gR;
   vec2 size = vec2(3.3 * r);
-  float bigR = r * 12.;
+  float bigR = r * 4.;
 
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.08 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.08 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.5 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1579,22 +1589,59 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
-  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.01250 * warpScale * cos(19. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
+
+  vec3 prePolar = wQ;
+
+  wQ.xy = polarCoords(wQ.xy);
+  wQ.y -= bigR;
+
+  wQ.yz *= rotMat2(0.5 * wQ.x);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  float trackHeight = 0.2 * r;
+  float troughYOffset = r * 1.05;
+
   // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r, 1, r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(PI + 0.1, trackHeight, r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+
+  // Cut out a trough for the ball to move through
+  vec2 troughQ = q.yz;
+  troughQ.x = abs(troughQ.x);
+  float trough = length(troughQ - vec2(troughYOffset, 0)) - r;
+  b.x = max(b.x, - trough);
+
+  b.x += 0.004 * (1. - range(0.975 * PI, PI, abs(q.x))) * cellular(5. * q);
+
+  // Commit track with trough
   d = dMin(d, b);
 
-  d.x *= 0.75;
+  // -- Balls ---
+  float ballT = t;
+  float ballProgress = 2. * TWO_PI * mod(ballT, 1.) - PI; // [-PI, 3 * PI]
+
+  vec3 ballQ = mobiusOriginPos(prePolar, bigR, troughYOffset, ballProgress);
+  b = vec3(length(ballQ) - r, 1, 0);
+  d = dMin(d, b);
+
+  ballQ = mobiusOriginPos(prePolar, bigR, troughYOffset, ballProgress + TWO_PI * 0.6667);
+  b = vec3(length(ballQ) - r, 1, 0);
+  d = dMin(d, b);
+
+  ballQ = mobiusOriginPos(prePolar, bigR, troughYOffset, ballProgress + TWO_PI * 2. * 0.6667);
+  b = vec3(length(ballQ) - r, 1, 0);
+  d = dMin(d, b);
+
+  // d.x *= 0.5;
 
   return d;
 }
@@ -1845,8 +1892,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
-  return color;
+  vec3 color = vec3(1.5);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -1868,6 +1914,8 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
   // color *= 0.8;
+
+  color = mix(color, vec3(2), isMaterialSmooth(m, 0.));
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -1954,8 +2002,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float intensity;
     };
 
-    const int NUM_OF_LIGHTS = 4; // 3;
-    const float repNUM_OF_LIGHTS = 0.25; // 0.333333;
+    const int NUM_OF_LIGHTS = 3;
+    const float repNUM_OF_LIGHTS = 0.333333;
 
     light lights[NUM_OF_LIGHTS];
 
@@ -1972,9 +2020,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
 
     lights[0] = light(vec3(-0.01,  1.0, 0.2), #FFAAAA, 6.0);
-    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #CCBBFF, 1.0);
+    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #88CCFF, 1.0);
     lights[2] = light(vec3(  0.1,  0.7, 1.3), #FFFFEE, 0.75);
-    lights[3] = light(vec3(0.01, 0.2, 0.2), #00FFFF, 1.0);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -2009,20 +2056,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isFrame = isMaterialSmooth(t.y, 0.);
+      float isBall = isMaterialSmooth(t.y, 1.);
 
-      float occ = 0.5 + 0.5 * calcAO(pos, nor, generalT);
+      float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.3;
+      float freCo = mix(0.3, 1.3, isBall);
+      float specCo = mix(0.3, 1.0, isBall);
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.1;
+      float diffMin = mix(0.8, 1., isBall);
+      float shadowMin = 0.4;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2051,13 +2098,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * occ * sha;
+        fre *= freCo * occ; // * sha;
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // // Ambient
-        // lin += 0.150 * amb * diffuseColor;
-        // dif += 0.150 * amb;
+        // Ambient
+        lin += 0.100 * amb * diffuseColor;
+        dif += 0.100 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
         // distIntensity = saturate(distIntensity);
@@ -2078,11 +2125,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2107,6 +2154,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
+      dispersionI *= isBall;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
