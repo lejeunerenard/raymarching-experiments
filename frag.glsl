@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1550,7 +1550,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.2;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1589,59 +1589,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float waveAmount = 1.;
   // waveAmount = 1. * range(r, -r, wQ.x); // Flag like movement
 
+  float period = 3.;
+
+  wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+
+
   // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
-  vec3 prePolar = wQ;
-
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= bigR;
-
-  wQ.yz *= rotMat2(0.5 * wQ.x);
-
+  wQ = opRepLim(wQ, 3. * r, vec3(1, 2, 1));
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float trackHeight = 0.2 * r;
-  float troughYOffset = r * 1.05;
-
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(PI + 0.1, trackHeight, r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(PI + 0.1, trackHeight, r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-
-  // Cut out a trough for the ball to move through
-  vec2 troughQ = q.yz;
-  troughQ.x = abs(troughQ.x);
-  float trough = length(troughQ - vec2(troughYOffset, 0)) - r;
-  b.x = max(b.x, - trough);
-
-  b.x += 0.004 * (1. - range(0.975 * PI, PI, abs(q.x))) * cellular(5. * q);
-
-  // Commit track with trough
   d = dMin(d, b);
 
-  // -- Balls ---
-  float ballT = t;
-  float ballProgress = 2. * TWO_PI * mod(ballT, 1.) - PI; // [-PI, 3 * PI]
-
-  vec3 ballQ = mobiusOriginPos(prePolar, bigR, troughYOffset, ballProgress);
-  b = vec3(length(ballQ) - r, 1, 0);
-  d = dMin(d, b);
-
-  ballQ = mobiusOriginPos(prePolar, bigR, troughYOffset, ballProgress + TWO_PI * 0.6667);
-  b = vec3(length(ballQ) - r, 1, 0);
-  d = dMin(d, b);
-
-  ballQ = mobiusOriginPos(prePolar, bigR, troughYOffset, ballProgress + TWO_PI * 2. * 0.6667);
-  b = vec3(length(ballQ) - r, 1, 0);
-  d = dMin(d, b);
-
-  // d.x *= 0.5;
+  d.x *= 0.005;
 
   return d;
 }
@@ -1893,6 +1876,11 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.5);
+  float n = dot(mPos, vec3(1));
+  n = sin(TWO_PI * 5. * n);
+  n = smoothstep(0., 0.5 * edge, n);
+  color = vec3(4. * n);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2062,13 +2050,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(0.3, 1.3, isBall);
-      float specCo = mix(0.3, 1.0, isBall);
+      float freCo = 0.3;
+      float specCo = 0.3;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = mix(0.8, 1., isBall);
+      float diffMin = 0.5;
       float shadowMin = 0.4;
 
       vec3 directLighting = vec3(0);
@@ -2139,7 +2127,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
