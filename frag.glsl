@@ -1550,7 +1550,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.4;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1576,8 +1576,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.;
-  float warpFrequency = 1.0;
+  float warpScale = 0.8;
+  float warpFrequency = 1.1;
   float rollingScale = 1.;
 
   // Warp
@@ -1613,7 +1613,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
-  wQ = opRepLim(wQ, 3. * r, vec3(1, 2, 1));
+  // wQ = opRepLim(wQ, 3. * r, vec3(1, 2, 1));
   // Commit warp
   q = wQ.xyz;
   mPos = q;
@@ -1624,7 +1624,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.005;
+  d.x *= 0.01;
 
   return d;
 }
