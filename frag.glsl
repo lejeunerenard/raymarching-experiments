@@ -1550,7 +1550,7 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.7;
+float gR = 0.3;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1594,12 +1594,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
   wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   wQ.x += 0.5 * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
   wQ.y += 0.5 * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
@@ -1610,23 +1610,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
-  // wQ = opRepLim(wQ, 3. * r, vec3(1, 2, 1));
+  wQ.xz = opRepLim(wQ.xz, 3. * r, vec2(1));
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(snoise3(3. * q) + 0.5, 0, 0);
-  b.x *= 0.02;
+  vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(PI + 0.1, trackHeight, r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  float crop = length(p) - r;
-  d.x = max(d.x, crop);
+  // float crop = length(p) - r;
+  // // float crop = sdBox(p, vec3(r));
+  // d.x = max(d.x, crop);
 
-  // d.x *= 0.05;
+  d.x *= 0.125;
 
   return d;
 }
@@ -1879,7 +1880,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(1.5);
   float n = dot(mPos, vec3(1));
-  n = sin(TWO_PI * 10. * n);
+  n = sin(TWO_PI * 8. * n);
   n = smoothstep(0., 0.5 * edge, n);
   color = vec3(4. * n);
   return color;
