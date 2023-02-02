@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -712,6 +712,7 @@ float isMaterialSmooth( float m, float goal ) {
 #pragma glslify: elasticOut = require(glsl-easings/elastic-out)
 // #pragma glslify: elasticIn = require(glsl-easings/elastic-in)
 
+
 // vec3 versions
 vec3 expo (in vec3 x) {
   return vec3(
@@ -726,6 +727,13 @@ vec3 quad (in vec3 x) {
       quad(x.y),
       quad(x.z)
       );
+}
+
+vec3 expoWave (in vec3 q) {
+  q = triangleWave(q);
+  q += 1.;
+  q *= 0.5;
+  return -1. + 2. * expo(q);
 }
 
 #pragma glslify: voronoi = require(./voronoi, edge=edge, thickness=thickness, mask=sqrMask)
@@ -767,6 +775,9 @@ vec3 sigmoid ( in vec3 x ) {
 
   return L / ( 1.0 + exp(-k * (x - x0)) );
 }
+
+#pragma glslify: gyroidTriangle = require(./model/gyroid-trianglewave, triangleWave=triangleWave)
+#pragma glslify: gyroidExpo = require(./model/gyroid-trianglewave, triangleWave=expoWave)
 
 // Smooth polar mod by Paulo Falcao
 // source: https://www.shadertoy.com/view/NdS3Dh
@@ -1567,17 +1578,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.10 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.10 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.;
+  float warpScale = 0.25;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1592,15 +1603,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float period = 3.;
 
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
@@ -1610,16 +1621,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
-  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
   // wQ.xz = opRepLim(wQ.xz, 3. * r, vec2(1));
 
-  float scale = 5.;
+  float scale = 4.;
   wQ *= scale;
 
   // Commit warp
@@ -1628,20 +1639,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(gyroid(q - 0.35, 1.0 * r), 0, 0);
+  // vec3 b = vec3(gyroid(q - 0.35, 2.0 * r), 0, 0);
+  vec3 b = vec3(gyroidTriangle(q - 0.35, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
   d.x /= scale;
 
-  float crop = length(p) - r;
-  // float crop = icosahedral(p, 52., 1.5 * r);
-  // float crop = sdBox(p, vec3(1.2 * r));
+  // float crop = length(p) - r;
+  // float crop = icosahedral(p, 52., r);
+  float crop = sdBox(p, vec3(0.8 * r));
   // d.x = max(d.x, crop);
   d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
 
-  d.x *= 0.4;
+  d.x *= 0.1;
 
   return d;
 }
