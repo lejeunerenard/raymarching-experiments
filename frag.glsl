@@ -1630,8 +1630,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.xz = opRepLim(wQ.xz, 3. * r, vec2(1));
 
-  float scale = 4.;
-  wQ *= scale;
+  vec3 cropQ = p;
+
+  // for (float i = 0.; i < 2.; i++) {
+  //   // cropQ = abs(cropQ);
+  //   cropQ = tetraFold(cropQ);
+  //   cropQ = (vec4(cropQ, 1.) * kifsM).xyz;
+  //   rollingScale *= scale;
+  // }
+
+  float gyroidScale = 11.;
+  wQ *= gyroidScale;
 
   // Commit warp
   q = wQ.xyz;
@@ -1639,21 +1648,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(gyroid(q - 0.35, 2.0 * r), 0, 0);
-  vec3 b = vec3(gyroidTriangle(q - 0.35, 1.0 * r), 0, 0);
+  vec3 b = vec3(gyroid(q, 0.5 * r), 0, 0);
+  // vec3 b = vec3(gyroidTriangle(q - 0.35, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
-  d.x /= scale;
+  d.x /= gyroidScale;
+  d.x *= 0.1;
 
   // float crop = length(p) - r;
   // float crop = icosahedral(p, 52., r);
-  float crop = sdBox(p, vec3(0.8 * r));
-  // d.x = max(d.x, crop);
-  d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
+  float crop = dodecahedral(p, 52., 1.10 * r);
+  // float crop = sdBox(cropQ, vec3(0.8 * r));
+  // crop /= rollingScale;
 
-  d.x *= 0.1;
+  // d.x = max(d.x, crop);
+  d = dSMax(d, vec3(crop, 0, 0), 0.3 * r);
+  // crop = sdBox(p - vec3(0, 0, r), vec3(10, 10, r));
+  // d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
+
+  // d.x *= 0.1;
 
   return d;
 }
@@ -1904,7 +1919,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = 1.0 * #FCA930;
   return color;
 
   float dNR = dot(nor, -rd);
@@ -1926,7 +1941,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += vec3(0, 1, 0) * rot * dNR;
   // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  // color *= 0.8;
+  color *= 0.4;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -2163,8 +2178,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
-      // float dispersionI = 1.0;
+      // float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.0);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
@@ -2174,7 +2189,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      color += saturate(dispersionColor);
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
       // color = saturate(dispersionColor);
 #endif
 
