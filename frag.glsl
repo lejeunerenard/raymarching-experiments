@@ -1596,6 +1596,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
 
+  wQ = abs(wQ);
+
   float rotationT = localCosT;
 
   float waveAmount = 1.;
@@ -1607,11 +1609,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
-  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
+  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
@@ -1659,8 +1661,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // float crop = length(p) - r;
   // float crop = icosahedral(p, 52., r);
-  float crop = dodecahedral(p, 52., 1.10 * r);
-  // float crop = sdBox(cropQ, vec3(0.8 * r));
+  // float crop = dodecahedral(p, 52., 1.10 * r);
+  float crop = sdBox(cropQ, vec3(r));
   // crop /= rollingScale;
 
   // d.x = max(d.x, crop);
@@ -1919,7 +1921,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = 1.0 * #FCA930;
+  vec3 color = #4ADEFF;
   return color;
 
   float dNR = dot(nor, -rd);
