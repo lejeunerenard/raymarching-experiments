@@ -1562,7 +1562,24 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-float gR = 0.6;
+// float gyroid3 (in vec3 p, in float thickness) {
+//   // float gyroid = dot(sin(p), cos(p.yzx));
+//   vec3 sP = sin(p);
+//   vec3 sP2 = sin(p.yzx + 0.33 * TWO_PI);
+//   vec3 sP3 = sin(p.zxy + 0.67 * TWO_PI);
+//   float gyroid = sP.x * sP2.x * sP3.x
+//     + sP.y * sP2.y * sP3.y
+//     + sP.z * sP2.z * sP3.z;
+//   return abs(gyroid) - thickness;
+// }
+
+float crossGyroid (in vec3 p, in float thickness) {
+  vec3 xross = cross(sin(p), cos(p.yzx));
+  float gyroid = dot(xross, xross);
+  return abs(gyroid) - thickness;
+}
+
+float gR = 0.8;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1595,8 +1612,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   // vec4 wQ = vec4(q.xyz, 1.);
   vec3 wQ = q.xyz;
-
-  wQ = abs(wQ);
 
   float rotationT = localCosT;
 
@@ -1641,7 +1656,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   //   rollingScale *= scale;
   // }
 
-  float gyroidScale = 11.;
+  float gyroidScale = 13.;
   wQ *= gyroidScale;
 
   // Commit warp
@@ -1650,23 +1665,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(gyroid(q, 0.5 * r), 0, 0);
+  vec3 b = vec3(crossGyroid(q, 0.20 * r), 0, 0);
   // vec3 b = vec3(gyroidTriangle(q - 0.35, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
   d.x /= gyroidScale;
-  d.x *= 0.1;
+  d.x *= 0.4;
 
-  // float crop = length(p) - r;
+  float crop = length(p) - r;
   // float crop = icosahedral(p, 52., r);
   // float crop = dodecahedral(p, 52., 1.10 * r);
-  float crop = sdBox(cropQ, vec3(r));
+  // float crop = sdBox(cropQ, vec3(r));
   // crop /= rollingScale;
 
   // d.x = max(d.x, crop);
-  d = dSMax(d, vec3(crop, 0, 0), 0.3 * r);
+  d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
   // crop = sdBox(p - vec3(0, 0, r), vec3(10, 10, r));
   // d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
 
@@ -1921,7 +1936,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = #4ADEFF;
+  vec3 color = vec3(0.9);
   return color;
 
   float dNR = dot(nor, -rd);
