@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1620,10 +1620,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float period = 3.;
 
-  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
+  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  // wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
   // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
@@ -1649,25 +1649,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 cropQ = p;
 
-  float gyroidScale = 5.;
+  float gyroidScale = 10.;
   wQ *= gyroidScale;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  float dist =
+      dot(sin(q.xyz + 0.00 * TWO_PI), vec3( 1, 1, 1))
+    + dot(sin(q.yzx + 0.33 * TWO_PI), vec3(-1, 1,-1))
+    + dot(sin(q.xyz + 0.67 * TWO_PI), vec3( 1,-1,-1));
+
+  // dist = triangleWave(dist);
+  // dist = sin(dist);
+
+  dist = abs(dist) - 1.5 * r;
+
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
+  // vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
+  vec3 b = vec3(-dist, 0, 0);
   // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
   d.x /= gyroidScale;
-  d.x *= 0.4;
 
-  float crop = length(p) - r;
+  d.x *= 0.2;
+
+  float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
   // float crop = dodecahedral(p, 52., 1.10 * r);
   // float crop = sdBox(cropQ, vec3(r));
@@ -1929,7 +1941,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.9);
+  vec3 color = vec3(0.9 * background);
   return color;
 
   float dNR = dot(nor, -rd);
