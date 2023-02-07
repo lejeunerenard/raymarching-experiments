@@ -1649,14 +1649,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 cropQ = p;
 
-  // for (float i = 0.; i < 2.; i++) {
-  //   // cropQ = abs(cropQ);
-  //   cropQ = tetraFold(cropQ);
-  //   cropQ = (vec4(cropQ, 1.) * kifsM).xyz;
-  //   rollingScale *= scale;
-  // }
-
-  float gyroidScale = 13.;
+  float gyroidScale = 5.;
   wQ *= gyroidScale;
 
   // Commit warp
@@ -1665,8 +1658,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(crossGyroid(q, 0.20 * r), 0, 0);
-  // vec3 b = vec3(gyroidTriangle(q - 0.35, 1.0 * r), 0, 0);
+  vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
+  // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
