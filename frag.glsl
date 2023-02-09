@@ -1620,10 +1620,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float period = 3.;
 
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
   // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
@@ -1649,22 +1649,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 cropQ = p;
 
-  float gyroidScale = 10.;
+  float gyroidScale = 1.;
   wQ *= gyroidScale;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float dist =
-      dot(sin(q.xyz + 0.00 * TWO_PI), vec3( 1, 1, 1))
-    + dot(sin(q.yzx + 0.33 * TWO_PI), vec3(-1, 1,-1))
-    + dot(sin(q.xyz + 0.67 * TWO_PI), vec3( 1,-1,-1));
+  vec3 distQ = q;
+  vec3 c = pMod3(distQ, vec3(1));
+  float dist = 0.1 * vmax(abs(distQ));
+  dist = cellular(q);
 
-  // dist = triangleWave(dist);
-  // dist = sin(dist);
+  // dist = triangleWave(10. * dist);
 
-  dist = abs(dist) - 1.5 * r;
+  dist = abs(dist) - 0.25 * r;
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
@@ -1677,7 +1676,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d = dMin(d, b);
   d.x /= gyroidScale;
 
-  d.x *= 0.2;
+  d.x *= 0.1;
 
   float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
