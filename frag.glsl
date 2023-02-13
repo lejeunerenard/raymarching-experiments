@@ -1645,18 +1645,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
-  wQ.xz = opRepLim(wQ.xz, 0.5125 * r, vec2(2));
+  // wQ.xz = opRepLim(wQ.xz, 0.5125 * r, vec2(2));
 
   vec3 cropQ = p;
 
-  float gyroidScale = 2.0;
+  float gyroidScale = 1.5;
   wQ *= gyroidScale;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), 0.5 * r), 0, 0);
+  // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), 0.5 * r), 0, 0);
+  vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
   // vec3 b = vec3(-dist, 0, 0);
@@ -1669,8 +1670,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   d.x *= 0.05;
 
-  // float crop = length(cropQ) - r;
-  float crop = icosahedral(p, 52., r);
+  float crop = length(cropQ) - r;
+  // float crop = icosahedral(p, 52., r);
   // float crop = dodecahedral(p, 52., 1.10 * r);
   // float crop = sdBox(cropQ, vec3(r));
   // crop /= rollingScale;
@@ -1931,12 +1932,14 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.97 * background);
-  return color;
+  vec3 color = vec3(0.98 * background);
+
+  // return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
+  return mix(color, vec3(1, 0.9, 0.9) * color, dNR);
   dI += 0.3 * snoise3(0.3 * pos);
 
   dI *= angle1C;
@@ -2100,7 +2103,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.6;
       float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
@@ -2196,13 +2199,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
       // color = saturate(dispersionColor);
 #endif
 
