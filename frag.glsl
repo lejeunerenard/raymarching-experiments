@@ -3209,44 +3209,62 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.125;
+  float warpScale = 0.25;
   vec2 r = 1.125 * vec2(0.005, 0.015);
   vec2 size = vec2(1.) * vmax(r);
 
   // -- Warp --
   vec2 wQ = q.xy;
 
+  wQ *= 2.5;
+
   // wQ *= rotMat2(0.25 * PI);
 
-  vec2 c = floor((wQ + 0.5 * size) / size);
+  // vec2 c = floor((wQ + 0.5 * size) / size);
 
-  float warpFactor = 5.;
+  float warpFactor = 2.5;
   float nudge = 0.; // PI * 0.25;
 
+  // mat2 componentRot = rotMat2(0.2 + 0.05 * length(wQ));
+
+#define componentRot rotationMatrix2(0.2 + 0.12 * length(wQ))
+
   wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
+  wQ *= componentRot;
 
   // wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
   // wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
@@ -3316,14 +3334,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // color = mix(color, n * (0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)))), isMaterialSmooth(d.y, 1.));
   // color = 0.5 + 0.5 * cos(TWO_PI * (dI + vec3(0, 0.33, 0.67)));
 
-  // Stripes
-  const float numStripes = 20.;
-  vec2 axis = vec2(1, 0) * rotMat2(0.5 * PI * n);
-  float line = dot(q, axis);
-  line = sin(TWO_PI * numStripes * line);
-  line -= 0.95;
-  line = smoothstep(0., 2. * edge, line);
-  color = vec3(line);
+  // // Stripes
+  // const float numStripes = 8.;
+  // vec2 axis = vec2(1, 0) * rotMat2(0.5 * PI * n);
+  // float line = dot(q, axis);
+  // line = sin(TWO_PI * numStripes * line);
+  // line -= 0.95;
+  // line = smoothstep(0., 2. * edge, line);
+  // color = vec3(line);
 
   // // radial stripes
   // float angle = atan(q.y, q.x);
@@ -3334,13 +3352,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = vec3(line);
   // color = mix(vec3(0), color, step(edge, n));
 
-  // // Grid spinners?
-  // float gridSize = 0.020;
-  // vec2 c = pMod2(q, vec2(gridSize));
-  // q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  // float line = abs(q.y) - 0.015625 * gridSize;
-  // line = smoothstep(0.5 * edge, 0., line);
-  // color = vec3(line);
+  // Grid spinners?
+  float gridSize = 0.15;
+  vec2 c = pMod2(q, vec2(gridSize));
+  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
+  float line = abs(q.y) - 0.015625 * gridSize;
+  line = smoothstep(1.0 * edge, 0., line);
+  color = vec3(line);
 
   // // Grid crosses
   // float gridSize = 0.0175;
@@ -3412,7 +3430,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
