@@ -3227,49 +3227,52 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // mat2 componentRot = rotMat2(0.2 + 0.05 * length(wQ));
 
-#define componentRot rotationMatrix2(0.2 + 0.12 * length(wQ))
+#define componentRot rotationMatrix2(0.1 + 0.02 * length(wQ))
 
-  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
-  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
-  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
-  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
   wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
   wQ += nudge; nudge *= -1.;
   wQ *= componentRot;
-  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  wQ += nudge; nudge *= -1.;
-  wQ *= componentRot;
-  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  wQ += nudge; nudge *= -1.;
-  wQ *= componentRot;
-  wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  wQ += nudge; nudge *= -1.;
-  wQ *= componentRot;
-  wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  wQ += nudge; nudge *= -1.;
-  wQ *= componentRot;
+  // wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  // wQ += nudge; nudge *= -1.;
+  // wQ *= componentRot;
+  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  // wQ += nudge; nudge *= -1.;
+  // wQ *= componentRot;
+  // wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
+  // wQ += nudge; nudge *= -1.;
+  // wQ *= componentRot;
+  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
+  // wQ += nudge; nudge *= -1.;
+  // wQ *= componentRot;
 
-  // wQ += 0.1000 * warpScale * cos( 3. * wQ.yx + localCosT );
-  // wQ += 0.0500 * warpScale * cos( 9. * wQ.yx + localCosT );
-  // wQ += 0.0250 * warpScale * cos(13. * wQ.yx + localCosT );
-  // wQ += 0.0125 * warpScale * cos(19. * wQ.yx + localCosT );
+  wQ += 0.1000000 * warpScale * cos( 3. * wQ.yx + localCosT );
+  wQ += 0.0500000 * warpScale * cos( 9. * wQ.yx + localCosT );
+  wQ += 0.0250000 * warpScale * cos(13. * wQ.yx + localCosT );
+  wQ += 0.0125000 * warpScale * cos(19. * wQ.yx + localCosT );
+  wQ += 0.0062500 * warpScale * cos(23. * wQ.yx + localCosT );
+  wQ += 0.0031250 * warpScale * cos(29. * wQ.yx + localCosT );
+  wQ += 0.0015625 * warpScale * cos(33. * wQ.yx + localCosT );
 
   // wQ.x += 0.333 * size.x * mod(c.y, 3.);
 
@@ -3355,8 +3358,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Grid spinners?
   float gridSize = 0.15;
   vec2 c = pMod2(q, vec2(gridSize));
-  q *= rotMat2(localCosT + 12. * n - 0.05 * length(c));
-  float line = abs(q.y) - 0.015625 * gridSize;
+  q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.3 * cnoise2(c));
+  // float line = abs(q.y) - 0.015625 * gridSize;
+  float line = sdBox(q, vec2(0.015625 * gridSize, 0.3 * gridSize));
   line = smoothstep(1.0 * edge, 0., line);
   color = vec3(line);
 
