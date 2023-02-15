@@ -3209,7 +3209,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.25;
+  float warpScale = 0.20;
   vec2 r = 1.125 * vec2(0.005, 0.015);
   vec2 size = vec2(1.) * vmax(r);
 
@@ -3223,7 +3223,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 c = floor((wQ + 0.5 * size) / size);
 
   float warpFactor = 2.5;
-  float nudge = 0.; // PI * 0.25;
+  float nudge = 0.1 + 0.2 * cos(localCosT); // PI * 0.25;
 
   // mat2 componentRot = rotMat2(0.2 + 0.05 * length(wQ));
 
@@ -3303,11 +3303,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(20. * TWO_PI * n);
 
-  // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  // // Hard Edge
+  // n = smoothstep(0., 0.5 * edge, n - 0.0);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // n = abs(n);
 
@@ -3356,11 +3356,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = mix(vec3(0), color, step(edge, n));
 
   // Grid spinners?
-  float gridSize = 0.15;
+  float gridSize = 0.09;
   vec2 c = pMod2(q, vec2(gridSize));
-  q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.3 * cnoise2(c));
-  // float line = abs(q.y) - 0.015625 * gridSize;
-  float line = sdBox(q, vec2(0.015625 * gridSize, 0.3 * gridSize));
+  q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.5 * PI * cnoise2(c));
+  float line = abs(q.y) - 0.015625 * gridSize;
+  // float line = sdBox(q, vec2(0.015625 * gridSize, 0.2 * gridSize));
   line = smoothstep(1.0 * edge, 0., line);
   color = vec3(line);
 
@@ -3465,13 +3465,13 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
     uv.y += 0.005;
   }
   return vec4(color, 1);
