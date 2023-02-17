@@ -3356,11 +3356,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = mix(vec3(0), color, step(edge, n));
 
   // Grid spinners?
-  float gridSize = 0.09;
+  const float baseGridSize = 0.12;
+  float gridSize = baseGridSize;
+  gridSize += 0.3 * gridSize * cos(localCosT - length(q));
+
   vec2 c = pMod2(q, vec2(gridSize));
   q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.5 * PI * cnoise2(c));
-  float line = abs(q.y) - 0.015625 * gridSize;
-  // float line = sdBox(q, vec2(0.015625 * gridSize, 0.2 * gridSize));
+  // float line = abs(q.y) - 0.015625 * baseGridSize;
+  float line = sdBox(q, vec2(0.015625, 0.3) * baseGridSize);
   line = smoothstep(1.0 * edge, 0., line);
   color = vec3(line);
 
@@ -3465,8 +3468,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
