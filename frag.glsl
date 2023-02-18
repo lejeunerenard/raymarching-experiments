@@ -1579,7 +1579,7 @@ float crossGyroid (in vec3 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
-float gR = 0.8;
+float gR = 0.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1628,10 +1628,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
@@ -1645,19 +1645,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
   // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
-  // wQ.xz = opRepLim(wQ.xz, 0.5125 * r, vec2(2));
+  wQ.xz = opRepLim(wQ.xz, 1.5 * r, vec2(2));
 
   vec3 cropQ = p;
-
-  float gyroidScale = 1.5;
-  wQ *= gyroidScale;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(sdCapsule(q, vec3(0, 1, 0), vec3(0, -1, 0), 0.5 * r), 0, 0);
-  vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
+  vec3 b = vec3(sdCapsule(q, vec3(0, 1.2, 0), vec3(0, -1.2, 0), 0.5 * r), 0, 0);
+  // vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
   // vec3 b = vec3(-dist, 0, 0);
@@ -1666,9 +1663,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
-  d.x /= gyroidScale;
 
-  d.x *= 0.05;
+  d.x *= 0.75;
 
   float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
@@ -1677,7 +1673,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // crop /= rollingScale;
 
   // d.x = max(d.x, crop);
-  d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
+  // d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
   // crop = sdBox(p - vec3(0, 0, r), vec3(10, 10, r));
   // d = dSMax(d, vec3(crop, 0, 0), 0.2 * r);
 
@@ -2078,14 +2074,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 0.8;
-      // float bumpIntensity = 0.090;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // // nor -= 0.125 * cellular(5. * mPos);
-      // nor = normalize(nor);
+      float bumpsScale = 0.8;
+      float bumpIntensity = 0.090;
+      nor += bumpIntensity * vec3(
+          cnoise3(bumpsScale * 490.0 * mPos),
+          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor -= 0.125 * cellular(5. * mPos);
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -3437,7 +3433,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
