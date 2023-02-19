@@ -1579,7 +1579,7 @@ float crossGyroid (in vec3 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
-float gR = 0.2;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1605,8 +1605,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.2;
-  float warpFrequency = 1.0;
+  float warpScale = 0.175;
+  float warpFrequency = 1.2;
   float rollingScale = 1.;
 
   // Warp
@@ -1628,24 +1628,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
-  // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
-  wQ.xz = opRepLim(wQ.xz, 1.5 * r, vec2(2));
+  // wQ.xz = opRepLim(wQ.xz, 1.5 * r, vec2(2));
 
   vec3 cropQ = p;
 
@@ -1653,9 +1653,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdCapsule(q, vec3(0, 1.2, 0), vec3(0, -1.2, 0), 0.5 * r), 0, 0);
+  // vec3 b = vec3(sdCapsule(q, vec3(0, 1.2, 0), vec3(0, -1.2, 0), 0.5 * r), 0, 0);
   // vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
   // vec3 b = vec3(-dist, 0, 0);
   // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
@@ -1664,9 +1664,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.75;
+  d.x *= 0.3;
 
-  float crop = length(cropQ) - r;
+  // float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
   // float crop = dodecahedral(p, 52., 1.10 * r);
   // float crop = sdBox(cropQ, vec3(r));
@@ -2074,7 +2074,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 0.8;
+      float bumpsScale = 0.9;
       float bumpIntensity = 0.090;
       nor += bumpIntensity * vec3(
           cnoise3(bumpsScale * 490.0 * mPos),
@@ -2099,8 +2099,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
-      float specCo = 0.7;
+      float freCo = 0.7;
+      float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
