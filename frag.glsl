@@ -1579,7 +1579,7 @@ float crossGyroid (in vec3 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
-float gR = 0.7;
+float gR = 0.6;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1605,8 +1605,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.175;
-  float warpFrequency = 1.2;
+  float warpScale = 0.20;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1615,7 +1615,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float rotationT = localCosT;
 
-  float waveAmount = 1.;
+  float waveAmount = -1.;
   // waveAmount = 1. * range(2. * r, -2. * r, wQ.x); // Flag like movement
 
   float period = 3.;
@@ -1623,21 +1623,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
   wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
+  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
+  // warpScale *= 2.;
   wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
   wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
@@ -1655,13 +1656,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1.2, 0), vec3(0, -1.2, 0), 0.5 * r), 0, 0);
   // vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
   // vec3 b = vec3(-dist, 0, 0);
   // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.3;
@@ -2074,14 +2075,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 0.9;
-      float bumpIntensity = 0.090;
-      nor += bumpIntensity * vec3(
-          cnoise3(bumpsScale * 490.0 * mPos),
-          cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-          cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor -= 0.125 * cellular(5. * mPos);
-      nor = normalize(nor);
+      // float bumpsScale = 0.9;
+      // float bumpIntensity = 0.090;
+      // nor += bumpIntensity * vec3(
+      //     cnoise3(bumpsScale * 490.0 * mPos),
+      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // // nor -= 0.125 * cellular(5. * mPos);
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2105,7 +2106,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
+      float diffMin = 0.95;
       float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
