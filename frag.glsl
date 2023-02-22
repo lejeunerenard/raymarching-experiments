@@ -1605,8 +1605,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.00;
-  float warpFrequency = 1.5;
+  float warpScale = 0.20;
+  float warpFrequency = 0.8;
   float rollingScale = 1.;
 
   // Warp
@@ -1631,24 +1631,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y);
   wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
-  // warpScale *= 2.;
-  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
-
-  wQ.xz = opRepLim(wQ.xz, 0.5 * r, vec2(4));
+  // // warpScale *= 2.;
+  // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
 
   vec3 cropQ = p;
+
+  float gyroidScale = 7.;
+  wQ *= gyroidScale;
 
   // Commit warp
   q = wQ.xyz;
@@ -1656,18 +1657,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1.2, 0), vec3(0, -1.2, 0), 0.5 * r), 0, 0);
   // vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
-  vec3 b = vec3(length(q) - 0.5 * r, 0, 0);
-  // vec3 b = vec3(-gyroid(q, 0.60 * r), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(gyroid(q, 0.35 * r), 0, 0);
   // vec3 b = vec3(-dist, 0, 0);
   // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  b.x /= gyroidScale;
   d = dMin(d, b);
 
-  d.x *= 0.0125;
+  d.x *= 0.125;
 
-  float crop = length(cropQ) - 3. * r;
+  float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
   // float crop = dodecahedral(p, 52., 1.10 * r);
   // float crop = sdBox(cropQ, vec3(r));
