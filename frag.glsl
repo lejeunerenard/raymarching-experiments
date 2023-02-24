@@ -1605,7 +1605,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.4;
+  float warpScale = 0.5;
   float warpFrequency = 0.6;
   float rollingScale = 1.;
 
@@ -1638,14 +1638,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
-  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.00625 * warpScale * cos(51. * warpFrequency * wQ.yzx + rotationT );
+  float speed = 1.;
+  for (float i = 0.; i < 7.; i++) {
+    wQ *= rotationMatrix(vec3(1), 0.1);
+    wQ += 0.10000 * speed * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+    wQ += 0.05000 * speed * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+    wQ += 0.02500 * speed * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+    wQ += 0.01250 * speed * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+    speed *= 0.5;
+  }
+
+  // // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.yzx + rotationT );
+  // wQ += 0.00625 * warpScale * cos(51. * warpFrequency * wQ.yzx + rotationT );
 
   vec3 cropQ = p;
 
@@ -1663,9 +1671,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(-dist, 0, 0);
   // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.5)), 0, 0);
+  // vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.5)), 0, 0);
   // b.x /= gyroidScale;
   d = dMin(d, b);
 
@@ -1945,7 +1953,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
+  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33,-0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0,-0.3, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
@@ -2193,19 +2201,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 5.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
       // color = saturate(dispersionColor);
 #endif
 
