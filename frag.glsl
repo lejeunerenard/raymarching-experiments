@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -64,7 +64,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.6;
 const float amount = 0.05;
 
 // Dof
@@ -1579,7 +1579,7 @@ float crossGyroid (in vec3 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
-float gR = 0.6;
+float gR = 1.3;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1605,8 +1605,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 0.6;
+  float warpScale = 2.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1620,9 +1620,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float period = 3.;
 
-  // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
   // // wQ.xzy = twist(wQ.xyz, 0.4 * wQ.y);
   // wQ.x += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
@@ -1638,22 +1635,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
-  float speed = 1.;
-  for (float i = 0.; i < 7.; i++) {
-    wQ *= rotationMatrix(vec3(1), 0.1);
-    wQ += 0.10000 * speed * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
-    wQ += 0.05000 * speed * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
-    wQ += 0.02500 * speed * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-    wQ += 0.01250 * speed * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
-    speed *= 0.5;
-  }
+  wQ += 0.10000 * warpScale * cos(3. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.05000 * warpScale * cos(9. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.00625 * warpScale * cos(51. * warpFrequency * wQ.yzx + rotationT );
 
-  // // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  // wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.yzx + rotationT );
-  // wQ += 0.00625 * warpScale * cos(51. * warpFrequency * wQ.yzx + rotationT );
+  wQ.x += 0.5 * 0.125 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * 0.125 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * 0.125 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
   vec3 cropQ = p;
 
@@ -1666,18 +1659,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(sdCapsule(q, vec3(0, 1.2, 0), vec3(0, -1.2, 0), 0.5 * r), 0, 0);
   // vec3 b = vec3(snoise3(q) - 0.1 * r, 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(gyroid(q, 0.35 * r), 0, 0);
   // vec3 b = vec3(-dist, 0, 0);
   // vec3 b = vec3(gyroidTriangle(q, 1.0 * r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.5)), 0, 0);
   // b.x /= gyroidScale;
   d = dMin(d, b);
 
-  d.x *= 0.725;
+  d.x *= 0.07;
 
   // float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
@@ -1854,8 +1847,8 @@ vec3 textures (in vec3 rd) {
 
   // color = getBackground(rd.xy, 0.);
 
-  // Identity scene color
-  color = vec3(1);
+  // // Identity scene color
+  // color = vec3(1);
 
   // color *= 1.3;
 
@@ -1964,7 +1957,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += vec3(0, 1, 0) * rot * dNR;
   // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  color *= 1.0;
+  color *= 0.9;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -2111,13 +2104,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.8;
+      float freCo = 0.6;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.75;
+      float diffMin = 0.80;
       float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
@@ -2174,11 +2167,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2196,13 +2189,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 5.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 6.0);
       // float dispersionI = 1.0;
+      dispersionI *= 0.7;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
@@ -2212,8 +2206,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
       // color = saturate(dispersionColor);
 #endif
 
