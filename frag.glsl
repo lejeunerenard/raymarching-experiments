@@ -1635,18 +1635,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.y += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
   // wQ.z += 0.5 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
 
-  wQ += 0.10000 * warpScale * cos(3. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.05000 * warpScale * cos(9. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
+  wQ.xyz = twist(wQ.xzy, 0.2 * wQ.z);
+  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT);
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
   wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
   wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.yzx + rotationT );
   wQ += 0.00625 * warpScale * cos(51. * warpFrequency * wQ.yzx + rotationT );
 
-  wQ.x += 0.5 * 0.125 * waveAmount * warpScale * cos( period * warpFrequency * wQ.y + rotationT );
-  wQ.y += 0.5 * 0.125 * waveAmount * warpScale * cos( period * warpFrequency * wQ.z + rotationT );
-  wQ.z += 0.5 * 0.125 * waveAmount * warpScale * cos( period * warpFrequency * wQ.x + rotationT );
+  wQ.x += 0.5 * 0.125 * waveAmount * warpScale * triangleWave( period * warpFrequency * wQ.y + rotationT );
+  wQ.y += 0.5 * 0.125 * waveAmount * warpScale * triangleWave( period * warpFrequency * wQ.z + rotationT );
+  wQ.z += 0.5 * 0.125 * waveAmount * warpScale * triangleWave( period * warpFrequency * wQ.x + rotationT );
 
   vec3 cropQ = p;
 
@@ -1670,7 +1671,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x /= gyroidScale;
   d = dMin(d, b);
 
-  d.x *= 0.07;
+  d.x *= 0.05;
 
   // float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
