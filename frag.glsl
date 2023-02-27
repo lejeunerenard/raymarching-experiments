@@ -1595,13 +1595,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Positioning adjustments
   // p.y -= 0.6;
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.10 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.10 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1637,12 +1637,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * wQ.yzx + rotationT );
   wQ.xyz = twist(wQ.xzy, 0.2 * wQ.z);
-  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.05000 * warpScale * cos( 9. * warpFrequency * wQ.zxy + rotationT );
   wQ += 0.02500 * warpScale * cos(13. * warpFrequency * wQ.yzx + rotationT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.01250 * warpScale * cos(23. * warpFrequency * wQ.zxy + rotationT );
+  wQ += snoise3(wQ.yzx);
+  // wQ += cnoise3(wQ.yzx);
   wQ += 0.00625 * warpScale * cos(31. * warpFrequency * wQ.yzx + rotationT );
-  wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.yzx + rotationT );
+  wQ += 0.01250 * warpScale * cos(43. * warpFrequency * wQ.zxy + rotationT );
   wQ += 0.00625 * warpScale * cos(51. * warpFrequency * wQ.yzx + rotationT );
 
   wQ.x += 0.5 * 0.125 * waveAmount * warpScale * triangleWave( period * warpFrequency * wQ.y + rotationT );
@@ -1671,7 +1672,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x /= gyroidScale;
   d = dMin(d, b);
 
-  d.x *= 0.05;
+  d.x *= 0.03;
 
   // float crop = length(cropQ) - r;
   // float crop = icosahedral(p, 52., r);
