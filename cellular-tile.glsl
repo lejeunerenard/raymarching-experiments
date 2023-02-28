@@ -14,10 +14,10 @@ float drawSphere(in vec3 p){
 
     // Anything that wraps the domain will suffice, so any of the following will work.
 
-    // Angular regions
-    p *= 1.5;
-    p = 2. * abs(mod(p, 1.) - 0.5);
-    return 0.25 * dot(p, p);
+    // // Angular regions
+    // p *= 1.5;
+    // p = 2. * abs(mod(p, 1.) - 0.5);
+    // return 0.25 * dot(p, p);
 
     // p = cos(p*3.14159)*0.5;
     // p = abs(cos(p*3.14159)*0.5);
@@ -28,8 +28,8 @@ float drawSphere(in vec3 p){
     // p = abs(fract(p)-.5);
     // return dot(p, vec3(.5));
 
-    p = abs(fract(p)-.5);
-    return max(max(p.x, p.y), p.z);
+    // p = abs(fract(p)-.5);
+    // return max(max(p.x, p.y), p.z);
 
     p = abs(fract(p)-.5);
     p = cos(p*3.14159)*0.5; 
