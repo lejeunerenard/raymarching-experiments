@@ -1593,7 +1593,7 @@ vec2 componentShift (in vec2 q) {
   return q.yx;
 }
 
-float gR = 0.3;
+float gR = 0.1;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1607,40 +1607,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.10 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.10 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
+
+  p *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
 
   vec3 q = p;
 
   float warpScale = 0.25;
-  float warpFrequency = 0.5;
+  float warpFrequency = 0.3;
   float rollingScale = 1.;
 
   // Warp
   // vec3 wQ = q.xyz;
   vec4 wQ = vec4(q.xyz, 0.);
 
-  float period = 3.;
+  float period = 4.;
 
-  wQ.x += 0.50000 * warpScale * cos( period * warpFrequency * wQ.w + localCosT);
-  wQ.xy *= rotMat2(wQ.z + localCosT);
-  wQ.y += 0.50000 * warpScale * cos( period * warpFrequency * wQ.x + localCosT);
-  wQ.yz *= rotMat2(wQ.w - localCosT);
-  wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
-  wQ.zw *= rotMat2(wQ.x + localCosT);
-  wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
-  wQ.wx *= rotMat2(wQ.y - localCosT);
-  wQ.x += 0.50000 * warpScale * cos( period * warpFrequency * wQ.w + localCosT);
-  wQ.xy *= rotMat2(wQ.z + localCosT);
-  wQ.y += 0.50000 * warpScale * cos( period * warpFrequency * wQ.x + localCosT);
-  wQ.yz *= rotMat2(wQ.w - localCosT);
-  wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
-  wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
+  // wQ.x += 0.50000 * warpScale * cos( period * warpFrequency * wQ.w + localCosT + 0.3);
+  // wQ.xy *= rotMat2(wQ.z + localCosT);
+  // wQ.y += 0.50000 * warpScale * cos( period * warpFrequency * wQ.x + localCosT);
+  // wQ.yz *= rotMat2(wQ.w - localCosT);
+  // wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
+  // wQ.zw *= rotMat2(wQ.x + localCosT);
+  // wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
+  // wQ.wx *= rotMat2(wQ.y - localCosT);
+  // wQ.x += 0.50000 * warpScale * cos( period * warpFrequency * wQ.w + localCosT);
+  // wQ.xy *= rotMat2(wQ.z + localCosT);
+  // wQ.y += 0.50000 * warpScale * cos( period * warpFrequency * wQ.x + localCosT);
+  // wQ.yz *= rotMat2(wQ.w - localCosT);
+  // wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
+  // wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
 
   // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + localCosT);
   // // wQ.xy *= rotMat2(wQ.z + localCosT);
@@ -1658,12 +1660,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
+
+  q.xy = polarCoords(wQ.xy);
+  q.y -= 5. * r;
+  q.yz *= rotMat2(0.75 * q.x + 0.2 * PI * cos(q.x + localCosT));
+  q.x /= PI;
+
+  q.yz = opRepLim(q.yz, 2.25 * r, vec2(1));
+
   float wNess = dot(vec4(0, 0, 0, 1), wQ);
 
-  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, wNess);
+  vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, wNess);
   // vec3 b = vec3(length(wQ) - r, 0, wNess);
-  vec3 b = vec3(sdTorus(wQ.xyz, vec2(r, wQ.w)), 0, wNess);
-  b.x -= 0.01 * cellular(3. * wQ.xzw);
+  // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
   d = dMin(d, b);
 
   d.x *= 0.03;
