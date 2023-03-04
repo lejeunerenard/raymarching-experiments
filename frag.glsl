@@ -1662,11 +1662,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 
   q.xy = polarCoords(wQ.xy);
-  q.y -= 5. * r;
+  q.y -= 6. * r;
   q.yz *= rotMat2(0.75 * q.x + 0.2 * PI * cos(q.x + localCosT));
   q.x /= PI;
 
-  q.yz = opRepLim(q.yz, 2.25 * r, vec2(1));
+  q.yz = opRepLim(q.yz, 3.25 * r, vec2(1));
+
+  q.yz *= rotMat2(PI * 0.5 * q.x + 0.2 * PI * cos(PI * q.x + localCosT));
 
   float wNess = dot(vec4(0, 0, 0, 1), wQ);
 
@@ -1675,7 +1677,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
   d = dMin(d, b);
 
-  d.x *= 0.03;
+  d.x *= 0.2;
 
   return d;
 }
