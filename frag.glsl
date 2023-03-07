@@ -7,9 +7,9 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 4096
+#define maxSteps 512
 #define maxDistance 10.0
 #define fogMaxDistance 4.5
 
@@ -1642,11 +1642,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
   // wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
 
-  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ += 0.05000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ += 0.01250 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ += 0.00525 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.05000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.01250 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.00525 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + localCosT);
 
   // wQ += 0.001 * triangleWave(1129. * (wQ.yzx + 20.  * triangleWave(vec3(1, 2, -3) * wQ)));
 
@@ -1657,14 +1657,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec2 c = floor((q.xy + size*0.5)/size);
   q.xy = opRepLim(q.xy, size.x, vec2(14));
 
-  q.xy += 0.20 * size * snoise2(c + cos(localCosT + 0.2 * length(c)));
+  // q.xy += 0.20 * size * snoise2(0.2 * c + 0.7 * cos(localCosT - 0.5 * vmax(abs(c))));
+  q.xy += 0.15 * size * sign(c) * cos(localCosT - length(c) - 0.0 * vmax(abs(c)) + 3. * q.z);
 
-  vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 4)), 0, 0);
+  vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
   // vec3 b = vec3(length(wQ) - r, 0, wNess);
   // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
   d = dMin(d, b);
 
-  d.x *= 0.30;
+  d.x *= 0.10;
 
   return d;
 }
@@ -1917,7 +1918,7 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.98 * background);
 
-  // return color;
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -3598,7 +3599,7 @@ void main() {
       glRs, 0.0,  glRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.025;
+    const float dofCoeficient = 0.015;
 #endif
 
     #ifdef SS
