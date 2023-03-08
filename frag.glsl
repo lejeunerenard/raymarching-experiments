@@ -6,10 +6,10 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
-#define ORTHO 1
+// #define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.6;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1593,7 +1593,7 @@ vec2 componentShift (in vec2 q) {
   return q.yx;
 }
 
-float gR = 0.05;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1607,11 +1607,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.05 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.05 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1622,31 +1622,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float rollingScale = 1.;
 
   // Warp
-  // vec3 wQ = q.xyz;
-  vec4 wQ = vec4(q.xyz, 0.);
+  vec3 wQ = q.xyz;
+  // vec4 wQ = vec4(q.xyz, 0.);
 
   float period = 3.;
 
-  // wQ.x += 0.50000 * warpScale * cos( period * warpFrequency * wQ.w + localCosT + 0.3);
-  // wQ.xy *= rotMat2(wQ.z + localCosT);
-  // wQ.y += 0.50000 * warpScale * cos( period * warpFrequency * wQ.x + localCosT);
-  // wQ.yz *= rotMat2(wQ.w - localCosT);
-  // wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
-  // wQ.zw *= rotMat2(wQ.x + localCosT);
-  // wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
-  // wQ.wx *= rotMat2(wQ.y - localCosT);
-  // wQ.x += 0.50000 * warpScale * cos( period * warpFrequency * wQ.w + localCosT);
-  // wQ.xy *= rotMat2(wQ.z + localCosT);
-  // wQ.y += 0.50000 * warpScale * cos( period * warpFrequency * wQ.x + localCosT);
-  // wQ.yz *= rotMat2(wQ.w - localCosT);
-  // wQ.z += 0.50000 * warpScale * cos( period * warpFrequency * wQ.y + localCosT);
-  // wQ.w += 0.50000 * warpScale * cos( period * warpFrequency * wQ.z + localCosT);
-
-  // wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.05000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.01250 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.00525 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.10000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.05000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.01250 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.00525 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + localCosT);
 
   // wQ += 0.001 * triangleWave(1129. * (wQ.yzx + 20.  * triangleWave(vec3(1, 2, -3) * wQ)));
 
@@ -1654,18 +1639,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec2 c = floor((q.xy + size*0.5)/size);
-  q.xy = opRepLim(q.xy, size.x, vec2(14));
+  // vec2 c = floor((q.xy + size*0.5)/size);
+  // q.xy = opRepLim(q.xy, size.x, vec2(14));
 
   // q.xy += 0.20 * size * snoise2(0.2 * c + 0.7 * cos(localCosT - 0.5 * vmax(abs(c))));
-  q.xy += 0.15 * size * sign(c) * cos(localCosT - length(c) - 0.0 * vmax(abs(c)) + 3. * q.z);
+  // q.xy += 0.15 * size * sign(c) * cos(localCosT - length(c) - 0.0 * vmax(abs(c)) + 3. * q.z);
 
-  vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
-  // vec3 b = vec3(length(wQ) - r, 0, wNess);
+  // vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
+  vec3 b = vec3(length(wQ) - r, 0, 0);
   // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
   d = dMin(d, b);
 
-  d.x *= 0.10;
+  d.x *= 0.90;
 
   return d;
 }
@@ -1918,6 +1903,8 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.98 * background);
 
+  color *= 1. - pow(dot(rd, nor), 2.0);
+
   return color;
 
   float dNR = dot(nor, -rd);
@@ -2087,14 +2074,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
+      float freCo = 0.6;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.9;
-      float shadowMin = 0.7;
+      float shadowMin = 0.3;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2150,11 +2137,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2182,7 +2169,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
