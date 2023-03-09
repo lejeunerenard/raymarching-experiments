@@ -1618,7 +1618,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 0.3;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1646,11 +1646,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // q.xy += 0.15 * size * sign(c) * cos(localCosT - length(c) - 0.0 * vmax(abs(c)) + 3. * q.z);
 
   // vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
-  vec3 b = vec3(length(wQ) - r, 0, 0);
+  // vec3 b = vec3(length(wQ) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
   d = dMin(d, b);
 
-  d.x *= 0.90;
+  d.x *= 0.80;
 
   return d;
 }
@@ -1903,10 +1904,6 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.98 * background);
 
-  color *= 1. - pow(dot(rd, nor), 2.0);
-
-  return color;
-
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
@@ -2074,14 +2071,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
-      float specCo = 0.5;
+      float freCo = 0.3;
+      float specCo = 0.2;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.9;
-      float shadowMin = 0.3;
+      float diffMin = 0.3;
+      float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2169,7 +2166,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
