@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1617,7 +1617,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.7;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1627,7 +1627,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float period = 3.;
 
   wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
   wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
   wQ += 0.01250 * warpScale * cos(16. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.x);
@@ -1638,12 +1638,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
-  vec3 b = vec3(length(wQ) - r, 0, 0);
+  vec3 b = vec3(r - length(wQ.xy), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
   d = dMin(d, b);
 
-  d.x *= 0.30;
+  float crop = length(p.xy) - 1.5 * r;
+  d.x = max(d.x, crop);
+
+  // d.x *= 0.30;
 
   return d;
 }
@@ -2128,11 +2131,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2155,8 +2158,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
-      // float dispersionI = 1.0;
+      // float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.5);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
@@ -2167,7 +2170,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.0));
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 1.0));
       // color = saturate(dispersionColor);
 #endif
 
@@ -2176,7 +2179,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
+      // color *= saturate(exp(-d * 0.05));
       // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
