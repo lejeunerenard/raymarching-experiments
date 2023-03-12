@@ -1629,24 +1629,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ += 0.01250 * warpScale * cos(16. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.x);
-  wQ += 0.00525 * warpScale * cos(32. * warpFrequency * componentShift(wQ) + localCosT);
+
+  // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.01250 * warpScale * cos(16. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.x);
+  // wQ += 0.00525 * warpScale * cos(32. * warpFrequency * componentShift(wQ) + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  float a = atan(q.y, q.x);
+  // r += 0.1 * cos(TWO_PI * q.z + a);
+
+  float gyroid = dot(sin(q.xy), cos(q.yx));
+  r += 0.2 * gyroid;
+
   // vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
   vec3 b = vec3(r - length(wQ.xy), 0, 0);
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
+
+  b.x += 0.05 * cellular(2. * p);
+
   d = dMin(d, b);
 
   float crop = length(p.xy) - 1.5 * r;
   d.x = max(d.x, crop);
 
-  // d.x *= 0.30;
+  d.x *= 0.70;
 
   return d;
 }
@@ -1897,7 +1907,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.3);
+  vec3 color = vec3(0);
 
   return color;
 
@@ -2164,13 +2174,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 1.0));
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
       // color = saturate(dispersionColor);
 #endif
 
