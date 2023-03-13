@@ -1593,7 +1593,7 @@ vec2 componentShift (in vec2 q) {
   return q.yx;
 }
 
-float gR = 0.5;
+float gR = 0.25;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1607,11 +1607,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.05 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 1.0 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.05 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1624,37 +1624,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Warp
   vec3 wQ = q.xyz;
 
-  float period = 3.;
+  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
 
-  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  for (float i = 0.; i < 7.; i++) {
+    wQ = abs(wQ);
 
-  // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.01250 * warpScale * cos(16. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.x);
-  // wQ += 0.00525 * warpScale * cos(32. * warpFrequency * componentShift(wQ) + localCosT);
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+
+    rollingScale *= scale;
+  }
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float a = atan(q.y, q.x);
-  // r += 0.1 * cos(TWO_PI * q.z + a);
-
-  float gyroid = dot(sin(q.xy), cos(q.yx));
-  r += 0.2 * gyroid;
-
-  // vec3 b = vec3(sdCappedCylinder(q.xzy, r * vec2(1, 3)), 0, 0);
-  vec3 b = vec3(r - length(wQ.xy), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(sdTorus(wQ.xzy, vec2(r, 0.1 * r)), 0, wNess);
-
-  b.x += 0.05 * cellular(2. * p);
-
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x /= rollingScale;
   d = dMin(d, b);
 
-  float crop = length(p.xy) - 1.5 * r;
-  d.x = max(d.x, crop);
+  // float crop = length(p.xy) - 1.5 * r;
+  // d.x = max(d.x, crop);
 
   d.x *= 0.70;
 
