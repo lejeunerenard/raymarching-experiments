@@ -1564,17 +1564,6 @@ float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   return d;
 }
 
-// float gyroid3 (in vec3 p, in float thickness) {
-//   // float gyroid = dot(sin(p), cos(p.yzx));
-//   vec3 sP = sin(p);
-//   vec3 sP2 = sin(p.yzx + 0.33 * TWO_PI);
-//   vec3 sP3 = sin(p.zxy + 0.67 * TWO_PI);
-//   float gyroid = sP.x * sP2.x * sP3.x
-//     + sP.y * sP2.y * sP3.y
-//     + sP.z * sP2.z * sP3.z;
-//   return abs(gyroid) - thickness;
-// }
-
 float crossGyroid (in vec3 p, in float thickness) {
   vec3 xross = cross(sin(p), cos(p.yzx));
   float gyroid = dot(xross, xross);
@@ -1591,6 +1580,11 @@ vec3 componentShift (in vec3 q) {
 
 vec2 componentShift (in vec2 q) {
   return q.yx;
+}
+
+float gyroid (in vec4 p, in float thickness) {
+  float gyroid = dot(sin(p), cos(componentShift(p)));
+  return abs(gyroid) - thickness;
 }
 
 float gR = 0.25;
@@ -1622,32 +1616,45 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float rollingScale = 1.;
 
   // Warp
-  vec3 wQ = q.xyz;
+  // vec3 wQ = q.xyz;
+  vec4 wQ = vec4(q.xyz, 0);
 
-  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-
-  for (float i = 0.; i < 7.; i++) {
-    wQ = abs(wQ);
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-
-    rollingScale *= scale;
-  }
+  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + localCosT);
+  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ.ywz = twist(wQ.yzw, 2. * wQ.z + 0.5 * PI * cos(localCosT));
+  wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  b.x /= rollingScale;
-  d = dMin(d, b);
+  vec3 b;
 
-  // float crop = length(p.xy) - 1.5 * r;
+  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
+  // d = dMin(d, b);
+
+  // b = vec3(-(length(wQ) - r), 0, 0);
+  // d = dSMax(d, b, 0.2 * r);
+
+  // vec4 gyroidQ = wQ;
+  // float gyroidScale = 18.;
+  // gyroidQ *= gyroidScale;
+  // vec3 b = vec3(gyroid(gyroidQ, 0.4 * r), 0, 0);
+  // b.x /= gyroidScale;
+  // d = dMin(d, b);
+
+  // float crop = length(wQ) - 1.0 * r;
   // d.x = max(d.x, crop);
 
-  d.x *= 0.70;
+  vec4 blobQ = wQ;
+  blobQ = abs(blobQ);
+  b = vec3(length(blobQ + vec4(-1.0 * r)) - r, 0, 0);
+  d = dSMin(d, b, 0.2 * r);
+
+  d.x *= 0.20;
 
   return d;
 }
@@ -2159,8 +2166,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.5);
-      float dispersionI = 1.0;
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.5);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
