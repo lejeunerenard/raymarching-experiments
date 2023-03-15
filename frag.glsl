@@ -1036,22 +1036,37 @@ vec4 pieSpace (in vec3 p, in float relativeC) {
 
 float r = 1.50;
 float sdHollowBox (in vec3 q, in vec3 r, in float thickness) {
+  const float cropHeight = 30.;
+
   float b = sdBox(q, r);
 
   // crop inners
   vec3 cropR = r - thickness;
   vec3 cropQ = q;
-  float crop = sdBox(cropQ, vec3(30, cropR.y, cropR.z));
+  float crop = sdBox(cropQ, vec3(cropHeight, cropR.y, cropR.z));
 
-  if (abs(q.y) > abs(q.x)) {
-    cropQ.yx = cropQ.xy;
-  }
-  crop = min(crop, sdBox(cropQ, vec3(30, cropR.x, cropR.z)));
+  crop = min(crop, sdBox(cropQ, vec3(cropR.x, cropHeight, cropR.z)));
 
-  if (abs(q.z) > abs(q.x)) {
-    cropQ.zx = cropQ.xz;
-  }
-  crop = min(crop, sdBox(cropQ, vec3(30, cropR.x, cropR.y)));
+  crop = min(crop, sdBox(cropQ, vec3(cropR.x, cropR.y, cropHeight)));
+
+  return max(b, -crop);
+}
+
+float sdHollowBox (in vec4 q, in vec4 r, in float thickness) {
+  const float cropHeight = 30.;
+
+  float b = sdBox(q, r);
+
+  // crop inners
+  vec4 cropR = r - thickness;
+  vec4 cropQ = q;
+  float crop = sdBox(cropQ, vec4(cropHeight, cropR.y, cropR.z, cropR.w));
+
+  crop = min(crop, sdBox(cropQ, vec4(cropR.x, cropHeight, cropR.z, cropR.w)));
+
+  crop = min(crop, sdBox(cropQ, vec4(cropR.x, cropR.y, cropHeight, cropR.w)));
+
+  crop = min(crop, sdBox(cropQ, vec4(cropR.x, cropR.y, cropR.z, cropHeight)));
 
   return max(b, -crop);
 }
@@ -1611,7 +1626,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1619,13 +1634,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 wQ = q.xyz;
   vec4 wQ = vec4(q.xyz, 0);
 
+  wQ.xyz *= rotationMatrix(vec3(1, 0, 0), cos(localCosT));
+  wQ.yzw *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.3 * PI));
+  wQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
+  wQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
+
   wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + localCosT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
   wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
   wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ.ywz = twist(wQ.yzw, 2. * wQ.z + 0.5 * PI * cos(localCosT));
+  // wQ.ywz = twist(wQ.yzw, 1. * wQ.z + 0.5 * PI * cos(localCosT));
   wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
+  // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
   // Commit warp
   q = wQ.xyz;
@@ -1649,9 +1669,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float crop = length(wQ) - 1.0 * r;
   // d.x = max(d.x, crop);
 
+  // b = vec3(sdHollowBox(wQ.xyz, vec3(1.5 * r, 0.5 * r, r), 0.2 * r), 0, 0);
+  // d = dMin(d, b);
+
   vec4 blobQ = wQ;
   blobQ = abs(blobQ);
-  b = vec3(length(blobQ + vec4(-1.0 * r)) - r, 0, 0);
+  b = vec3(sdHollowBox(blobQ - vec4(1.3 * r), vec4(r), 0.2 * r), 0, 0);
   d = dSMin(d, b, 0.2 * r);
 
   d.x *= 0.20;
@@ -1905,7 +1928,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.9);
 
   return color;
 
@@ -2083,7 +2106,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 1.0;
-      float shadowMin = 0.75;
+      float shadowMin = 0.70;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2139,11 +2162,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2153,7 +2176,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
