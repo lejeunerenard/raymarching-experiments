@@ -1602,7 +1602,7 @@ float gyroid (in vec4 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
-float gR = 0.25;
+float gR = 0.2;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1611,7 +1611,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = vec2(2.7 * r);
+  vec4 size = vec4(2.5 * r);
   float bigR = r * 4.;
 
   // Positioning adjustments
@@ -1622,7 +1622,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1634,18 +1634,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 wQ = q.xyz;
   vec4 wQ = vec4(q.xyz, 0);
 
-  wQ.xyz *= rotationMatrix(vec3(1, 0, 0), cos(localCosT));
-  wQ.yzw *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.3 * PI));
-  wQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
-  wQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
+  // wQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
+  // wQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
+  // wQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
+  // wQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
 
-  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ.ywz = twist(wQ.yzw, 1. * wQ.z + 0.5 * PI * cos(localCosT));
-  wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
+  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
+  // // wQ.ywz = twist(wQ.yzw, 1. * wQ.z + 0.5 * PI * cos(localCosT));
+  // wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  // // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
   // Commit warp
   q = wQ.xyz;
@@ -1673,11 +1673,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d = dMin(d, b);
 
   vec4 blobQ = wQ;
-  blobQ = abs(blobQ);
-  b = vec3(sdHollowBox(blobQ - vec4(1.3 * r), vec4(r), 0.2 * r), 0, 0);
-  d = dSMin(d, b, 0.2 * r);
+  // blobQ = abs(blobQ);
+  vec4 c = pMod4(blobQ, size);
+  b = vec3(sdHollowBox(blobQ, vec4(r), 0.2 * r), 0, 0);
+  d = dMin(d, b);
 
-  d.x *= 0.20;
+  blobQ = wQ;
+  blobQ.xyz -= 0.5 * size.xyz;
+  c = pMod4(blobQ, size);
+  b = vec3(sdHollowBox(blobQ, vec4(r), 0.2 * r), 0, 0);
+  d = dMin(d, b);
+
+  // float crop = sdBox(p, 2. * size.xyz);
+  float crop = length(p) - 2. * vmax(size.xyz);
+  d.x = max(d.x, crop);
+
+  d.x *= 0.50;
 
   return d;
 }
@@ -2207,11 +2218,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // // color *= saturate(exp(-d * 0.05));
+      // // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
