@@ -1634,18 +1634,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 wQ = q.xyz;
   vec4 wQ = vec4(q.xyz, 0);
 
-  // wQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
-  // wQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
-  // wQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
-  // wQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
-
-  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
+  pModPolar(wQ.xy, 5.);
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ.ywz = twist(wQ.yzw, 1. * wQ.z + 0.5 * PI * cos(localCosT));
-  wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
+  wQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
+  pModPolar(wQ.zw, 6.);
+  wQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
+  pModPolar(wQ.xz, 4.);
+  wQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
+  pModPolar(wQ.yw, 3.);
+
+  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
+  // // wQ.ywz = twist(wQ.yzw, 1. * wQ.z + 0.5 * PI * cos(localCosT));
+  // wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  // // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
   // Commit warp
   q = wQ.xyz;
@@ -1669,44 +1673,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float crop = length(wQ) - 1.0 * r;
   // d.x = max(d.x, crop);
 
-  // b = vec3(sdHollowBox(wQ.xyz, vec3(1.5 * r, 0.5 * r, r), 0.2 * r), 0, 0);
-  // d = dMin(d, b);
-
   const float rScale = 1.2;
 
   float thickness = 0.2 * r;
   vec4 blobQ = wQ;
-  // blobQ.w += 2. * r * cos(localCosT);
-  // blobQ = abs(blobQ);
-  // vec4 c = pMod4(blobQ, size);
   b = vec3(sdHollowBox(blobQ, vec4(r), thickness), 0, 0);
-  d = dMin(d, b);
-  r *= rScale;
-
-  blobQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
-  blobQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
-  blobQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
-  blobQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
-
-  b = vec3(sdHollowBox(blobQ.yzwx, vec4(r), thickness), 0, 0);
-  d = dMin(d, b);
-  r *= rScale;
-
-  blobQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
-  blobQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
-  blobQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
-  blobQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
-
-  b = vec3(sdHollowBox(blobQ.zwxy, vec4(r), thickness), 0, 0);
-  d = dMin(d, b);
-  r *= rScale;
-
-  blobQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
-  blobQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
-  blobQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
-  blobQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
-
-  b = vec3(sdHollowBox(blobQ.wxyz, vec4(r), thickness), 0, 0);
   d = dMin(d, b);
 
   // blobQ = wQ;
@@ -1719,7 +1690,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.50;
+  d.x *= 0.20;
 
   return d;
 }
