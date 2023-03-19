@@ -1611,7 +1611,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec4 size = vec4(2.5 * r);
+  vec2 size = vec2(2.2 * r);
   float bigR = r * 4.;
 
   // Positioning adjustments
@@ -1622,7 +1622,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1631,66 +1631,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float rollingScale = 1.;
 
   // Warp
-  // vec3 wQ = q.xyz;
-  vec4 wQ = vec4(q.xyz, 0);
+  vec3 wQ = q.xyz;
+  // vec4 wQ = vec4(q.xyz, 0);
 
-  wQ.xyz *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT));
-  pModPolar(wQ.xy, 5.);
+  wQ *= rotationMatrix(vec3(-1, 1, 1), 0.2 * PI);
+
+  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ.yzw *= rotationMatrix(vec3(1, 1, 1), 0.1 * PI * cos(localCosT + 0.3 * PI));
-  pModPolar(wQ.zw, 6.);
-  wQ.zwx *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.6 * PI));
-  pModPolar(wQ.xz, 4.);
-  wQ.wxy *= rotationMatrix(vec3(1, 0, 0), cos(localCosT + 0.9 * PI));
-  pModPolar(wQ.yw, 3.);
+  wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
-  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  // // wQ.ywz = twist(wQ.yzw, 1. * wQ.z + 0.5 * PI * cos(localCosT));
-  // wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  // // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
-
+  vec2 c = floor((wQ.xz + size*0.5)/size);
+  wQ.xz = opRepLim(wQ.xz, size.x, vec2(2));
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b;
-
-  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
-  // d = dMin(d, b);
-
-  // b = vec3(-(length(wQ) - r), 0, 0);
-  // d = dSMax(d, b, 0.2 * r);
-
-  // vec4 gyroidQ = wQ;
-  // float gyroidScale = 18.;
-  // gyroidQ *= gyroidScale;
-  // vec3 b = vec3(gyroid(gyroidQ, 0.4 * r), 0, 0);
-  // b.x /= gyroidScale;
-  // d = dMin(d, b);
-
-  // float crop = length(wQ) - 1.0 * r;
-  // d.x = max(d.x, crop);
-
-  const float rScale = 1.2;
-
-  float thickness = 0.2 * r;
-  vec4 blobQ = wQ;
-  b = vec3(sdHollowBox(blobQ, vec4(r), thickness), 0, 0);
+  float h = 1. - 0.2 * length(c);
+  vec3 b = vec3(sdCapsule(q, vec3(0, h, 0), vec3( 0,-h, 0), r), 0, 0);
   d = dMin(d, b);
-
-  // blobQ = wQ;
-  // blobQ.xyz -= 0.5 * size.xyz;
-  // c = pMod4(blobQ, size);
-  // b = vec3(sdHollowBox(blobQ, vec4(r), 0.2 * r), 0, 0);
-  // d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.20;
+  d.x *= 0.22;
 
   return d;
 }
@@ -1941,21 +1908,20 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.95);
-
+  vec3 color = vec3(0.2);
   return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
   dI += 0.3 * snoise3(0.3 * pos);
-  dI += trap;
+  // dI += trap;
 
   dI *= angle1C;
   dI += angle2C;
 
   color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
-  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0,-0.3, 0.4)));
+  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0,-0.3, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -2175,11 +2141,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2189,7 +2155,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2213,8 +2179,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
       // color = saturate(dispersionColor);
 #endif
 
