@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1611,7 +1611,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.125;
+float gR = 0.10;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1620,7 +1620,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(2.0);
+  vec2 size = r * vec2(5.0);
   float bigR = r * 4.;
 
   // Positioning adjustments
@@ -1652,43 +1652,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
   // // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
-  vec2 c = floor((wQ.xz + size*0.5)/size);
-  wQ.xz = opRepLim(wQ.xz, size.x, vec2(29));
-  // wQ.xz *= rotMat2(0.333333 * PI * c.x);
+  vec3 c = floor((wQ.xyz + size.x*0.5)/size.x);
+  t += dot(c.zy, vec2(0.1,-0.2));
+  t = mod(t, 1.);
+
+  wQ.x += size.x * expo(t);
+  wQ = opRepLim(wQ, size.x, vec3(5));
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float h = 1. - 0.12 * length(c);
-
-  vec3 b = vec3(tile(q, vec2( 0,  0) + c, r, size), 0, 0);
-  d = dMin(d, b);
-
-  q = wQ.xyz;
-  q.x += -1. * size.x;
-  b = vec3(tile(q, vec2( 1,  0) + c, r, size), 0, 0);
-  d = dMin(d, b);
-
-  q = wQ.xyz;
-  q.x +=  1. * size.x;
-  b = vec3(tile(q, vec2(-1,  0) + c, r, size), 0, 0);
-  d = dMin(d, b);
-
-  q = wQ.xyz;
-  q.z +=  1. * size.y;
-  b = vec3(tile(q, vec2( 0, -1) + c, r, size), 0, 0);
-  d = dMin(d, b);
-
-  q = wQ.xyz;
-  q.z += -1. * size.y;
-  b = vec3(tile(q, vec2( 0,  1) + c, r, size), 0, 0);
+  vec3 b = vec3(sdCapsule(q, vec3(0.475 * size.x - r, 0, 0), vec3(-(0.475 * size.x - r), 0, 0), r), 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.22;
+  // d.x *= 0.22;
 
   return d;
 }
@@ -2109,8 +2091,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
-      float specCo = 0.4;
+      float freCo = 1.0;
+      float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
@@ -2204,11 +2186,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
-      // dispersionColor.g = pow(dispersionColor.g, 0.8);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.g = pow(dispersionColor.g, 0.8);
 
-      dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
+      // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
