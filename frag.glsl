@@ -1648,7 +1648,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
   // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
   // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  // // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
   // wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
   // // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
 
@@ -1656,21 +1656,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   t += dot(c.zy, vec2(0.1,-0.2));
   t = mod(t, 1.);
 
-  wQ.x += size.x * expo(t);
-  wQ = opRepLim(wQ, size.x, vec3(5));
+  wQ.x += 2. * size.x * expo(t);
+  wQ = opRepLim(wQ, size.x, vec3(7));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdCapsule(q, vec3(0.475 * size.x - r, 0, 0), vec3(-(0.475 * size.x - r), 0, 0), r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(0.475 * size.x - r, r, r)), 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  // d.x *= 0.22;
+  d.x *= 0.22;
 
   return d;
 }
@@ -1900,7 +1900,7 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   #endif
 
   vec3 reflectionPoint = gPos - gNor * 0.1 + rd * d;
-  vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001, sine(norT));
+  vec3 reflectionPointNor = getNormal2(reflectionPoint, 0.001, norT);
   dNor = reflectionPointNor;
   dRd = rd;
   reflectionPointNor = normalize(reflectionPointNor);
@@ -2154,11 +2154,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2176,8 +2176,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
