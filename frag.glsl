@@ -1611,7 +1611,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.10;
+float gR = 0.30;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1636,34 +1636,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 2.0;
-  float warpFrequency = 1.0;
+  float warpFrequency = 0.9;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
-  // wQ *= rotationMatrix(vec3(-1, 1, 1), 0.2 * PI);
-
-  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  // wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  // wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  // // wQ.zxw = twist(wQ.zwx, 2. * wQ.w + 0.5 * PI * sin(localCosT));
-
-  vec3 c = floor((wQ.xyz + size.x*0.5)/size.x);
-  t += dot(c.zy, vec2(0.1,-0.2));
-  t = mod(t, 1.);
-
-  wQ.x += 2. * size.x * expo(t);
-  wQ = opRepLim(wQ, size.x, vec3(7));
+  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(0.475 * size.x - r, r, r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
@@ -1944,7 +1935,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color += vec3(0, 1, 0) * rot * dNR;
   color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  color *= 0.5;
+  color *= 0.4;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -2097,8 +2088,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.4;
-      float shadowMin = 0.6;
+      float diffMin = 0.5;
+      float shadowMin = 0.7;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2154,16 +2145,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.15 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.15 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
@@ -2176,8 +2167,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
