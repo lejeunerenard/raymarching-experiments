@@ -1611,7 +1611,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.30;
+float gR = 0.40;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1625,17 +1625,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.05 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.05 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 2.0;
+  float warpScale = 0.7;
   float warpFrequency = 0.9;
   float rollingScale = 1.;
 
@@ -1649,12 +1649,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
   wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  wQ += 0.00525 * warpScale * cos(14. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ += 0.00262 * warpScale * cos(18. * warpFrequency * componentShift(wQ) + localCosT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  b.x -= 0.006 * cellular(3. * q);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
@@ -2148,7 +2151,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.15 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       vec3 refractColor = vec3(0);
