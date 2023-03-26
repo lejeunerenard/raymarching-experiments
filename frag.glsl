@@ -1635,7 +1635,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.7;
+  float warpScale = 0.5;
   float warpFrequency = 0.9;
   float rollingScale = 1.;
 
@@ -1656,8 +1656,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  b.x -= 0.006 * cellular(3. * q);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
