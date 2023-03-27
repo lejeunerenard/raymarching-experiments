@@ -1633,8 +1633,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.0;
-  float warpFrequency = 0.125;
+  float warpScale = 1.0;
+  float warpFrequency = 0.25;
   float rollingScale = 1.;
 
   // Warp
@@ -1644,26 +1644,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 #define distortT t
 
   wQ += 0.10000 * warpScale * expo(triangleWave( 2. * warpFrequency * componentShift(wQ) + distortT));
-  wQ += 0.05000 * warpScale * quad(triangleWave( 4. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
-  wQ += 0.02500 * warpScale * quad(triangleWave( 8. * warpFrequency * componentShift(wQ) + distortT));
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ += 0.01250 * warpScale * quad(triangleWave(12. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += 0.00525 * warpScale * quad(triangleWave(14. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
-  wQ += 0.00262 * warpScale * quad(triangleWave(18. * warpFrequency * componentShift(wQ) + distortT));
+  // wQ += 0.05000 * warpScale * expo(triangleWave( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
+  // wQ += 0.02500 * warpScale * expo(triangleWave(11. * warpFrequency * componentShift(wQ) + distortT));
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  // wQ += 0.01250 * warpScale * expo(triangleWave(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
+  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  // wQ += 0.00525 * warpScale * expo(triangleWave(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
+  // wQ += 0.00262 * warpScale * expo(triangleWave(19. * warpFrequency * componentShift(wQ) + distortT));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  // d.x *= 0.22;
+  d.x *= 0.82;
 
   return d;
 }
@@ -2161,7 +2161,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3191,73 +3191,17 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = 1.125 * vec2(0.005, 0.015);
-  vec2 size = vec2(1.) * vmax(r);
+  vec2 r = vec2(0.05);
+  vec2 size = vec2(3) * r;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= 2.5;
-
-  // wQ *= rotMat2(0.25 * PI);
-
   // vec2 c = floor((wQ + 0.5 * size) / size);
 
   float warpFactor = 2.5;
-  float nudge = 0.1 + 0.2 * cos(localCosT); // PI * 0.25;
 
-  // mat2 componentRot = rotMat2(0.2 + 0.05 * length(wQ));
-
-// #define componentRot rotationMatrix2(0.1 + 0.02 * length(wQ) + 0.1 * cos(localCosT))
-
-  // wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.y -= 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.y += 0.5 * warpScale * cos( warpFactor * wQ.x + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-  // wQ.x += 0.5 * warpScale * cos( warpFactor * wQ.y + localCosT );
-  // wQ += nudge; nudge *= -1.;
-  // wQ *= componentRot;
-
-  // wQ += 0.1000000 * warpScale * cos( 3. * wQ.yx + localCosT );
-  // wQ += 0.0500000 * warpScale * cos( 9. * wQ.yx + localCosT );
-  // wQ += 0.0250000 * warpScale * cos(13. * wQ.yx + localCosT );
-  // wQ += 0.0125000 * warpScale * cos(19. * wQ.yx + localCosT );
-  // wQ += 0.0062500 * warpScale * cos(23. * wQ.yx + localCosT );
-  // wQ += 0.0031250 * warpScale * cos(29. * wQ.yx + localCosT );
-  // wQ += 0.0015625 * warpScale * cos(33. * wQ.yx + localCosT );
-
-  // wQ.x += 0.333 * size.x * mod(c.y, 3.);
-
-  // c = pMod2(wQ, size);
+  vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3266,9 +3210,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // vec2 b = vec2(sdBox(q, r), 0);
-  // // vec2 b = vec2(sdTriPrism(vec3(q, 0), vec2(r.x, 1)), 0);
-  // d = dMin(d, b);
+  t -= dot(abs(c), vec2(0.03));
+  t = mod(t, 1.);
+  t = triangleWave(t);
+  t = expo(t);
+
+  q *= rotMat2(0.25 * PI * circ(1. - t));
+  r -= 1.01 * r * (1. - t);
+
+  vec2 b = vec2(sdBox(q, r), 0);
+  d = dMin(d, b);
+
+  float crop = sdBox(q, r - 0.2 * vmin(r));
+  d.x = max(d.x, -crop);
 
   // vec2 b = vec2(sin(TWO_PI * 80. * q.x), 0);
   // d = dMin(d, b);
@@ -3284,11 +3238,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(20. * TWO_PI * n);
 
-  // // Hard Edge
-  // n = smoothstep(0., 0.5 * edge, n - 0.0);
+  // Hard Edge
+  n = smoothstep(0., 0.5 * edge, n - 0.0);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // n = abs(n);
 
@@ -3336,19 +3290,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // color = vec3(line);
   // color = mix(vec3(0), color, step(edge, n));
 
-  // Grid spinners?
-  const float baseGridSize = 0.10;
-  float gridSize = baseGridSize;
-  gridSize += 0.3 * gridSize * cos(localCosT - length(q));
+  // // Grid spinners?
+  // const float baseGridSize = 0.10;
+  // float gridSize = baseGridSize;
+  // gridSize += 0.3 * gridSize * cos(localCosT - length(q));
 
-  vec2 c = pMod2(q, vec2(gridSize));
-  q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.75 * PI * cnoise2(c));
-  // float line = abs(q.y) - 0.015625 * baseGridSize;
-  float line = sdBox(q, vec2(0.015625, 0.3) * baseGridSize);
-  line = smoothstep(1.0 * edge, 0., line);
-  // line *= step(0., -sdBox(c * rotMat2(0.25 * PI), vec2(5)));
-  line *= step(0., -sdBox(c, vec2(8)));
-  color = vec3(line);
+  // vec2 c = pMod2(q, vec2(gridSize));
+  // q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.75 * PI * cnoise2(c));
+  // // float line = abs(q.y) - 0.015625 * baseGridSize;
+  // float line = sdBox(q, vec2(0.015625, 0.3) * baseGridSize);
+  // line = smoothstep(1.0 * edge, 0., line);
+  // // line *= step(0., -sdBox(c * rotMat2(0.25 * PI), vec2(5)));
+  // line *= step(0., -sdBox(c, vec2(8)));
+  // color = vec3(line);
 
   // // Grid crosses
   // float gridSize = 0.0175;
@@ -3420,7 +3374,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3451,20 +3405,20 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
-  // -- Echoed Layers --
-  const float echoSlices = 8.;
-  for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
-    uv.y += 0.005;
-  }
-  return vec4(color, 1);
+  // // -- Echoed Layers --
+  // const float echoSlices = 8.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
+  //   uv.y += 0.005;
+  // }
+  // return vec4(color, 1);
 
   // -- Color delay --
   const float slices = 10.;
-  const float delayLength = 0.1;
+  const float delayLength = 0.05;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
@@ -3494,7 +3448,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // layerTint = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
     layerTint += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerTint + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-    layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+    // layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
 
     // // Solid Layer color
     // layerTint = vec3(5.0);
