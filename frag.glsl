@@ -733,8 +733,6 @@ vec3 quad (in vec3 x) {
 
 vec3 expoWave (in vec3 q) {
   q = triangleWave(q);
-  q += 1.;
-  q *= 0.5;
   return -1. + 2. * expo(q);
 }
 
@@ -1611,7 +1609,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.40;
+float gR = 0.475;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1635,35 +1633,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 0.9;
+  float warpScale = 2.0;
+  float warpFrequency = 0.125;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
-  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + localCosT);
-  wQ += 0.05000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  wQ += 0.02500 * warpScale * cos( 8. * warpFrequency * componentShift(wQ) + localCosT);
+#define distortT t
+
+  wQ += 0.10000 * warpScale * expo(triangleWave( 2. * warpFrequency * componentShift(wQ) + distortT));
+  wQ += 0.05000 * warpScale * quad(triangleWave( 4. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
+  wQ += 0.02500 * warpScale * quad(triangleWave( 8. * warpFrequency * componentShift(wQ) + distortT));
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ += 0.01250 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
+  wQ += 0.01250 * warpScale * quad(triangleWave(12. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += 0.00525 * warpScale * cos(14. * warpFrequency * componentShift(wQ) + localCosT + PI * wQ.z);
-  wQ += 0.00262 * warpScale * cos(18. * warpFrequency * componentShift(wQ) + localCosT);
+  wQ += 0.00525 * warpScale * quad(triangleWave(14. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
+  wQ += 0.00262 * warpScale * quad(triangleWave(18. * warpFrequency * componentShift(wQ) + distortT));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.22;
+  // d.x *= 0.22;
 
   return d;
 }
