@@ -1609,7 +1609,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.475;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1634,36 +1634,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 0.25;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
-#define distortT t
+#define distortT localCosT
 
-  wQ += 0.10000 * warpScale * expo(triangleWave( 2. * warpFrequency * componentShift(wQ) + distortT));
-  // wQ += 0.05000 * warpScale * expo(triangleWave( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
-  // wQ += 0.02500 * warpScale * expo(triangleWave(11. * warpFrequency * componentShift(wQ) + distortT));
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  // wQ += 0.01250 * warpScale * expo(triangleWave(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
+  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
+  wQ += 0.05000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
   // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += 0.00525 * warpScale * expo(triangleWave(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z));
-  // wQ += 0.00262 * warpScale * expo(triangleWave(19. * warpFrequency * componentShift(wQ) + distortT));
+  // wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  // wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.1)), 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.82;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1914,8 +1914,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
-  // return color;
+  vec3 color = vec3(1.);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2090,8 +2090,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.7;
+      float diffMin = 0.0;
+      float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -3374,7 +3374,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3408,102 +3408,102 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // // -- Single layer --
   // return renderSceneLayer(ro, rd, uv);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 8.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
-  //   uv.y += 0.005;
-  // }
-  // return vec4(color, 1);
-
-  // -- Color delay --
-  const float slices = 10.;
-  const float delayLength = 0.05;
-
-  for (float i = 0.; i < slices; i++) {
-    vec3 layerColor = vec3(0.);
-
-    // -- Apply Scene as Mask --
-    float layerT = norT
-      - delayLength * i / slices;
-    layerColor = renderSceneLayer(ro, rd, uv, layerT).rgb;
-
-    // -- Get Layer Color --
-    vec3 layerTint = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (i / slices + vec3(0, 0.33, 0.67)));
-    // vec3 layerTint = vec3(
-    //     saturate(mod(i + 0., 3.)),
-    //     saturate(mod(i + 1., 3.)),
-    //     saturate(mod(i + 2., 3.))
-    // );
-
-    // Cosine Palette
-    vec3 dI = vec3(i / slices);
-    dI += dot(uv, vec2(0.7));
-    // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
-
-    dI *= 0.6;
-
-    dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1))); // Vary over time & diagonal space
-
-    // layerTint = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
-    layerTint += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerTint + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-    // layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
-
-    // // Solid Layer color
-    // layerTint = vec3(5.0);
-
-    // CYM
-    // layerTint = vec3(0);
-    // layerTint += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
-    // layerTint += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
-    // layerTint += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
-    // layerTint *= 0.65;
-    // layerTint *= vec3(1.0, 0.6, 0.60);
-
-    // // -- Layer Post Processing --
-    // layerTint *= colors1; // Tint w/ color 1
-    // layerTint *= 1.5;
-
-    // Add black layer as first layer
-    // layerTint *= step(0.5, i);
-
-    // // Darken exponentially based on total layers
-    // layerTint = pow(layerTint, vec3(4. + slices));
-
-    // -- Apply Layer Tint --
-    layerColor *= layerTint;
-
-    // -- Blend / Aggregate --
-    // if (i == 0.) {
-    //   color = layerColor;
-    // } else {
-    //   color = overlay(color, layerColor);
-    // }
-    // color *= layerColor;
-
-    // vec3 layerColorA = softLight2(color, layerColor);
-    // vec3 layerColorB = color * layerColor;
-    // layerColor = layerColorA + layerColorB;
-    // layerColor *= 0.85;
-
-    // layerColor = overlay(color, layerColor);
-    // layerColor = screenBlend(color, layerColor);
-    // color = mix(color, layerColor, 0.3);
-
-    // Add
-    color += layerColor;
-
-    // // Multiply
-    // color *= layerColor;
-
-    // // Pseudo Multiply
-    // float mask = layerColor.x;
-    // color = mix(color, color * layerColor, mask);
+  // -- Echoed Layers --
+  const float echoSlices = 8.;
+  for (float i = 0.; i < echoSlices; i++) {
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
+    // uv.y += 0.005;
   }
+  return vec4(color, 1);
 
-  color = pow(color, vec3(1.50));
-  color /= slices;
+  // // -- Color delay --
+  // const float slices = 10.;
+  // const float delayLength = 0.05;
+
+  // for (float i = 0.; i < slices; i++) {
+  //   vec3 layerColor = vec3(0.);
+
+  //   // -- Apply Scene as Mask --
+  //   float layerT = norT
+  //     - delayLength * i / slices;
+  //   layerColor = renderSceneLayer(ro, rd, uv, layerT).rgb;
+
+  //   // -- Get Layer Color --
+  //   vec3 layerTint = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (i / slices + vec3(0, 0.33, 0.67)));
+  //   // vec3 layerTint = vec3(
+  //   //     saturate(mod(i + 0., 3.)),
+  //   //     saturate(mod(i + 1., 3.)),
+  //   //     saturate(mod(i + 2., 3.))
+  //   // );
+
+  //   // Cosine Palette
+  //   vec3 dI = vec3(i / slices);
+  //   dI += dot(uv, vec2(0.7));
+  //   // dI += 0.5 * snoise2(vec2(2, 1) * mUv);
+
+  //   dI *= 0.6;
+
+  //   dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1))); // Vary over time & diagonal space
+
+  //   // layerTint = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
+  //   layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
+  //   layerTint += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerTint + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
+  //   // layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+
+  //   // // Solid Layer color
+  //   // layerTint = vec3(5.0);
+
+  //   // CYM
+  //   // layerTint = vec3(0);
+  //   // layerTint += vec3(0, 1, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.0 * dI.x + vec3(0, 0.33, 0.67))));
+  //   // layerTint += vec3(1, 0, 1) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 1.2 * dI.y + vec3(0, 0.33, 0.67))));
+  //   // layerTint += vec3(1, 1, 0) * 1.0 * (0.5 + 0.5 * cos(TWO_PI * (angle2C + 0.8 * dI.z + vec3(0, 0.33, 0.67))));
+  //   // layerTint *= 0.65;
+  //   // layerTint *= vec3(1.0, 0.6, 0.60);
+
+  //   // // -- Layer Post Processing --
+  //   // layerTint *= colors1; // Tint w/ color 1
+  //   // layerTint *= 1.5;
+
+  //   // Add black layer as first layer
+  //   // layerTint *= step(0.5, i);
+
+  //   // // Darken exponentially based on total layers
+  //   // layerTint = pow(layerTint, vec3(4. + slices));
+
+  //   // -- Apply Layer Tint --
+  //   layerColor *= layerTint;
+
+  //   // -- Blend / Aggregate --
+  //   // if (i == 0.) {
+  //   //   color = layerColor;
+  //   // } else {
+  //   //   color = overlay(color, layerColor);
+  //   // }
+  //   // color *= layerColor;
+
+  //   // vec3 layerColorA = softLight2(color, layerColor);
+  //   // vec3 layerColorB = color * layerColor;
+  //   // layerColor = layerColorA + layerColorB;
+  //   // layerColor *= 0.85;
+
+  //   // layerColor = overlay(color, layerColor);
+  //   // layerColor = screenBlend(color, layerColor);
+  //   // color = mix(color, layerColor, 0.3);
+
+  //   // Add
+  //   color += layerColor;
+
+  //   // // Multiply
+  //   // color *= layerColor;
+
+  //   // // Pseudo Multiply
+  //   // float mask = layerColor.x;
+  //   // color = mix(color, color * layerColor, mask);
+  // }
+
+  // color = pow(color, vec3(1.50));
+  // color /= slices;
 
   // // Final layer
   // color.rgb += 1.0 * renderSceneLayer(ro, rd, uv, norT).rgb;
