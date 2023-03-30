@@ -3191,7 +3191,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.05);
+  vec2 r = vec2(0.25);
   vec2 size = vec2(3) * r;
 
   // -- Warp --
@@ -3199,9 +3199,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = floor((wQ + 0.5 * size) / size);
 
-  float warpFactor = 2.5;
+  float warpFactor = 0.3;
 
-  vec2 c = pMod2(wQ, size);
+  // vec2 c = pMod2(wQ, size);
+
+  wQ += 0.1000000 * warpFactor * cos( 3. * componentShift(wQ) + localCosT );
+  wQ += 0.0500000 * warpFactor * cos( 7. * componentShift(wQ) + localCosT );
+  wQ += 0.0250000 * warpFactor * cos(11. * componentShift(wQ) + localCosT );
+  wQ += 0.0125000 * warpFactor * cos(17. * componentShift(wQ) + localCosT );
+  wQ += 0.0062500 * warpFactor * cos(23. * componentShift(wQ) + localCosT );
 
   q = wQ;
   mUv = q;
@@ -3210,19 +3216,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  t -= dot(abs(c), vec2(0.03));
-  t = mod(t, 1.);
+  // t -= dot(abs(c), vec2(0.03));
   t = triangleWave(t);
-  t = expo(t);
+  // t = mod(t, 1.);
+  // t = expo(t);
 
-  q *= rotMat2(0.25 * PI * circ(1. - t));
-  r -= 1.01 * r * (1. - t);
+  q *= rotMat2(0.25 * PI * quad(1. - t));
+  // r -= 0.5 * r * (1. - t);
 
-  vec2 b = vec2(sdBox(q, r), 0);
+  float p = 1. + t;
+  float lp = pow(dot(pow(abs(q), vec2(p)), vec2(1)), 1. / p);
+  lp -= r.x;
+  vec2 b = vec2(abs(lp) - 0.1 * r.x, 0);
   d = dMin(d, b);
 
-  float crop = sdBox(q, r - 0.2 * vmin(r));
-  d.x = max(d.x, -crop);
+  // float crop = sdBox(q, r - 0.1 * vmin(r));
+  // d.x = max(d.x, -crop);
 
   // vec2 b = vec2(sin(TWO_PI * 80. * q.x), 0);
   // d = dMin(d, b);
@@ -3374,7 +3383,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3409,10 +3418,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
-    // uv.y += 0.005;
+    uv.y += 0.005;
   }
   return vec4(color, 1);
 
