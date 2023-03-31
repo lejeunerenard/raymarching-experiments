@@ -1238,7 +1238,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float even = 1. - odd;
 
   const float warpScale = 5.0;
-  vec2 size = vec2(0.85, 0.15);
+  // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
   // vec2 bigSize = vec2(2);
@@ -1249,7 +1249,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
-  // locallocalT -= 0.01 * dC;
+  locallocalT += 0.01 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1263,7 +1263,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 0.;
+  float shift = 1.;
   vec2 shiftDir = vec2(1, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1271,7 +1271,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  vec2 r = 0.20 * gSize;
+  vec2 r = vec2(0.10);
+  vec2 size = vec2(4, 2) * r;
+
+  q.x += 0.5 * size.x * mod(localC.y, 2.);
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
@@ -1283,7 +1286,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  // q.x += t * size.x * 0.5 * mod((shift * shiftDir).y, 2.);
+  q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
   // vec2 center = vec2(size.x * c);
   // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
@@ -1291,7 +1294,6 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   // center -= size.x * c;
   // q += center;
-
 
   // // Cosine warp
   // q += warpScale * 0.10000 * cos( 3. * q.yx + localCosT );
@@ -1304,7 +1306,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  // q -= shiftDir * shift * size * expo(t);
+  q -= shiftDir * shift * size * t;
 
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
@@ -1333,13 +1335,15 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float internalD = abs(arrowQ.y) - 0.1 * size;
   // internalD = max(internalD, sdBox(q, vec2(r)));
 
-  // -- 2D SDF Texture --
-  // Convert from center 0 to center 0.5
-  q += 0.5;
-  float internalD = texture2D(sdf2DTexture, q).r;
-  // Unpack from [0, 1] to [-1, 1]
-  internalD -= 0.5;
-  internalD *= 2.;
+  // // -- 2D SDF Texture --
+  // // Convert from center 0 to center 0.5
+  // q += 0.5;
+  // float internalD = texture2D(sdf2DTexture, q).r;
+  // // Unpack from [0, 1] to [-1, 1]
+  // internalD -= 0.5;
+  // internalD *= 2.;
+
+  float internalD = sdBox(q, r);
 
   vec2 o = vec2(internalD, 0.);
   // vec2 o = vec2(internalD - r, 0.);
@@ -1629,11 +1633,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 2.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1648,22 +1652,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
   wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  // wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.1)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.5;
+  d.x *= 0.3;
 
   return d;
 }
@@ -1914,7 +1918,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.);
+  vec3 color = vec3(0.2);
   return color;
 
   float dNR = dot(nor, -rd);
@@ -2161,7 +2165,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3180,7 +3184,7 @@ float get2DSDF (in vec2 q) {
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
-  vec2 d = vec2(maxDistance, -1);
+  vec2 d = vec2(1, -1);
 
   vec2 q = uv;
 
@@ -3191,47 +3195,41 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.25);
-  vec2 size = vec2(3) * r;
+  vec2 r = vec2(0.10);
+  vec2 size = vec2(4, 2) * r;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  // vec2 c = floor((wQ + 0.5 * size) / size);
-
   float warpFactor = 0.3;
-
-  // vec2 c = pMod2(wQ, size);
-
-  wQ += 0.1000000 * warpFactor * cos( 3. * componentShift(wQ) + localCosT );
-  wQ += 0.0500000 * warpFactor * cos( 7. * componentShift(wQ) + localCosT );
-  wQ += 0.0250000 * warpFactor * cos(11. * componentShift(wQ) + localCosT );
-  wQ += 0.0125000 * warpFactor * cos(17. * componentShift(wQ) + localCosT );
-  wQ += 0.0062500 * warpFactor * cos(23. * componentShift(wQ) + localCosT );
 
   q = wQ;
   mUv = q;
 
+  // // Texture SDF
   // float sdf2D = get2DSDF(q - vec2(0, 0.030 * size.y));
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // t -= dot(abs(c), vec2(0.03));
-  t = triangleWave(t);
-  // t = mod(t, 1.);
-  // t = expo(t);
+  vec2 grid1Size = size;
+  vec2 grid1Q = q;
+  vec2 c1 = floor((grid1Q + 0.5 * grid1Size) / grid1Size);
+  grid1Q.x += 0.5 * grid1Size.x * mod(c1.y, 2.);
+  c1 = pMod2(grid1Q, grid1Size);
 
-  q *= rotMat2(0.25 * PI * quad(1. - t));
-  // r -= 0.5 * r * (1. - t);
+  float grid1 = sdBox(grid1Q, r);
+  // d.x = mix(d.x, 1. - d.x, smoothstep(0.25 * edge, 0., grid1));
+  d.x = smoothstep(0.25 * edge, 0., grid1);
+  // d.x = min(d.x, grid1);
 
-  float p = 1. + t;
-  float lp = pow(dot(pow(abs(q), vec2(p)), vec2(1)), 1. / p);
-  lp -= r.x;
-  vec2 b = vec2(abs(lp) - 0.1 * r.x, 0);
-  d = dMin(d, b);
+  vec2 grid2Size = size;
+  vec2 grid2Q = q;
 
-  // float crop = sdBox(q, r - 0.1 * vmin(r));
-  // d.x = max(d.x, -crop);
+  grid2Q -= vec2(0.25, 0.5) * grid2Size;
+
+  float grid2 = neighborGrid(grid2Q, grid2Size).x;
+  d.x = mix(d.x, 1. - d.x, smoothstep(0.25 * edge, 0., grid2));
+  d.x = smoothstep(0.25 * edge, 0., grid2);
 
   // vec2 b = vec2(sin(TWO_PI * 80. * q.x), 0);
   // d = dMin(d, b);
@@ -3247,11 +3245,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(20. * TWO_PI * n);
 
-  // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  // // Hard Edge
+  // n = smoothstep(0., 0.5 * edge, n - 0.0);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // n = abs(n);
 
@@ -3383,7 +3381,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3414,8 +3412,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 10.;
