@@ -1645,6 +1645,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
+  wQ.y *= 0.8;
+
 #define distortT localCosT
 
   wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
@@ -1655,11 +1657,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
   wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
+
+  r += 0.04 * r * (cos(4. * atan(q.z, q.x)));
 
   vec3 b = vec3(length(q) - r, 0, 0);
   // b.x += 0.002 * cellular(3. * q);
@@ -2090,14 +2095,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.7;
+      float freCo = 0.8;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.0;
-      float shadowMin = 0.0;
+      float diffMin = 0.8;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
