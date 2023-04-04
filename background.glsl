@@ -10,7 +10,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   float bgIndex = saturate(length(uv));
   // bgIndex = pow(bgIndex, 4.);
   // bgIndex += 0.1 * dot(sin(6. * uv), vec2(1));
-  // bgIndex = 1. - bgIndex; // Flip
+  bgIndex = 1. - bgIndex; // Flip
 
   // Metadata
 

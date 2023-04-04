@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 512
 #define maxDistance 10.0
-#define fogMaxDistance 4.5
+#define fogMaxDistance 9.75
 
 #define slowTime time * 0.2
 // v3
@@ -1627,11 +1627,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.05 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.05 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1645,29 +1645,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
-  wQ.y *= 0.8;
-
 #define distortT localCosT
 
-  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
-  wQ += 0.05000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
+  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
+  // wQ += 0.05000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  // wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  // wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  // wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  // wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  // wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
+
+  wQ.xy *= rotMat2(-localCosT + 0.2 * wQ.z);
+
+  r -= saturate(-0.051 * wQ.z);
+
+  pModPolar(wQ.xy, 6.);
+  wQ.x -= 0.9 * r;
+  wQ.xy *= rotMat2(0.25 * PI * cos(localCosT - wQ.z));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  r += 0.04 * r * (cos(4. * atan(q.z, q.x)));
-
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // b.x += 0.002 * cellular(3. * q);
+  vec3 b = vec3(-sdBox(q.xy, vec2(r)), 0, 0);
+  b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
   // // float crop = sdBox(p, 2. * size.xyz);
@@ -1926,7 +1930,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.2);
-  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2095,14 +2098,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
+      float freCo = 0.9;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
-      float shadowMin = 0.5;
+      float diffMin = 0.9;
+      float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2161,7 +2164,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       vec3 refractColor = vec3(0);
@@ -2203,11 +2206,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // // color *= saturate(exp(-d * 0.05));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -3218,9 +3221,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  r += 0.6 * r * range(-0.9, 0.9, cos(localCosT + 0.8 * q.y));
-
-  vec2 b = vec2(abs(length(q) - r.x) - 0.175 * r.x, 0);
+  pModPolar(q, 4.);
+  q.x -= r.x;
+  q *= rotMat2(localCosT);
+  vec2 b = vec2(sdBox(q, r), 0);
   d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
@@ -3370,7 +3374,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3401,8 +3405,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Echoed Layers --
   // const float echoSlices = 10.;
