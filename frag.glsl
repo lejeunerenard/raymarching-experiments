@@ -1658,27 +1658,34 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   // wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
 
-  wQ.xy *= rotMat2(-localCosT + 0.2 * wQ.z);
+  // wQ.xy *= rotMat2(-localCosT + 0.2 * wQ.z);
 
+  // Pinch towards opposite end
   r -= saturate(-0.051 * wQ.z);
 
-  pModPolar(wQ.xy, 6.);
-  wQ.x -= 0.9 * r;
-  wQ.xy *= rotMat2(0.25 * PI * cos(localCosT - wQ.z));
+  wQ.xy *= rotMat2(-localCosT + wQ.z);
+
+  pModPolar(wQ.xy, 3.);
+  wQ.x -= 1.75 * r;
+  wQ.xy *= rotMat2(localCosT + wQ.z);
+  // wQ.xy *= rotMat2(0.25 * PI * cos(localCosT - wQ.z));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(-sdBox(q.xy, vec2(r)), 0, 0);
+  vec3 b = vec3(icosahedral(vec3(q.xy, 0), 52., r), 0, 0);
   b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
+
+  float bound = length(p.xy) - 1.75 * r;
+  d.x = min(d.x, -bound);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.3;
+  // d.x *= 0.3;
 
   return d;
 }
@@ -1931,6 +1938,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.2);
 
+  float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
+  n *= TWO_PI;
+  n *= 2.56;
+  n = sin(n);
+  n = smoothstep(0., edge, n);
+  return vec3(n);
+
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
 
@@ -2104,8 +2118,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.9;
-      float shadowMin = 0.9;
+      float diffMin = 0.8;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2161,21 +2175,21 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.15 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.15 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2206,11 +2220,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // // color *= saturate(exp(-d * 0.05));
+      // // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -3221,11 +3235,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  pModPolar(q, 4.);
-  q.x -= r.x;
+  pModPolar(q, 3.);
+  q.x -= 1.75 * r.x;
   q *= rotMat2(localCosT);
-  vec2 b = vec2(sdBox(q, r), 0);
+  vec2 b = vec2(icosahedral(vec3(q, 0), 52., r.x), 0);
   d = dMin(d, b);
+
+  float bound = length(uv) - 1.75 * r.x;
+  d.x = min(d.x, -bound);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3241,8 +3258,8 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // Hard Edge
   n = smoothstep(0., 0.5 * edge, n - 0.0);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // n = abs(n);
 
