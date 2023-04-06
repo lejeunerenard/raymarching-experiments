@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1661,13 +1661,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xy *= rotMat2(-localCosT + 0.2 * wQ.z);
 
   // Pinch towards opposite end
-  r -= expo(saturate(-0.065 * wQ.z));
+  r -= expo(saturate(-0.060 * wQ.z));
 
-  wQ.xy *= rotMat2(-0.5 * PI * cos(localCosT + wQ.z) + wQ.z);
+  wQ.xy *= rotMat2(-0.5 * PI * cos(-localCosT + wQ.z));
 
-  pModPolar(wQ.xy, 5.);
+  pModPolar(wQ.xy, 3.25);
   wQ.x -= 2.00 * r;
-  wQ.xy *= rotMat2(-localCosT + wQ.z);
+  wQ.xy *= rotMat2(localCosT + wQ.z);
   // wQ.xy *= rotMat2(0.25 * PI * cos(localCosT - wQ.z));
 
   // Commit warp
@@ -1678,7 +1678,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
-  float bound = length(p.xy) - 1.75 * r;
+  // float bound = length(p.xy) - 1.75 * r;
+  float bound = sdBox(p.xy, vec2(1.75 * r));
   d.x = min(d.x, -bound);
 
   // // float crop = sdBox(p, 2. * size.xyz);
@@ -1936,7 +1937,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.2);
+  vec3 color = vec3(0.01);
+  return color;
 
   float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
   n *= TWO_PI;
@@ -2112,13 +2114,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
+      float freCo = 0.5;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
+      float diffMin = 0.5;
       float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
@@ -2189,7 +2191,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2202,7 +2204,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.5);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -2256,7 +2258,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(color, sigmoid(color), 0.7);
 
       // Max Call based material
-      color = vec3(pow(t.z / float(maxSteps), 0.85));
+      float stepIndex = t.z / float(maxSteps);
+      stepIndex = pow(stepIndex, 0.85);
+
+      // color += 0.5 + 0.5 * cos(TWO_PI * (2. * stepIndex + vec3(0, 0.33, 0.67) + 0.125));
+      // color += 0.2 * vec3(stepIndex);
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
