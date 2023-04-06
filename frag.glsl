@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 9.75
 
@@ -1661,13 +1661,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xy *= rotMat2(-localCosT + 0.2 * wQ.z);
 
   // Pinch towards opposite end
-  r -= saturate(-0.051 * wQ.z);
+  r -= expo(saturate(-0.065 * wQ.z));
 
+  wQ.xy *= rotMat2(-0.5 * PI * cos(localCosT + wQ.z) + wQ.z);
+
+  pModPolar(wQ.xy, 5.);
+  wQ.x -= 2.00 * r;
   wQ.xy *= rotMat2(-localCosT + wQ.z);
-
-  pModPolar(wQ.xy, 3.);
-  wQ.x -= 1.75 * r;
-  wQ.xy *= rotMat2(localCosT + wQ.z);
   // wQ.xy *= rotMat2(0.25 * PI * cos(localCosT - wQ.z));
 
   // Commit warp
@@ -1675,7 +1675,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   vec3 b = vec3(icosahedral(vec3(q.xy, 0), 52., r), 0, 0);
-  b.x += 0.003 * cellular(2. * q);
+  // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
   float bound = length(p.xy) - 1.75 * r;
@@ -1685,7 +1685,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  // d.x *= 0.3;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1940,7 +1940,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
   n *= TWO_PI;
-  n *= 2.56;
+  // n *= 2.56;
   n = sin(n);
   n = smoothstep(0., edge, n);
   return vec3(n);
@@ -2254,6 +2254,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // // Levels adjustment of sorts
       // color = mix(color, sigmoid(color), 0.7);
+
+      // Max Call based material
+      color = vec3(pow(t.z / float(maxSteps), 0.85));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
