@@ -1613,7 +1613,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.5;
+float gR = 0.45;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1647,46 +1647,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  // wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
-  // wQ += 0.05000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  // wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  // wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  // wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  // wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  // wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  // wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
-
-  // wQ.xy *= rotMat2(-localCosT + 0.2 * wQ.z);
-
-  // Pinch towards opposite end
-  r -= expo(saturate(-0.060 * wQ.z));
-
-  wQ.xy *= rotMat2(-0.5 * PI * cos(-localCosT + wQ.z));
-
-  pModPolar(wQ.xy, 3.25);
-  wQ.x -= 2.00 * r;
-  wQ.xy *= rotMat2(localCosT + wQ.z);
-  // wQ.xy *= rotMat2(0.25 * PI * cos(localCosT - wQ.z));
+  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
+  wQ += 0.05000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(vec3(q.xy, 0), 52., r), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
-
-  // float bound = length(p.xy) - 1.75 * r;
-  float bound = sdBox(p.xy, vec2(1.75 * r));
-  d.x = min(d.x, -bound);
 
   // // float crop = sdBox(p, 2. * size.xyz);
   // float crop = length(p) - 2. * vmax(size.xyz);
   // d.x = max(d.x, crop);
 
-  d.x *= 0.5;
+  d.x *= 0.8;
 
   return d;
 }
@@ -2114,14 +2098,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.8;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.5;
-      float shadowMin = 1.0;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
