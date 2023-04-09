@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 2.4;
 const float amount = 0.05;
 
 // Dof
@@ -1637,8 +1637,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.7;
+  float warpScale = 2.0;
+  float warpFrequency = 1.1;
   float rollingScale = 1.;
 
   // Warp
@@ -1647,14 +1647,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  wQ += 0.10000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT);
-  wQ += 0.05000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  wQ += 0.02500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
+  wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
+  wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ += 0.01250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
+  wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
-  wQ += 0.00525 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT + PI * wQ.z);
-  wQ += 0.00262 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT);
+  wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
+  wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
   wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
 
@@ -1662,7 +1662,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
@@ -1811,7 +1811,7 @@ vec3 textures (in vec3 rd) {
   color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
   // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
   // color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
-  color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
+  // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
   // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
 
@@ -1922,14 +1922,14 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.01);
-  return color;
+  // return color;
 
-  float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
-  n *= TWO_PI;
-  // n *= 2.56;
-  n = sin(n);
-  n = smoothstep(0., edge, n);
-  return vec3(n);
+  // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
+  // n *= TWO_PI;
+  // // n *= 2.56;
+  // n = sin(n);
+  // n = smoothstep(0., edge, n);
+  // return vec3(n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2193,8 +2193,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate

@@ -18,8 +18,8 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(vec3(0.0), 0.8 * vec3(0.10, 0, 0.25), bgIndex);
   // vec3 color = mix(0.7 * vec3(0.175, 0.3, 0.175), 0.35 * vec3(0.3, 0.175, 0.3), bgIndex);
-  // vec3 color = mix(vec3(0.8), vec3(1), bgIndex);
-  vec3 color = mix(vec3(0.30), vec3(0.125), bgIndex);
+  vec3 color = mix(vec3(0.8), vec3(1), bgIndex);
+  // vec3 color = mix(vec3(0.30), vec3(0.125), bgIndex);
 
   // const vec3 bgColor = #F2900A;
   // vec3 color = mix(0.8 * bgColor, bgColor, bgIndex);
@@ -104,10 +104,10 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // vec3 gradientColor = 0.5 + 0.5 * cos(TWO_PI * (vec3(uv, cos(dot(uv, vec2(1)))) + vec3(0, 0.33, 0.67)));
   // color *= mix(gradientColor, vec3(1), (0.70 + 0.2 * length(uv)));
 
-  // color *= vec3(1, 0.8, 1);
+  color *= vec3(1, 0.8, 1);
   // color *= 1.2;
   // color = mix(color, vec3(0.5), 0.10); // desaturate
-  // color = mix(color, vec3(1), mix(0.25, 0.80, bgIndex)); // lighten
+  color = mix(color, vec3(1), mix(0.05, 0.50, 1. - bgIndex)); // lighten
   // color = mix(color, vec3(0), 0.30); // Darken
   // color *= 0.91;
 
