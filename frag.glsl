@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -3212,30 +3212,37 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.20);
-  vec2 size = vec2(4, 2) * r;
+  vec2 r = vec2(0.25);
+  vec2 size = vec2(3.75, 0.95) * r;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
+  wQ *= 1.5;
+
+  wQ *= rotMat2(-0.25 * PI);
+
   float warpFactor = 0.3;
+
+  vec2 c = floor((wQ + 0.5 * size) / size);
+  float offsetAmount = 4.;
+  wQ.x += 1. / offsetAmount * size.x * mod(abs(c.y), offsetAmount);
+  t += c.y * 0.05;
+  t = mod(t, 1.);
+  wQ.x += 2. * size.x * expo(t);
+  c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  // // Texture SDF
-  // float sdf2D = get2DSDF(q - vec2(0, 0.030 * size.y));
-  // vec2 o = vec2(sdf2D, 0);
-  // d = dMin(d, o);
+  // Texture SDF
+  q *= 1.10;
+  float sdf2D = get2DSDF(q - vec2(0, -0.03));
+  vec2 o = vec2(sdf2D, 0);
+  d = dMin(d, o);
 
-  pModPolar(q, 3.);
-  q.x -= 1.75 * r.x;
-  q *= rotMat2(localCosT);
-  vec2 b = vec2(icosahedral(vec3(q, 0), 52., r.x), 0);
-  d = dMin(d, b);
-
-  float bound = length(uv) - 1.75 * r.x;
-  d.x = min(d.x, -bound);
+  // vec2 b = vec2(icosahedral(vec3(q, 0), 52., r.x), 0);
+  // d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3248,19 +3255,21 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(20. * TWO_PI * n);
 
+  n = abs(n) - 2.5 * edge;
+
   // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  n = smoothstep(0., 1.0 * edge, n - 0.0);
 
   // // Invert
   // n = 1. - n;
-
-  // n = abs(n);
 
   // // Solid
   // color = vec3(1);
 
   // B&W
   color = vec3(n);
+
+  color += vec3(1, 0, 0) * mod(dot(c, vec2(1)), 2.);
 
   // // B&W Repeating
   // color = vec3(0.5 + 0.5 * cos(TWO_PI * n));
@@ -3384,7 +3393,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
