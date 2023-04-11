@@ -3212,37 +3212,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.25);
-  vec2 size = vec2(3.75, 0.95) * r;
+  vec2 r = vec2(0.0075);
+  vec2 size = vec2(2) * r;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= 1.5;
-
-  wQ *= rotMat2(-0.25 * PI);
-
   float warpFactor = 0.3;
 
-  vec2 c = floor((wQ + 0.5 * size) / size);
-  float offsetAmount = 4.;
-  wQ.x += 1. / offsetAmount * size.x * mod(abs(c.y), offsetAmount);
-  t += c.y * 0.05;
-  t = mod(t, 1.);
-  wQ.x += 2. * size.x * expo(t);
-  c = pMod2(wQ, size);
+  vec2 c = pMod2(wQ, size);
+
+  wQ *= rotMat2(0.5 * PI * cos(localCosT + snoise2(0.14 * c) - 0.15 * dot(abs(c), vec2(1))));
 
   q = wQ;
   mUv = q;
 
-  // Texture SDF
-  q *= 1.10;
-  float sdf2D = get2DSDF(q - vec2(0, -0.03));
-  vec2 o = vec2(sdf2D, 0);
-  d = dMin(d, o);
+  // // Texture SDF
+  // float sdf2D = get2DSDF(q);
+  // vec2 o = vec2(sdf2D, 0);
+  // d = dMin(d, o);
 
-  // vec2 b = vec2(icosahedral(vec3(q, 0), 52., r.x), 0);
-  // d = dMin(d, b);
+  vec2 b = vec2(sdBox(q, 0.7 * vec2(0.0125 * vmin(r), 0.6 * vmax(r))), 0);
+  d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3255,21 +3246,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(20. * TWO_PI * n);
 
-  n = abs(n) - 2.5 * edge;
+  // n = abs(n);
 
   // Hard Edge
   n = smoothstep(0., 1.0 * edge, n - 0.0);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // // Solid
   // color = vec3(1);
 
   // B&W
   color = vec3(n);
-
-  color += vec3(1, 0, 0) * mod(dot(c, vec2(1)), 2.);
 
   // // B&W Repeating
   // color = vec3(0.5 + 0.5 * cos(TWO_PI * n));
