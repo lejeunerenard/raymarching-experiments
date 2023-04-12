@@ -624,6 +624,11 @@ vec3 dSMin (vec3 d1, vec3 d2, in float r) {
   float d = fOpUnionRound(d1.x, d2.x, r);
   return vec3(d, (d1.x < d2.x) ? d1.yz : d2.yz);
 }
+vec2 dSMax (vec2 d1, vec2 d2, in float r) {
+  float h = saturate(0.5 + 0.5 * (d1.x - d2.x) / r);
+  float d = mix(d2.x, d1.x, h) + h * ( 1.0 - h ) * r;
+  return vec2(d, (d1.x < d2.x) ? d1.y : d2.y);
+}
 vec3 dSMax (vec3 d1, vec3 d2, in float r) {
   float h = saturate(0.5 + 0.5 * (d1.x - d2.x) / r);
   float d = mix(d2.x, d1.x, h) + h * ( 1.0 - h ) * r;
@@ -1633,12 +1638,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.75 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 2.0;
-  float warpFrequency = 1.1;
+  float warpScale = 0.8;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1666,11 +1671,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
-  // // float crop = sdBox(p, 2. * size.xyz);
-  // float crop = length(p) - 2. * vmax(size.xyz);
-  // d.x = max(d.x, crop);
+  q *= rotationMatrix(vec3(0, 1, 0), -localCosT);
+  vec2 n = vec2(snoise3(4. * q), 0.);
+  n *= 0.08;
+  vec2 nCrop = vec2(length(q) - 0.7 * r, 0.);
+  n = dSMax(nCrop, n, 0.1 * r);
+  d.x = max(d.x, -n.x);
+  // d.x = n.x;
 
-  d.x *= 0.8;
+  // d.x *= 0.8;
 
   return d;
 }
@@ -3382,7 +3391,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
