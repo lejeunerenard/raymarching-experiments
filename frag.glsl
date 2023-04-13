@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.4;
+float n2 = 1.4;
 const float amount = 0.05;
 
 // Dof
@@ -1671,15 +1671,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
-  q *= rotationMatrix(vec3(0, 1, 0), -localCosT);
-  vec2 n = vec2(snoise3(4. * q), 0.);
-  n *= 0.08;
-  vec2 nCrop = vec2(length(q) - 0.7 * r, 0.);
-  n = dSMax(nCrop, n, 0.1 * r);
-  d.x = max(d.x, -n.x);
-  // d.x = n.x;
+  // q *= rotationMatrix(vec3(0, 1, 0), -localCosT);
+  // vec2 n = vec2(snoise3(4. * q), 0.);
+  // n *= 0.08;
+  // vec2 nCrop = vec2(length(q) - 0.7 * r, 0.);
+  // n = dSMax(nCrop, n, 0.1 * r);
+  // d.x = max(d.x, -n.x);
+  // // d.x = n.x;
 
-  // d.x *= 0.8;
+  d.x *= 0.9;
 
   return d;
 }
@@ -1930,8 +1930,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.01);
-  // return color;
+  vec3 color = vec3(1.5);
+  return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
   // n *= TWO_PI;
@@ -2082,14 +2082,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 0.9;
-      // float bumpIntensity = 0.120;
-      // nor += bumpIntensity * vec3(
-      //     cnoise3(bumpsScale * 490.0 * mPos),
-      //     cnoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     cnoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // // nor -= 0.125 * cellular(5. * mPos);
-      // nor = normalize(nor);
+      float bumpsScale = 0.005;
+      float bumpIntensity = 0.120;
+      nor += bumpIntensity * vec3(
+          cellular(bumpsScale * 490.0 * mPos),
+          cellular(bumpsScale * 670.0 * mPos + 234.634),
+          cellular(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor -= 0.125 * cellular(5. * mPos);
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2203,13 +2203,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
       // color = saturate(dispersionColor);
 #endif
 
