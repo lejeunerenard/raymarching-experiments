@@ -1642,7 +1642,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.8;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1655,7 +1655,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
   wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
   wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + localCosT);
   wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
@@ -1667,11 +1667,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
+  q *= rotationMatrix(vec3(1), 0.2);
   float crop = sdBox(q, vec3(0.8 * r));
   // float crop = icosahedral(q, 52., 0.95 * r);
   d.x = max(d.x, -crop);
@@ -1927,7 +1928,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.01);
+  vec3 color = vec3(background);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2104,7 +2105,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.0;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
@@ -2205,18 +2206,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
-      color = saturate(dispersionColor);
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
+      // color = saturate(dispersionColor);
 #endif
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // // color *= saturate(exp(-d * 0.05));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
