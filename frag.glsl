@@ -1642,8 +1642,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.0;
+  float warpScale = 0.9;
+  float warpFrequency = 1.1;
   float rollingScale = 1.;
 
   // Warp
@@ -1673,7 +1673,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d = dMin(d, b);
 
   q *= rotationMatrix(vec3(1), 0.2);
-  float crop = sdBox(q, vec3(0.8 * r));
+  float crop = dodecahedral(q, 52., 0.8 * r);
   // float crop = icosahedral(q, 52., 0.95 * r);
   d.x = max(d.x, -crop);
 
@@ -1928,7 +1928,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0.1);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2105,7 +2105,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.5;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
@@ -2206,8 +2206,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
       // color = saturate(dispersionColor);
 #endif
 
