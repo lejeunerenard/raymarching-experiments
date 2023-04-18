@@ -1655,7 +1655,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
   wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
   wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + localCosT);
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + localCosT);
   wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
   wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
   wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
@@ -1668,12 +1668,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   // b.x += 0.003 * cellular(2. * q);
   d = dMin(d, b);
 
-  q *= rotationMatrix(vec3(1), 0.2);
-  float crop = dodecahedral(q, 52., 0.8 * r);
+  q *= rotationMatrix(vec3(1), 0.3);
+  float crop = icosahedral(q, 52., 0.825 * r);
   // float crop = icosahedral(q, 52., 0.95 * r);
   d.x = max(d.x, -crop);
 
@@ -1928,7 +1928,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.1);
+  vec3 color = vec3(0.05);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2080,12 +2080,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 0.5;
+      float bumpsScale = 0.005;
       float bumpIntensity = 0.120;
       nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+          cellular(bumpsScale * 490.0 * mPos),
+          cellular(bumpsScale * 670.0 * mPos + 234.634),
+          cellular(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
       nor = normalize(nor);
       gNor = nor;
@@ -2105,7 +2105,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.3;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
