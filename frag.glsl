@@ -1650,6 +1650,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
+  wQ.y *= 0.5;
+
 #define distortT localCosT
 
   wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
@@ -1657,7 +1659,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
   wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + localCosT);
   wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
   wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
   wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
   wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
@@ -2081,7 +2083,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
       float bumpsScale = 0.005;
-      float bumpIntensity = 0.120;
+      float bumpIntensity = 0.250;
       nor += bumpIntensity * vec3(
           cellular(bumpsScale * 490.0 * mPos),
           cellular(bumpsScale * 670.0 * mPos + 234.634),
