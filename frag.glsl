@@ -3223,9 +3223,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float warpFactor = 0.3;
 
-  vec2 c = pMod2(wQ, size);
+  const float tNum = 3.;
 
-  wQ *= rotMat2(0.5 * PI * cos(localCosT + snoise2(0.14 * c) - 0.15 * dot(abs(c), vec2(1))));
+  wQ = polarCoords(wQ);
+  float ySize = 8. * r.x;
+  wQ.y -= tNum * ySize * t;
+  float c = pMod1(wQ.y, ySize);
+  // wQ.y -= 0.3;
+  wQ.x /= PI;
+
+  float virtualC = c + tNum * t;
 
   q = wQ;
   mUv = q;
@@ -3235,7 +3242,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(sdBox(q, 0.7 * vec2(0.0125 * vmin(r), 0.6 * vmax(r))), 0);
+  q.y -= 0.5 * r.x * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
+  q.y -= 0.5 * r.x * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
+
+  vec2 b = vec2(sdBox(q, vec2(1, 0.2 * r)), 0);
   d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
@@ -3385,7 +3395,7 @@ const vec3 sunColor = vec3(0.9, 0, 0);
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3416,16 +3426,16 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 10.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
-  //   uv.y += 0.005;
-  // }
-  // return vec4(color, 1);
+  // -- Echoed Layers --
+  const float echoSlices = 10.;
+  for (float i = 0.; i < echoSlices; i++) {
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
+    uv.y += 0.0025;
+  }
+  return vec4(color, 1);
 
   // -- Color delay --
   const float slices = 20.;
