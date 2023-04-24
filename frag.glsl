@@ -3201,6 +3201,28 @@ float get2DSDF (in vec2 q) {
   return sdf2D;
 }
 
+float bunch (in vec2 q, in float r, in float t , float cOffset) {
+  const float tNum = 1.;
+
+  float ySize = 8. * r;
+  q.y += ySize * cOffset;
+  float c = floor((q.y + 0.5 * ySize) / ySize);
+  c += cOffset;
+  // t += 0.05 * c;
+  // t = mod(t, 1.);
+  q.y -= tNum * ySize * expo(t);
+  c = pMod1(q.y, ySize);
+  // q.y -= 0.3;
+  q.x /= PI;
+
+  float virtualC = c + tNum * t;
+
+  q.y -= 1.95 * r * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
+  q.y -= 1.95 * r * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
+
+  return sdBox(q, vec2(1, 0.2 * r));
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -3223,16 +3245,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   float warpFactor = 0.3;
 
-  const float tNum = 3.;
-
-  wQ = polarCoords(wQ);
-  float ySize = 8. * r.x;
-  wQ.y -= tNum * ySize * t;
-  float c = pMod1(wQ.y, ySize);
-  // wQ.y -= 0.3;
-  wQ.x /= PI;
-
-  float virtualC = c + tNum * t;
+  // wQ = polarCoords(wQ);
 
   q = wQ;
   mUv = q;
@@ -3242,11 +3255,22 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q.y -= 0.5 * r.x * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
-  q.y -= 0.5 * r.x * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
+  // q.y -= 0.5 * r.x * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
+  // q.y -= 0.5 * r.x * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
 
-  vec2 b = vec2(sdBox(q, vec2(1, 0.2 * r)), 0);
+  // vec2 b = vec2(sdBox(q, vec2(1, 0.2 * r)), 0);
+  // d = dMin(d, b);
+
+  float spaceT = t + 0.3 * q.y;
+  spaceT = mod(spaceT, 1.);
+  q.y += 0.05 * cos(TWO_PI * spaceT);
+  vec2 b = vec2(bunch(q, r.x, t, 0.), 0);
   d = dMin(d, b);
+
+  // t += 0.1;
+  // t = mod(t, 1.);
+  // b = vec2(bunch(q, r.x, t, -1.), 0);
+  // d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3430,10 +3454,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
-    uv.y += 0.0025;
+    uv.y += 0.00125;
   }
   return vec4(color, 1);
 
