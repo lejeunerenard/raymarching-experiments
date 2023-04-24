@@ -3201,26 +3201,23 @@ float get2DSDF (in vec2 q) {
   return sdf2D;
 }
 
-float bunch (in vec2 q, in float r, in float t , float cOffset) {
+float bunch (in vec2 q, in float r, in float t , float cOffset, float cX) {
   const float tNum = 1.;
 
-  float ySize = 8. * r;
+  float ySize = 2. * r;
   q.y += ySize * cOffset;
   float c = floor((q.y + 0.5 * ySize) / ySize);
   c += cOffset;
-  // t += 0.05 * c;
-  // t = mod(t, 1.);
   q.y -= tNum * ySize * expo(t);
   c = pMod1(q.y, ySize);
-  // q.y -= 0.3;
-  q.x /= PI;
 
   float virtualC = c + tNum * t;
 
-  q.y -= 1.95 * r * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
-  q.y -= 1.95 * r * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
+  const float waveAmount = 0.;
+  q.y -= waveAmount * r * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
+  q.y -= waveAmount * r * snoise2(vec2(18. * q.x + 0.273 * cX, virtualC)); // * (1. - smoothstep(0.99, 1., abs(q.x)));
 
-  return sdBox(q, vec2(1, 0.2 * r));
+  return sdBox(q, vec2(r, 0.2 * r));
 }
 
 vec2 mUv = vec2(0);
@@ -3237,7 +3234,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.0075);
+  vec2 r = vec2(PI * 0.01);
   vec2 size = vec2(2) * r;
 
   // -- Warp --
@@ -3246,6 +3243,9 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float warpFactor = 0.3;
 
   // wQ = polarCoords(wQ);
+  // wQ.x /= PI;
+
+  float c = pMod1(wQ.x, 3.5 * r.x);
 
   q = wQ;
   mUv = q;
@@ -3261,16 +3261,11 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(sdBox(q, vec2(1, 0.2 * r)), 0);
   // d = dMin(d, b);
 
-  float spaceT = t + 0.3 * q.y;
+  float spaceT = t + 0.3 * q.y + 0.5 * 0.166667 * (c + 3.);
   spaceT = mod(spaceT, 1.);
   q.y += 0.05 * cos(TWO_PI * spaceT);
-  vec2 b = vec2(bunch(q, r.x, t, 0.), 0);
+  vec2 b = vec2(bunch(q, r.x, t, 0., c), 0);
   d = dMin(d, b);
-
-  // t += 0.1;
-  // t = mod(t, 1.);
-  // b = vec2(bunch(q, r.x, t, -1.), 0);
-  // d = dMin(d, b);
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
