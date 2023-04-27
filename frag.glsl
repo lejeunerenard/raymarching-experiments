@@ -1667,30 +1667,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  const float num = 3.;
-  float rScale = 0.4 * r;
-  float rTrans = 0.75 * r;
-
-  float r1 = r;
-  r1 += rScale * cos(localCosT);
-  vec3 r1Q = q;
-  r1Q.z += rTrans * cos(-localCosT + (2. * 0./num + 0.5) * PI);
-  vec3 b = vec3(sdTorus88(r1Q.xzy, r1 * vec2(1, 0.1)), 0, 0);
-  d = dMin(d, b);
-
-  float r2 = r;
-  r2 += rScale * cos(localCosT + TWO_PI * 1. / num);
-  vec3 r2Q = q;
-  r2Q.z += rTrans * cos(-localCosT + (2. * 1. / num + 0.5) * PI);
-  b = vec3(sdTorus88(r2Q.xzy, r2 * vec2(1, 0.1)), 1, 0);
-  d = dMin(d, b);
-
-  float r3 = r;
-  r3 += rScale * cos(localCosT + TWO_PI * 2. / num);
-  vec3 r3Q = q;
-  r3Q.z += rTrans * cos(-localCosT + (2. * 2. / num + 0.5) * PI);
-  b = vec3(sdTorus88(r3Q.xzy, r3 * vec2(1, 0.1)), 1, 0);
-  d = dMin(d, b);
+  for (float i = 0.; i < 7.; i++) {
+    vec3 localQ = q;
+    float localT = localCosT + 0.2 * i;
+    localQ.y -= (i - 3.) * 0.1 + 0.3 * r * cos(localT);
+    localQ.xz *= rotMat2(PI * 0.5 * cos(localT));
+    vec3 b = vec3(sdTorus88(localQ, vec2((r - 0.04 * i), r * 0.125)), 0, 0);
+    d = dMin(d, b);
+  }
 
   return d;
 }
