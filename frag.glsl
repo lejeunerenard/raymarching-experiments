@@ -1618,7 +1618,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
   return d;
 }
 
-float gR = 0.30;
+float gR = 1.750;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1667,13 +1667,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  for (float i = 0.; i < 7.; i++) {
+  float thickness = r * 0.0325;
+  for (float i = 0.; i < 15.; i++) {
     vec3 localQ = q;
     float localT = localCosT + 0.2 * i;
-    localQ.y -= (i - 3.) * 0.1 + 0.3 * r * cos(localT);
+    localQ.y -= (i / 7.) * 0.3 * r * cos(localT);
     localQ.xz *= rotMat2(PI * 0.5 * cos(localT));
-    vec3 b = vec3(sdTorus88(localQ, vec2((r - 0.04 * i), r * 0.125)), 0, 0);
+    vec3 b = vec3(sdTorus82(localQ, vec2(r, thickness)), 0, 0);
     d = dMin(d, b);
+    r -= 2. * thickness + edge;
   }
 
   return d;
@@ -1955,7 +1957,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += vec3(0, 1, 0) * rot * dNR;
   // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  color *= 0.5;
+  color *= 0.45;
 
   // // -- Holo --
   // vec3 beforeColor = color;
