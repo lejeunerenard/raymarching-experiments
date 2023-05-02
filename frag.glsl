@@ -1609,16 +1609,55 @@ float gyroid (in vec4 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
-float tile (in vec3 q, in vec2 c, in float r, in vec2 size) {
-  q.xz *= rotMat2(PI * ( dot(vec2(3. * 0.33333, 1), c) + 0.0825 + quart(0.5 + 0.5 * cos(cosT - 0.3 * length(c)))));
-  q.z += size.y * -0.1; // mix(-0.2,-0.1, mod(c.x, 2.));
-  float d = tetrahedron(q, r);
-  d -= 0.1 * r;
-  // d -= 0.002 * cellular(2. * q);
+#define splitTime(x, t) range(prevT, prevT + x, t); prevT += x;
+
+float tileTime (in vec2 c, in float t) {
+  vec2 cTDelay = 0.35 * vec2(0.02, 0.05);
+
+  return dot(c, cTDelay);
+}
+
+float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
+  float d = maxDistance;
+
+  q.xz += c * size;
+  q.z += 2. * r * t;
+
+  float prevT = 0.;
+  float growT = splitTime(0.428571, t);
+  growT = expo(growT);
+  float fallT = splitTime(0.285714, t);
+  fallT = bounceOut(fallT);
+
+  float splitThreshold = step(prevT, t);
+  float splitT = splitTime(0.285714, t);
+  splitT = expoOut(splitT);
+
+  float h = r * (1. + growT);
+  h = mix(h, r, splitThreshold);
+
+  vec3 boxQ = q;
+  boxQ.y -= h; // Offset growing height
+  // Fall
+  vec2 fallOffset = vec2(-r, h);
+  boxQ.zy += fallOffset;
+  boxQ.zy *= rotMat2(0.5 * PI * fallT);
+  boxQ.zy -= fallOffset;
+
+  float b = sdBox(boxQ, vec3(r, h, r));
+  d = min(d, b);
+
+  vec3 splitBoxQ = boxQ;
+  splitBoxQ.zy *= rotMat2(-0.5 * PI);
+  splitBoxQ.z -= 2. * r * splitThreshold;
+  splitBoxQ.z -= 2. * r * splitT;
+
+  float splitB = sdBox(splitBoxQ, vec3(r));
+  d = min(d, splitB);
   return d;
 }
 
-float gR = 0.44;
+float gR = 0.05;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1627,16 +1666,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(5.0);
-  float bigR = r * 4.;
+  vec2 size = r * vec2(4.0);
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.025 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.025 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1652,31 +1690,67 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
-  wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
-  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
-  wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
-  wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
-  wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
+  // wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
+  // wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
+  // wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
+  // // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
+  // wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
+  // wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
+  // wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
+  // wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
+  // // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  // wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
+
+  vec2 c = vec2(0);
+
+  c = floor((wQ.xz + size*0.5)/size);
+
+  // Scale size in falling direction
+  size.y += size.y * range(0., 1., t);
+
+  // // Keep expanded to DEBUG
+  // size.y += size.y;
+
+  // c = floor((wQ.xz + size*0.5)/size);
+  // c = vec2(0,1);
+
+  c = pMod2(wQ.xz, vec2(size));
+
+  // c = vec2(0, pMod1(wQ.z, size.y));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  r -= r * (saturate(0.1025 * -q.z));
+  vec2 cTDelay = vec2(0, 0.1);
 
-  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(r - length(q.xy), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // b.x *= 0.3;
+  t += tileTime(c, t);
+  float tileT = t;
+
+  vec3 b = vec3(tile(q, vec2(0), r, size, tileT), 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.7;
+  vec3 neighbor = vec3(0);
+  vec2 relC = vec2(0);
+
+  relC = vec2(0, 1);
+
+  tileT = t + tileTime(-relC, t);
+  // tileT = mod(tileT, 1.);
+
+  neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
+  d = dMin(d, neighbor);
+
+  relC = vec2(0, -1);
+  tileT = t + tileTime(-relC, t);
+
+  neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
+  d = dMin(d, neighbor);
+
+  d.x *= 0.35;
+
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  d = dMin(d, f);
 
   return d;
 }
@@ -1927,7 +2001,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.2 * background);
+  vec3 color = vec3(1.4);
+  color.r = pow(color.r, 0.9);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2064,8 +2139,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
 
-    lights[0] = light(vec3(-0.01,  1.0, 0.2), #FFFFFF, 6.0);
-    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #FFFFFF, 1.0);
+    lights[0] = light(vec3(-0.01,  1.0, 0.2), #FFBBBB, 6.0);
+    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #BBFFFF, 1.0);
     lights[2] = light(vec3(  0.1,  0.7, 1.3), #FFFFFF, 0.75);
 
     const float universe = 0.;
@@ -2107,7 +2182,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
+      float freCo = 0.5;
       float specCo = 0.4;
 
       vec3 specAll = vec3(0.0);
