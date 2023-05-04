@@ -1612,7 +1612,7 @@ float gyroid (in vec4 p, in float thickness) {
 #define splitTime(x, t) range(prevT, prevT + x, t); prevT += x;
 
 float tileTime (in vec2 c, in float t) {
-  vec2 cTDelay = 0.35 * vec2(0.02, 0.05);
+  vec2 cTDelay = -0.25 * vec2(0.02, 0.05);
 
   return dot(c, cTDelay);
 }
@@ -1620,40 +1620,110 @@ float tileTime (in vec2 c, in float t) {
 float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   float d = maxDistance;
 
+  float originalR = r;
+
   q.xz += c * size;
-  q.z += 2. * r * t;
+  // q.z += 2. * r * t; // Recenter over time
 
   float prevT = 0.;
-  float growT = splitTime(0.428571, t);
+  float growT = splitTime(0.25, t);
   growT = expo(growT);
-  float fallT = splitTime(0.285714, t);
-  fallT = bounceOut(fallT);
+  float fallT = splitTime(0.25, t);
+  fallT = expoIn(fallT);
 
   float splitThreshold = step(prevT, t);
-  float splitT = splitTime(0.285714, t);
+  float splitT = splitTime(0.5, t);
   splitT = expoOut(splitT);
 
   float h = r * (1. + growT);
   h = mix(h, r, splitThreshold);
 
+  // Squeeze when stretching up
+  r -= 0.2 * originalR * growT;
+
+  // Relax
+  h = mix(h, 0.95 * r, fallT);
+  r = mix(r, 3. * originalR, fallT);
+
+  // Split
+  r = mix(r, originalR, splitThreshold);
+  h = mix(h, originalR, splitT);
+
   vec3 boxQ = q;
   boxQ.y -= h; // Offset growing height
-  // Fall
-  vec2 fallOffset = vec2(-r, h);
-  boxQ.zy += fallOffset;
-  boxQ.zy *= rotMat2(0.5 * PI * fallT);
-  boxQ.zy -= fallOffset;
 
   float b = sdBox(boxQ, vec3(r, h, r));
   d = min(d, b);
 
+  vec3 direction = vec3(0);
   vec3 splitBoxQ = boxQ;
-  splitBoxQ.zy *= rotMat2(-0.5 * PI);
-  splitBoxQ.z -= 2. * r * splitThreshold;
-  splitBoxQ.z -= 2. * r * splitT;
 
-  float splitB = sdBox(splitBoxQ, vec3(r));
+  float splitB = maxDistance;
+
+  direction = vec3( 0, 0, 1);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
   d = min(d, splitB);
+
+  direction = vec3( 0, 0,-1);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
+  direction = vec3( 1, 0, 0);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
+  direction = vec3(-1, 0, 0);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
+  direction = vec3( 1, 0, 1);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
+  direction = vec3(-1, 0, 1);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
+  direction = vec3( 1, 0,-1);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
+  direction = vec3(-1, 0,-1);
+  splitBoxQ = boxQ;
+  splitBoxQ -= 2. * r * direction * splitThreshold;
+  splitBoxQ -= 2. * r * direction * splitT;
+
+  splitB = sdBox(splitBoxQ, vec3(r, h, r));
+  d = min(d, splitB);
+
   return d;
 }
 
@@ -1706,23 +1776,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   c = floor((wQ.xz + size*0.5)/size);
 
   // Scale size in falling direction
-  size.y += size.y * range(0., 1., t);
+  size += 2. * size * quart(range(0., 1., t));
 
   // // Keep expanded to DEBUG
-  // size.y += size.y;
-
-  // c = floor((wQ.xz + size*0.5)/size);
-  // c = vec2(0,1);
+  // size += 2. * size;
 
   c = pMod2(wQ.xz, vec2(size));
-
-  // c = vec2(0, pMod1(wQ.z, size.y));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
-
-  vec2 cTDelay = vec2(0, 0.1);
 
   t += tileTime(c, t);
   float tileT = t;
@@ -1733,23 +1796,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 neighbor = vec3(0);
   vec2 relC = vec2(0);
 
-  relC = vec2(0, 1);
+  // relC = vec2(0, 1);
 
-  tileT = t + tileTime(-relC, t);
-  // tileT = mod(tileT, 1.);
+  // tileT = t + tileTime(-relC, t);
+  // // tileT = mod(tileT, 1.);
 
-  neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
-  d = dMin(d, neighbor);
+  // neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
+  // d = dMin(d, neighbor);
 
-  relC = vec2(0, -1);
-  tileT = t + tileTime(-relC, t);
+  // relC = vec2(0, -1);
+  // tileT = t + tileTime(-relC, t);
 
-  neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
-  d = dMin(d, neighbor);
+  // neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
+  // d = dMin(d, neighbor);
 
   d.x *= 0.35;
 
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
   d = dMin(d, f);
 
   return d;
@@ -2001,7 +2064,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.4);
+  vec3 color = vec3(1.30);
   color.r = pow(color.r, 0.9);
   return color;
 
@@ -2182,13 +2245,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.4;
+      float freCo = 0.3;
+      float specCo = 0.2;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.3;
+      float diffMin = 0.55;
       float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
@@ -2245,11 +2308,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.15 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.05 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2259,7 +2322,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2272,19 +2335,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 0.8);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
+      dispersionI *= isMaterialSmooth(t.y, 0.);
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
-      // dispersionColor.g = pow(dispersionColor.g, 0.8);
+      dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
       // color = saturate(dispersionColor);
 #endif
 
