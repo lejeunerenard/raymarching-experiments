@@ -1727,7 +1727,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 0.40;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1746,11 +1746,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.5;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1760,37 +1760,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  // wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
-  // wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  // wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
-  // // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
-  // wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
-  // wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
-  // wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  // wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
-  // // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  // wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
+  wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
+  wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
+  wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
+  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
+  wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
+  wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
+  wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
+  wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
 
-  vec2 c = vec2(0);
-
-  c = floor((wQ.xz + size*0.5)/size);
-
-  // Scale size in falling direction
-  size += 2. * size * quart(range(0., 1., t));
-
-  // // Keep expanded to DEBUG
-  // size += 2. * size;
-
-  c = pMod2(wQ.xz, vec2(size));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  t += tileTime(c, t);
   float tileT = t;
 
-  vec3 b = vec3(tile(q, vec2(0), r, size, tileT), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   vec3 neighbor = vec3(0);
@@ -1810,10 +1799,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
   // d = dMin(d, neighbor);
 
-  d.x *= 0.35;
+  // d.x *= 0.35;
 
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
-  d = dMin(d, f);
+  // vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
+  // d = dMin(d, f);
 
   return d;
 }
@@ -2064,8 +2053,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.30);
-  color.r = pow(color.r, 0.9);
+  vec3 color = vec3(1.15 * background);
+  color *= pow(dot(nor, -rd), 1.5);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2245,14 +2234,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.2;
+      float freCo = 1.0;
+      float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.55;
-      float shadowMin = 0.8;
+      float diffMin = 1.;
+      float shadowMin = 1.;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2308,11 +2297,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.05 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.15 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2335,14 +2324,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
+      float dispersionI = 1.0 * pow(1. - dot(gNor, -gRd), 2.0);
       // float dispersionI = 1.0;
       dispersionI *= isMaterialSmooth(t.y, 0.);
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
       dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
@@ -2350,15 +2339,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
       // color = saturate(dispersionColor);
+      // color = vec3(dispersionI);
 #endif
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(0.8 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(0.8 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      // color *= saturate(exp(-d * 0.05));
+      // // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
