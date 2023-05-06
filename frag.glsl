@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1778,31 +1778,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float tileT = t;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 1. * r, r)), 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  vec3 neighbor = vec3(0);
-  vec2 relC = vec2(0);
-
-  // relC = vec2(0, 1);
-
-  // tileT = t + tileTime(-relC, t);
-  // // tileT = mod(tileT, 1.);
-
-  // neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
-  // d = dMin(d, neighbor);
-
-  // relC = vec2(0, -1);
-  // tileT = t + tileTime(-relC, t);
-
-  // neighbor = vec3(tile(q, relC, r, size, tileT), 0, 0);
-  // d = dMin(d, neighbor);
-
-  // d.x *= 0.35;
-
-  // vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 1, 0);
-  // d = dMin(d, f);
+  d.x *= 0.75;
 
   return d;
 }
@@ -2053,8 +2033,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.15 * background);
-  color *= pow(dot(nor, -rd), 1.5);
+  vec3 color = vec3(0);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2235,7 +2214,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 1.0;
-      float specCo = 0.8;
+      float specCo = 0.6;
 
       vec3 specAll = vec3(0.0);
 
@@ -2324,9 +2303,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(1. - dot(gNor, -gRd), 2.0);
+      float dispersionI = 1.0 * pow(1. - dot(gNor, -gRd), 1.0);
       // float dispersionI = 1.0;
-      dispersionI *= isMaterialSmooth(t.y, 0.);
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
