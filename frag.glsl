@@ -1727,7 +1727,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.40;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1762,27 +1762,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
   wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT);
-  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
+  wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT + length(wQ));
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
   wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
   wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
   wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  wQ.x += 0.00262 * warpScale * cos(19. * warpFrequency * wQ.z + distortT);
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y);
-  wQ += 0.00130 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT + PI);
-
+  wQ.x += 0.00262 * warpScale * cos(49. * warpFrequency * wQ.z + distortT + length(wQ));
+  wQ += 0.00130 * warpScale * cos(31. * warpFrequency * componentShift(wQ) + distortT + PI);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float tileT = t;
+  vec3 sphereQ = sphericalCoords(q);
 
-  vec3 b = vec3(sdBox(q, vec3(r, 1. * r, r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.75;
+  d.x *= 0.5;
 
   return d;
 }
@@ -1921,7 +1919,7 @@ vec3 textures (in vec3 rd) {
 
   // -- Colors --
   color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
-  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.1, 0.3) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.2, 0.5) ) );
   // color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
@@ -2309,8 +2307,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
-      dispersionColor.g = pow(dispersionColor.g, 0.8);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
