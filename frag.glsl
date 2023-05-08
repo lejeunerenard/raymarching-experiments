@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1122,6 +1122,12 @@ vec2 polarCoords (in vec2 q) {
   return vec2(atan(q.y, q.x), length(q));
 }
 
+vec2 polarToCartesian (in vec2 q) {
+  float r = q.y;
+  float a = q.x;
+  return vec2(r, 0) * rotMat2(a);
+}
+
 vec3 sphericalCoords (in vec3 q) {
   float a = atan(q.z, q.x);
   float arc = atan(q.y, length(q.xz));
@@ -1727,7 +1733,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.55;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1740,41 +1746,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.025 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.025 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
   float warpScale = 1.0;
-  float warpFrequency = 0.5;
+  float warpFrequency = 1.;
   float rollingScale = 1.;
 
   // Warp
-  vec3 wQ = q.xyz;
+  // vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
 
-  wQ.y += 0.10000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT);
-  wQ.z += 0.05000 * warpScale * cos( 4. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  wQ.x += 0.02500 * warpScale * cos( 8. * warpFrequency * wQ.z + distortT + length(wQ));
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 2. * wQ.y));
-  wQ.y += 0.01250 * warpScale * cos(16. * warpFrequency * wQ.x + distortT + PI * wQ.z);
-  wQ.xyz = twist(wQ.xzy, 1. * wQ.z);
-  wQ.z += 0.00525 * warpScale * cos(32. * warpFrequency * wQ.y + distortT + PI * wQ.z);
-  wQ.x += 0.00262 * warpScale * cos(49. * warpFrequency * wQ.z + distortT + length(wQ));
-  wQ += 0.00130 * warpScale * cos(31. * warpFrequency * componentShift(wQ) + distortT + PI);
+  vec2 wQ = polarCoords(q.xy);
+  wQ += 0.10000 * warpScale * cos( 3. * componentShift(wQ) + distortT);
+  wQ += 0.07500 * warpScale * cos( 8. * componentShift(wQ) + distortT);
+  wQ += 0.05625 * warpScale * cos(13. * componentShift(wQ) + distortT);
+
+  float l = wQ.y;
+  wQ = polarToCartesian(wQ);
 
   // Commit warp
-  q = wQ.xyz;
+  // q = wQ.xyz;
+  // q.xy = wQ;
+  q.xy = mix(q.xy, wQ, saturate(pow(l, 0.5)));
   mPos = q;
 
-  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(sdCappedCylinder(q.xzy, vec2(r, 0.1 * r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   d.x *= 0.5;
