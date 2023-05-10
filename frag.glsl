@@ -1733,7 +1733,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.5;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1756,28 +1756,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.3;
   float warpFrequency = 1.;
   float rollingScale = 1.;
 
   // Warp
-  // vec3 wQ = q.xyz;
+  vec3 wQ = q.xyz;
   // vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
 
-  vec2 wQ = polarCoords(q.xy);
-  wQ += 0.10000 * warpScale * cos( 3. * componentShift(wQ) + distortT);
-  wQ += 0.07500 * warpScale * cos( 8. * componentShift(wQ) + distortT);
-  wQ += 0.05625 * warpScale * cos(13. * componentShift(wQ) + distortT);
+  wQ.y += 0.5 * r * cos(localCosT + 2.5 * length(wQ.xz));
 
-  float l = wQ.y;
-  wQ = polarToCartesian(wQ);
+  wQ += 0.100000 * warpScale * cos( 3. * componentShift(wQ) + distortT);
+  wQ += 0.075000 * warpScale * cos( 8. * componentShift(wQ) + distortT);
+  wQ += 0.056250 * warpScale * cos(13. * componentShift(wQ) + distortT);
+  wQ += 0.042188 * warpScale * cos(23. * componentShift(wQ) + distortT);
 
   // Commit warp
-  // q = wQ.xyz;
-  // q.xy = wQ;
-  q.xy = mix(q.xy, wQ, saturate(pow(l, 0.5)));
+  q = wQ.xyz;
   mPos = q;
 
   // vec3 b = vec3(sdCappedCylinder(q.xzy, vec2(r, 0.1 * r)), 0, 0);
