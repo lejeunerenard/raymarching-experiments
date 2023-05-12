@@ -1733,7 +1733,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.2;
+float gR = 0.15;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1773,11 +1773,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   float thickness = 0.095 * r;
-  float cellOffset = 0.3 * c.x; // dot(c, vec2(0.25));
+  float cellOffset = dot(c, vec2(0.25));
   for (float i = 0.; i < 5.; i++) {
     float localR = r - ((2. * thickness + 0.0025) * i);
     vec3 localQ = q;
-    localQ.y += 2.0 * thickness * cos(localCosT + 0.3 * PI * i + PI * cellOffset);
+    // localQ.y += 2.0 * thickness * cos(localCosT + 0.3 * PI * i + PI * cellOffset);
+    localQ.xy *= rotMat2(0.05 * PI * cos(localCosT + 0.3 * PI * i + PI * cellOffset));
     vec3 b = vec3(sdTorus88(localQ, vec2(localR, thickness)), 0, 0);
     d = dMin(d, b);
   }
