@@ -1733,7 +1733,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.15;
+float gR = 0.35;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1756,7 +1756,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.3;
+  float warpScale = 0.5;
   float warpFrequency = 1.;
   float rollingScale = 1.;
 
@@ -1766,22 +1766,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  vec2 c = pMod2(wQ.xz, size);
+  float scale = 0.9;
+  wQ *= scale;
+
+  wQ += 0.100000 * warpScale * cos( 5. * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos(13. * componentShift(wQ) + distortT );
+  wQ += 0.025000 * warpScale * cos(19. * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(23. * componentShift(wQ) + distortT );
+  wQ += 0.006250 * warpScale * cos(29. * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(31. * componentShift(wQ) + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float thickness = 0.095 * r;
-  float cellOffset = dot(c, vec2(0.25));
-  for (float i = 0.; i < 5.; i++) {
-    float localR = r - ((2. * thickness + 0.0025) * i);
-    vec3 localQ = q;
-    // localQ.y += 2.0 * thickness * cos(localCosT + 0.3 * PI * i + PI * cellOffset);
-    localQ.xy *= rotMat2(0.05 * PI * cos(localCosT + 0.3 * PI * i + PI * cellOffset));
-    vec3 b = vec3(sdTorus88(localQ, vec2(localR, thickness)), 0, 0);
-    d = dMin(d, b);
-  }
+  vec3 b = vec3(length(q) - r, 0, 0);
+  b.x /= scale;
+  d = dMin(d, b);
 
   d.x *= 0.75;
 
