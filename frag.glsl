@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1733,7 +1733,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.35;
+float gR = 0.25;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1766,7 +1766,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  float scale = 0.9;
+  float scale = 0.7;
   wQ *= scale;
 
   wQ += 0.100000 * warpScale * cos( 5. * componentShift(wQ) + distortT );
@@ -1780,7 +1780,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   b.x /= scale;
   d = dMin(d, b);
 
