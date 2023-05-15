@@ -1391,8 +1391,6 @@ float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
-  q *= 0.7;
-
   vec2 uv = q;
 
   localCosT = TWO_PI * t;
@@ -1402,23 +1400,9 @@ float thingy (in vec2 q, in float t) {
 
   float r = 0.125;
 
-  // Something is happening that looks circular
-  float rollingScale = 1.;
-  for (float i = 0.; i < 7.; i++) {
-    q = circleInversion(q * 3.0) * 0.333;
-    q = abs(q);
-    // foldNd(q, vec2(angle1C, angle2C));
-    q += offset.xy;
-    q *= rotMat2(angle2C + 0.5 * localCosT);
-    q *= scale;
-
-    rollingScale *= scale;
-  }
-
   // float o = dot(q, vec2(20)) * sdBox(q, vec2(r));
   float o = length(q) - r;
-  o /= rollingScale;
-  d = min(d, o);
+  d = min(d, -o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1733,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.6;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1746,11 +1730,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.025 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.2 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1766,24 +1750,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  float scale = 0.7;
+  float scale = 1.0;
   wQ *= scale;
 
-  wQ += 0.100000 * warpScale * cos( 5. * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos(13. * componentShift(wQ) + distortT );
-  wQ += 0.025000 * warpScale * cos(19. * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos(23. * componentShift(wQ) + distortT );
-  wQ += 0.006250 * warpScale * cos(29. * componentShift(wQ) + distortT );
-  wQ += 0.003125 * warpScale * cos(31. * componentShift(wQ) + distortT );
+  // wQ += 0.100000 * warpScale * cos( 5. * componentShift(wQ) + distortT );
+  // wQ += 0.050000 * warpScale * cos(13. * componentShift(wQ) + distortT );
+  // wQ += 0.025000 * warpScale * cos(19. * componentShift(wQ) + distortT );
+  // wQ += 0.012500 * warpScale * cos(23. * componentShift(wQ) + distortT );
+  // wQ += 0.006250 * warpScale * cos(29. * componentShift(wQ) + distortT );
+  // wQ += 0.003125 * warpScale * cos(31. * componentShift(wQ) + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+#define sdf2D(q, r, t) (length(q) - r)
+
+  const float thickness = 0.04;
+
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  b.x /= scale;
+  vec3 b = vec3(opExtrude(q, -sdf2D(q.xy, r, t), thickness), 0, 0);
   d = dMin(d, b);
+
+  float zOffset = 0.;
+  for (float i = 0.; i < 5.; i++) {
+    r -= 0.1;
+    zOffset += 0.15;
+    b = vec3(opExtrude(q - vec3(0, 0,-zOffset), -sdf2D(q.xy, r, t), thickness), 0, 0);
+    d = dMin(d, b);
+  }
+  d.x -= 0.005;
+
+  d.x /= scale;
 
   d.x *= 0.75;
 
@@ -2036,7 +2034,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.25);
+  vec3 color = vec3(0.3);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2126,8 +2124,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   color += 0.4 * background;
 
-  color = mix(color, vec3(0.5), 0.2);
+  // color = mix(color, vec3(0.5), 0.2);
   color = mix(color, vec3(1), 0.4);
+
+  color *= 1.2;
 
   // color *= 0.5 + 0.5 * dNR;
 
@@ -2173,9 +2173,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
 
-    lights[0] = light(vec3(-0.01,  1.0, 0.2), #FFBBBB, 6.0);
-    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #BBFFFF, 1.0);
-    lights[2] = light(vec3(  0.1,  0.7, 1.3), #FFFFFF, 0.75);
+    lights[0] = light(vec3(-0.01,  0.7,-0.3), #FFBBBB, 6.0);
+    lights[1] = light(vec3(- 0.1,  1.0,-0.5), #BBFFFF, 1.0);
+    lights[2] = light(vec3(  0.1,  0.7,-1.3), #FFFFFF, 0.75);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -2216,14 +2216,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.6;
+      float freCo = 0.3;
       float specCo = 0.3;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.7;
-      float shadowMin = 0.7;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2293,7 +2293,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2317,8 +2317,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
@@ -3516,8 +3516,13 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
   return pow(a, pow(vec3(2.), 2. * (0.5 - b)));
 }
 
-const vec3 sunPos = vec3(0.01,  1.0, 0.1);
-const vec3 sunColor = vec3(0.9, 0, 0);
+const vec3 sunPos = vec3(0.01,  0.,-1.0);
+vec3 sunColor (in vec3 q) {
+  const float darker = 0.7;
+  return vec3(darker, darker, 1);
+  // return mix(vec3(darker, darker, 1), vec3(1, darker, darker), 0.5 * length(q.xy));
+}
+
 // #pragma glslify: godRays = require(./effects/god-rays.glsl, softshadow=softshadow, noise=h21, sunPos=sunPos, sunColor=sunColor)
 #pragma glslify: godRays = require(./effects/god-rays-poisson.glsl, shadow=simpleshadow, noise=h21, volumeNoise=vfbmWarp, sunPos=sunPos, sunColor=sunColor)
 
@@ -3540,8 +3545,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
   vec4 t = march(ro, rd, time);
   vec4 layer = shade(ro, rd, t, uv, time);
 
-  // // -- 3D : Effects --
-  // layer = godRays(ro, rd, t, uv, layer, time);
+  // -- 3D : Effects --
+  layer = godRays(ro, rd, t, uv, layer, time);
 
 #endif
 

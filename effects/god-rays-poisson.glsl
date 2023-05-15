@@ -20,8 +20,8 @@
 #define DITHERING
 
 // Lighting
-#define VOLUME_DENSITY 0.6
-#define VOLUME_ABSORBTION 1.0
+#define VOLUME_DENSITY 0.5
+#define VOLUME_ABSORBTION 0.5
 
 // light function
 // return the direction and the length of the light vector
@@ -56,7 +56,7 @@ vec4 renderVolume(vec3 ro, vec3 rd, in vec2 uv, float depth, in float time) {
     float sha = shadow(p, lighting.xyz, 0., lighting.w, time); // shadow of the fractal (god rays)
 
     // coloring
-    vec3 col = sunColor * sha / (lighting.w*lighting.w); // inverse square law
+    vec3 col = sunColor(p) * sha / (lighting.w*lighting.w); // inverse square law
 
     volumeColorSum.rgb += h * stepSize * volumeColorSum.a * col; // add the color to the final result
     volumeColorSum.a *= exp(-h * stepSize * VOLUME_ABSORBTION); // beer's law
