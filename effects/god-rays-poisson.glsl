@@ -15,12 +15,12 @@
 // source: https://www.shadertoy.com/view/ml2GWc
 
 // Parameters
-#define NUM_STEPS 32
+#define NUM_STEPS 16
 // Dithering to smooth volume rays
 #define DITHERING
 
 // Lighting
-#define VOLUME_DENSITY 0.5
+#define VOLUME_DENSITY 1.0
 #define VOLUME_ABSORBTION 0.5
 
 // light function

@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.6;
+float gR = 0.7;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1764,7 +1764,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-#define sdf2D(q, r, t) (length(q) - r)
+#define sdf2D(q, r, t) (sdBox(q, vec2(r)))
 
   const float thickness = 0.04;
 
@@ -1774,12 +1774,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float zOffset = 0.;
   for (float i = 0.; i < 5.; i++) {
-    r -= 0.1;
+    r -= 0.05;
     zOffset += 0.15;
     b = vec3(opExtrude(q - vec3(0, 0,-zOffset), -sdf2D(q.xy, r, t), thickness), 0, 0);
     d = dMin(d, b);
   }
   d.x -= 0.005;
+
+  q.z += 0.7 * zOffset;
+  q *= rotationMatrix(vec3(1), 0.3333 * TWO_PI * t);
+  vec3 center = vec3(sdBox(q, vec3(0.5 * r)), 0, 0);
+  d = dMin(d, center);
 
   d.x /= scale;
 
@@ -2034,7 +2039,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.3);
+  vec3 color = vec3(0.1);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2216,14 +2221,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.3;
+      float freCo = 0.5;
+      float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.7;
-      float shadowMin = 0.8;
+      float diffMin = 0.0;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -3516,10 +3521,10 @@ vec3 softLight2 (in vec3 a, in vec3 b) {
   return pow(a, pow(vec3(2.), 2. * (0.5 - b)));
 }
 
-const vec3 sunPos = vec3(0.01,  0.,-1.0);
+const vec3 sunPos = vec3(0.01,  0.,-1.2);
 vec3 sunColor (in vec3 q) {
-  const float darker = 0.7;
-  return vec3(darker, darker, 1);
+  const float darker = 0.8;
+  return vec3(1, darker, darker);
   // return mix(vec3(darker, darker, 1), vec3(1, darker, darker), 0.5 * length(q.xy));
 }
 
