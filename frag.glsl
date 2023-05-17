@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.7;
+float gR = 0.075;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1730,11 +1730,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.2 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.1 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1764,30 +1764,25 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-#define sdf2D(q, r, t) (sdBox(q, vec2(r)))
-
-  const float thickness = 0.04;
-
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(opExtrude(q, -sdf2D(q.xy, r, t), thickness), 0, 0);
+  vec3 q1 = q;
+  vec2 c1 = pMod2(q1.xy, size);
+  q1 *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT - 0.3 * length(c1)));
+  // vec3 b = vec3(icosahedral(q1, 52., r), 0, 0);
+  vec3 b = vec3(sdBox(q1, vec3(r)), 0, 0);
   d = dMin(d, b);
 
-  float zOffset = 0.;
-  for (float i = 0.; i < 5.; i++) {
-    r -= 0.05;
-    zOffset += 0.15;
-    b = vec3(opExtrude(q - vec3(0, 0,-zOffset), -sdf2D(q.xy, r, t), thickness), 0, 0);
-    d = dMin(d, b);
-  }
-  d.x -= 0.005;
+  vec3 q2 = q;
+  q2.xy += 0.5 * size;
+  vec2 c2 = pMod2(q2.xy, size);
+  q2 *= rotationMatrix(vec3(1), 0.5 * PI * cos(localCosT + 0.1 * dot(c2, vec2(1))));
+  // b = vec3(dodecahedral(q2, 52., r), 0, 0);
+  b = vec3(sdBox(q2, vec3(r)), 0, 0);
+  d = dMin(d, b);
 
-  q.z += 0.7 * zOffset;
-  q *= rotationMatrix(vec3(1), 0.3333 * TWO_PI * t);
-  vec3 center = vec3(sdBox(q, vec3(0.5 * r)), 0, 0);
-  d = dMin(d, center);
-
+  // Scale compensation
   d.x /= scale;
 
+  // Under step
   d.x *= 0.75;
 
   return d;
@@ -1926,8 +1921,8 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.3;
 
   // -- Colors --
-  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
-  color = 0.5 + vec3(0.6, 0.5, 0.4) * cos( TWO_PI * ( vec3(1, 0.9, 1.1) * dI + vec3(0.05, 0.3, -0.5)) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  // color = 0.5 + vec3(0.6, 0.5, 0.4) * cos( TWO_PI * ( vec3(1, 0.9, 1.1) * dI + vec3(0.05, 0.3, -0.5)) );
   // color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
@@ -2039,7 +2034,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.1);
+  vec3 color = vec3(1.5);
   return color;
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2127,12 +2122,12 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // color += 0.4 * beforeColor;
 
-  color += 0.4 * background;
+  // color += 0.4 * background;
 
   // color = mix(color, vec3(0.5), 0.2);
-  color = mix(color, vec3(1), 0.4);
+  // color = mix(color, vec3(1), 0.4);
 
-  color *= 1.2;
+  // color *= 1.2;
 
   // color *= 0.5 + 0.5 * dNR;
 
@@ -2221,7 +2216,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 1.0;
       float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
@@ -2287,7 +2282,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.15 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.30 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2298,7 +2293,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2306,18 +2301,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(1. - dot(gNor, -gRd), 1.0);
-      // float dispersionI = 1.0;
+      // float dispersionI = 1.0 * pow(1. - dot(gNor, -gRd), 1.0);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
@@ -3550,8 +3545,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
   vec4 t = march(ro, rd, time);
   vec4 layer = shade(ro, rd, t, uv, time);
 
-  // -- 3D : Effects --
-  layer = godRays(ro, rd, t, uv, layer, time);
+  // // -- 3D : Effects --
+  // layer = godRays(ro, rd, t, uv, layer, time);
 
 #endif
 
