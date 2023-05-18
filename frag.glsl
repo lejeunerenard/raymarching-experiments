@@ -3336,6 +3336,32 @@ float bunch (in vec2 q, in float r, in float t , float cOffset, float cX) {
   return sdBox(q, vec2(r, 0.2 * r));
 }
 
+float ripple (in vec2 q, in float t) {
+  float d = maxDistance;
+  const float thickness = 0.01;
+  float r = -0.0125;
+
+  r += 1. * 0.5 * (0.45 * expoIn(range(0., 0.4, t)) + 1.55 * quartOut(range(0.4, 1., t)));
+
+  float b = abs(length(q) - r) - thickness;
+  d = min(d, b);
+
+  q *= rotMat2(0.5 * PI * t);
+
+  q = polarCoords(q);
+  q.x /= PI;
+  q.y -= r;
+  q.y += 6. * thickness;
+
+  pMod1(q.x, 2.5 * thickness);
+
+  // // float s = length(q) - thickness;
+  // float s = sdBox(q, vec2(thickness));
+  // d = min(d, s);
+
+  return d;
+}
+
 vec2 mUv = vec2(0);
 vec3 two_dimensional (in vec2 uv, in float generalT) {
   vec3 color = vec3(0);
@@ -3350,7 +3376,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(PI * 0.01);
+  vec2 r = vec2(0.05);
   vec2 size = vec2(2) * r;
 
   // -- Warp --
@@ -3360,8 +3386,6 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // wQ = polarCoords(wQ);
   // wQ.x /= PI;
-
-  float c = pMod1(wQ.x, 3.5 * r.x);
 
   q = wQ;
   mUv = q;
@@ -3374,14 +3398,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q.y -= 0.5 * r.x * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
   // q.y -= 0.5 * r.x * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
 
-  // vec2 b = vec2(sdBox(q, vec2(1, 0.2 * r)), 0);
-  // d = dMin(d, b);
-
-  float spaceT = t + 0.3 * q.y + 0.5 * 0.166667 * (c + 3.);
-  spaceT = mod(spaceT, 1.);
-  q.y += 0.05 * cos(TWO_PI * spaceT);
-  vec2 b = vec2(bunch(q, r.x, t, 0., c), 0);
+  vec2 b = vec2(ripple(q, t), 0);
   d = dMin(d, b);
+
+  for (float i = 0.; i < 4.; i++) {
+    t += 0.07 + 0.0 * snoise2(8.12378 * vec2(i));
+    t = mod(t, 1.);
+    b = vec2(ripple(q, t), 0);
+    d = dMin(d, b);
+  }
 
   // float mask = sdBox(uv, vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
@@ -3535,7 +3560,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3566,13 +3591,13 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
     uv.y += 0.00125;
   }
   return vec4(color, 1);
