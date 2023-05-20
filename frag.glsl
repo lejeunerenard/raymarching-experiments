@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.5;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1740,8 +1740,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.;
-  float warpFrequency = 1.;
+  float warpScale = 0.5;
+  float warpFrequency = 0.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1750,17 +1750,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  float scale = 1.;
+  float scale = 0.9;
   wQ *= scale;
 
-  wQ += 0.100000 * warpScale * cos( 5. * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos(13. * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += 0.025000 * warpScale * cos(19. * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos(23. * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += 0.006250 * warpScale * cos(29. * componentShift(wQ) + distortT );
-  wQ += 0.003125 * warpScale * cos(31. * componentShift(wQ) + distortT );
+  wQ += 0.100000 * warpScale * cos( 2. * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 7. * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y);
+  wQ += 0.025000 * warpScale * cos( 9. * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(13. * componentShift(wQ) + distortT );
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += 0.006250 * warpScale * cos(19. * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(23. * componentShift(wQ) + distortT );
 
   // Commit warp
   q = wQ.xyz;
@@ -1769,13 +1769,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(icosahedral(q, 32., r), 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdTorus(q, r * vec2(1, 0.2)), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
-  // // Under step
-  // d.x *= 0.25;
+  // Under step
+  d.x *= 0.25;
 
   return d;
 }
@@ -2027,7 +2028,18 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.1);
-  // return color;
+
+  vec3 q = sphericalCoords(mPos);
+
+  vec2 size = vec2(0.1 * 3. / PI);
+  vec2 c = floor((q.xy + size*0.5)/size);
+  q.x += size.x * c.y;
+  pMod2(q.xy, size);
+
+  float d = sdBox(q.xy, 0.4 * size);
+  d = smoothstep(0., 2. * edge, d);
+
+  return vec3(d);
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
   // n *= TWO_PI;
@@ -2215,7 +2227,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.0;
-      float shadowMin = 1.0;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2285,7 +2297,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3583,20 +3595,20 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
-  // -- Echoed Layers --
-  const float echoSlices = 8.;
-  for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
-    uv.y += 0.00125;
-  }
-  return vec4(color, 1);
+  // // -- Echoed Layers --
+  // const float echoSlices = 8.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
+  //   uv.y += 0.00125;
+  // }
+  // return vec4(color, 1);
 
   // -- Color delay --
-  const float slices = 20.;
-  const float delayLength = 0.20;
+  const float slices = 15.;
+  const float delayLength = 0.025;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
@@ -3680,7 +3692,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color = mix(color, color * layerColor, mask);
   }
 
-  color = pow(color, vec3(1.50));
+  color = pow(color, vec3(1.750));
   color /= slices;
 
   // // Final layer
