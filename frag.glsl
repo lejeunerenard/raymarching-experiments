@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.1;
+float gR = 0.05;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1765,10 +1765,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = wQ.xyz;
 
   wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 0.2;
-  wQ.yz *= rotMat2(0.75 * wQ.x + 0.5 * localCosT);
+  wQ.y -= 6. * r;
+  wQ.yz *= rotMat2(0.25 * wQ.x + 0.5 * localCosT);
 
   wQ.x /= PI;
+
+  wQ.yz = abs(wQ.yz);
+  wQ.yz -= 2.0 * r;
 
   // Commit warp
   q = wQ.xyz;
@@ -2043,15 +2046,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     q.zy = q.yz;
   }
 
-  vec2 size = vec2(0.035 * 3. / PI);
+  vec2 size = vec2(0.0201 * 3. / PI);
   vec2 c = floor((q.xy + size*0.5)/size);
   q.x += size.x * c.y;
   pMod2(q.xy, size);
 
   float d = sdBox(q.xy, 0.5 * size - 0.5 * thickness);
 
-  float cross = vmin(abs(q.xy)) - 0.125 * size.x;
-  d = min(d, cross);
+  // float cross = vmin(abs(q.xy)) - 0.125 * size.x;
+  // d = min(d, cross);
 
   // q.xy
   // c = floor((q.xy + size*0.5)/size);
@@ -2064,6 +2067,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // d = min(d, cross);
 
   d = smoothstep(0., edge, d);
+  d = 1. - d;
+
+  d *= 1.25; // Boost whites
 
   return vec3(d);
 
