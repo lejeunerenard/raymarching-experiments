@@ -1387,7 +1387,6 @@ vec2 circleInversion (in vec2 q) {
 
 #pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
-float baseR = 0.4;
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
 
@@ -1396,13 +1395,14 @@ float thingy (in vec2 q, in float t) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float thickness = 0.007;
+  float bigR = r * 1.5;
 
-  float r = 0.125;
-
-  // float o = dot(q, vec2(20)) * sdBox(q, vec2(r));
-  float o = length(q) - r;
-  d = min(d, -o);
+  for (float i = 0.; i < 3.; i++) {
+    vec2 localQ = q;
+    localQ += lissajous(bigR, bigR, 1., 2., PI * 0.5, localCosT + TWO_PI * 0.333 * i);
+    float b = length(localQ) - r;
+    d = min(d, b);
+  }
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1730,11 +1730,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.3 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.3 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1750,7 +1750,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  float scale = 0.9;
+  float scale = 1.0;
   wQ *= scale;
 
   // wQ += 0.100000 * warpScale * cos( 2. * componentShift(wQ) + distortT );
@@ -1762,35 +1762,33 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.006250 * warpScale * cos(19. * componentShift(wQ) + distortT );
   // wQ += 0.003125 * warpScale * cos(23. * componentShift(wQ) + distortT );
 
-  wQ.xzy = wQ.xyz;
+  // Möbius Strip Space
+  // wQ.xzy = wQ.xyz;
 
   wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 6. * r;
-  wQ.yz *= rotMat2(0.5 * wQ.x + 0.5 * localCosT);
+  wQ.y -= 5. * r;
+  wQ.yz *= rotMat2(1. * wQ.x + 1.0 * localCosT);
 
   wQ.x /= PI;
 
   wQ.yz = abs(wQ.yz);
-  wQ.yz -= 2.0 * r;
+  wQ.yz -= 1.25 * r;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float c = pMod1(q.x, 2.5 * r);
-
-  // vec3 b = vec3(icosahedral(q, 32., r), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
-  vec3 b = vec3(sdTorus(q.xzy, 0.9 * r * vec2(1, 0.30)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(sdTorus(q, r * vec2(1, 0.2)), 0, 0);
+  const float scale2D = 100.;
+  float sdf2D = thingy(scale2D * q.yz, 3. * q.x);
+  sdf2D /= scale2D;
+  vec3 b = vec3(opExtrude(q.zyx, sdf2D, 1.2), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.25;
+  d.x *= 0.6;
 
   return d;
 }
@@ -2041,7 +2039,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(1.7);
+  return color;
 
   vec3 q = abs(mPos);
   // Mirror around y=x
@@ -2213,9 +2212,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
 
-    lights[0] = light(vec3(-0.01,  0.7, 0.3), #FFBBBB, 6.0);
-    lights[1] = light(vec3(- 0.1,  1.0, 0.5), #BBFFFF, 1.0);
-    lights[2] = light(vec3(  0.1,  0.7, 1.3), #FFFFFF, 0.75);
+    lights[0] = light(vec3(-0.01,  0.2, 0.9), #FFCCCC, 1.0);
+    lights[1] = light(vec3(- 0.2,  0.6, 0.5), #CCFFFF, 1.0);
+    lights[2] = light(vec3(  0.2,  0.7, 1.3), #FFFFFF, 1.);
 
     const float universe = 0.;
     background = getBackground(uv, universe);
@@ -2257,13 +2256,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.5;
-      float specCo = 0.7;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
       float diffMin = 0.5;
-      float shadowMin = 0.8;
+      float shadowMin = 0.2;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2300,8 +2299,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lin += 0.100 * amb * diffuseColor;
         // dif += 0.100 * amb;
 
-        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 1.0);
-        // distIntensity = saturate(distIntensity);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
           + distIntensity * mix(lights[i].color, vec3(1), 0.2) * lin * mix(diffuseColor, vec3(1), 1.0);
@@ -2319,11 +2318,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -3438,13 +3437,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // q.y -= 0.5 * r.x * cos(PI * (8. + pow(virtualC, 1.25)) * q.x);
   // q.y -= 0.5 * r.x * snoise2(vec2(18. * q.x, virtualC)) * (1. - smoothstep(0.99, 1., abs(q.x)));
 
-  vec2 b = vec2(ripple(q, t), 0);
-  d = dMin(d, b);
+  float bigR = r.x * 2.;
 
-  for (float i = 0.; i < 4.; i++) {
-    t += 0.07 + 0.0 * snoise2(8.12378 * vec2(i));
-    t = mod(t, 1.);
-    b = vec2(ripple(q, t), 0);
+  for (float i = 0.; i < 3.; i++) {
+    vec2 localQ = q;
+    localQ += lissajous(bigR, bigR, 1., 2., PI * 0.5, localCosT + TWO_PI * 0.333 * i);
+    vec2 b = vec2(length(localQ) - r.x, 0);
     d = dMin(d, b);
   }
 
