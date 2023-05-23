@@ -1766,7 +1766,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= 6. * r;
-  wQ.yz *= rotMat2(0.25 * wQ.x + 0.5 * localCosT);
+  wQ.yz *= rotMat2(0.5 * wQ.x + 0.5 * localCosT);
 
   wQ.x /= PI;
 
@@ -1777,8 +1777,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
+  float c = pMod1(q.x, 2.5 * r);
+
   // vec3 b = vec3(icosahedral(q, 32., r), 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
+  vec3 b = vec3(sdTorus(q.xzy, 0.9 * r * vec2(1, 0.30)), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdTorus(q, r * vec2(1, 0.2)), 0, 0);
   d = dMin(d, b);
@@ -2038,7 +2041,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.1);
+  vec3 color = vec3(0.);
 
   vec3 q = abs(mPos);
   // Mirror around y=x
@@ -2071,6 +2074,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   d *= 1.25; // Boost whites
 
+  d = 1.;
   return vec3(d);
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2252,8 +2256,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.5;
+      float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
@@ -2315,11 +2319,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.30 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
