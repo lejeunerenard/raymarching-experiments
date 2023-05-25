@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1730,11 +1730,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.3 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.15 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1766,10 +1766,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = wQ.xyz;
 
   wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 5. * r;
-  wQ.yz *= rotMat2(1. * wQ.x + 1.0 * localCosT);
+  wQ.y -= 7.5 * r;
+  wQ.yz *= rotMat2(-1. * (1. * wQ.x - 1.0 * localCosT));
 
   wQ.x /= PI;
+
+  wQ.yz = abs(wQ.yz);
+  wQ.yz -= 2.0 * 1.25 * r;
 
   wQ.yz = abs(wQ.yz);
   wQ.yz -= 1.25 * r;
@@ -1778,17 +1781,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  const float scale2D = 100.;
-  float sdf2D = thingy(scale2D * q.yz, 3. * q.x);
-  sdf2D /= scale2D;
-  vec3 b = vec3(opExtrude(q.zyx, sdf2D, 1.2), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.6;
+  d.x *= 0.3;
 
   return d;
 }
@@ -2039,7 +2039,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.7);
+  vec3 color = vec3(0.85, 0.9, 1.) * vec3(1.7);
   return color;
 
   vec3 q = abs(mPos);
@@ -2230,14 +2230,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 0.25;
-      // float bumpIntensity = 0.1;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // // nor -= 0.125 * cellular(5. * mPos);
-      // nor = normalize(nor);
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.1;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor -= 0.125 * cellular(5. * mPos);
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
