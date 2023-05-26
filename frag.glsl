@@ -1771,11 +1771,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ.x /= PI;
 
-  wQ.yz = abs(wQ.yz);
-  wQ.yz -= 2.0 * 1.25 * r;
-
-  wQ.yz = abs(wQ.yz);
-  wQ.yz -= 1.25 * r;
+  pModPolar(wQ.yz, 5.);
+  // wQ.yz = abs(wQ.yz);
+  wQ.z = abs(wQ.z);
+  wQ.yz -= 3. * r;
 
   // Commit warp
   q = wQ.xyz;
@@ -1788,7 +1787,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= scale;
 
   // Under step
-  d.x *= 0.3;
+  d.x *= 0.6;
 
   return d;
 }
@@ -2039,8 +2038,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.85, 0.9, 1.) * vec3(1.7);
-  return color;
+  vec3 color = vec3(0);
 
   vec3 q = abs(mPos);
   // Mirror around y=x
@@ -2048,12 +2046,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     q.zy = q.yz;
   }
 
-  vec2 size = vec2(0.0201 * 3. / PI);
+  vec2 size = vec2(0.0251 * 3. / PI);
   vec2 c = floor((q.xy + size*0.5)/size);
   q.x += size.x * c.y;
   pMod2(q.xy, size);
 
-  float d = sdBox(q.xy, 0.5 * size - 0.5 * thickness);
+  float d = maxDistance;
+  float b = sdBox(q.xy, size * vec2(0.3, 0.05) - 0.0 * thickness);
+  d = min(d, b);
 
   // float cross = vmin(abs(q.xy)) - 0.125 * size.x;
   // d = min(d, cross);
@@ -2073,7 +2073,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   d *= 1.25; // Boost whites
 
-  d = 1.;
   return vec3(d);
 
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
@@ -2255,14 +2254,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.5;
+      float freCo = 0.;
+      float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.2;
+      float diffMin = 1.0;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
