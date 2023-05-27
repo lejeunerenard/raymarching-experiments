@@ -1766,15 +1766,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = wQ.xyz;
 
   wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 7.5 * r;
+  wQ.y -= 5.5 * r;
   wQ.yz *= rotMat2(-1. * (1. * wQ.x - 1.0 * localCosT));
 
   wQ.x /= PI;
 
-  pModPolar(wQ.yz, 5.);
+  pModPolar(wQ.yz, 3.);
   // wQ.yz = abs(wQ.yz);
   wQ.z = abs(wQ.z);
-  wQ.yz -= 3. * r;
+  wQ.yz -= (1.25 + 0.25 * cos(localCosT + PI * wQ.x)) * r;
 
   // Commit warp
   q = wQ.xyz;
@@ -2046,13 +2046,13 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     q.zy = q.yz;
   }
 
-  vec2 size = vec2(0.0251 * 3. / PI);
+  vec2 size = 0.03 * 3. / PI * vec2(1, 0.5);
   vec2 c = floor((q.xy + size*0.5)/size);
   q.x += size.x * c.y;
   pMod2(q.xy, size);
 
   float d = maxDistance;
-  float b = sdBox(q.xy, size * vec2(0.3, 0.05) - 0.0 * thickness);
+  float b = sdBox(q.xy, size * vec2(0.4, 0.05) - 0.0 * thickness);
   d = min(d, b);
 
   // float cross = vmin(abs(q.xy)) - 0.125 * size.x;
@@ -2229,14 +2229,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.1;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor -= 0.125 * cellular(5. * mPos);
-      nor = normalize(nor);
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.1;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // // nor -= 0.125 * cellular(5. * mPos);
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
