@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1740,7 +1740,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.125;
+  float warpScale = 0.5;
   float warpFrequency = 0.5;
   float rollingScale = 1.;
 
@@ -1753,41 +1753,41 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  // wQ += 0.100000 * warpScale * cos( 2. * componentShift(wQ) + distortT );
-  // wQ += 0.050000 * warpScale * cos( 7. * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y);
-  // wQ += 0.025000 * warpScale * cos( 9. * componentShift(wQ) + distortT );
-  // wQ += 0.012500 * warpScale * cos(13. * componentShift(wQ) + distortT );
-  // // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  // wQ += 0.006250 * warpScale * cos(19. * componentShift(wQ) + distortT );
-  // wQ += 0.003125 * warpScale * cos(23. * componentShift(wQ) + distortT );
+  wQ += 0.100000 * warpScale * cos( 2. * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 7. * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y);
+  wQ += 0.025000 * warpScale * cos( 9. * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(13. * componentShift(wQ) + distortT );
+  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ += 0.006250 * warpScale * cos(19. * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(23. * componentShift(wQ) + distortT );
 
   // Möbius Strip Space
   // wQ.xzy = wQ.xyz;
 
   wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 5.5 * r;
-  wQ.yz *= rotMat2(-1. * (1. * wQ.x - 1.0 * localCosT));
+  wQ.y -= 6.5 * r;
+  wQ.yz *= rotMat2(-1. * (0.3333 * wQ.x - 1.0 * localCosT));
 
   wQ.x /= PI;
 
   pModPolar(wQ.yz, 3.);
   // wQ.yz = abs(wQ.yz);
   wQ.z = abs(wQ.z);
-  wQ.yz -= (1.25 + 0.25 * cos(localCosT + PI * wQ.x)) * r;
+  wQ.yz -= vec2(3., 2.) * r;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(2.1, r, r)), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.6;
+  d.x *= 0.4;
 
   return d;
 }
@@ -2039,6 +2039,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  return color;
 
   vec3 q = abs(mPos);
   // Mirror around y=x
@@ -2331,7 +2332,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
