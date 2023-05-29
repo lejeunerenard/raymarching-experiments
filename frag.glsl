@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 0.075;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1740,7 +1740,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.3;
   float warpFrequency = 0.5;
   float rollingScale = 1.;
 
@@ -1766,15 +1766,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = wQ.xyz;
 
   wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 6.5 * r;
-  wQ.yz *= rotMat2(-1. * (0.3333 * wQ.x - 1.0 * localCosT));
+  wQ.y -= 4.0 * r;
+  wQ.yz *= rotMat2(-1. * (0.083333 * wQ.x - 3./12. * localCosT));
 
   wQ.x /= PI;
 
-  pModPolar(wQ.yz, 3.);
+  pModPolar(wQ.yz, 12.);
   // wQ.yz = abs(wQ.yz);
   wQ.z = abs(wQ.z);
-  wQ.yz -= vec2(3., 2.) * r;
+  wQ.yz -= 0.60 * vec2(3., 2.) * r;
 
   // Commit warp
   q = wQ.xyz;
@@ -2039,7 +2039,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return color;
 
   vec3 q = abs(mPos);
   // Mirror around y=x
@@ -2047,12 +2046,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
     q.zy = q.yz;
   }
 
-  vec2 size = 0.03 * 3. / PI * vec2(1, 0.5);
+  vec2 size = 0.0375 * 3. / PI * vec2(1, 0.5);
   vec2 c = floor((q.xy + size*0.5)/size);
   q.x += size.x * c.y;
   pMod2(q.xy, size);
 
   float d = maxDistance;
+
+  q.xy *= rotMat2(0.1 * PI);
+
   float b = sdBox(q.xy, size * vec2(0.4, 0.05) - 0.0 * thickness);
   d = min(d, b);
 
@@ -2072,7 +2074,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   d = smoothstep(0., edge, d);
   d = 1. - d;
 
-  d *= 1.25; // Boost whites
+  d *= 1.5; // Boost whites
 
   return vec3(d);
 
@@ -2332,7 +2334,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
