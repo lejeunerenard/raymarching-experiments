@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.075;
+float gR = 0.35;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1740,8 +1740,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.3;
-  float warpFrequency = 0.5;
+  float warpScale = 1.0;
+  float warpFrequency = 0.25;
   float rollingScale = 1.;
 
   // Warp
@@ -1758,36 +1758,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y);
   wQ += 0.025000 * warpScale * cos( 9. * componentShift(wQ) + distortT );
   wQ += 0.012500 * warpScale * cos(13. * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
   wQ += 0.006250 * warpScale * cos(19. * componentShift(wQ) + distortT );
   wQ += 0.003125 * warpScale * cos(23. * componentShift(wQ) + distortT );
-
-  // Möbius Strip Space
-  // wQ.xzy = wQ.xyz;
-
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 4.0 * r;
-  wQ.yz *= rotMat2(-1. * (0.083333 * wQ.x - 3./12. * localCosT));
-
-  wQ.x /= PI;
-
-  pModPolar(wQ.yz, 12.);
-  // wQ.yz = abs(wQ.yz);
-  wQ.z = abs(wQ.z);
-  wQ.yz -= 0.60 * vec2(3., 2.) * r;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(2.1, r, r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.4;
+  d.x *= 0.9;
 
   return d;
 }
@@ -2040,44 +2026,6 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  vec3 q = abs(mPos);
-  // Mirror around y=x
-  if (q.y >= q.z) {
-    q.zy = q.yz;
-  }
-
-  vec2 size = 0.0375 * 3. / PI * vec2(1, 0.5);
-  vec2 c = floor((q.xy + size*0.5)/size);
-  q.x += size.x * c.y;
-  pMod2(q.xy, size);
-
-  float d = maxDistance;
-
-  q.xy *= rotMat2(0.1 * PI);
-
-  float b = sdBox(q.xy, size * vec2(0.4, 0.05) - 0.0 * thickness);
-  d = min(d, b);
-
-  // float cross = vmin(abs(q.xy)) - 0.125 * size.x;
-  // d = min(d, cross);
-
-  // q.xy
-  // c = floor((q.xy + size*0.5)/size);
-  // q.x += size.x * c.y;
-  // pMod2(q.xy, size);
-
-  // float d = sdBox(q.xy, 0.5 * size - 0.75 * thickness);
-
-  // float cross = vmin(abs(q.xy)) - 0.2 * size.x;
-  // d = min(d, cross);
-
-  d = smoothstep(0., edge, d);
-  d = 1. - d;
-
-  d *= 1.5; // Boost whites
-
-  return vec3(d);
-
   // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
   // n *= TWO_PI;
   // // n *= 2.56;
@@ -2087,12 +2035,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
+  dI += dNR;
 
   dI += 0.3 * snoise3(0.3 * pos);
   // dI += trap;
 
   dI *= angle1C;
   dI += angle2C;
+  dI -= t;
 
   color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
   color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.3, 0.4)));
@@ -2232,14 +2182,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.0;
-      // float bumpIntensity = 0.1;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // // nor -= 0.125 * cellular(5. * mPos);
-      // nor = normalize(nor);
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.1;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor -= 0.125 * cellular(5. * mPos);
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2257,14 +2207,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.;
-      float specCo = 0.;
+      float freCo = 0.5;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 1.0;
+      float diffMin = 0.8;
+      float shadowMin = 0.7;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2334,7 +2284,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2347,8 +2297,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 1.0 * pow(1. - dot(gNor, -gRd), 1.0);
-      float dispersionI = 1.0;
+      float dispersionI = 0.5 * pow(1. - dot(gNor, -gRd), 1.0);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
