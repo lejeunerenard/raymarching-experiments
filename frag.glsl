@@ -1753,20 +1753,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  wQ += 0.100000 * warpScale * cos( 2. * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos( 7. * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y);
-  wQ += 0.025000 * warpScale * cos( 9. * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos(13. * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y);
-  wQ += 0.006250 * warpScale * cos(19. * componentShift(wQ) + distortT );
-  wQ += 0.003125 * warpScale * cos(23. * componentShift(wQ) + distortT );
+  wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
+  wQ.z += 0.050000 * warpScale * cos( 7. * wQ.y + distortT );
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + localCosT);
+  wQ.x += 0.025000 * warpScale * cos( 9. * wQ.z + distortT );
+  wQ.y += 0.012500 * warpScale * cos(13. * wQ.x + distortT );
+  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + localCosT);
+  wQ.z += 0.006250 * warpScale * cos(19. * wQ.y + distortT );
+  wQ.x += 0.003125 * warpScale * cos(23. * wQ.z + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2035,17 +2036,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
-  dI += dNR;
+  dI += 2. * pow(dNR, 2.);
 
   dI += 0.3 * snoise3(0.3 * pos);
   // dI += trap;
 
   dI *= angle1C;
   dI += angle2C;
-  dI -= t;
 
   color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
-  color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.3, 0.4)));
+  // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.3, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -2207,13 +2207,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.5;
+      float freCo = 0.75;
+      float specCo = 0.75;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
+      float diffMin = 0.9;
       float shadowMin = 0.7;
 
       vec3 directLighting = vec3(0);
@@ -2297,8 +2297,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 0.5 * pow(1. - dot(gNor, -gRd), 1.0);
-      // float dispersionI = 1.0;
+      // float dispersionI = 1.0 * pow(0. + dot(gNor, -gRd), 1.0);
+      float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
