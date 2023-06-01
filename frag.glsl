@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1761,13 +1761,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y + localCosT);
   wQ.z += 0.006250 * warpScale * cos(19. * wQ.y + distortT );
   wQ.x += 0.003125 * warpScale * cos(23. * wQ.z + distortT );
+  wQ.y += 0.001500 * warpScale * cos(32. * wQ.x + distortT );
+  wQ.z += 0.000750 * warpScale * cos(37. * wQ.y + distortT );
+  wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + localCosT);
+  wQ.x += 0.000375 * warpScale * cos(39. * wQ.z + distortT );
+  wQ.y += 0.000187 * warpScale * cos(43. * wQ.x + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2183,7 +2188,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
       float bumpsScale = 1.0;
-      float bumpIntensity = 0.1;
+      float bumpIntensity = 0.05;
       nor += bumpIntensity * vec3(
           snoise3(bumpsScale * 490.0 * mPos),
           snoise3(bumpsScale * 670.0 * mPos + 234.634),
