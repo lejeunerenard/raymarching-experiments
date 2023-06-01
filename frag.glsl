@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1754,25 +1754,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ *= scale;
 
   wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
-  wQ.z += 0.050000 * warpScale * cos( 7. * wQ.y + distortT );
+  wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
   wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + localCosT);
-  wQ.x += 0.025000 * warpScale * cos( 9. * wQ.z + distortT );
-  wQ.y += 0.012500 * warpScale * cos(13. * wQ.x + distortT );
+  wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
+  wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
   wQ.xzy = twist(wQ.xyz, 2. * wQ.y + localCosT);
-  wQ.z += 0.006250 * warpScale * cos(19. * wQ.y + distortT );
-  wQ.x += 0.003125 * warpScale * cos(23. * wQ.z + distortT );
-  wQ.y += 0.001500 * warpScale * cos(32. * wQ.x + distortT );
-  wQ.z += 0.000750 * warpScale * cos(37. * wQ.y + distortT );
+  wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
+  wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
+  wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
+  wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
   wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + localCosT);
-  wQ.x += 0.000375 * warpScale * cos(39. * wQ.z + distortT );
-  wQ.y += 0.000187 * warpScale * cos(43. * wQ.x + distortT );
+  wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
+  wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  d = dMin(d, b);
+
+  q *= rotationMatrix(vec3( 0, 1, 0), 0.25 * PI);
+  q *= rotationMatrix(vec3(-1, 0, 1), 0.25 * PI);
+  b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2032,12 +2036,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  // float n = atan(mPos.y, mPos.x); // dot(mPos.xy, vec2(1));
-  // n *= TWO_PI;
-  // // n *= 2.56;
-  // n = sin(n);
-  // n = smoothstep(0., edge, n);
-  // return vec3(n);
+  float n = dot(mPos.xyz, vec3(1));
+  n *= TWO_PI;
+  n *= 15.;
+  n = sin(n);
+  n = smoothstep(0., edge, n);
+  n *= 1.1;
+  return vec3(n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2187,14 +2192,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.05;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor -= 0.125 * cellular(5. * mPos);
-      nor = normalize(nor);
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.05;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // // nor -= 0.125 * cellular(5. * mPos);
+      // nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2219,7 +2224,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.9;
-      float shadowMin = 0.7;
+      float shadowMin = 0.6;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2289,7 +2294,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
