@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.35;
+float gR = 0.175;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1740,7 +1740,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.25;
   float warpFrequency = 0.25;
   float rollingScale = 1.;
 
@@ -1755,15 +1755,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
   wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + localCosT);
+  wQ.xzy = twist(wQ.xyz, 0.25 * wQ.y + localCosT);
   wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
   wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + localCosT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
   wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
   wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
   wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
   wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
-  wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + localCosT);
+  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
   wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
   wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
 
@@ -1771,12 +1771,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdHollowBox(q, vec3(r), 0.3 * r), 0, 0);
   d = dMin(d, b);
 
-  q *= rotationMatrix(vec3( 0, 1, 0), 0.25 * PI);
-  q *= rotationMatrix(vec3(-1, 0, 1), 0.25 * PI);
-  b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 localQ = q;
+  localQ -= 1. * r;
+
+  b = vec3(sdHollowBox(localQ, vec3(r), 0.3 * r), 0, 0);
+  d = dMin(d, b);
+
+  localQ = q;
+  localQ += 1. * r;
+
+  b = vec3(sdHollowBox(localQ, vec3(r), 0.3 * r), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2038,7 +2045,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float n = dot(mPos.xyz, vec3(1));
   n *= TWO_PI;
-  n *= 15.;
+  n *= 20.;
   n = sin(n);
   n = smoothstep(0., edge, n);
   n *= 1.1;
