@@ -1717,7 +1717,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.175;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1730,11 +1730,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.15 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.15 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1771,19 +1771,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdHollowBox(q, vec3(r), 0.3 * r), 0, 0);
-  d = dMin(d, b);
-
-  vec3 localQ = q;
-  localQ -= 1. * r;
-
-  b = vec3(sdHollowBox(localQ, vec3(r), 0.3 * r), 0, 0);
-  d = dMin(d, b);
-
-  localQ = q;
-  localQ += 1. * r;
-
-  b = vec3(sdHollowBox(localQ, vec3(r), 0.3 * r), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2043,12 +2032,13 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float n = dot(mPos.xyz, vec3(1));
+  // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
+  float n = mPos.y;
   n *= TWO_PI;
-  n *= 20.;
+  n *= 38.5;
   n = sin(n);
   n = smoothstep(0., edge, n);
-  n *= 1.1;
+  // n *= 1.1;
   return vec3(n);
 
   float dNR = dot(nor, -rd);
@@ -2230,8 +2220,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.9;
-      float shadowMin = 0.6;
+      float diffMin = 1.0;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
