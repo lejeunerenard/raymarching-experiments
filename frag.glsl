@@ -1558,7 +1558,7 @@ vec2 conveyerBelt (in vec3 q, in vec3 beltDims, in float thickness, in float t) 
   return d;
 }
 
-#pragma glslify: loopNoise = require(./loop-noise, noise=cnoise3)
+#pragma glslify: loopNoise = require(./loop-noise, noise=snoise3)
 
 float crystal (in vec3 q, in float r, in vec3 h, in float angle) {
   float d = maxDistance;
@@ -3374,27 +3374,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = 1.5 * vec2(0.005, 0.05);
-  vec2 size = vec2(8., 2.5) * r;
+  vec2 r = 1.5 * vec2(0.001, 0.05);
+  vec2 size = vec2(2) * r + vmax(r) * 0.85;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
   float warpFactor = 0.3;
 
-  // wQ = polarCoords(wQ);
-  // wQ.x /= PI;
-
   wQ *= rotMat2(0.25 * PI);
 
   vec2 c = floor((wQ + size*0.5)/size);
   wQ.x += 0.5 * size.x * mod(c.y, 2.);
-
-  c = pMod2(wQ, size);
-
-  t += dot(c, vec2(0.01, 0.08));
-  t = mod(t, 1.);
-  // t = triangleWave(t);
+  pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3404,16 +3396,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  r *= t;
-
   vec2 b = vec2(sdBox(q, r), 0);
   d = dMin(d, b);
 
-  // float mask = sdBox(uv, vec2(0.375, 0.7));
+  float mask = sdBox(uv, 0.8 * vec2(0.375, 0.7));
   // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
-  // mask = smoothstep(0., 0.5 * edge, mask);
-  // mask = 1. - mask;
-  // // mask = 0.05 + 0.95 * mask;
+  mask = smoothstep(0., edge, mask);
+  mask = 1. - mask;
+  // mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
 
@@ -3510,7 +3500,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color = mix(color, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // color *= mask;
+  color *= mask;
 
   return color.rgb;
 }
@@ -3596,10 +3586,18 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
-    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
+    uv += 0.01 * i * 0.5 * vec2(
+        loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(norT, 2.4800 + 2. * uv), 0.4, 0.8),
+        loopNoise(vec3(mod(norT + 0.4, 1.), 2.7182 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(mod(norT + 0.2, 1.), 9.1722 + 2. * uv), 0.3, 0.7));
+
+    color += (1. - pow(i / (echoSlices + 1.), 0.25)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
+
     uv.y += 0.0125;
+
+    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
   }
   return vec4(color, 1);
 
