@@ -1098,6 +1098,20 @@ vec2 sdBoxWEdges (in vec3 q, in vec3 r, in float thickness) {
   }
   return vec2(b, m);
 }
+
+float sdCross (in vec2 q, in float thickness) {
+  return vmin(abs(q)) - thickness;
+}
+
+float sdCappedCross (in vec2 q, in vec2 r, in float thickness) {
+  float cross = sdCross(q, thickness);
+  return max(cross, sdBox(q, r));
+}
+
+float sdCappedCross (in vec2 q, in float r, in float thickness) {
+  return sdCappedCross(q, vec2(r), thickness);
+}
+
 //--------------------------------------------------------------------------------
 // ray-sphere intersection
 // http://iquilezles.org/www/articles/intersectors/intersectors.htm
@@ -1260,7 +1274,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.05 * length(c);
-  locallocalT += 0.01 * dC;
+  // locallocalT += 0.01 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1274,7 +1288,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
+  float shift = 0.;
   vec2 shiftDir = vec2(1, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1297,7 +1311,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  q.x += t * size.x * mod((shift * shiftDir).y, 2.);
+  // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
   // vec2 center = vec2(size.x * c);
   // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
@@ -1317,7 +1331,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  q -= shiftDir * shift * size * t;
+  // q -= shiftDir * shift * size * t;
 
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
@@ -1354,12 +1368,41 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD -= 0.5;
   // internalD *= 2.;
 
-  float internalD = sdBox(q, r);
+  // Crosses
+  vec2 crossR = 0.2 * r;
+  float crossThick = 0.125 * crossR.x;
 
-  vec2 o = vec2(internalD, 0.);
-  // vec2 o = vec2(internalD - r, 0.);
-  // float o = microGrid(q);
-  d = dMin(d, o);
+  for (float i = 0.; i < 5.; i++) {
+    vec2 localQ = q;
+
+    float crossT = t - 0.15 * length(localC);
+    crossT = mod(crossT, 1.);
+    float crossTNoExpo = crossT;
+    crossT = expo(crossT);
+
+    // Spread
+    localQ += crossT * 2. * r * vec2(1, 0) * rotMat2(TWO_PI * snoise2(139.17 * vec2(i) + localC));
+
+    // Spin
+    mat2 rot = rotMat2(localCosT + 0.2378 * PI * i);
+    localQ *= rot;
+
+    float fadeT = smoothstep(0.75, 1., crossTNoExpo);
+
+    vec2 b = vec2(sdCappedCross(localQ, crossR, crossThick), 0);
+    b.x = mix(b.x, 0.015, fadeT);
+    d = dMin(d, b);
+    b = vec2(sdCappedCross(q * rot, crossR, crossThick), 0);
+    b.x = mix(0.1, b.x, fadeT);
+    d = dMin(d, b);
+  }
+
+  // float internalD = sdBox(q, r);
+
+  // vec2 o = vec2(internalD, 0.);
+  // // vec2 o = vec2(internalD - r, 0.);
+  // // float o = microGrid(q);
+  // d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1385,7 +1428,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -3374,19 +3417,20 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = 1.5 * vec2(0.001, 0.05);
-  vec2 size = vec2(2) * r + vmax(r) * 0.85;
+  vec2 r = vec2(0.05);
+  vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
   float warpFactor = 0.3;
 
-  wQ *= rotMat2(0.25 * PI);
+  // vec2 c = floor((wQ + size*0.5)/size);
 
-  vec2 c = floor((wQ + size*0.5)/size);
-  wQ.x += 0.5 * size.x * mod(c.y, 2.);
-  pMod2(wQ, size);
+  // // Odd row offset
+  // wQ.x += 0.5 * size.x * mod(c.y, 2.);
+
+  // c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3396,14 +3440,16 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(sdBox(q, r), 0);
+  vec2 b = vec2(neighborGrid(q, size).x, 0);
   d = dMin(d, b);
 
-  float mask = sdBox(uv, 0.8 * vec2(0.375, 0.7));
-  // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
-  mask = smoothstep(0., edge, mask);
-  mask = 1. - mask;
-  // mask = 0.05 + 0.95 * mask;
+  float mask = 1.;
+
+  // mask = sdBox(uv, 0.8 * vec2(0.375, 0.7));
+  // // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
+  // mask = smoothstep(0., edge, mask);
+  // mask = 1. - mask;
+  // // mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
 
@@ -3582,24 +3628,24 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
-  // -- Echoed Layers --
-  const float echoSlices = 12.;
-  for (float i = 0.; i < echoSlices; i++) {
-    uv += 0.01 * i * 0.5 * vec2(
-        loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(norT, 2.4800 + 2. * uv), 0.4, 0.8),
-        loopNoise(vec3(mod(norT + 0.4, 1.), 2.7182 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(mod(norT + 0.2, 1.), 9.1722 + 2. * uv), 0.3, 0.7));
+  // // -- Echoed Layers --
+  // const float echoSlices = 12.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   uv += 0.01 * i * 0.5 * vec2(
+  //       loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(norT, 2.4800 + 2. * uv), 0.4, 0.8),
+  //       loopNoise(vec3(mod(norT + 0.4, 1.), 2.7182 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(mod(norT + 0.2, 1.), 9.1722 + 2. * uv), 0.3, 0.7));
 
-    color += (1. - pow(i / (echoSlices + 1.), 0.25)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
+  //   color += (1. - pow(i / (echoSlices + 1.), 0.25)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
 
-    uv.y += 0.0125;
+  //   uv.y += 0.0125;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
-  return vec4(color, 1);
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
+  // return vec4(color, 1);
 
   // -- Color delay --
   const float slices = 15.;
