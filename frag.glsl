@@ -1760,7 +1760,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.4;
+float gR = 0.1;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1796,27 +1796,47 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
-  wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
-  wQ.xzy = twist(wQ.xyz, 0.25 * wQ.y + localCosT);
-  wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
-  wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
-  wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
-  wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
-  wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
-  wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
-  wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
+  // wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
+  // wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
+  // wQ.xzy = twist(wQ.xyz, 0.25 * wQ.y + localCosT);
+  // wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
+  // wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
+  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  // wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
+  // wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
+  // wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
+  // wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
+  // wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
+  // wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
+
+  float bigR = 2.5 * r;
+
+  wQ.xy = polarCoords(wQ.xy);
+  wQ.y -= bigR;
+
+  wQ.yz *= rotMat2(0.5 * wQ.x + 0.2 * PI * cos(wQ.x + localCosT));
+
+  wQ.x /= PI;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
+
+  // // Crop trap
+  // float cropR = 1.5 * r;
+  // vec3 cropQ = p;
+
+  // cropQ.xy *= rotMat2(localCosT);
+  // float c = pModPolar(cropQ.xy, 5.);
+
+  // cropQ.x -= bigR;
+  // float crop = sdBox(cropQ, vec3(cropR, 0.2, cropR));
+  // d.x = max(d.x, crop);
 
   // Scale compensation
   d.x /= scale;
@@ -2073,16 +2093,17 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.2);
+  return color;
 
-  // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
-  float n = mPos.y;
-  n *= TWO_PI;
-  n *= 38.5;
-  n = sin(n);
-  n = smoothstep(0., edge, n);
-  // n *= 1.1;
-  return vec3(n);
+  // // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
+  // float n = mPos.y;
+  // n *= TWO_PI;
+  // n *= 38.5;
+  // n = sin(n);
+  // n = smoothstep(0., edge, n);
+  // // n *= 1.1;
+  // return vec3(n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2232,14 +2253,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.0;
-      // float bumpIntensity = 0.05;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // // nor -= 0.125 * cellular(5. * mPos);
-      // nor = normalize(nor);
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.05;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // nor -= 0.125 * cellular(5. * mPos);
+
+      nor += 0.3 * (0.5 + 0.5 * dot(nor, rayDirection)) * cellular(vec3(9, 1, 9) * mPos);
+      nor = normalize(nor);
       gNor = nor;
 
       vec3 ref = reflect(rayDirection, nor);
@@ -2334,7 +2357,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2352,8 +2375,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
@@ -3597,7 +3620,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
