@@ -1760,7 +1760,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.1;
+float gR = 0.05;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1810,33 +1810,44 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
 
-  float bigR = 2.5 * r;
+  float bigR = 6. * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  wQ.yz *= rotMat2(0.5 * wQ.x + 0.2 * PI * cos(wQ.x + localCosT));
+  wQ.yz *= rotMat2(0.5 * wQ.x + 0.25 * PI * cos(wQ.x + localCosT));
 
   wQ.x /= PI;
+
+  wQ.yz = abs(wQ.yz);
+  wQ.yz -= 2. * r;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  // // Crop trap
-  // float cropR = 1.5 * r;
-  // vec3 cropQ = p;
+  // Crop
+  const float cropLength = 0.125;
+  const float cropSize = 0.4;
+  float cropR = 1.0 * r;
 
+  // Using mod x coordinatae
+  vec3 cropQ = q;
+  cropQ.x += norT * cropSize;
+  pMod1(cropQ.x, cropSize);
+
+  // // Using world space
+  // vec3 cropQ = p;
   // cropQ.xy *= rotMat2(localCosT);
   // float c = pModPolar(cropQ.xy, 5.);
-
   // cropQ.x -= bigR;
-  // float crop = sdBox(cropQ, vec3(cropR, 0.2, cropR));
-  // d.x = max(d.x, crop);
+
+  // float crop = sdBox(cropQ, vec3(cropR, cropLength, cropR));
+  float crop = sdCapsule(cropQ, vec3(cropLength, 0, 0), vec3(-cropLength, 0, 0), cropR);
+  d.x = max(d.x, crop);
 
   // Scale compensation
   d.x /= scale;
