@@ -803,6 +803,29 @@ vec3 opElogate ( in vec3 q, in vec3 h, out float correction ) {
    return max(q, 0.);
 }
 
+void quadrantIndex (in vec2 q, inout float carryIndex) {
+  // --- Quadrant index ---
+  // Assuming starting with 1.
+
+  // -- y split --
+  //  + | + 
+  // ---|---
+  //  - | - 
+  carryIndex *= sign(q.y);
+
+  // -- x split --
+  //  x2 | x1 
+  // ----|----
+  //  x2 | x1 
+  carryIndex *= q.x > 0. ? 1. : 2.;
+
+  //  So: 
+  //   2 |  1 
+  // ----|----
+  //  -2 | -1 
+  // This should be okay to apply multiple times to have nested quadrants
+}
+
 vec2 opElogateS ( in vec2 p, in vec2 h ) {
    vec2 q = p - clamp(p, -h, h);
 
@@ -1760,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 0.085;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1789,6 +1812,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 wQ = q.xyz;
+  wQ.xy *= rotMat2(-0.5 * PI);
+
   // vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
@@ -1810,14 +1835,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
 
-  float bigR = 6. * r;
+  float bigR = 12. * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  wQ.yz *= rotMat2(0.5 * wQ.x + 0.25 * PI * cos(wQ.x + localCosT));
+  float mobiusRotTimes = 0.5;
+
+  wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + localCosT));
 
   wQ.x /= PI;
+
+  // Fake rotate the quadrant index to be the other side of the mobius seam to
+  // make the transition seamless.
+  // Note: This just tears up the quadrant index around |x| = (0.4,0.6)
+  mat2 mobiusSeamCancelRotation = rotMat2(0. * 0.5 * mobiusRotTimes * TWO_PI * wQ.x);
+
+  // Starting with 1.
+  float c = 1.;
+  quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
+
+  wQ.yz = abs(wQ.yz);
+  wQ.yz -= 4. * r;
+
+  quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
 
   wQ.yz = abs(wQ.yz);
   wQ.yz -= 2. * r;
@@ -1830,22 +1871,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d = dMin(d, b);
 
   // Crop
-  const float cropLength = 0.125;
+  const float cropLength = 0.070;
   const float cropSize = 0.4;
-  float cropR = 1.0 * r;
+  float cropR = 0.9 * r;
 
-  // Using mod x coordinatae
+  // Using mod x coordinate
   vec3 cropQ = q;
   cropQ.x += norT * cropSize;
-  pMod1(cropQ.x, cropSize);
 
-  // // Using world space
-  // vec3 cropQ = p;
-  // cropQ.xy *= rotMat2(localCosT);
-  // float c = pModPolar(cropQ.xy, 5.);
-  // cropQ.x -= bigR;
+  // Mask seam at -1 & 1 from not accounting for the rotation of the mobius
+  // strip space
+  float maskMobiusSeam = 1.; // smoothstep(1., 0.9, abs(wQ.x));
 
-  // float crop = sdBox(cropQ, vec3(cropR, cropLength, cropR));
+  cropQ.x += 7.1237 * maskMobiusSeam * c;
+
+  float cX = pMod1(cropQ.x, cropSize);
+
   float crop = sdCapsule(cropQ, vec3(cropLength, 0, 0), vec3(-cropLength, 0, 0), cropR);
   d.x = max(d.x, crop);
 
@@ -1853,7 +1894,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= scale;
 
   // Under step
-  d.x *= 0.9;
+  d.x *= 0.8;
 
   return d;
 }
@@ -2272,7 +2313,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
           snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
-      nor += 0.3 * (0.5 + 0.5 * dot(nor, rayDirection)) * cellular(vec3(9, 1, 9) * mPos);
+      // // Cellular bump map
+      // nor += 0.3 * (0.5 + 0.5 * dot(nor, rayDirection)) * cellular(vec3(9, 1, 9) * mPos);
+
       nor = normalize(nor);
       gNor = nor;
 
