@@ -3494,11 +3494,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.05);
+  vec2 r = vec2(0.025);
   vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
 
   // -- Warp --
   vec2 wQ = q.xy;
+
+  wQ.y *= 1.4;
+  wQ *= rotMat2(0.2 * PI);
 
   float warpFactor = 0.3;
 
@@ -3507,7 +3510,10 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // c = pMod2(wQ, size);
+  vec2 nonGridQ = wQ;
+
+  vec2 c = vec2(0);
+  c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3517,12 +3523,31 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(neighborGrid(q, size).x, 0);
+  t += dot(c, vec2(0.1));
+  t = mod(t, 1.);
+
+  r *= quart(triangleWave(t));
+  vec2 b = vec2(sdBox(q, r), 0);
+  // b.x = abs(b.x) - 0.00015 * vmax(r);
+  // if (mod(dot(c, vec2(1)), 2.) == 1.) {
+  //   b.x = sin(TWO_PI * b.x);
+  // }
+  // b.x = max(-b.x, abs(sin(10. * TWO_PI * b.x)));
+  b.x = abs(sin(PI * b.x));
   d = dMin(d, b);
+
+  float crop = sdBox(c, vec2(4.));
+  d.x = max(d.x, crop);
+
+  // "Ring"s
+  float ringR = 4. * vmax(size) + vmax(r);
+  ringR += 0.25 * vmax(r);
+  float ring = abs(sdBox(nonGridQ, vec2(ringR))) - 0.1 * vmax(r);
+  d.x = min(d.x, ring);
 
   float mask = 1.;
 
-  // mask = sdBox(uv, 0.8 * vec2(0.375, 0.7));
+  // mask = sdBox(c, vec2(4.));
   // // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
   // mask = smoothstep(0., edge, mask);
   // mask = 1. - mask;
@@ -3674,7 +3699,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = vec4(two_dimensional(uv, time), 1);
@@ -3705,24 +3730,20 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec3 color = vec3(0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 12.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   uv += 0.01 * i * 0.5 * vec2(
-  //       loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(norT, 2.4800 + 2. * uv), 0.4, 0.8),
-  //       loopNoise(vec3(mod(norT + 0.4, 1.), 2.7182 + 2. * uv), 0.3, 0.7) + loopNoise(vec3(mod(norT + 0.2, 1.), 9.1722 + 2. * uv), 0.3, 0.7));
+  // -- Echoed Layers --
+  const float echoSlices = 8.;
+  for (float i = 0.; i < echoSlices; i++) {
+    color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
+    uv.y += 0.0125;
+    uv.y += i == 0. ? 0.075 : 0.;
 
-  //   color += (1. - pow(i / (echoSlices + 1.), 0.25)) * renderSceneLayer(ro, rd, uv, norT - 0.010 * i).rgb;
-
-  //   uv.y += 0.0125;
-
-  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  // }
-  // return vec4(color, 1);
+    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  }
+  return vec4(color, 1);
 
   // -- Color delay --
   const float slices = 15.;
