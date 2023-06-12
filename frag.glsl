@@ -3494,7 +3494,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.025);
+  vec2 r = vec2(0.0271);
   vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
 
   // -- Warp --
@@ -3523,10 +3523,12 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  t += dot(c, vec2(0.1));
+  t += 0.2 * vmin(c); // dot(c, vec2(0.1));
   t = mod(t, 1.);
+  float cellT = quart(triangleWave(t));
+  // cellT = range(0.0, 1., cellT);
 
-  r *= quart(triangleWave(t));
+  r *= cellT;
   vec2 b = vec2(sdBox(q, r), 0);
   // b.x = abs(b.x) - 0.00015 * vmax(r);
   // if (mod(dot(c, vec2(1)), 2.) == 1.) {
@@ -3536,14 +3538,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   b.x = abs(sin(PI * b.x));
   d = dMin(d, b);
 
-  float crop = sdBox(c, vec2(4.));
+  float crop = dot(abs(c), vec2(1)) - 6.; // sdBox(c, vec2(4.));
   d.x = max(d.x, crop);
 
-  // "Ring"s
-  float ringR = 4. * vmax(size) + vmax(r);
-  ringR += 0.25 * vmax(r);
-  float ring = abs(sdBox(nonGridQ, vec2(ringR))) - 0.1 * vmax(r);
-  d.x = min(d.x, ring);
+  // // "Ring"s
+  // float ringR = 4. * vmax(size) + vmax(r);
+  // ringR += 0.25 * vmax(r);
+  // float ring = abs(sdBox(nonGridQ, vec2(ringR))) - 0.1 * vmax(r);
+  // d.x = min(d.x, ring);
 
   float mask = 1.;
 
@@ -3738,7 +3740,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   for (float i = 0.; i < echoSlices; i++) {
     color += (1. - pow(i / (echoSlices + 1.), 0.125)) * renderSceneLayer(ro, rd, uv, norT - 0.020 * i).rgb;
     uv.y += 0.0125;
-    uv.y += i == 0. ? 0.075 : 0.;
+    // uv.y += i == 0. ? 0.075 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
