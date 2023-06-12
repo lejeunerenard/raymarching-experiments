@@ -3523,29 +3523,19 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  t += 0.2 * vmin(c); // dot(c, vec2(0.1));
+  t -= 0.15 * vmin(abs(c));
+  t -= dot(c, vec2(0.1));
   t = mod(t, 1.);
   float cellT = quart(triangleWave(t));
-  // cellT = range(0.0, 1., cellT);
+  cellT = range(0.2, 1., cellT);
 
-  r *= cellT;
-  vec2 b = vec2(sdBox(q, r), 0);
-  // b.x = abs(b.x) - 0.00015 * vmax(r);
-  // if (mod(dot(c, vec2(1)), 2.) == 1.) {
-  //   b.x = sin(TWO_PI * b.x);
-  // }
-  // b.x = max(-b.x, abs(sin(10. * TWO_PI * b.x)));
+  // from -x to 1 where x is 0.05
+  r *= cellT + 0.05 * (-1. + cellT);
+
+  // vec2 b = vec2(sdBox(q, r), 0);
+  vec2 b = vec2(length(q) - vmax(r), 0);
   b.x = abs(sin(PI * b.x));
   d = dMin(d, b);
-
-  float crop = dot(abs(c), vec2(1)) - 6.; // sdBox(c, vec2(4.));
-  d.x = max(d.x, crop);
-
-  // // "Ring"s
-  // float ringR = 4. * vmax(size) + vmax(r);
-  // ringR += 0.25 * vmax(r);
-  // float ring = abs(sdBox(nonGridQ, vec2(ringR))) - 0.1 * vmax(r);
-  // d.x = min(d.x, ring);
 
   float mask = 1.;
 
@@ -3563,7 +3553,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n - 0.0);
+  n = smoothstep(0., 2.0 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
