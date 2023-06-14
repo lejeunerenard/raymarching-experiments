@@ -3494,13 +3494,14 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.0271);
+  vec2 r = vec2(0.05);
   vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
   wQ.y *= 1.4;
+  wQ.x *= -1.;
   wQ *= rotMat2(0.2 * PI);
 
   float warpFactor = 0.3;
@@ -3523,19 +3524,28 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  t -= 0.15 * vmin(abs(c));
-  t -= dot(c, vec2(0.1));
-  t = mod(t, 1.);
-  float cellT = quart(triangleWave(t));
+  float cellT = t;
+  cellT -= 0.15 * vmax(abs(c));
+  float dC = dot(c, vec2(1));
+  cellT -= dC * 0.02;
+  cellT -= 0.05 * snoise2(1.2 * c);
+  cellT = mod(cellT, 1.);
+  // cellT = triangleWave(cellT);
+  cellT = circ(cellT);
   cellT = range(0.2, 1., cellT);
 
   // from -x to 1 where x is 0.05
   r *= cellT + 0.05 * (-1. + cellT);
 
-  // vec2 b = vec2(sdBox(q, r), 0);
-  vec2 b = vec2(length(q) - vmax(r), 0);
-  b.x = abs(sin(PI * b.x));
+  vec2 b = vec2(sdBox(q, r), dC);
+  b.x = abs(b.x);
   d = dMin(d, b);
+
+  r -= 0.5 * r;
+  b = vec2(sdBox(q, r), dC);
+  // b.x = abs(b.x);
+  d = dMin(d, b);
+
 
   float mask = 1.;
 
@@ -3553,7 +3563,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 2.0 * edge, n - 0.0);
+  n = smoothstep(0., 0.75 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3566,6 +3576,13 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   // // B&W Repeating
   // color = vec3(0.5 + 0.5 * cos(TWO_PI * n));
+
+  // Simple Cosine Palette
+  float cosineIndex = d.y;
+  cosineIndex *= 0.17283;
+  cosineIndex += t;
+  color = 0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67)));
+  color *= n;
 
   // // Mix
   // color = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
