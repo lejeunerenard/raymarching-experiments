@@ -3502,7 +3502,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
 
   wQ.y *= 1.4;
   wQ.x *= -1.;
-  wQ *= rotMat2(0.2 * PI);
+  wQ *= rotMat2(0.22 * PI);
 
   float warpFactor = 0.3;
 
@@ -3525,11 +3525,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, o);
 
   float cellT = t;
-  cellT -= 0.15 * vmax(abs(c));
+  cellT -= 0.080 * length(c);
+  // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
+  // cellT -= 0.15 * vmax(abs(c));
   float dC = dot(c, vec2(1));
-  cellT -= dC * 0.02;
-  cellT -= 0.05 * snoise2(1.2 * c);
+  // cellT -= dC * 0.02;
+  cellT -= 0.175 * snoise2(1.2 * c);
+
   cellT = mod(cellT, 1.);
+
   // cellT = triangleWave(cellT);
   cellT = circ(cellT);
   cellT = range(0.2, 1., cellT);
@@ -3537,14 +3541,15 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   // from -x to 1 where x is 0.05
   r *= cellT + 0.05 * (-1. + cellT);
 
-  vec2 b = vec2(sdBox(q, r), dC);
-  b.x = abs(b.x);
-  d = dMin(d, b);
-
-  r -= 0.5 * r;
-  b = vec2(sdBox(q, r), dC);
+  // vec2 b = vec2(sdBox(q, r), dC);
+  vec2 b = vec2(length(q) - vmax(r), dC);
   // b.x = abs(b.x);
   d = dMin(d, b);
+
+  // r -= 0.5 * r;
+  // b = vec2(sdBox(q, r), dC);
+  // // b.x = abs(b.x);
+  // d = dMin(d, b);
 
 
   float mask = 1.;
@@ -3581,6 +3586,7 @@ vec3 two_dimensional (in vec2 uv, in float generalT) {
   float cosineIndex = d.y;
   cosineIndex *= 0.17283;
   cosineIndex += t;
+  cosineIndex += dot(uv, vec2(1));
   color = 0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67)));
   color *= n;
 
