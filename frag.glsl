@@ -3510,9 +3510,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  vec2 nonGridQ = wQ;
+  wQ.xy = polarCoords(wQ.xy);
+  wQ.y -= .5 * size.y;
 
   vec2 c = vec2(0);
+
+  c = floor((wQ + size*0.5)/size);
+
+  size.x *= 2. - 1.7 * range(0., 8., c.y);
+  // r = vec2(0.5) * size - vmax(r) * 0.85;
+
   c = pMod2(wQ, size);
 
   q = wQ;
@@ -3531,11 +3538,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Center out
   // cellT -= 0.080 * length(c);
 
-  cellT += 0.080 * c.y;
+  cellT -= 0.080 * c.y;
 
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
   // cellT -= 0.15 * vmax(abs(c));
-  float dC = dot(c, vec2(1));
+  float dC = dot(c, vec2(1, -1));
   // cellT -= dC * 0.02;
   cellT -= 0.175 * snoise2(1.2 * c);
 
@@ -3543,7 +3550,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // cellT = triangleWave(cellT);
   cellT = circ(cellT);
-  cellT = range(0.2, 1., cellT);
+  cellT = range(0.0, 1., cellT);
 
   // from -x to 1 where x is 0.05
   r *= cellT + 0.05 * (-1. + cellT);
@@ -3551,8 +3558,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   q += 0.4 * vmax(r) * vec2(
       snoise2(c + vec2( 0.0100,-0.9000)),
       snoise2(c + vec2(-9.7000, 2.7780)));
-  // vec2 b = vec2(sdBox(q, r), dC);
-  vec2 b = vec2(length(q) - vmax(r), dC);
+  vec2 b = vec2(sdBox(q, r), dC);
+  // vec2 b = vec2(length(q) - vmax(r), dC);
   // b.x = abs(b.x);
   d = dMin(d, b);
 
@@ -3760,7 +3767,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 9.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.020 * i);
 
@@ -3778,7 +3785,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // Incremental offset
     uv.y += 0.0125;
 
-    // Initial Offset
+    // // Initial Offset
     // uv.y += i == 0. ? 0.075 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
@@ -3787,7 +3794,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   color.a = saturate(color.a);
   // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(1);
+  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
   color.a = 1.;
 
   return color;
