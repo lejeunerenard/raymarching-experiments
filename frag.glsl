@@ -3494,7 +3494,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.05);
+  vec2 r = vec2(0.125);
   vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
 
   // -- Warp --
@@ -3510,17 +3510,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= .5 * size.y;
+  // wQ.xy = polarCoords(wQ.xy);
+  // wQ.y -= .5 * size.y;
 
   vec2 c = vec2(0);
 
   c = floor((wQ + size*0.5)/size);
 
-  size.x *= 2. - 1.7 * range(0., 8., c.y);
+  // size.x *= 2. - 1.7 * range(0., 8., c.y);
   // r = vec2(0.5) * size - vmax(r) * 0.85;
 
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3530,38 +3530,85 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // Adjust R per cell
-  r *= 0.7 - 0.4 * snoise2(1.7238 * c);
+  // // Adjust R per cell
+  // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
   float cellT = t;
 
   // // Center out
   // cellT -= 0.080 * length(c);
 
-  cellT -= 0.080 * c.y;
+  // // Coordinate offset
+  // // cellT -= 0.080 * c.y;
+  // cellT -= 0.020 * c.x;
 
+  // // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
   // cellT -= 0.15 * vmax(abs(c));
-  float dC = dot(c, vec2(1, -1));
-  // cellT -= dC * 0.02;
-  cellT -= 0.175 * snoise2(1.2 * c);
 
-  cellT = mod(cellT, 1.);
+  // // Dot product offset
+  // float dC = dot(c, vec2(1, -1));
+  // cellT -= dC * 0.02;
+
+  // // Noise offset
+  // cellT -= 0.175 * snoise2(1.2 * c);
+
+  // // Rectify
+  // cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
-  cellT = circ(cellT);
-  cellT = range(0.0, 1., cellT);
+  // cellT = range(0.0, 1., cellT);
 
-  // from -x to 1 where x is 0.05
-  r *= cellT + 0.05 * (-1. + cellT);
+  // // Scale radius from -x to 1 where x is 0.05
+  // r *= cellT + 0.05 * (-1. + cellT);
 
-  q += 0.4 * vmax(r) * vec2(
-      snoise2(c + vec2( 0.0100,-0.9000)),
-      snoise2(c + vec2(-9.7000, 2.7780)));
-  vec2 b = vec2(sdBox(q, r), dC);
-  // vec2 b = vec2(length(q) - vmax(r), dC);
-  // b.x = abs(b.x);
-  d = dMin(d, b);
+  // // Shift by random noise
+  // q += 0.4 * vmax(r) * vec2(
+  //     snoise2(c + vec2( 0.0100,-0.9000)),
+  //     snoise2(c + vec2(-9.7000, 2.7780)));
+
+  // vec2 b = vec2(sdBox(q, r), dC);
+  // // vec2 b = vec2(length(q) - vmax(r), dC);
+  // // b.x = abs(b.x);
+  // d = dMin(d, b);
+
+  const float num = 7.;
+  float inner = 0.;
+  float outerMask = maxDistance;
+  for (float i = 0.; i < num; i++) {
+    float localR = vmax(r);
+    float localT = t;
+
+    localT += 0.01 * i;
+
+    // Rectify time
+    localT = mod(localT, 1.);
+
+    // Cycle time
+    localT = triangleWave(localT);
+
+    localT = expo(localT);
+
+    vec2 localQ = q;
+    localQ *= rotMat2(TWO_PI * i / num);
+    localQ.x -= localT * 1.75 * localR;
+
+    // Rings
+    vec2 b = vec2(length(localQ) - localR, i);
+    // localQ *= rotMat2(0.25 * PI);
+    // vec2 b = vec2(sdBox(localQ, vec2(localR)), i);
+    inner += step(0.,-b.x);
+    inner = mod(inner, 2.);
+
+    outerMask = min(outerMask, b.x);
+
+    b.x = abs(b.x) - edge;
+    d = dMin(d, b);
+  }
+  // // Flip intersections
+  // d.x *= mix(-1., 1., inner);
+  // d.x = max(d.x, outerMask);
+  d.x = outerMask;
 
   // r -= 0.5 * r;
   // b = vec2(sdBox(q, r), dC);
@@ -3587,25 +3634,25 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Hard Edge
   n = smoothstep(0., 0.75 * edge, n - 0.0);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // // Solid
   // color.rgb = vec3(1);
 
-  // // B&W
-  // color.rgb = vec3(n);
+  // B&W
+  color.rgb = vec3(n);
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
 
-  // Simple Cosine Palette
-  float cosineIndex = d.y;
-  cosineIndex *= 0.17283;
-  cosineIndex += t;
-  cosineIndex += dot(uv, vec2(1));
-  color.rgb = 0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67)));
-  color.a = n;
+  // // Simple Cosine Palette
+  // float cosineIndex = d.y;
+  // cosineIndex *= 0.17283;
+  // cosineIndex += t;
+  // cosineIndex += dot(uv, vec2(1));
+  // color.rgb = 0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67)));
+  // color.a = n;
 
   // // Mix
   // color.rgb = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -3769,7 +3816,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // -- Echoed Layers --
   const float echoSlices = 9.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.020 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
     // Echo Dimming
     // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
