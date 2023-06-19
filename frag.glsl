@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.085;
+float gR = 0.090;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1835,7 +1835,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
 
-  float bigR = 12. * r;
+  float bigR = 7. * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
@@ -1856,12 +1856,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
 
   wQ.yz = abs(wQ.yz);
-  wQ.yz -= 4. * r;
-
-  quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
-
-  wQ.yz = abs(wQ.yz);
-  wQ.yz -= 2. * r;
+  wQ.yz -= 2.0 * r;
 
   // Commit warp
   q = wQ.xyz;
@@ -1871,7 +1866,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d = dMin(d, b);
 
   // Crop
-  const float cropLength = 0.070;
+  const float cropLength = 0.100;
   const float cropSize = 0.4;
   float cropR = 0.9 * r;
 
@@ -1887,14 +1882,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float cX = pMod1(cropQ.x, cropSize);
 
-  float crop = sdCapsule(cropQ, vec3(cropLength, 0, 0), vec3(-cropLength, 0, 0), cropR);
-  d.x = max(d.x, crop);
+  // float crop = sdBox(cropQ, vec3(cropLength, cropR, cropR));
+  // d.x = max(d.x, crop);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.8;
+  d.x *= 0.7;
 
   return d;
 }
@@ -2146,7 +2141,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.2);
-  return color;
+  // return color;
 
   // // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
   // float n = mPos.y;
@@ -2424,8 +2419,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      // float dispersionI = 1.0 * pow(0. + dot(gNor, -gRd), 1.0);
-      float dispersionI = 1.0;
+      float dispersionI = 1.0 * pow(0. + dot(gNor, -gRd), 1.0);
+      // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
@@ -3779,7 +3774,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3810,8 +3805,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // -- Echoed Layers --
   const float echoSlices = 9.;
