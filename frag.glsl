@@ -1821,21 +1821,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  // wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
-  // wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
-  // wQ.xzy = twist(wQ.xyz, 0.25 * wQ.y + localCosT);
-  // wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
-  // wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
+  wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
+  wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
+  wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
+  wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
   // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
-  // wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
-  // wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
-  // wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
-  // wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
+  wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
+  wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
+  wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
+  wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
   // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
-  // wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
-  // wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
+  wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
+  wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
 
-  float bigR = 7. * r;
+  float bigR = 8.5 * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
@@ -1856,7 +1856,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
 
   wQ.yz = abs(wQ.yz);
-  wQ.yz -= 2.0 * r;
+  wQ.yz -= 3.5 * r;
+
+  quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
+
+  wQ.yz = abs(wQ.yz);
+  wQ.yz -= 1.5 * r;
 
   // Commit warp
   q = wQ.xyz;
@@ -1889,7 +1894,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= scale;
 
   // Under step
-  d.x *= 0.7;
+  d.x *= 0.2;
 
   return d;
 }
@@ -2392,11 +2397,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.10 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
