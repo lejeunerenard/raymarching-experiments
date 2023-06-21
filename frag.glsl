@@ -1806,8 +1806,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.25;
-  float warpFrequency = 0.25;
+  float warpScale = 0.75;
+  float warpFrequency = 1.;
   float rollingScale = 1.;
 
   // Warp
@@ -1821,26 +1821,39 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
-  wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
-  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
-  wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
-  wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
-  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
-  wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
-  wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
-  wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
-  wQ.z += 0.000750 * warpScale * cos(15. * wQ.y + distortT );
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
-  wQ.x += 0.000375 * warpScale * cos(17. * wQ.z + distortT );
-  wQ.y += 0.000187 * warpScale * cos(45. * wQ.x + distortT );
+  wQ += 0.100000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.125 * cos(localCosT + wQ.x));
+  wQ += 0.025000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.003125 * warpScale * cos(10. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.001500 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.000750 * warpScale * cos(15. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.000375 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.000187 * warpScale * cos(45. * warpFrequency * componentShift(wQ) + distortT );
 
-  float bigR = 8.5 * r;
+  // wQ.y += 0.100000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT );
+  // wQ.z += 0.050000 * warpScale * cos( 3. * warpFrequency * wQ.y + distortT );
+  // // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
+  // wQ.x += 0.025000 * warpScale * cos( 4. * warpFrequency * wQ.z + distortT );
+  // wQ.y += 0.012500 * warpScale * cos( 5. * warpFrequency * wQ.x + distortT );
+  // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  // wQ.z += 0.006250 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
+  // wQ.x += 0.003125 * warpScale * cos(10. * warpFrequency * wQ.z + distortT );
+  // wQ.y += 0.001500 * warpScale * cos(13. * warpFrequency * wQ.x + distortT );
+  // wQ.z += 0.000750 * warpScale * cos(15. * warpFrequency * wQ.y + distortT );
+  // // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
+  // wQ.x += 0.000375 * warpScale * cos(17. * warpFrequency * wQ.z + distortT );
+  // wQ.y += 0.000187 * warpScale * cos(45. * warpFrequency * wQ.x + distortT );
+
+  float bigR = 9.0 * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  float mobiusRotTimes = 0.5;
+  float mobiusRotTimes = 0.75;
 
   wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + localCosT));
 
@@ -1896,7 +1909,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= scale;
 
   // Under step
-  d.x *= 0.75;
+  d.x *= 0.175;
 
   return d;
 }
@@ -2432,7 +2445,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
