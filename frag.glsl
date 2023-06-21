@@ -1823,10 +1823,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ.y += 0.100000 * warpScale * cos( 2. * wQ.x + distortT );
   wQ.z += 0.050000 * warpScale * cos( 3. * wQ.y + distortT );
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
+  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
   wQ.x += 0.025000 * warpScale * cos( 4. * wQ.z + distortT );
   wQ.y += 0.012500 * warpScale * cos( 5. * wQ.x + distortT );
-  // wQ.xzy = twist(wQ.xyz, 1. * wQ.y + localCosT);
+  wQ.xzy = twist(wQ.xyz, 1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
   wQ.z += 0.006250 * warpScale * cos( 7. * wQ.y + distortT );
   wQ.x += 0.003125 * warpScale * cos(10. * wQ.z + distortT );
   wQ.y += 0.001500 * warpScale * cos(13. * wQ.x + distortT );
@@ -1863,6 +1863,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.yz = abs(wQ.yz);
   wQ.yz -= 1.5 * r;
 
+  wQ.yz *= rotMat2(PI * 1.5 * mobiusRotTimes * wQ.x + 0.0 * PI * cos(wQ.x + localCosT));
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
@@ -1894,7 +1896,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= scale;
 
   // Under step
-  d.x *= 0.2;
+  d.x *= 0.75;
 
   return d;
 }
@@ -2032,8 +2034,8 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.3;
 
   // -- Colors --
-  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
-  color = 0.5 + vec3(0.6, 0.5, 0.4) * cos( TWO_PI * ( vec3(1, 0.9, 1.1) * dI + vec3(0.05, 0.3, -0.5)) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  // color = 0.5 + vec3(0.6, 0.5, 0.4) * cos( TWO_PI * ( vec3(1, 0.9, 1.1) * dI + vec3(0.05, 0.3, -0.5)) );
   // color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
@@ -2146,7 +2148,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.2);
-  // return color;
+  return color;
 
   // // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
   // float n = mPos.y;
