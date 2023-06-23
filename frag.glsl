@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1806,7 +1806,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.75;
+  float warpScale = 0.25;
   float warpFrequency = 1.;
   float rollingScale = 1.;
 
@@ -1821,18 +1821,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  wQ += 0.100000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.125 * cos(localCosT + wQ.x));
-  wQ += 0.025000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.003125 * warpScale * cos(10. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.001500 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.000750 * warpScale * cos(15. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.000375 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.000187 * warpScale * cos(45. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.100000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.050000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.125 * cos(localCosT + wQ.x));
+  // wQ += 0.025000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.012500 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
+  // // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  // wQ += 0.006250 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 3. * warpFrequency * wQ.y + distortT );
@@ -1848,14 +1843,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * warpFrequency * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * warpFrequency * wQ.x + distortT );
 
-  float bigR = 9.0 * r;
+  float bigR = 9.5 * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  float mobiusRotTimes = 0.75;
+  float mobiusRotTimes = 1.;
 
-  wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + localCosT));
+  wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + 2. * localCosT));
 
   wQ.x /= PI;
 
@@ -1876,7 +1871,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.yz = abs(wQ.yz);
   wQ.yz -= 1.5 * r;
 
-  wQ.yz *= rotMat2(PI * 1.5 * mobiusRotTimes * wQ.x + 0.0 * PI * cos(wQ.x + localCosT));
+  wQ.yz *= rotMat2(PI * 1.5 * mobiusRotTimes * wQ.x + 0.0 * PI * cos(2. * wQ.x + localCosT));
 
   // Commit warp
   q = wQ.xyz;
@@ -1886,9 +1881,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d = dMin(d, b);
 
   // Crop
-  const float cropLength = 0.100;
-  const float cropSize = 0.4;
-  float cropR = 0.9 * r;
+  const float cropLength = 0.050;
+  const float cropSize = 0.2;
+  float cropR = 1.0 * r;
 
   // Using mod x coordinate
   vec3 cropQ = q;
@@ -1903,7 +1898,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float cX = pMod1(cropQ.x, cropSize);
 
   // float crop = sdBox(cropQ, vec3(cropLength, cropR, cropR));
-  // d.x = max(d.x, crop);
+  float crop = length(cropQ) - cropR;
+  d.x = max(d.x, crop);
 
   // Scale compensation
   d.x /= scale;
@@ -2160,7 +2156,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.2);
+  vec3 color = vec3(0.225);
   return color;
 
   // // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
