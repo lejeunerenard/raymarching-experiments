@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.090;
+float gR = 0.060;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1843,12 +1843,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * warpFrequency * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * warpFrequency * wQ.x + distortT );
 
-  float bigR = 9.5 * r;
+  float bigR = 8.5 * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  float mobiusRotTimes = 1.;
+  float mobiusRotTimes = 0.25;
 
   wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + 2. * localCosT));
 
@@ -1877,13 +1877,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(1.1, r, r)), 0, 0);
+  float boxR = 1.3 * r;
+  vec3 b = vec3(sdBox(q, vec3(1.1, boxR, boxR)), 0, 0);
   d = dMin(d, b);
 
   // Crop
   const float cropLength = 0.050;
   const float cropSize = 0.2;
-  float cropR = 1.0 * r;
+  float cropR = 1.3 * r;
 
   // Using mod x coordinate
   vec3 cropQ = q;
@@ -1891,9 +1892,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Mask seam at -1 & 1 from not accounting for the rotation of the mobius
   // strip space
-  float maskMobiusSeam = 1.; // smoothstep(1., 0.9, abs(wQ.x));
+  float maskMobiusSeam = smoothstep(1., 0.9, abs(wQ.x));
 
-  cropQ.x += 7.1237 * maskMobiusSeam * c;
+  // Offset
+  cropQ.x += 0.0337 * maskMobiusSeam * c;
 
   float cX = pMod1(cropQ.x, cropSize);
 
