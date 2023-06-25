@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.060;
+float gR = 0.051;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1843,12 +1843,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * warpFrequency * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * warpFrequency * wQ.x + distortT );
 
-  float bigR = 8.5 * r;
+  float bigR = 6.0 * r;
 
   wQ.xy = polarCoords(wQ.xy);
   wQ.y -= bigR;
 
-  float mobiusRotTimes = 0.25;
+  float mobiusRotTimes = 0.75;
 
   wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + 2. * localCosT));
 
@@ -1864,27 +1864,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
 
   wQ.yz = abs(wQ.yz);
-  wQ.yz -= 3.5 * r;
-
-  quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
-
-  wQ.yz = abs(wQ.yz);
   wQ.yz -= 1.5 * r;
 
-  wQ.yz *= rotMat2(PI * 1.5 * mobiusRotTimes * wQ.x + 0.0 * PI * cos(2. * wQ.x + localCosT));
+//   quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
+
+//   wQ.yz = abs(wQ.yz);
+//   wQ.yz -= 1.5 * r;
+
+  // wQ.yz *= rotMat2(PI * 1.5 * mobiusRotTimes * wQ.x + 0.0 * PI * cos(2. * wQ.x + 2. * localCosT));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float boxR = 1.3 * r;
+  float boxR = 1.0 * r;
   vec3 b = vec3(sdBox(q, vec3(1.1, boxR, boxR)), 0, 0);
   d = dMin(d, b);
 
   // Crop
-  const float cropLength = 0.050;
-  const float cropSize = 0.2;
-  float cropR = 1.3 * r;
+  const float cropSize = 0.40;
+  const float cropLength = cropSize * 0.45;
+  float cropR = 1.0 * r;
 
   // Using mod x coordinate
   vec3 cropQ = q;
@@ -1892,15 +1892,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Mask seam at -1 & 1 from not accounting for the rotation of the mobius
   // strip space
-  float maskMobiusSeam = smoothstep(1., 0.9, abs(wQ.x));
+  float maskMobiusSeam = 1.; // smoothstep(1., 0.9, abs(wQ.x));
 
-  // Offset
-  cropQ.x += 0.0337 * maskMobiusSeam * c;
+  // // Offset
+  // cropQ.x += 0.0337 * maskMobiusSeam * c;
 
   float cX = pMod1(cropQ.x, cropSize);
 
-  // float crop = sdBox(cropQ, vec3(cropLength, cropR, cropR));
-  float crop = length(cropQ) - cropR;
+  float crop = sdBox(cropQ, vec3(cropLength, cropR, cropR));
+  // float crop = length(cropQ) - cropR;
   d.x = max(d.x, crop);
 
   // Scale compensation
@@ -2158,17 +2158,19 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.225);
-  return color;
+  vec3 color = vec3(1);
+  // return color;
 
-  // // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
+  // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
   // float n = mPos.y;
-  // n *= TWO_PI;
-  // n *= 38.5;
-  // n = sin(n);
-  // n = smoothstep(0., edge, n);
-  // // n *= 1.1;
-  // return vec3(n);
+  vec3 dir = vec3(0, 1, 0) * rotationMatrix(vec3(1, 0, 0), 0.5 * PI * step(abs(mPos.z), abs(mPos.y)));
+  float n = dot(mPos.xyz, dir);
+  n *= TWO_PI;
+  n *= 30.;
+  n = sin(n);
+  n = smoothstep(0., edge, n);
+  // n *= 1.1;
+  return vec3(n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(dot(nor, vec3(1)));
@@ -2348,13 +2350,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.75;
-      float specCo = 0.75;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 1.0;
+      float diffMin = 0.5;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2410,11 +2412,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2424,7 +2426,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
