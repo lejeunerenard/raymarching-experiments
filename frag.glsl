@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.051;
+float gR = 0.5;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1806,8 +1806,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.25;
-  float warpFrequency = 1.;
+  float warpScale = 1.1;
+  float warpFrequency = 3.;
   float rollingScale = 1.;
 
   // Warp
@@ -1821,13 +1821,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  // wQ += 0.100000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.050000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz, 0.7 * wQ.y + 0.125 * cos(localCosT + wQ.x));
-  // wQ += 0.025000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.012500 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
-  // // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
-  // wQ += 0.006250 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.100000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y + 0.125 * cos(localCosT + wQ.x));
+  wQ += 0.025000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 2. * warpFrequency * wQ.x + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 3. * warpFrequency * wQ.y + distortT );
@@ -1843,71 +1844,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(17. * warpFrequency * wQ.z + distortT );
   // wQ.y += 0.000187 * warpScale * cos(45. * warpFrequency * wQ.x + distortT );
 
-  float bigR = 6.0 * r;
-
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= bigR;
-
-  float mobiusRotTimes = 0.75;
-
-  wQ.yz *= rotMat2(mobiusRotTimes * wQ.x + 0.0625 * PI * cos(wQ.x + 2. * localCosT));
-
-  wQ.x /= PI;
-
-  // Fake rotate the quadrant index to be the other side of the mobius seam to
-  // make the transition seamless.
-  // Note: This just tears up the quadrant index around |x| = (0.4,0.6)
-  mat2 mobiusSeamCancelRotation = rotMat2(0. * 0.5 * mobiusRotTimes * TWO_PI * wQ.x);
-
-  // Starting with 1.
-  float c = 1.;
-  quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
-
-  wQ.yz = abs(wQ.yz);
-  wQ.yz -= 1.5 * r;
-
-//   quadrantIndex(wQ.zy * mobiusSeamCancelRotation, c);
-
-//   wQ.yz = abs(wQ.yz);
-//   wQ.yz -= 1.5 * r;
-
-  // wQ.yz *= rotMat2(PI * 1.5 * mobiusRotTimes * wQ.x + 0.0 * PI * cos(2. * wQ.x + 2. * localCosT));
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float boxR = 1.0 * r;
-  vec3 b = vec3(sdBox(q, vec3(1.1, boxR, boxR)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
-
-  // Crop
-  const float cropSize = 0.40;
-  const float cropLength = cropSize * 0.45;
-  float cropR = 1.0 * r;
-
-  // Using mod x coordinate
-  vec3 cropQ = q;
-  cropQ.x += norT * cropSize;
-
-  // Mask seam at -1 & 1 from not accounting for the rotation of the mobius
-  // strip space
-  float maskMobiusSeam = 1.; // smoothstep(1., 0.9, abs(wQ.x));
-
-  // // Offset
-  // cropQ.x += 0.0337 * maskMobiusSeam * c;
-
-  float cX = pMod1(cropQ.x, cropSize);
-
-  float crop = sdBox(cropQ, vec3(cropLength, cropR, cropR));
-  // float crop = length(cropQ) - cropR;
-  d.x = max(d.x, crop);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.175;
+  d.x *= 0.65;
 
   return d;
 }
@@ -2161,15 +2109,15 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(1);
   // return color;
 
-  // float n = dot(mPos.xyz, vec3(-0.5, 0.125, 1.0));
+  float n = dot(mPos.xyz, vec3(1));
   // float n = mPos.y;
-  vec3 dir = vec3(0, 1, 0) * rotationMatrix(vec3(1, 0, 0), 0.5 * PI * step(abs(mPos.z), abs(mPos.y)));
-  float n = dot(mPos.xyz, dir);
+  // vec3 dir = vec3(0, 1, 0) * rotationMatrix(vec3(1, 0, 0), 0.5 * PI * step(abs(mPos.z), abs(mPos.y)));
+  // float n = dot(mPos.xyz, dir);
   n *= TWO_PI;
-  n *= 30.;
+  n *= 20.;
   n = sin(n);
   n = smoothstep(0., edge, n);
-  // n *= 1.1;
+  n *= 1.2;
   return vec3(n);
 
   float dNR = dot(nor, -rd);
@@ -2320,12 +2268,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.05;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.05;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
