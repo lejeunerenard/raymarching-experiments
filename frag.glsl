@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 #define DOF 1
@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.1;
+float gR = 0.15;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1806,8 +1806,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.0;
-  float warpFrequency = 8.;
+  float warpScale = 1.5;
+  float warpFrequency = 6.;
   float rollingScale = 1.;
 
   // Warp
@@ -1820,16 +1820,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float scale = 1.0;
   wQ *= scale;
 
-  wQ += 0.100000 * warpScale * cos( 2. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 0.8 * wQ.y + 0.125 * cos(localCosT + wQ.x));
-  wQ += 0.025000 * warpScale * cos( 4. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.003125 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.001563 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 7.815e-4 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ.y = abs(wQ.y);
+
+  wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 1.8 * wQ.y + 0.125 * cos(localCosT + wQ.x));
+  wQ += 0.025000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.001563 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 7.815e-4 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.z + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 5. * warpFrequency * wQ.x + distortT );
@@ -1845,20 +1847,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(29. * warpFrequency * wQ.x + distortT );
   // wQ.y += 0.000187 * warpScale * cos(31. * warpFrequency * wQ.y + distortT );
 
+  wQ = foldAcross45s(wQ);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   // vec3 b = vec3(length(q) - angle3C, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdBox(q, r * vec3(1, 0.2, 0.2)), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.05;
+  d.x *= 0.10;
 
   return d;
 }
@@ -3946,7 +3949,7 @@ void main() {
       glRs, 0.0,  glRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.0075;
+    const float dofCoeficient = 0.005;
 #endif
 
     #ifdef SS
