@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 #define DOF 1
@@ -1806,8 +1806,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5;
-  float warpFrequency = 6.;
+  float warpScale = 1.2;
+  float warpFrequency = 6.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1817,21 +1817,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  float scale = 1.0;
+  float scale = 1.0 + length(wQ);
   wQ *= scale;
-
-  // wQ.y = abs(wQ.y);
 
   wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.050000 * warpScale * cos( 5. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 1.8 * wQ.y + 0.125 * cos(localCosT + wQ.x));
+  wQ.xzy = twist(wQ.xyz, 1.8 * vmax(abs(wQ.xy)) + 0.125 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.012500 * warpScale * cos(11. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz,-1. * mix(wQ.x, wQ.y, saturate(pow(wQ.z, 2.))) + 0.23 * cos(localCosT + wQ.z));
   wQ += 0.006250 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.003125 * warpScale * cos(17. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.001563 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 7.815e-4 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.z + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 5. * warpFrequency * wQ.x + distortT );
@@ -1847,21 +1843,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.x += 0.000375 * warpScale * cos(29. * warpFrequency * wQ.x + distortT );
   // wQ.y += 0.000187 * warpScale * cos(31. * warpFrequency * wQ.y + distortT );
 
-  wQ = foldAcross45s(wQ);
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - angle3C, 0, 0);
-  vec3 b = vec3(sdBox(q, r * vec3(1, 0.2, 0.2)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.10;
+  d.x *= 0.075;
 
   return d;
 }
@@ -2112,7 +2105,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(1.2);
   return color;
 
   float n = dot(mPos.xyz, vec3(1));
@@ -2232,6 +2225,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     vec3 pos = rayOrigin + rayDirection * t.x;
     gPos = pos;
 
+    const float universe = 0.;
+    background = getBackground(uv, universe);
+
     // Declare lights
     struct light {
       vec3 position;
@@ -2256,12 +2252,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
 
-    lights[0] = light(vec3(-0.01,  0.2, 0.9), #FFCCCC, 1.0);
-    lights[1] = light(vec3(- 0.2,  0.6, 0.5), #CCFFFF, 1.0);
+    lights[0] = light(vec3( 0.01,  0.2, 0.9), #FFCCCC, 1.0);
+    lights[1] = light(vec3(- 0.2,  0.6, 0.5), 1.3 * background, 1.0);
     lights[2] = light(vec3(  0.2,  0.7, 1.3), #FFFFFF, 1.);
-
-    const float universe = 0.;
-    background = getBackground(uv, universe);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
 
@@ -2274,12 +2267,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.05;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.05;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2303,13 +2296,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.3;
+      float freCo = 0.3;
+      float specCo = 0.2;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.0;
+      float diffMin = 0.285;
       float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
@@ -2366,11 +2359,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.20 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2380,7 +2373,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
