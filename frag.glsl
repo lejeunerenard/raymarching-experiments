@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.060;
+float gR = 0.4;
 bool isDispersion = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1806,8 +1806,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.0;
-  float warpFrequency = 3.25;
+  float warpScale = 1.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1817,17 +1817,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT + 0.2
 
-  float scale = 2.0;
+  float scale = 1.0;
   wQ *= scale;
 
   wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos( 6. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 1.8 * vmax(abs(wQ.xy)) + 0.125 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos(12. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos(24. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 3.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
   wQ.xzy = twist(wQ.xyz,-1. * mix(wQ.x, wQ.y, saturate(pow(wQ.z, 2.))) + 0.23 * cos(localCosT + wQ.z));
-  // wQ += 0.006250 * warpScale * cos(48. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.003125 * warpScale * cos(96. * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.z + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 5. * warpFrequency * wQ.x + distortT );
@@ -1847,23 +1845,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float shift = 4. * r;
-  vec3 boxR = r * vec3(1, 3, 1);
-
-  vec3 b = vec3(sdBox(q, boxR), 0, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q + vec3(shift, 0, 0), boxR), 1, 0);
-  d = dMin(d, b);
-
-  b = vec3(sdBox(q - vec3(shift, 0, 0), boxR), 2, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.05;
+  d.x *= 0.5;
 
   return d;
 }
@@ -2129,10 +2118,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float dNR = dot(nor, -rd);
   vec3 dI = 0.3 * vec3(dot(nor, vec3(1)));
-  // dI += 2. * pow(dNR, 2.);
+  dI += 2. * pow(dNR, 2.);
 
-  // dI += 0.3 * snoise3(0.3 * pos);
-  dI += .7128 * m;
+  dI += 0.3 * snoise3(0.3 * pos);
+  // dI += .7128 * m;
 
   dI *= angle1C;
   dI += angle2C;
@@ -2381,7 +2370,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
