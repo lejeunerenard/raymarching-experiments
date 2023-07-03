@@ -1806,7 +1806,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
+  float warpScale = 0.4;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1822,7 +1822,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 3.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
   wQ.xzy = twist(wQ.xyz,-1. * mix(wQ.x, wQ.y, saturate(pow(wQ.z, 2.))) + 0.23 * cos(localCosT + wQ.z));
@@ -1845,7 +1845,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  b.x -= 0.001 * cellular(6. * q);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2126,7 +2128,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
+  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.2, 0.4)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.3, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
@@ -2293,8 +2295,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.2;
+      float freCo = 0.7;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
