@@ -1806,7 +1806,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.4;
+  float warpScale = 1.0;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1825,29 +1825,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz,-1. * mix(wQ.x, wQ.y, saturate(pow(wQ.z, 2.))) + 0.23 * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
+  wQ += 0.00625 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
 
-  // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.z + distortT );
-  // wQ.z += 0.050000 * warpScale * cos( 5. * warpFrequency * wQ.x + distortT );
-  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
-  // wQ.x += 0.025000 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
-  // wQ.y += 0.012500 * warpScale * cos(11. * warpFrequency * wQ.x + distortT );
-  // wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
-  // wQ.z += 0.006250 * warpScale * cos(13. * warpFrequency * wQ.z + distortT );
-  // wQ.x += 0.003125 * warpScale * cos(17. * warpFrequency * wQ.x + distortT );
-  // wQ.y += 0.001500 * warpScale * cos(19. * warpFrequency * wQ.y + distortT );
-  // wQ.z += 0.000750 * warpScale * cos(23. * warpFrequency * wQ.z + distortT );
-  // // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
-  // wQ.x += 0.000375 * warpScale * cos(29. * warpFrequency * wQ.x + distortT );
-  // wQ.y += 0.000187 * warpScale * cos(31. * warpFrequency * wQ.y + distortT );
+  wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.z + distortT );
+  wQ.z += 0.050000 * warpScale * cos( 5. * warpFrequency * wQ.x + distortT );
+  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y + 0.5 * cos(localCosT + wQ.x));
+  wQ.x += 0.025000 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
+  wQ.y += 0.012500 * warpScale * cos(11. * warpFrequency * wQ.x + distortT );
+  wQ.xzy = twist(wQ.xyz,-1. * wQ.y + 0.23 * cos(localCosT + wQ.z));
+  wQ.z += 0.006250 * warpScale * cos(13. * warpFrequency * wQ.z + distortT );
+  wQ.x += 0.003125 * warpScale * cos(17. * warpFrequency * wQ.x + distortT );
+  wQ.y += 0.001500 * warpScale * cos(19. * warpFrequency * wQ.y + distortT );
+  wQ.z += 0.000750 * warpScale * cos(23. * warpFrequency * wQ.z + distortT );
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + localCosT);
+  wQ.x += 0.000375 * warpScale * cos(29. * warpFrequency * wQ.x + distortT );
+  wQ.y += 0.000187 * warpScale * cos(31. * warpFrequency * wQ.y + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  b.x -= 0.001 * cellular(6. * q);
+  vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.5)), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  b.x -= 0.001 * cellular(7. * q);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2106,6 +2108,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  // return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // // float n = mPos.y;
