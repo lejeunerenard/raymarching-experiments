@@ -1796,11 +1796,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.15 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.15 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   p *= globalRot;
 
@@ -1828,20 +1828,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xzy = twist(wQ.xyz,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
   // wQ += 0.00625 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
 
+  for (float i = 0.; i < 7.; i++) {
+    wQ = abs(wQ);
+
+    wQ = (vec4(wQ, 1) * kifsM).xyz;
+    rollingScale *= scale;
+  }
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float b1 = length(q) - r;
-  float b2 = sdBox(q, vec3(0.7 * r));
-  vec3 b = vec3(mix(b1, b2, expo(range(0.2, 0.8, 0.5 + 0.5 * cos(2. * localCosT + 3. * q.x + snoise3(2.5 * q))))), 0, 0);
+  q *= rotationMatrix(vec3(1), localCosT);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  b.x /= rollingScale;
+
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= scale;
 
   // Under step
-  d.x *= 0.5;
+  d.x *= 0.125;
 
   return d;
 }

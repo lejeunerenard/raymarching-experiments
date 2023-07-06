@@ -48,13 +48,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: -0.027,
-        y: -0.104,
-        z: 0.342
+        x: 0.85,
+        y: -0.186,
+        z: 1.293
       },
       d: 0.52,
-      scale: 1.1085,
-      rot2angle: [2.547, 3.814, 0.737],
+      scale: 1.1772,
+      rot2angle: [1.678, 3.353, 2.113],
       cameraAngles: [0, 0, 0]
     }
 
@@ -81,7 +81,7 @@ export default class App {
     this.angle2C = -0.7643
     this.angle3C = 0.408
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -271,21 +271,21 @@ export default class App {
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
       .delay(1 * 1000)
-      .to([this.rot2angle[0], this.rot2angle[1], 0.985], 14 * 1000)
+      .to([2.144, this.rot2angle[1], this.rot2angle[2]], 6 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .delay(1 * 1000)
-      .to([0.125, this.rot2angle[1], 0.985], 14 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    // rotTween2
+    //   .delay(1 * 1000)
+    //   .to([0.125, this.rot2angle[1], 0.985], 14 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween3 = new TWEEN.Tween(this.rot2angle)
     rotTween3
-      .delay(1 * 1000)
-      .to([...this.rot2angle], 14 * 1000)
+      .delay(2 * 1000)
+      .to([...this.rot2angle], 6 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
+    rotTween1.chain(rotTween3)
+    // rotTween2.chain(rotTween3)
     rotTween3.chain(rotTween1)
 
     rotTween1.start(0)
