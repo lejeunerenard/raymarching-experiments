@@ -6,10 +6,10 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 10.0
-#define fogMaxDistance 9.75
+#define fogMaxDistance 2.80
 
 #define slowTime time * 0.2
 // v3
@@ -1833,7 +1833,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + 2. * p.x));
+    wQ *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 2. * p.x));
     rollingScale *= scale;
   }
 
@@ -1841,7 +1841,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - 1., 0, 0);
+  vec3 b = vec3(length(q) - 0.75, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(0.7 * r)), 0, 0);
   // b.x *= 0.25;
   b.x /= rollingScale;
@@ -1854,7 +1854,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.8;
+  d.x *= 0.75;
 
   return d;
 }
@@ -2105,7 +2105,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.75);
+  vec3 color = vec3(2.);
   vec3 floorColor = mix(vec3(2.5), background, 0.3);
   color = mix(color, floorColor, isMaterialSmooth(m, 1.));
   return color;
@@ -2255,7 +2255,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(vec3( 0.1, 0.1, 1.0), #FFCCCC, 2.0, 0.125);
+    lights[0] = light(vec3( 0.1, 0.1, 1.0), #FFD0D0, 2.0, 0.125);
     lights[1] = light(vec3(-0.6, 0.3, 0.8), #CCFFFF, 1.5, 0.125);
     lights[2] = light(vec3( 0.2,-0.1,-1.3), #FFFFFF, 2., 0.75);
 
@@ -2415,8 +2415,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Fog
       float d = max(0.0, t.x);
-      color = mix(0.8 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.05));
+      color = mix(1.0 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.025));
       // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);

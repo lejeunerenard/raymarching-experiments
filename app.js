@@ -24,8 +24,8 @@ const TWO_PI = 2 * Math.PI
 const MANDELBOX = false
 const BLOOM = true
 const BLOOM_PASSES = 2
-const BLOOM_WET = 0.8
-const BLOOM_MIN_BRIGHTNESS = 1
+const BLOOM_WET = 1.0
+const BLOOM_MIN_BRIGHTNESS = 0.95
 
 // Initialize shell
 export default class App {
@@ -54,7 +54,7 @@ export default class App {
       },
       d: 0.52,
       scale: 2.1661,
-      rot2angle: [1.553, 2.939, 2.384],
+      rot2angle: [1.553, 2.731, 2.731],
       cameraAngles: [0, 0, 0]
     }
 
