@@ -48,18 +48,18 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.85,
-        y: -0.186,
-        z: 1.293
+        x: 0.669,
+        y: 0.118,
+        z: 0.008
       },
       d: 0.52,
-      scale: 1.1772,
-      rot2angle: [1.678, 3.353, 2.113],
+      scale: 2.1661,
+      rot2angle: [1.553, 2.939, 2.384],
       cameraAngles: [0, 0, 0]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.34, 0.21, 1.29)
+    this.cameraRo = vec3.fromValues(0.34, 0.21, 1.57)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [168, 141, 198]
@@ -67,7 +67,7 @@ export default class App {
     // this.getEqualLuminance(this.colors1, this.colors2, 0)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.00001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -79,9 +79,9 @@ export default class App {
 
     this.angle1C = -0.3231
     this.angle2C = -0.7643
-    this.angle3C = 0.408
+    this.angle3C = 1
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -121,6 +121,8 @@ export default class App {
 
     // Scene Rendering
     this.sceneRenderer = options.sceneRenderer
+
+    this.totalTime = 0
 
     Object.assign(this, {
       canvas,
@@ -223,8 +225,6 @@ export default class App {
       self.cameraRo[1] = this.y
       self.cameraRo[2] = this.z
     }
-
-    const totalTime = 10
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
@@ -524,34 +524,44 @@ export default class App {
   }
 
   getCamera (t) {
-    t /= 1000
+    t = this.getTime(t)
     let cameraMatrix = mat4.create()
+
+    const origin = vec3.fromValues(0, 0, 0)
+    const unitX = vec3.fromValues(1, 0, 0)
+    const unitY = vec3.fromValues(0, 1, 0)
+    const unitZ = vec3.fromValues(0, 0, 1)
+
+    // Camera Rotation
+    const cameraRo = vec3.clone(this.cameraRo)
+    // vec3.rotateY(cameraRo, cameraRo, origin, TWO_PI * t / this.totalTime)
 
     // LookAt
     if (this.LOOKAT) {
-      mat4.lookAt(cameraMatrix, this.cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+      mat4.lookAt(cameraMatrix, cameraRo, origin, unitY)
     } else {
       const angleX = this.cameraAngles[0]
-      const axisX = vec3.fromValues(1, 0, 0)
+      const axisX = unitX
       mat4.multiply(cameraMatrix, rot4(axisX, angleX), cameraMatrix)
 
       // Y-centric
       const angleY = this.cameraAngles[1]
-      const axisY = vec3.fromValues(0, 1, 0)
+      const axisY = unitY
       mat4.multiply(cameraMatrix, rot4(axisY, angleY), cameraMatrix)
 
       // Z-centric
       const angleZ = this.cameraAngles[2]
-      const axisZ = vec3.fromValues(0, 0, 1)
+      const axisZ = unitZ
       mat4.multiply(cameraMatrix, rot4(axisZ, angleZ), cameraMatrix)
     }
 
     this.cameraMatrix = cameraMatrix
-    return [this.cameraRo, cameraMatrix]
+    return [cameraRo, cameraMatrix]
   }
 
   update (t) {
     t = (window.time !== undefined) ? window.time : t
+
     TWEEN.update(t)
 
     this.shader.uniforms.epsilon = this.epsilon

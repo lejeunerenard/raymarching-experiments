@@ -9,7 +9,7 @@
 // #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 1024
 #define maxDistance 10.0
 #define fogMaxDistance 9.75
 
@@ -70,7 +70,7 @@ float n2 = 1.4;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = angle3C;
+float doFDistance = length(cameraRo) - 0.2125;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -654,7 +654,6 @@ float smax(float a, float b, float k) {
 }
 
 mat3 globalRot;
-mat3 globalLRot;
 
 #pragma glslify: rotMat2 = require(./rotation-matrix2)
 
@@ -1785,6 +1784,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
 
 float gR = 0.4;
 bool isDispersion = false;
+bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
   vec2 minD = vec2(1e19, 0);
@@ -1796,29 +1796,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.15 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.15 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.0;
+  float warpScale = 2.0;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
+  vec3 preWarpQ = q;
   vec3 wQ = q.xyz;
 
   // vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT + 0.2
 
-  float scale = 1.0;
-  wQ *= scale;
+  float worldScale = 1.0;
+  wQ *= worldScale;
 
   // wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
   // wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
@@ -1829,9 +1830,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.00625 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
 
   for (float i = 0.; i < 7.; i++) {
-    wQ = abs(wQ);
+    wQ = tetraFold(wQ);
 
     wQ = (vec4(wQ, 1) * kifsM).xyz;
+    wQ *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + 2. * p.x));
     rollingScale *= scale;
   }
 
@@ -1839,17 +1841,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  q *= rotationMatrix(vec3(1), localCosT);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - 1., 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(0.7 * r)), 0, 0);
+  // b.x *= 0.25;
   b.x /= rollingScale;
-
   d = dMin(d, b);
 
+  vec3 f = vec3(sdPlane(preWarpQ + vec3(0, (1.02 + (warpScale - 1.)) * r, 0), vec4(0, 1, 0, 0)), 1, length(p.xz));
+  d = dMin(d, f);
+
   // Scale compensation
-  d.x /= scale;
+  d.x /= worldScale;
 
   // Under step
-  d.x *= 0.125;
+  d.x *= 0.8;
 
   return d;
 }
@@ -2100,8 +2105,10 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-  // return color;
+  vec3 color = vec3(1.75);
+  vec3 floorColor = mix(vec3(2.5), background, 0.3);
+  color = mix(color, floorColor, isMaterialSmooth(m, 1.));
+  return color;
 
   float n = dot(mPos.xyz, vec3(1));
   // float n = mPos.y;
@@ -2228,6 +2235,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 position;
       vec3 color;
       float intensity;
+      float size;
     };
 
     const int NUM_OF_LIGHTS = 3;
@@ -2245,11 +2253,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // }
 
     // // Test light
-    // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0);
+    // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(vec3( 0.01,  0.2, 0.9), #FFCCCC, 1.0);
-    lights[1] = light(vec3(- 0.2,  0.6, 0.5), 1.3 * background, 1.0);
-    lights[2] = light(vec3(  0.2,  0.7, 1.3), #FFFFFF, 1.);
+    lights[0] = light(vec3( 0.1, 0.1, 1.0), #FFCCCC, 2.0, 0.125);
+    lights[1] = light(vec3(-0.6, 0.3, 0.8), #CCFFFF, 1.5, 0.125);
+    lights[2] = light(vec3( 0.2,-0.1,-1.3), #FFFFFF, 2., 0.75);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
 
@@ -2285,26 +2293,26 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isBall = isMaterialSmooth(t.y, 1.);
+      float isFloor = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.9;
       float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.6;
-      float shadowMin = 0.5;
+      float diffMin = 0.1;
+      float shadowMin = 0.05;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
         vec3 lightPos = lights[i].position;
-        // lightPos *= globalLRot; // Apply rotation
         vec3 nLightPos = normalize(lightPos);
+        vec3 lightRd = normalize(lightPos - pos);
 
         float dif = max(diffMin, diffuse(nor, nLightPos));
 
@@ -2320,26 +2328,31 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 128.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
-        // TODO Debug shadow spots on a sphere
-        float sha = max(shadowMin, pow(softshadow(pos, nLightPos, 0.01, maxDistance, generalT), 0.5));
+        isSoftShadow = true;
+        float sha = max(shadowMin, softshadow(pos, lightRd, 0.001, 1.0, lights[i].size, generalT));
+        isSoftShadow = false;
         dif *= sha;
 
         vec3 lin = vec3(0.);
 
         // Specular Lighting
-        fre *= freCo * occ; // * sha;
+        fre *= freCo * occ * sha;
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
         // // Ambient
-        // lin += 0.100 * amb * diffuseColor;
-        // dif += 0.100 * amb;
+        // lin += mix(0.0750, 0., isFloor) * amb * diffuseColor;
+        // dif += mix(0.0750, 0., isFloor) * amb;
 
-        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 1.0);
+        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 0.7);
         distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
           + distIntensity * mix(lights[i].color, vec3(1), 0.2) * lin * mix(diffuseColor, vec3(1), 1.0);
+
+        // // Debug Light(s)
+        // color += sha; // Soft shadows only
+        // // color += dif; // Lambert shadows only
 
         // // -- Add in light flare --
         // vec3 fromLight = rayOrigin - lightPos;
@@ -2400,16 +2413,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(0.8 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      // color *= saturate(exp(-d * 0.05));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(0.8 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
+      color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
       // Inner Glow
       // color += 0.5 * innerGlow(5.0 * t.w);
+
+      // Fade to background
+      color = mix(color, background, saturate(isFloor * pow(0.5 * t.w, 1.1)));
 
       // color = diffuseColor;
 
@@ -3907,19 +3923,19 @@ void main() {
   norT = modT / totalT;
   cosT = TWO_PI / totalT * modT;
 
-    const float orthoZoom = 0.5;
+  const float orthoZoom = 0.5;
 
-    vec3 ro = cameraRo + cOffset;
+  vec3 ro = cameraRo + cOffset;
 
-    vec2 uv = fragCoord.xy;
+  vec2 uv = fragCoord.xy;
 
 // #define pixelated
 #ifdef pixelated
-    // Pixelate UVs
-    const float pixelSize = 1.0 * 0.009375;
-    vec2 innerUV = uv;
-    pMod2(innerUV, vec2(pixelSize));
-    uv = floor((uv + pixelSize * 0.5) / pixelSize) * pixelSize;
+  // Pixelate UVs
+  const float pixelSize = 1.0 * 0.009375;
+  vec2 innerUV = uv;
+  pMod2(innerUV, vec2(pixelSize));
+  uv = floor((uv + pixelSize * 0.5) / pixelSize) * pixelSize;
 #endif
 
     float gRAngle = -TWO_PI * mod(time, totalT) / totalT;
@@ -3929,15 +3945,9 @@ void main() {
       gRc, 0.0, -gRs,
       0.0, 1.0,  0.0,
       gRs, 0.0,  gRc);
-    float glRc = cos(-gRAngle);
-    float glRs = sin(-gRAngle);
-    globalLRot = mat3(
-      glRc, 0.0, -glRs,
-      0.0, 1.0,  0.0,
-      glRs, 0.0,  glRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.005;
+    const float dofCoeficient = 0.01;
 #endif
 
     #ifdef SS

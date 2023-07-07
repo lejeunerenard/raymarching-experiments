@@ -25,6 +25,7 @@ let resize = () => {
 }
 resize()
 
+app.totalTime = secondsLong
 // window.time = 0.3
 const still = false
 
