@@ -1807,7 +1807,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 2.0;
-  float warpFrequency = 2.0;
+  float warpFrequency = 2.5;
   float rollingScale = 1.;
 
   // Warp
@@ -1821,40 +1821,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  // wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
-  // wQ += 0.00625 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
-
-  for (float i = 0.; i < 7.; i++) {
-    wQ = tetraFold(wQ);
-
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-    wQ *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 2. * p.x));
-    rollingScale *= scale;
-  }
+  wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   vec3 b = vec3(length(q) - 0.75, 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(0.7 * r)), 0, 0);
-  // b.x *= 0.25;
-  b.x /= rollingScale;
   d = dMin(d, b);
 
-  vec3 f = vec3(sdPlane(preWarpQ + vec3(0, (1.02 + (warpScale - 1.)) * r, 0), vec4(0, 1, 0, 0)), 1, length(p.xz));
-  d = dMin(d, f);
+  // vec3 f = vec3(sdPlane(preWarpQ + vec3(0, (1.02 + (warpScale - 1.)) * r, 0), vec4(0, 1, 0, 0)), 1, length(p.xz));
+  // d = dMin(d, f);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.75;
+  d.x *= 0.02;
 
   return d;
 }
@@ -2105,7 +2095,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.);
+  vec3 color = vec3(2., 2., 2.25);
   vec3 floorColor = mix(vec3(2.5), background, 0.3);
   color = mix(color, floorColor, isMaterialSmooth(m, 1.));
   return color;
