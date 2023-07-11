@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 10.0
-#define fogMaxDistance 2.7
+#define fogMaxDistance 3.75
 
 #define slowTime time * 0.2
 // v3
@@ -1821,21 +1821,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xzy = twist(wQ.xyz,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  // wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
+  // wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
+  // wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  float n = cellular(2.5 * q);
+  n = abs(n);
+  n -= 2. * thickness;
+
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(n, 0, 0);
   d = dMin(d, b);
+
+  float crop = icosahedral(q, 52., r);
+  d.x = max(d.x, crop);
 
   // vec3 f = vec3(sdPlane(preWarpQ + vec3(0, (1.02 + (warpScale - 1.)) * r, 0), vec4(0, 1, 0, 0)), 1, length(p.xz));
   // d = dMin(d, f);
@@ -1844,7 +1852,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.7;
+  d.x *= 0.45;
 
   return d;
 }
@@ -2118,7 +2126,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.2, 0.4)));
+  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.66)));
   // color += 0.5 + 0.5 * cos(TWO_PI * (color + dI + vec3(0, 0.3, 0.4)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
@@ -2368,7 +2376,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2386,7 +2394,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
