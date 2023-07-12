@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 10.0
-#define fogMaxDistance 3.75
+#define fogMaxDistance 7.0
 
 #define slowTime time * 0.2
 // v3
@@ -1821,38 +1821,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  // wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
-  // wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float n = cellular(2.5 * q);
-  n = abs(n);
-  n -= 2. * thickness;
-
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(n, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   float crop = icosahedral(q, 52., r);
   d.x = max(d.x, crop);
 
-  // vec3 f = vec3(sdPlane(preWarpQ + vec3(0, (1.02 + (warpScale - 1.)) * r, 0), vec4(0, 1, 0, 0)), 1, length(p.xz));
-  // d = dMin(d, f);
-
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.45;
+  d.x *= 0.85;
 
   return d;
 }
@@ -2103,7 +2095,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0);
+  return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // // float n = mPos.y;
@@ -2294,13 +2287,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.9;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.3;
+      float diffMin = 0.0;
       float shadowMin = 0.3;
 
       vec3 directLighting = vec3(0);
@@ -2376,7 +2369,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2389,7 +2382,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(gNor, -gRd), 1.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
