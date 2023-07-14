@@ -1796,18 +1796,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.15 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.15 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 1.;
+  float warpScale = 0.5;
+  float warpFrequency = 1.25;
   float rollingScale = 1.;
 
   // Warp
@@ -1834,7 +1834,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2092,7 +2093,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2290,8 +2291,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.0;
-      float shadowMin = 0.3;
+      float diffMin = 0.95;
+      float shadowMin = 0.95;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2390,8 +2391,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
