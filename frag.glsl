@@ -1806,8 +1806,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.25;
+  float warpScale = 1.5;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1823,6 +1823,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
   wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
@@ -1830,19 +1831,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
 
+  // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.x + distortT );
+  // wQ.z += 0.050000 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
+  // wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  // wQ.x += 0.025000 * warpScale * cos(11. * warpFrequency * wQ.z + distortT );
+  // wQ.y += 0.012500 * warpScale * cos(13. * warpFrequency * wQ.x + distortT );
+  // wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
+  // wQ.z += 0.006250 * warpScale * cos(17. * warpFrequency * wQ.y + distortT );
+  // wQ.x += 0.003125 * warpScale * cos(23. * warpFrequency * wQ.z + distortT );
+  // wQ.y += 0.001562 * warpScale * cos(29. * warpFrequency * wQ.x + distortT );
+  // wQ.yzx = twist(wQ.yxz,-1. * wQ.x);
+  // wQ.z += 7.81e-4 * warpScale * cos(31. * warpFrequency * wQ.y + distortT );
+
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
+  // r += 0.2 * r * snoise3(wQ);
+
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.75;
+  d.x *= 0.5;
 
   return d;
 }
@@ -2093,7 +2110,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(0.75, 0.95, 1);
+  color *= 1.1;
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2256,12 +2274,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.05;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.05;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2387,9 +2405,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
       dispersionColor.b = pow(dispersionColor.b, 0.7);
-      // dispersionColor.g = pow(dispersionColor.g, 0.8);
+      dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
+
+      dispersionColor *= 1.5;
 
       // color += saturate(dispersionColor);
       color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
