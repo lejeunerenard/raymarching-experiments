@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1782,7 +1782,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.75;
+float gR = 1.15;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1796,18 +1796,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.15 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.15 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 2.0;
-  float warpFrequency = 1.75;
+  float warpScale = 1.4;
+  float warpFrequency = 1.50;
   float rollingScale = 1.;
 
   // Warp
@@ -1824,10 +1824,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
   wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
-  wQ.xzy = twist(wQ.xyz, 1.1 * wQ.y + 1.125 * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz, 2.1 * wQ.y + 0.725 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.73 * cos(localCosT + wQ.z));
+  wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 1.13 * cos(localCosT + wQ.z));
   wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
   wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
 
@@ -1850,16 +1850,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // r += 0.2 * r * snoise3(wQ);
 
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.125;
+  d.x *= 0.2;
 
   return d;
 }
@@ -2112,9 +2112,9 @@ float phaseHerringBone (in float c) {
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
 
-  float n = dot(mPos.xyz, vec3(1));
+  float n = dot(mPos.xyz, vec3( 0,-1, 1));
   n *= TWO_PI;
-  n *= 5.;
+  n *= 15.;
   n = sin(n);
   n -= 0.6;
   n = smoothstep(0., edge, n);
