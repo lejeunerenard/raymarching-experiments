@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1807,7 +1807,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.4;
+  float warpScale = 0.5;
   float warpFrequency = 1.50;
   float rollingScale = 1.;
 
@@ -1822,15 +1822,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  // wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
-  // wQ.xzy = twist(wQ.xyz, 2.1 * wQ.y + 0.725 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 1.13 * cos(localCosT + wQ.z));
-  // wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
+  wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
+  wQ.xzy = twist(wQ.xyz, 2.1 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.63 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.x + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
@@ -1849,78 +1849,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  const float thicknessRatio = 0.4;
-  const float innerRRatio = 0.2;
-  float outerR = r / innerRRatio;
-  float innerR = r * innerRRatio;
-  float innerInnerR = r * innerRRatio * innerRRatio;
-  float rScale = r / innerR;
+  float theta = atan(q.z, q.x);
+  float phi = atan(q.y, length(q.xz));
 
-  float rScaleT = 1. + (rScale - 1.) * 0.5 * (sineIn(saturate(2. * (t - 0.))) + saturate(2. * (t - 0.5)));
+  r += 0.01 * r * triangleWave(10. * theta);
+  r += 0.025 * r * triangleWave(12. * phi);
 
-  outerR *= rScaleT;
-  r *= rScaleT;
-  innerR *= rScaleT;
-  innerInnerR *= rScaleT;
-
-  float rotT = t;
-  q *= rotationMatrix(vec3(0, 1, 0), 0.5 * PI * rotT);
-
-  q.xz *= rotMat2(-0.5 * PI);
-
-  vec3 outer = vec3(sdBin(q, vec3(outerR), thicknessRatio * outerR), 0, 0);
-  if (outer.x < d.x) {
-    mPos = q / rScaleT;
-    mPos *= innerRRatio;
-  }
-  d = dMin(d, outer);
-
-  q.xz *= rotMat2(0.5 * PI);
-
-  vec3 b = vec3(sdBin(q, vec3(r), thicknessRatio * r), 0, 0);
-  if (b.x < d.x) {
-    mPos = q / rScaleT;
-  }
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
-
-  q.xz *= rotMat2(0.5 * PI);
-
-  vec3 inner = vec3(sdBin(q, vec3(innerR), thicknessRatio * innerR), 0, 0);
-  if (inner.x < d.x) {
-    mPos = q / rScaleT;
-    mPos /= innerRRatio;
-  }
-  d = dMin(d, inner);
-
-  q.xz *= rotMat2(0.5 * PI);
-
-  inner = vec3(sdBin(q, vec3(innerInnerR), thicknessRatio * innerInnerR), 0, 0);
-  if (inner.x < d.x) {
-    mPos = q / rScaleT;
-    mPos /= innerRRatio * innerRRatio;
-  }
-  d = dMin(d, inner);
-
-  q.xz *= rotMat2(0.5 * PI);
-
-  inner = vec3(sdBin(q, vec3(innerInnerR * innerRRatio), thicknessRatio * innerInnerR * innerRRatio), 0, 0);
-  if (inner.x < d.x) {
-    mPos = q / rScaleT;
-    mPos /= innerRRatio * innerRRatio * innerRRatio;
-  }
-  d = dMin(d, inner);
-
-  // d.x -= 0.001 * cellular(3. * mPos);
-
-  // Clip to clear camera magically
-  float cameraClip = p.z - 0.9;
-  d.x = max(d.x, cameraClip);
 
   // Scale compensation
   d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.2;
+  // Under step
+  d.x *= 0.75;
 
   return d;
 }
@@ -2361,14 +2303,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.70;
+      float freCo = 0.75;
       float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.75;
-      float shadowMin = 0.75;
+      float diffMin = 0.6;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2429,11 +2371,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
