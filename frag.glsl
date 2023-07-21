@@ -3484,7 +3484,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.25);
+  vec2 r = vec2(0.35);
   vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
 
   // -- Warp --
@@ -3568,18 +3568,20 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // FBM Warp box
   {
-    vec3 p = vec3(q.x, 0.4 * r.x, q.y);
+    vec3 p = vec3(q.x, 0.2 * r.x, q.y);
 
     vec3 s = vec3(0);
 
     float rH = 0.2 * r.x;
     float maxRH = rH;
     float rHScale = 2.;
-    rH -= 0.01 * rHScale * fbmWarp(4. * p + 2. * cos(localCosT + TWO_PI * vec3(0, 0.33, 0.67)), s);
+    rH -= 0.01 * rHScale * cnoise3(18. * p + 2. * cos(localCosT + TWO_PI * vec3(0, 0.33, 0.67)));
     rH += 0.07 * rHScale * length(s);
 
     vec2 b = vec2(sdBox(p, vec3(r.x, rH, r.x)), 0);
     d = dMin(d, b);
+    float crop = length(p.xz) - r.x;
+    d.x = max(d.x, crop);
   }
 
   float mask = 1.;
@@ -3789,14 +3791,14 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 9.;
+  const float echoSlices = 15.;
   for (float i = 0.; i < echoSlices; i++) {
     // vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
     // Outlined version
     float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
     // Hard Edge
-    layerOutline = smoothstep(0., 0.40 * edge, layerOutline - angle2C);
+    layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
     vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
     // Echo Dimming
@@ -3811,7 +3813,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // -- Offsets --
     // Incremental offset
-    uv.y += 0.0125;
+    uv.y += 0.0040;
 
     // // Initial Offset
     // uv.y += i == 0. ? 0.075 : 0.;
