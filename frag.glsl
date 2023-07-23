@@ -1807,8 +1807,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.50;
+  float warpScale = 0.25;
+  float warpFrequency = 1.00;
   float rollingScale = 1.;
 
   // Warp
@@ -1857,23 +1857,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   //     fbmWarp(2.2 * q, s),
   //     fbmWarp(1.8 * q, s));
 
-  float rH = 0.2 * r;
+  float rH = 0.5 * r;
   float maxRH = rH;
-  float rHScale = 2.;
+  float rHScale = 4.;
   rH -= 0.01 * rHScale * fbmWarp(4. * q + 2. * cos(localCosT + TWO_PI * vec3(0, 0.33, 0.67)), s);
-  rH += 0.07 * rHScale * length(s);
+  rH += 0.07 * rHScale * dot(s, vec3(1));
 
-  vec3 b = vec3(sdBox(q, vec3(r, rH, r)), 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(2. * r, rH, 2. * r)), 0, 0);
   d = dMin(d, b);
 
-  float crop = sdBox(q - vec3(0, maxRH, 0), vec3(2, maxRH, 2));
+  float crop = sdBox(p - vec3(0, maxRH, 0), vec3(r, maxRH, r));
   d.x = max(d.x, crop);
+  // d.x = min(d.x, crop);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.5;
+  d.x *= 0.23;
 
   return d;
 }
@@ -2314,7 +2315,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
+      float freCo = 0.6;
       float specCo = 0.3;
 
       vec3 specAll = vec3(0.0);
@@ -3746,7 +3747,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3779,8 +3780,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
