@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
-#define ORTHO 1
+#define SS 2
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1807,8 +1807,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.25;
-  float warpFrequency = 1.00;
+  float warpScale = 3.;
+  float warpFrequency = 1.10;
   float rollingScale = 1.;
 
   // Warp
@@ -1822,15 +1822,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  // wQ += 0.100000 * warpScale * cos( 3. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.050000 * warpScale * cos( 7. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
-  // wQ.xzy = twist(wQ.xyz, 2.1 * wQ.y + 0.525 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos(13. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.012500 * warpScale * cos(19. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.63 * cos(localCosT + wQ.z));
-  // wQ += 0.006250 * warpScale * cos(23. * warpFrequency * componentShift(wQ) + distortT );
-  // wQ += 0.003125 * warpScale * cos(27. * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.100000 * warpScale * cos( 7.182 * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.050000 * warpScale * cos( 9.732 * warpFrequency * componentShift(wQ) + distortT );
+  wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
+  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos(13.123 * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.012500 * warpScale * cos(19.923 * warpFrequency * componentShift(wQ) + distortT );
+  wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.63 * cos(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos(24.369 * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.003125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT );
 
   // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.x + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
@@ -1848,33 +1848,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float theta = atan(q.z, q.x);
-  float phi = atan(q.y, length(q.xz));
-
-  vec3 s = vec3(0);
-  // q += 0.02 * vec3(
-  //     fbmWarp(2.0 * q, s),
-  //     fbmWarp(2.2 * q, s),
-  //     fbmWarp(1.8 * q, s));
-
-  float rH = 0.5 * r;
-  float maxRH = rH;
-  float rHScale = 4.;
-  rH -= 0.01 * rHScale * fbmWarp(4. * q + 2. * cos(localCosT + TWO_PI * vec3(0, 0.33, 0.67)), s);
-  rH += 0.07 * rHScale * dot(s, vec3(1));
-
-  vec3 b = vec3(sdBox(q, vec3(2. * r, rH, 2. * r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
-
-  float crop = sdBox(p - vec3(0, maxRH, 0), vec3(r, maxRH, r));
-  d.x = max(d.x, crop);
-  // d.x = min(d.x, crop);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.23;
+  d.x *= 0.05;
 
   return d;
 }
@@ -2125,7 +2106,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.6);
+  vec3 color = vec3(0);
   return color;
 
   // float n = dot(mPos.xyz, vec3( 0,-1, 1));
@@ -2316,7 +2297,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.6;
-      float specCo = 0.3;
+      float specCo = 0.6;
 
       vec3 specAll = vec3(0.0);
 
@@ -2397,7 +2378,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2423,8 +2404,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       dispersionColor *= 0.8;
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
