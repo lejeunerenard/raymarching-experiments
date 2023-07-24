@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1783,7 +1783,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.32;
+float gR = 0.42;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1807,8 +1807,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 3.;
-  float warpFrequency = 1.10;
+  float warpScale = 0.6;
+  float warpFrequency = 1.;
   float rollingScale = 1.;
 
   // Warp
@@ -1822,15 +1822,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  wQ += 0.100000 * warpScale * cos( 7.182 * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.050000 * warpScale * cos( 9.732 * warpFrequency * componentShift(wQ) + distortT );
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT));
+  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 1., 2.);
+
+  wQ += 0.100000 * warpScale * cos( 7.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 9.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
   wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos(13.123 * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.012500 * warpScale * cos(19.923 * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.025000 * warpScale * cos(13.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos(19.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ.xyz = twist(wQ.xzy,-1. * wQ.z + 0.63 * cos(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos(24.369 * warpFrequency * componentShift(wQ) + distortT );
-  wQ += 0.003125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT );
+  wQ += 0.006250 * warpScale * cos(24.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // wQ.y += 0.100000 * warpScale * cos( 3. * warpFrequency * wQ.x + distortT );
   // wQ.z += 0.050000 * warpScale * cos( 7. * warpFrequency * wQ.y + distortT );
@@ -1855,7 +1858,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.05;
+  d.x *= 0.1;
 
   return d;
 }
@@ -1985,6 +1988,8 @@ vec3 textures (in vec3 rd) {
 
   dI *= angle1C;
   dI += angle2C;
+
+  dI += 0.1 * cos(cosT + 1.0 * gPos);
 
   // dI += gC.z;
 
