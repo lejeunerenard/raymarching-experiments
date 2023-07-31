@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 1024
 #define maxDistance 10.0
-#define fogMaxDistance 7.0
+#define fogMaxDistance 6.0
 
 #define slowTime time * 0.2
 // v3
@@ -1797,17 +1797,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.15 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.15 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.7;
+  float warpScale = 0.25;
   float warpFrequency = 0.9;
   float rollingScale = 1.;
 
@@ -1828,7 +1828,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
-  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -1838,17 +1838,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(sdCapsule(q, vec3(0, 0, l), vec3(0, 0,-l), r), 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(0.707107 * r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  float metric = length(q.xy);
+  vec3 b = vec3(abs(r - metric) - 0.1 * r, 0, 0);
   d = dMin(d, b);
+
+  // crop front plane
+  float crop = q.z - 0.6;
+  d.x = max(d.x, crop);
 
   // Scale compensation
   d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.1;
+  // // Under step
+  // d.x *= 0.1;
 
   return d;
 }
@@ -2264,12 +2266,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.0;
-      // float bumpIntensity = 0.05;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.05;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2411,8 +2413,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Fog
       float d = max(0.0, t.x);
-      color = mix(1.0 * background, color, saturate(pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.) / fogMaxDistance));
-      color *= saturate(exp(-d * 0.025));
+      color = mix(background, color, saturate(
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
+            / fogMaxDistance
+      ));
+      // color *= saturate(exp(-d * 0.025));
       // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
