@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.2;
 const float amount = 0.05;
 
 // Dof
@@ -1797,18 +1797,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.15 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.15 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.25;
-  float warpFrequency = 0.9;
+  float warpScale = 0.5;
+  float warpFrequency = 2.9;
   float rollingScale = 1.;
 
   // Warp
@@ -1833,13 +1833,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float metric = length(q.xy);
-  vec3 b = vec3(abs(r - metric) - 0.1 * r, 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // crop front plane
@@ -1849,8 +1849,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Scale compensation
   d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.1;
+  // Under step
+  d.x *= 0.8;
 
   return d;
 }
@@ -1974,17 +1974,10 @@ vec3 textures (in vec3 rd) {
 
   vec3 dI = vec3(dNR);
   dI += 0.3 * snoise3(0.3 * gPos);
-  // dI += 0.5 * pow(dNR, 5.);
-
-  // dI += 0.25 * sin(TWO_PI * rd.x);
-
-  vec3 s = vec3(0);
-  dI += fbmWarp(0.7 * gPos, s);
+  dI += 0.5 * pow(dNR, 5.);
 
   dI *= angle1C;
   dI += angle2C;
-
-  dI += 1.0 * cos(cosT + 1.0 * gPos);
 
   // dI += gC.z;
 
@@ -1993,14 +1986,8 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.3;
 
   // -- Colors --
-  // color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
-  // color = 0.5 + vec3(0.6, 0.5, 0.4) * cos( TWO_PI * ( vec3(1, 0.9, 1.1) * dI + vec3(0.05, 0.3, -0.5)) );
-  color = 0.5 + vec3(0.5, 0.3, 0.4) * cos( TWO_PI * ( vec3(0.9, 1.1, 1) * dI + vec3(0,-0.1, 0.3) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
-
-  // color += 0.4 * (0.5 + 0.5 * cos( TWO_PI * ( color + dI + vec3(0, 0.1, 0.3) ) ));
-
-  // color += 0.4 * cos(TWO_PI * 2.2 * gPos);
 
   // // - Rotated Components -
   // float angle = 1.0 * gPos.y;
@@ -2201,8 +2188,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color = mix(color, vec3(0.5), 0.2);
   // color = mix(color, vec3(1), 0.4);
 
-  color *= 0.9;
-
   // color *= 0.5 + 0.5 * dNR;
 
   gM = m;
@@ -2401,11 +2386,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      dispersionColor *= 0.7;
+      dispersionColor *= 0.9;
 
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
-      // color = saturate(dispersionColor);
+      color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
 
