@@ -1296,7 +1296,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.05 * length(c);
+  locallocalT -= 0.10 * length(c);
   // locallocalT += 0.01 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
@@ -1319,17 +1319,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  vec2 r = vec2(0.10);
-  vec2 size = vec2(4, 2) * r;
+  vec2 size = vec2(0.1);
+  vec2 r = 0.25 * size;
 
   q.x += 0.5 * size.x * mod(localC.y, 2.);
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // q += 0.25 * size.x * mix(
-  //     vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
-  //     vec2(1) * snoise2(0.123 * localC + 2.37),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  q += 0.5 * size.x * mix(
+      vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
+      vec2(1) * snoise2(0.123 * localC + 2.37),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1359,7 +1359,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = abs(length(q) - 0.125 * size) - 0.05 * size;
+  float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1391,41 +1391,12 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD -= 0.5;
   // internalD *= 2.;
 
-  // Crosses
-  vec2 crossR = 0.2 * r;
-  float crossThick = 0.125 * crossR.x;
-
-  for (float i = 0.; i < 5.; i++) {
-    vec2 localQ = q;
-
-    float crossT = t - 0.15 * length(localC);
-    crossT = mod(crossT, 1.);
-    float crossTNoExpo = crossT;
-    crossT = expo(crossT);
-
-    // Spread
-    localQ += crossT * 2. * r * vec2(1, 0) * rotMat2(TWO_PI * snoise2(139.17 * vec2(i) + localC));
-
-    // Spin
-    mat2 rot = rotMat2(localCosT + 0.2378 * PI * i);
-    localQ *= rot;
-
-    float fadeT = smoothstep(0.75, 1., crossTNoExpo);
-
-    vec2 b = vec2(sdCappedCross(localQ, crossR, crossThick), 0);
-    b.x = mix(b.x, 0.015, fadeT);
-    d = dMin(d, b);
-    b = vec2(sdCappedCross(q * rot, crossR, crossThick), 0);
-    b.x = mix(0.1, b.x, fadeT);
-    d = dMin(d, b);
-  }
-
   // float internalD = sdBox(q, r);
 
-  // vec2 o = vec2(internalD, 0.);
-  // // vec2 o = vec2(internalD - r, 0.);
-  // // float o = microGrid(q);
-  // d = dMin(d, o);
+  vec2 o = vec2(internalD, 0.);
+  // vec2 o = vec2(internalD - r, 0.);
+  // float o = microGrid(q);
+  d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -3526,31 +3497,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   //     snoise2(c + vec2( 0.0100,-0.9000)),
   //     snoise2(c + vec2(-9.7000, 2.7780)));
 
-  // vec2 b = vec2(sdBox(q, r), dC);
-  // // vec2 b = vec2(length(q) - vmax(r), dC);
-  // // b.x = abs(b.x);
-  // d = dMin(d, b);
+  vec2 b = vec2(neighborGrid(q, vec2(0.1)).x, 0);
+  d = dMin(d, b);
 
   // // Test box
   // vec2 b = vec2(sdBox(q, r), 0);
   // d = dMin(d, b);
 
-  // FBM Warp box
-  {
-    q *= rotMat2(0.125 * PI * cos(localCosT));
-    vec3 p = vec3(q.x, 0.35 * r.x, q.y);
-
-    vec3 s = vec3(0);
-
-    float rH = 0.2 * r.x;
-    float maxRH = rH;
-    float rHScale = 2.;
-    rH -= 0.01 * rHScale * fbmWarp(6. * p + 2. * cos(localCosT + TWO_PI * vec3(0, 0.33, 0.67)), s);
-    rH += 0.07 * rHScale * length(s);
-
-    vec2 b = vec2(sdBox(p, vec3(r.x, rH, r.x)), 0);
-    d = dMin(d, b);
-  }
 
   float mask = 1.;
 
@@ -3565,13 +3518,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(20. * TWO_PI * n);
 
-  n = abs(n);
+  // // Outline
+  // n = abs(n);
 
-  // // Hard Edge
-  // n = smoothstep(0., 0.40 * edge, n - 0.0);
+  // Hard Edge
+  n = smoothstep(0., 0.40 * edge, n - 0.0);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3715,7 +3669,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3748,8 +3702,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3759,15 +3713,15 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 25.;
+  const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
-    // vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
-    // Outlined version
-    float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // Hard Edge
-    layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-    vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+    // // Outlined version
+    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+    // // Hard Edge
+    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
     // Echo Dimming
     // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
