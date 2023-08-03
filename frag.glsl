@@ -1319,15 +1319,15 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  vec2 size = vec2(0.1);
-  vec2 r = 0.25 * size;
+  vec2 size = vec2(0.05);
+  vec2 r = 0.125 * size;
 
   q.x += 0.5 * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
   q += 0.5 * size.x * mix(
-      vec2(1, -1) * snoise2(0.417 * localC + 73.17123),
+      vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
       vec2(1) * snoise2(0.123 * localC + 2.37),
       nT);
 
@@ -1336,12 +1336,12 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
-  // vec2 center = vec2(size.x * c);
-  // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  // center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  // center -= size.x * c;
-  // q += center;
+  vec2 center = vec2(size.x * c);
+  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  center -= size.x * c;
+  q += center;
 
   // // Cosine warp
   // q += warpScale * 0.10000 * cos( 3. * q.yx + localCosT );
@@ -1359,7 +1359,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = length(q) - r.x;
+  // float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1369,7 +1369,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  // float internalD = sdBox(q, r);
+  float internalD = sdBox(q, r);
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
@@ -1398,9 +1398,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float o = microGrid(q);
   d = dMin(d, o);
 
-  // // Outline
-  // const float adjustment = 0.0;
-  // d = abs(d - adjustment) - r * 0.1000;
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - r * 0.025;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
@@ -3497,7 +3497,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   //     snoise2(c + vec2( 0.0100,-0.9000)),
   //     snoise2(c + vec2(-9.7000, 2.7780)));
 
-  vec2 b = vec2(neighborGrid(q, vec2(0.1)).x, 0);
+  vec2 b = vec2(neighborGrid(q, vec2(0.05)).x, 0);
   d = dMin(d, b);
 
   // // Test box
@@ -3735,7 +3735,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // -- Offsets --
     // Incremental offset
-    uv.y += 0.0090;
+    uv.y += 0.0040;
 
     // // Initial Offset
     // uv.y += i == 0. ? 0.075 : 0.;
