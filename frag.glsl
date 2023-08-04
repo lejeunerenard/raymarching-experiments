@@ -1285,7 +1285,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 5.0;
+  const float warpScale = 0.7;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1320,7 +1320,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // vec2 localC = c;
 
   vec2 size = vec2(0.05);
-  vec2 r = 0.125 * size;
+  vec2 r = 0.2 * size;
 
   q.x += 0.5 * size.x * mod(localC.y, 2.);
 
@@ -1336,18 +1336,18 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
-  vec2 center = vec2(size.x * c);
-  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  center -= size.x * c;
-  q += center;
+  // vec2 center = vec2(size.x * c);
+  // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  // center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  // center -= size.x * c;
+  // q += center;
 
-  // // Cosine warp
-  // q += warpScale * 0.10000 * cos( 3. * q.yx + localCosT );
-  // q += warpScale * 0.05000 * cos( 9. * q.yx + localCosT );
-  // q += warpScale * 0.02500 * cos(13. * q.yx + localCosT );
-  // q += warpScale * 0.01250 * cos(23. * q.yx + localCosT );
+  // Cosine warp
+  q += warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  q += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  q += warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  q += warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1359,7 +1359,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = length(q) - r.x;
+  float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1369,7 +1369,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  float internalD = sdBox(q, r);
+  // float internalD = sdBox(q, r);
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
@@ -3702,8 +3702,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
