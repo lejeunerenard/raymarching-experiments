@@ -1296,7 +1296,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.10 * length(c);
+  locallocalT -= 0.070 * length(c);
   // locallocalT += 0.01 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
@@ -1311,7 +1311,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 0.;
+  float shift = 1.;
   vec2 shiftDir = vec2(1, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1319,20 +1319,22 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  vec2 size = vec2(0.05);
-  vec2 r = 0.2 * size;
+  vec2 size = vec2(0.025);
+  vec2 r = 0.075 * size;
 
-  q.x += 0.5 * size.x * mod(localC.y, 2.);
+  // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 0.5 * size.x * mix(
+  q += 0.062 * size.x * mix(
       vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
       vec2(1) * snoise2(0.123 * localC + 2.37),
       nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
+
+  q.x += size.x * (0.5 + 0.5 * cos(localCosT));
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
@@ -1343,11 +1345,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // Cosine warp
-  q += warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  q += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  q += warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  q += warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // // Cosine warp
+  // q += warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  // q += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  // q += warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  // q += warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1398,9 +1400,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float o = microGrid(q);
   d = dMin(d, o);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - r * 0.025;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - r * 0.025;
 
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
@@ -3497,7 +3499,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   //     snoise2(c + vec2( 0.0100,-0.9000)),
   //     snoise2(c + vec2(-9.7000, 2.7780)));
 
-  vec2 b = vec2(neighborGrid(q, vec2(0.05)).x, 0);
+  vec2 b = vec2(neighborGrid(q, vec2(0.025)).x, 0);
   d = dMin(d, b);
 
   // // Test box
