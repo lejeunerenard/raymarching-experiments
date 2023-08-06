@@ -3412,6 +3412,22 @@ float ripple (in vec2 q, in float t) {
   return d;
 }
 
+#define dotNum 8.
+vec2 dotPosition (in float i, in float t, in float r) {
+  const vec2 start = vec2(0);
+  vec2 q = start;
+
+  float maxI = floor((dotNum + 1.) * t) + 1.;
+  float withinStep = expo((dotNum + 1.) * mod(t, 1./(dotNum + 1.)));
+
+  float isFirst = expo(range(0.1/dotNum, 1./dotNum, t));
+
+  vec2 offset = mix(0., r, isFirst) * cos(TWO_PI * saturate(i / maxI) + vec2(0, 0.5 * PI));
+  vec2 prevOffset = mix(0., r, isFirst) * cos(TWO_PI * saturate(i / (maxI - 1.)) + vec2(0, 0.5 * PI));
+
+  return (1. - quint(range((dotNum - 1.) / dotNum, 1., t))) * mix(prevOffset, offset, withinStep);
+}
+
 vec2 mUv = vec2(0);
 vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec4 color = vec4(vec3(0), 1.);
@@ -3426,14 +3442,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.3);
-  vec2 size = vec2(2.0) * r + vmax(r) * 0.85;
+  vec2 r = vec2(0.020);
+  vec2 size = vec2(9.0) * vmax(r);
 
   // -- Warp --
   vec2 wQ = q.xy;
-
-  wQ.y *= 1.4;
-  wQ *= rotMat2(-0.22 * PI);
 
   float warpFactor = 0.3;
 
@@ -3452,7 +3465,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // size.x *= 2. - 1.7 * range(0., 8., c.y);
   // r = vec2(0.5) * size - vmax(r) * 0.85;
 
-  // c = pMod2(wQ, size);
+  c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3467,8 +3480,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float cellT = t;
 
-  // // Center out
-  // cellT -= 0.080 * length(c);
+  // Center out
+  cellT -= 0.03 * length(c);
 
   // // Coordinate offset
   // // cellT -= 0.080 * c.y;
@@ -3485,8 +3498,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Noise offset
   // cellT -= 0.175 * snoise2(1.2 * c);
 
-  // // Rectify
-  // cellT = mod(cellT, 1.);
+  // Rectify
+  cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
@@ -3499,8 +3512,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   //     snoise2(c + vec2( 0.0100,-0.9000)),
   //     snoise2(c + vec2(-9.7000, 2.7780)));
 
-  vec2 b = vec2(neighborGrid(q, vec2(0.025)).x, 0);
-  d = dMin(d, b);
+  for (float i = 0.; i < dotNum; i++) {
+    vec2 localQ = q + dotPosition(i, cellT, 3. * r.x);
+    vec2 b = vec2(length(localQ) - r.x, 0);
+    d = dMin(d, b);
+  }
+
+  // vec2 b = vec2(neighborGrid(q, vec2(0.025)).x, 0);
+  // d = dMin(d, b);
 
   // // Test box
   // vec2 b = vec2(sdBox(q, r), 0);
@@ -3704,8 +3723,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3717,7 +3736,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // -- Echoed Layers --
   const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0025 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
