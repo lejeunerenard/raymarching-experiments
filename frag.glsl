@@ -1285,7 +1285,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.7;
+  const float warpScale = 0.125;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1319,22 +1319,22 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  vec2 size = vec2(0.025);
+  vec2 size = vec2(0.01);
   vec2 r = 0.075 * size;
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 0.062 * size.x * mix(
-      vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-      vec2(1) * snoise2(0.123 * localC + 2.37),
-      nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  // q += 0.062 * size.x * mix(
+  //     vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
+  //     vec2(1) * snoise2(0.123 * localC + 2.37),
+  //     nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  q.x += size.x * (0.5 + 0.5 * cos(localCosT));
+  // q.x += size.x * (0.5 + 0.5 * cos(localCosT));
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
@@ -1345,11 +1345,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // // Cosine warp
-  // q += warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  // q += warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  // q += warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  // q += warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // Cosine warp
+  q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -3455,33 +3455,23 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // wQ.xy = polarCoords(wQ.xy);
-  // wQ.y -= .5 * size.y;
-
   vec2 c = vec2(0);
 
-  c = floor((wQ + size*0.5)/size);
+  // c = floor((wQ + size*0.5)/size);
 
-  // size.x *= 2. - 1.7 * range(0., 8., c.y);
-  // r = vec2(0.5) * size - vmax(r) * 0.85;
-
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
 
-  // // Texture SDF
-  // float sdf2D = get2DSDF(q);
-  // vec2 o = vec2(sdf2D, 0);
-  // d = dMin(d, o);
-
   // // Adjust R per cell
   // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
-  float cellT = t;
+  // // -- Cell T --
+  // float cellT = t;
 
-  // Center out
-  cellT -= 0.03 * length(c);
+  // // Center out
+  // cellT -= 0.03 * length(c);
 
   // // Coordinate offset
   // // cellT -= 0.080 * c.y;
@@ -3498,8 +3488,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Noise offset
   // cellT -= 0.175 * snoise2(1.2 * c);
 
-  // Rectify
-  cellT = mod(cellT, 1.);
+  // // Rectify
+  // cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
@@ -3512,19 +3502,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   //     snoise2(c + vec2( 0.0100,-0.9000)),
   //     snoise2(c + vec2(-9.7000, 2.7780)));
 
-  for (float i = 0.; i < dotNum; i++) {
-    vec2 localQ = q + dotPosition(i, cellT, 3. * r.x);
-    vec2 b = vec2(length(localQ) - r.x, 0);
-    d = dMin(d, b);
-  }
+  // // Texture SDF
+  // float sdf2D = get2DSDF(q);
+  // vec2 o = vec2(sdf2D, 0);
+  // d = dMin(d, o);
 
-  // vec2 b = vec2(neighborGrid(q, vec2(0.025)).x, 0);
+  // vec2 b = vec2(length(q) - r.x, 0);
   // d = dMin(d, b);
 
-  // // Test box
-  // vec2 b = vec2(sdBox(q, r), 0);
-  // d = dMin(d, b);
-
+  vec2 b = vec2(neighborGrid(q, vec2(0.0125)).x, 0);
+  d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3723,8 +3710,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
