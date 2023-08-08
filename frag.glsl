@@ -1285,7 +1285,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.125;
+  const float warpScale = 0.25;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1296,8 +1296,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.007 * length(c);
-  // locallocalT += 0.01 * dC;
+  // locallocalT -= 0.007 * length(c);
+  locallocalT += 0.002 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1345,11 +1345,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // // Cosine warp
-  // q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // Cosine warp
+  q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1405,13 +1405,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   // d = abs(d - adjustment) - r * 0.025;
 
   // Mask
-  // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
-  // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
-  // d.x = mix(d.x, maxDistance, step(0., sdBox(c, vec2(10))));
-  // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
-  // d = mix(d, maxDistance, step(0., length(c) - 15.));
-  // Convert circle into torus
-  d.x = mix(d.x, maxDistance, step(0., abs(length(c) - 27.) - 15.));
+  float mask = 1.;
+  // mask = step(0., dot(abs(c), vec2(1)) - 12.));
+  // mask = step(0., vmax(abs(c)) - 12.));
+  mask = step(0., sdBox(c, vec2(40)));
+  // mask = step(0., abs(length(c) - 4.) - 2.));
+  // mask = step(0., length(c) - 15.));
+  // // Convert circle into torus
+  // mask = step(0., abs(length(c) - 27.) - 15.));
+
+  // Apply mask
+  d.x = mix(d.x, maxDistance, mask);
 
   return d;
 }
