@@ -1264,7 +1264,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.06);
+const vec2 gSize = vec2(0.0095);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1296,7 +1296,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.070 * length(c);
+  locallocalT -= 0.007 * length(c);
   // locallocalT += 0.01 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
@@ -1311,7 +1311,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
+  float shift = 0.;
   vec2 shiftDir = vec2(1, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1319,17 +1319,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Vanilla cell coordinate
   // vec2 localC = c;
 
-  vec2 size = vec2(0.01);
-  vec2 r = 0.075 * size;
+  vec2 size = gSize;
+  vec2 r = 0.2 * size;
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // q += 0.062 * size.x * mix(
-  //     vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-  //     vec2(1) * snoise2(0.123 * localC + 2.37),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  q += 1.7 * size.x * mix(
+      vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
+      vec2(1) * snoise2(0.063 * localC + 2.37),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1345,11 +1345,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // Cosine warp
-  q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // // Cosine warp
+  // q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1407,11 +1407,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Mask
   // d = mix(d, maxDistance, step(0., dot(abs(c), vec2(1)) - 12.));
   // d = mix(d, maxDistance, step(0., vmax(abs(c)) - 12.));
-  // d.x = mix(d.x, maxDistance, step(0., sdBox(c, vec2(1))));
+  // d.x = mix(d.x, maxDistance, step(0., sdBox(c, vec2(10))));
   // d = mix(d, maxDistance, step(0., abs(length(c) - 4.) - 2.));
   // d = mix(d, maxDistance, step(0., length(c) - 15.));
-  // // Convert circle into torus
-  // d = mix(d, maxDistance, step(0., abs(length(c) - 13.) - 7.));
+  // Convert circle into torus
+  d.x = mix(d.x, maxDistance, step(0., abs(length(c) - 27.) - 15.));
 
   return d;
 }
@@ -3510,7 +3510,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(length(q) - r.x, 0);
   // d = dMin(d, b);
 
-  vec2 b = vec2(neighborGrid(q, vec2(0.0125)).x, 0);
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
   d = dMin(d, b);
 
   float mask = 1.;
@@ -3721,7 +3721,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 5.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0025 * i);
 
