@@ -1264,7 +1264,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.0095);
+const vec2 gSize = vec2(0.02);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1320,7 +1320,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // vec2 localC = c;
 
   vec2 size = gSize;
-  vec2 r = 0.2 * size;
+  vec2 r = 0.5 * size;
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
@@ -1328,7 +1328,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
   q += 1.7 * size.x * mix(
       vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-      vec2(1) * snoise2(0.063 * localC + 2.37),
+      vec2(1) * snoise2(0.863 * localC + 2.37),
       nT);
 
   // float side = step(abs(c.y), abs(c.x));
@@ -1345,11 +1345,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // Cosine warp
-  q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // // Cosine warp
+  // q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1361,13 +1361,13 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = length(q) - r.x;
+  // float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
 
-  // float internalD = abs(dot(q, vec2(-1, 1)));
+  float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
@@ -1395,8 +1395,8 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // float internalD = sdBox(q, r);
 
-  vec2 o = vec2(internalD, 0.);
-  // vec2 o = vec2(internalD - r, 0.);
+  // vec2 o = vec2(internalD, 0.);
+  vec2 o = vec2(internalD - 0.03 * size.x, 0.);
   // float o = microGrid(q);
   d = dMin(d, o);
 
@@ -1408,7 +1408,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 1.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
   // mask = step(0., vmax(abs(c)) - 12.));
-  mask = step(0., sdBox(c, vec2(40)));
+  mask = step(0., sdBox(c, vec2(18)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 15.));
   // // Convert circle into torus
