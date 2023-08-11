@@ -1802,32 +1802,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT + 2. * cos(localCosT + dot(wQ, vec3(1)))));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.3;
 
-  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
-  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
+  // // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  // wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, b);
-
-  // crop front plane
-  float crop = q.z - 0.6;
-  d.x = max(d.x, crop);
+  const float num = 4.;
+  for (float i = 0.; i < num; i++) {
+    float localR = r * ( 1. - 0.20 * i );
+    vec3 localQ = q;
+    localQ *= rotationMatrix(vec3(1), 0.3 * PI * cos(localCosT + 0.5 * PI * i / num));
+    vec3 b = vec3(abs(length(localQ) - localR) - 0.105 * localR, 0, 0);
+    // crop front plane
+    float crop = localQ.z;
+    b.x = max(b.x, crop);
+    if (b.x < d.x) {
+      mPos = q;
+    }
+    d = dMin(d, b);
+  }
 
   // Scale compensation
   d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.8;
+  // // Under step
+  // d.x *= 0.8;
+
+  d.x += 0.0075 * cellular(2.5 * mPos);
 
   return d;
 }
@@ -1950,7 +1960,7 @@ vec3 textures (in vec3 rd) {
   // float n = 0.6 + 0.4 * sin(dot(vec3(PI), sin(3.18 * rd + sin(1.38465 * rd.yzx))));
 
   vec3 dI = vec3(dNR);
-  dI += 0.3 * snoise3(0.3 * gPos);
+  dI += 0.3 * snoise3(0.3 * mPos);
   dI += 0.5 * pow(dNR, 5.);
 
   dI *= angle1C;
@@ -2086,7 +2096,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dI += 2. * pow(dNR, 2.);
   // dI.xy += 0.1 * fragCoord.xy;
 
-  // dI += 0.3 * snoise3(0.3 * mPos);
+  // dI += 0.2 * snoise3(0.3 * mPos);
   // dI += .7128 * m;
 
   dI *= angle1C;
@@ -2263,8 +2273,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 0.8;
+      float diffMin = 0.0;
+      float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2325,11 +2335,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.40 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2367,7 +2377,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 3.0));
-      color = saturate(dispersionColor);
+      // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
 
@@ -3681,7 +3691,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
