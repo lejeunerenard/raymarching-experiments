@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.2;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1780,12 +1780,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 2.9;
+  float warpScale = 1.0;
+  float warpFrequency = 1.9;
   float rollingScale = 1.;
 
   // Warp
@@ -1799,45 +1799,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT + 2. * cos(localCosT + dot(wQ, vec3(1)))));
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT + 2. * circ(triangleWave(t + dot(wQ, vec3(0.75))))));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.3;
 
-  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
-  // // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ *= 1. + 0.1 * cos(distortT - 2. * length(wQ) + wQ.x);
+  // wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  const float num = 4.;
-  for (float i = 0.; i < num; i++) {
-    float localR = r * ( 1. - 0.20 * i );
-    vec3 localQ = q;
-    localQ *= rotationMatrix(vec3(1), 0.3 * PI * cos(localCosT + 0.5 * PI * i / num));
-    vec3 b = vec3(abs(length(localQ) - localR) - 0.105 * localR, 0, 0);
-    // crop front plane
-    float crop = localQ.z;
-    b.x = max(b.x, crop);
-    if (b.x < d.x) {
-      mPos = q;
-    }
-    d = dMin(d, b);
-  }
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.8;
-
-  d.x += 0.0075 * cellular(2.5 * mPos);
+  // Under step
+  d.x *= 0.3;
 
   return d;
 }
@@ -2093,16 +2080,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   float dNR = dot(nor, -rd);
   vec3 dI = 0.3 * vec3(dot(nor, vec3(1)));
-  // dI += 2. * pow(dNR, 2.);
-  // dI.xy += 0.1 * fragCoord.xy;
+  // // dI += 2. * pow(dNR, 2.);
+  // // dI.xy += 0.1 * fragCoord.xy;
 
-  // dI += 0.2 * snoise3(0.3 * mPos);
-  // dI += .7128 * m;
+  // // dI += 0.2 * snoise3(0.3 * mPos);
+  // // dI += .7128 * m;
 
-  dI *= angle1C;
-  dI += angle2C;
+  // dI *= angle1C;
+  // dI += angle2C;
 
-  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
+  // color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -2114,56 +2101,56 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // color *= 0.45;
 
-  // // -- Holo --
-  // vec3 beforeColor = color;
+  // -- Holo --
+  vec3 beforeColor = color;
 
-  // const float numSteps = 30.;
-  // const float stepSize = 0.20;
-  // const float holoIoR = 1.0;
-  // vec3 holoQ = pos;
-  // // vec3 holoRd = refract(nor, rd, holoIoR);
-  // vec3 holoRd = rd;
-  // holoRd += 0.2 * refract(nor, rd, holoIoR);
-  // for (float i = 0.; i < numSteps; i++) {
-  //   vec3 holoPos = holoQ + i * stepSize * holoRd;
-  //   // float inclusion = snoise3(0.5 * holoPos);
-  //   vec3 s = vec3(0);
-  //   float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
-  //   // float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
-  //   // inclusion = step(0.25, inclusion);
+  const float numSteps = 30.;
+  const float stepSize = 0.20;
+  const float holoIoR = 1.0;
+  vec3 holoQ = pos;
+  // vec3 holoRd = refract(nor, rd, holoIoR);
+  vec3 holoRd = rd;
+  holoRd += 0.2 * refract(nor, rd, holoIoR);
+  for (float i = 0.; i < numSteps; i++) {
+    vec3 holoPos = holoQ + i * stepSize * holoRd;
+    // float inclusion = snoise3(0.5 * holoPos);
+    vec3 s = vec3(0);
+    float inclusion = fbmWarp(0.25 * vec3(1, 2, 1) * holoPos, s);
+    // float inclusion = snoise3(1.225 * vec3(1) * holoPos + length(holoPos));
+    // inclusion = step(0.25, inclusion);
 
-  //   float colorSpeed = 0.5;
+    float colorSpeed = 0.5;
 
-  //   // // Basic layer
-  //   // dI = vec3(0.05 * i);
+    // // Basic layer
+    // dI = vec3(0.05 * i);
 
-  //   // Single Noise
-  //   dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
+    // Single Noise
+    dI = vec3(snoise3(vec3(1, 2, 2) * holoPos + 0.10 * i));
 
-  //   // // Multi-noise
-  //   // vec3 nQ = holoPos;
-  //   // // nQ *= rotationMatrix(vec3(1), length(holoPos));
+    // // Multi-noise
+    // vec3 nQ = holoPos;
+    // // nQ *= rotationMatrix(vec3(1), length(holoPos));
 
-  //   // dI = vec3(
-  //   //     snoise3(length(nQ) + colorSpeed * vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
-  //   //     snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
-  //   //     snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
+    // dI = vec3(
+    //     snoise3(length(nQ) + colorSpeed * vec3(0.8, 1, 1.1) * nQ + 0.05 * i),
+    //     snoise3(length(nQ) + colorSpeed * vec3(0.99, 1, 0.7) * nQ + 0.08 * i),
+    //     snoise3(length(nQ) + colorSpeed * vec3(1, 0.2, 1.1) * nQ + 0.15 * i));
 
-  //   // dI += s;
+    // dI += s;
 
-  //   dI *= angle1C;
-  //   dI += angle2C;
+    dI *= angle1C;
+    dI += angle2C;
 
-  //   vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.8) * dI + vec3(0,0.2, 0.4)));
-  //   // color += saturate(inclusion) * layerColor;
-  //   // color = mix(color, layerColor, saturate(inclusion));
-  //   // color = mix(pow(color, vec3(2.2)), pow(layerColor, vec3(2.2)), saturate(inclusion));
-  //   color = pow(color, vec3(0.454545));
-  // }
+    vec3 layerColor = vec3(0.5) + vec3(0.4, 0.5, 0.5) * cos(TWO_PI * (vec3(2, 1, 0.8) * dI + vec3(0,0.2, 0.4)));
+    // color += saturate(inclusion) * layerColor;
+    // color = mix(color, layerColor, saturate(inclusion));
+    // color = mix(pow(color, vec3(2.2)), pow(layerColor, vec3(2.2)), saturate(inclusion));
+    color = pow(color, vec3(0.454545));
+  }
 
-  // color /= pow(numSteps, 0.30);
-  // color *= 1.2;
-  // color /= numSteps;
+  color /= pow(numSteps, 0.30);
+  color *= 1.2;
+  color /= numSteps;
 
   // color.r = pow(color.r, 0.7);
   // color.b = pow(color.b, 0.7);
@@ -2238,12 +2225,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.05;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.05;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
