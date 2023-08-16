@@ -1760,7 +1760,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.09;
+float gR = 0.04;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1784,8 +1784,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.7;
-  float warpFrequency = 1.9;
+  float warpScale = 1.2;
+  float warpFrequency = 1.3;
   float rollingScale = 1.;
 
   // Warp
@@ -1804,7 +1804,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 4.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 0.9 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos( 8.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(11.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x));
@@ -1812,14 +1812,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  wQ.yz = opRepLim(wQ.yz, 3. * r, vec2(1));
+  wQ.yz = opRepLim(wQ.yz, 4.5 * r, vec2(2));
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float l = 3. * r;
-  r += 0.1 * r * snoise3(2. * vec3(1., vec2(11.)) * q);
+  float l = 6. * r;
+  // r += 0.1 * r * snoise3(3. * vec3(1., vec2(11.)) * q);
   vec3 b = vec3(sdCapsule(q, vec3(l, 0, 0), vec3(-l, 0, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
