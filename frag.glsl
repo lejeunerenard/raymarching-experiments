@@ -1760,7 +1760,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.3;
+float gR = 0.080;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1780,7 +1780,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1802,29 +1802,48 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 4.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos( 8.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(11.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 4.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  // wQ += 0.025000 * warpScale * cos( 8.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos(11.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  d = dMin(d, b);
+  const float num = 7.;
+  const float angleInc = TWO_PI / num;
+
+  float bigR = 3.5 * r;
+  float loopR = 0.75 * bigR;
+
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q;
+
+    localQ *= rotationMatrix(vec3(0, 0, 1), angleInc * i);
+
+    localQ.x -= bigR;
+
+    localQ.xz += loopR * cos(1. * localCosT + i * angleInc + vec2(0, 0.5 * PI));
+
+    vec3 b = vec3(length(localQ) - r, 0, 0);
+    d = dMin(d, b);
+  }
+
+  // Big Ring
+  vec3 ring = vec3(sdTorus(q.xzy, bigR * vec2(1., 0.25)), 0, 0);
+  d = dMin(d, ring);
 
   // Scale compensation
   d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.3;
+  // // Under step
+  // d.x *= 0.9;
 
   return d;
 }
@@ -2026,6 +2045,7 @@ float dispersionMarch (in vec3 rayDirection) {
 vec3 secondRefraction (in vec3 rd, in float ior) {
   float d = 0.0;
 
+  // Perturbate initial ray direction
   float angle = ncnoise3(rd);
   rd *= rotationMatrix(vec3(1, 4, 2), smoothstep(0.5, 0.6, angle));
 
@@ -2035,10 +2055,12 @@ vec3 secondRefraction (in vec3 rd, in float ior) {
   const int samples = 12;
   for (int i = 0; i < samples; i++) {
     vec3 lightDir = rd;
+
+    // Add noise to walk to create imperfections
     lightDir += 0.1 * vec3(
-    noise(gPos),
-    noise(1.3 * gPos + 340.0),
-    noise(-1.9 * gPos + 640.0));
+        noise(gPos),
+        noise(1.3 * gPos + 340.0),
+        noise(-1.9 * gPos + 640.0));
 
     d += dispersionMarch(lightDir);
   }
@@ -2255,8 +2277,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.7;
+      float freCo = 0.5;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
@@ -2326,7 +2348,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.2 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
