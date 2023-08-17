@@ -1760,7 +1760,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.04;
+float gR = 0.3;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1784,8 +1784,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.2;
-  float warpFrequency = 1.3;
+  float warpScale = 0.5;
+  float warpFrequency = 1.6;
   float rollingScale = 1.;
 
   // Warp
@@ -1812,16 +1812,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  wQ.yz = opRepLim(wQ.yz, 4.5 * r, vec2(2));
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float l = 6. * r;
-  // r += 0.1 * r * snoise3(3. * vec3(1., vec2(11.)) * q);
-  vec3 b = vec3(sdCapsule(q, vec3(l, 0, 0), vec3(-l, 0, 0), r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation

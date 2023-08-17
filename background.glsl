@@ -110,7 +110,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // color = mix(color, vec3(0), 0.025); // Darken
   // color *= 0.91;
   // color *= mix(vec3(1, 1.2, 1.2), vec3(1.3, 1.0, 1.0), bgIndex); // Tint
-  color *= vec3(1.10, 1., 0.90); // Tint
+  color *= vec3(0.9, 0.8, 1.); // Tint
 
   return color;
 }
