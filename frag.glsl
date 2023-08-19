@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1760,7 +1760,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.080;
+float gR = 0.350;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1784,8 +1784,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
-  float warpFrequency = 1.6;
+  float warpScale = 0.2;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1802,48 +1802,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
 
-  // wQ += 0.100000 * warpScale * cos( 4.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos( 8.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos(11.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x));
-  // wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.100000 * warpScale * cos( 4.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos( 8.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos(11.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x));
+  wQ += 0.006250 * warpScale * cos(13.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(17.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.001125 * warpScale * cos(27.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  const float num = 7.;
-  const float angleInc = TWO_PI / num;
-
-  float bigR = 3.5 * r;
-  float loopR = 0.75 * bigR;
-
-  for (float i = 0.; i < num; i++) {
-    vec3 localQ = q;
-
-    localQ *= rotationMatrix(vec3(0, 0, 1), angleInc * i);
-
-    localQ.x -= bigR;
-
-    localQ.xz += loopR * cos(1. * localCosT + i * angleInc + vec2(0, 0.5 * PI));
-
-    vec3 b = vec3(length(localQ) - r, 0, 0);
-    d = dMin(d, b);
-  }
-
-  // Big Ring
-  vec3 ring = vec3(sdTorus(q.xzy, bigR * vec2(1., 0.25)), 0, 0);
-  d = dMin(d, ring);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.9;
+  // Under step
+  d.x *= 0.4;
 
   return d;
 }
@@ -2089,7 +2069,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.15);
+  vec3 color = vec3(0);
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2277,14 +2257,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.5;
+      float freCo = 1.0;
+      float specCo = 1.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.875;
-      float shadowMin = 0.80;
+      float diffMin = 0.0;
+      float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2303,7 +2283,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
         // dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 32.0);
+        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 42.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         isSoftShadow = true;
@@ -2348,13 +2328,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.5 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.10 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.10 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
@@ -2383,7 +2363,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
-      dispersionColor *= 0.9;
+      // dispersionColor *= 0.9;
 
       // color += saturate(dispersionColor);
       color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
