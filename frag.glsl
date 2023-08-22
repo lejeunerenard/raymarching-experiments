@@ -3454,8 +3454,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localT = t;
 
   float warpScale = 0.20;
-  vec2 r = vec2(0.020);
+  vec2 r = vec2(0.030);
   vec2 size = vec2(9.0) * vmax(r);
+
+  float bigR = vmax(r) * 10.;
 
   // -- Warp --
   vec2 wQ = q.xy;
@@ -3519,11 +3521,18 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // vec2 b = vec2(length(q) - r.x, 0);
-  // d = dMin(d, b);
+  const float num = 11.;
+  float incAngle = TWO_PI / num;
+  for (float i = 0.; i < num; i++) {
+    vec2 localQ = q;
+    localQ += lissajous(bigR, bigR, 3., 2., PI * 0.5, localCosT + TWO_PI + incAngle * i);
 
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  d = dMin(d, b);
+    vec2 b = vec2(length(localQ) - vmax(r), 0);
+    d = dMin(d, b);
+  }
+
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3542,7 +3551,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 0.40 * edge, n - 0.0);
+  n = smoothstep(0., 7.00 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3689,7 +3698,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3720,10 +3729,10 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 // - `uv` : UV coordinate for a 'screen space'
 // and returns a rgba color value for that sample.
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
-  vec4 color = vec4(0, 0, 0, 0);
+  vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3732,48 +3741,48 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // -- Echoed Layers --
-  const float echoSlices = 5.;
-  for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0025 * i);
+  // // -- Echoed Layers --
+  // const float echoSlices = 15.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0025 * i);
 
-    // // Outlined version
-    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // // Hard Edge
-    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+  //   // // Outlined version
+  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+  //   // // Hard Edge
+  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-    // Echo Dimming
-    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
+  //   // Echo Dimming
+  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
 
-    // Blend mode
-    // Additive
-    color += vec4(vec3(layerColor.a), 1) * layerColor;
+  //   // Blend mode
+  //   // Additive
+  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-    // -- Offsets --
-    // Incremental offset
-    uv.y += 0.0040;
+  //   // -- Offsets --
+  //   // Incremental offset
+  //   uv.y += 0.0040;
 
-    // // Initial Offset
-    // uv.y += i == 0. ? 0.075 : 0.;
+  //   // // Initial Offset
+  //   // uv.y += i == 0. ? 0.075 : 0.;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
 
-  color.a = saturate(color.a);
-  // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  color.a = 1.;
+  // color.a = saturate(color.a);
+  // // color.rgb = mix(vec3(1), color.rgb, color.a);
+  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  // color.a = 1.;
 
-  return color;
+  // return color;
 
   // -- Color delay --
-  const float slices = 15.;
-  const float delayLength = 0.025;
+  const float slices = 25.;
+  const float delayLength = 0.030;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
