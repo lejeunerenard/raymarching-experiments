@@ -1264,7 +1264,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.02);
+const vec2 gSize = vec2(0.04);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1296,8 +1296,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.007 * length(c);
-  locallocalT += 0.002 * dC;
+  // locallocalT -= 0.07 * length(c);
+  locallocalT += 0.12 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1320,16 +1320,16 @@ vec2 shape (in vec2 q, in vec2 c) {
   // vec2 localC = c;
 
   vec2 size = gSize;
-  vec2 r = 0.5 * size;
+  vec2 r = 0.125 * size;
 
-  // q.x += 0.5 * size.x * mod(localC.y, 2.);
+  q.x += 0.5 * size.x * mod(localC.y, 2.);
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 1.7 * size.x * mix(
-      vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-      vec2(1) * snoise2(0.863 * localC + 2.37),
-      nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  // q += 1.7 * size.x * mix(
+  //     vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
+  //     vec2(1) * snoise2(0.863 * localC + 2.37),
+  //     nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1393,12 +1393,24 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD -= 0.5;
   // internalD *= 2.;
 
+  // Lissajous dots
+  float bigR = vmax(size) * 2.;
+  const float num = 5.;
+  float incAngle = TWO_PI / num;
+  for (float i = 0.; i < num; i++) {
+    vec2 localQ = q;
+    localQ += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
+
+    vec2 b = vec2(length(localQ) - vmax(r), 0);
+    d = dMin(d, b);
+  }
+
   // float internalD = sdBox(q, r);
 
   // vec2 o = vec2(internalD, 0.);
-  vec2 o = vec2(internalD - 0.03 * size.x, 0.);
+  // vec2 o = vec2(internalD - 0.03 * size.x, 0.);
   // float o = microGrid(q);
-  d = dMin(d, o);
+  // d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1408,7 +1420,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 1.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
   // mask = step(0., vmax(abs(c)) - 12.));
-  mask = step(0., sdBox(c, vec2(18)));
+  mask = step(0., sdBox(c, vec2(8)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 15.));
   // // Convert circle into torus
@@ -3521,18 +3533,18 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  const float num = 11.;
-  float incAngle = TWO_PI / num;
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ += lissajous(bigR, bigR, 3., 2., PI * 0.5, localCosT + TWO_PI + incAngle * i);
+  // const float num = 7.;
+  // float incAngle = TWO_PI / num;
+  // for (float i = 0.; i < num; i++) {
+  //   vec2 localQ = q;
+  //   localQ += lissajous(bigR, bigR, 3., 2., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
 
-    vec2 b = vec2(length(localQ) - vmax(r), 0);
-    d = dMin(d, b);
-  }
+  //   vec2 b = vec2(length(localQ) - vmax(r), 0);
+  //   d = dMin(d, b);
+  // }
 
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  // d = dMin(d, b);
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3551,7 +3563,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 7.00 * edge, n - 0.0);
+  n = smoothstep(0., 1.00 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3781,8 +3793,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 25.;
-  const float delayLength = 0.030;
+  const float slices = 10.;
+  const float delayLength = 0.040;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
