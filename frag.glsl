@@ -1264,7 +1264,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.04);
+const vec2 gSize = vec2(0.06);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1297,7 +1297,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.07 * length(c);
-  locallocalT += 0.12 * dC;
+  locallocalT += 0.05 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1322,7 +1322,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 size = gSize;
   vec2 r = 0.125 * size;
 
-  q.x += 0.5 * size.x * mod(localC.y, 2.);
+  // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
@@ -1394,8 +1394,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD *= 2.;
 
   // Lissajous dots
-  float bigR = vmax(size) * 2.;
-  const float num = 5.;
+  float bigR = vmax(size) * 1.5;
+  const float num = 4.;
   float incAngle = TWO_PI / num;
   for (float i = 0.; i < num; i++) {
     vec2 localQ = q;
@@ -1420,9 +1420,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 1.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
   // mask = step(0., vmax(abs(c)) - 12.));
-  mask = step(0., sdBox(c, vec2(8)));
+  // mask = step(0., sdBox(c, vec2(8)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
-  // mask = step(0., length(c) - 15.));
+  mask = step(0., length(c) - 5.);
   // // Convert circle into torus
   // mask = step(0., abs(length(c) - 27.) - 15.));
 
@@ -3743,8 +3743,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
