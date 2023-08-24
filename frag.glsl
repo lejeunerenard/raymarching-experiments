@@ -3465,16 +3465,23 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.20;
-  vec2 r = vec2(0.030);
-  vec2 size = vec2(9.0) * vmax(r);
+  float warpScale = 1.00;
+  float warpFrequency = 1.;
+
+  vec2 r = vec2(0.010);
+  vec2 size = vec2(2.0) * vmax(r);
+
+  q.y = abs(q.y);
+
+  q.y += 36. * size.y;
 
   float bigR = vmax(r) * 10.;
+  float boxIshR = 34.;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  float warpFactor = 0.3;
+  float warpT = localCosT;
 
   // vec2 c = floor((wQ + size*0.5)/size);
 
@@ -3483,9 +3490,21 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
+  warpScale *= 0.6 * abs(q.y) + boxIshR * size.y;
+  warpFrequency *= 1. + 1. * max(0., abs(q.y - boxIshR * size.y));
+
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.050000 * warpScale * cos( 7.0 * warpFrequency * componentShift(wQ) + warpT );
+  // wQ += 0.050000 * warpScale * snoise2(3. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(13.0 * warpFrequency * componentShift(wQ) + warpT );
+
+  float cIshShift = 2. * t;
+  wQ.y -= size.y * cIshShift;
+
   // c = floor((wQ + size*0.5)/size);
 
-  // c = pMod2(wQ, size);
+  c = pMod2(wQ, size);
+  c.y += cIshShift;
 
   q = wQ;
   mUv = q;
@@ -3533,25 +3552,25 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // const float num = 7.;
-  // float incAngle = TWO_PI / num;
-  // for (float i = 0.; i < num; i++) {
-  //   vec2 localQ = q;
-  //   localQ += lissajous(bigR, bigR, 3., 2., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
+  float evaporateR = 3. * boxIshR;
+  float evaporateT = saturate(max(0., abs(c.y) + boxIshR) / evaporateR);
+  r -= (r + edge) * 0.8;
 
-  //   vec2 b = vec2(length(localQ) - vmax(r), 0);
-  //   d = dMin(d, b);
-  // }
-
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  float particle = mix(sdBox(q, r), length(q) - vmax(r), expo(saturate(evaporateT)));
+  vec2 b = vec2(particle, 0);
   d = dMin(d, b);
+
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
   float mask = 1.;
 
-  // mask = sdBox(c, vec2(4.));
+  vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
+  mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
+
   // // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
   // mask = smoothstep(0., edge, mask);
-  // mask = 1. - mask;
+  mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
   float n = d.x;
@@ -3563,7 +3582,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 1.00 * edge, n - 0.0);
+  n = smoothstep(0., 3.00 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3658,8 +3677,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  color.rgb *= mask;
+  color.rgb *= saturate(mask);
   // color.rgb *= color.a; // Don't leak color channels at expense of edges loosing color
+
+  color.rgb *= 1.3;
 
   return color;
 }
@@ -3743,8 +3764,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
