@@ -3471,9 +3471,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 r = vec2(0.010);
   vec2 size = vec2(2.0) * vmax(r);
 
-  q.y = abs(q.y);
-
-  q.y += 36. * size.y;
+  q.y += 50. * size.y;
 
   float bigR = vmax(r) * 10.;
   float boxIshR = 34.;
@@ -3494,9 +3492,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   warpFrequency *= 1. + 1. * max(0., abs(q.y - boxIshR * size.y));
 
   wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
-  wQ += 0.050000 * warpScale * cos( 7.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(3. * warpFrequency * componentShift(wQ));
-  wQ += 0.025000 * warpScale * cos(13.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
   float cIshShift = 2. * t;
   wQ.y -= size.y * cIshShift;
@@ -3565,11 +3563,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float mask = 1.;
 
-  vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
-  mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
+  // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
+  // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
+
+  mask = length(uv) - 0.40;
 
   // // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
-  // mask = smoothstep(0., edge, mask);
+  mask = smoothstep(0., edge, mask);
   mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
@@ -3673,6 +3673,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // // Tint
   // color.rgb *= vec3(1, 0.9, 0.9);
+
+  color.rgb *= 1. - 1.25 * length(uv);
 
   // // Darken negative distances
   // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
