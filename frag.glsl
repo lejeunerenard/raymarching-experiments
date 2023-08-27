@@ -3471,7 +3471,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 r = vec2(0.010);
   vec2 size = vec2(2.0) * vmax(r);
 
-  q.y += 50. * size.y;
+  q.y += 60. * size.y;
 
   float bigR = vmax(r) * 10.;
   float boxIshR = 34.;
@@ -3502,7 +3502,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // c = floor((wQ + size*0.5)/size);
 
   c = pMod2(wQ, size);
-  c.y += cIshShift;
+  // c.y += cIshShift;
 
   q = wQ;
   mUv = q;
@@ -3550,11 +3550,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float evaporateR = 3. * boxIshR;
-  float evaporateT = saturate(max(0., abs(c.y) + boxIshR) / evaporateR);
-  r -= (r + edge) * 0.8;
-
-  float particle = mix(sdBox(q, r), length(q) - vmax(r), expo(saturate(evaporateT)));
+  float particle = sdBox(q, 0.425 * r);
   vec2 b = vec2(particle, 0);
   d = dMin(d, b);
 
@@ -3566,7 +3562,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
-  mask = length(uv) - 0.40;
+  // mask = length(uv) - 0.40;
+  // mask = sdBox(uv, vec2(0.40));
+  mask = abs(vmax(abs(uv)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
   mask = smoothstep(0., edge, mask);
@@ -3582,7 +3580,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 3.00 * edge, n - 0.0);
+  n = smoothstep(0., 2.00 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
