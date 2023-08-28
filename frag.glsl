@@ -9,7 +9,7 @@
 // #define SS 2
 #define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -70,7 +70,7 @@ float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = length(cameraRo) - 0.2125;
+float doFDistance = length(cameraRo) - 0.275;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1816,14 +1816,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.2;
 
+  vec3 c = pMod3(wQ, vec3(4. * r));
+
   // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z));
+  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.525 * cos(localCosT + wQ.z + dot(c, vec3(0.3))));
   // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
-  wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x));
+  // wQ.yzx = twist(wQ.yxz, 0.5 * wQ.x + 1.005 * cos(localCosT + wQ.x + dot(c, vec3(0.3))));
   // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
@@ -1833,17 +1835,29 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(icosahedral(q, 62., 1.0975 * r), 0, 0);
-  d = dMin(d, b);
+  vec3 localD = vec3(maxDistance, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  localD = dMin(localD, b);
 
-  b = vec3(dodecahedral(q, 62., r), 0, 0);
-  d = dMin(d, b);
+  b = vec3(-octahedral(q, 62., 1.20 * r), 0, 0);
+  localD = dMax(localD, b);
+
+  d = dMin(d, localD);
+
+  localD = vec3(maxDistance, 0, 0);
+  b = vec3(octahedral(q, 62., 1. * r), 0, 0);
+  localD = dMin(localD, b);
+
+  b = vec3(-sdBox(q, vec3(r)), 0, 0);
+  localD = dMax(localD, b);
+
+  d = dMin(d, localD);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.4;
+  d.x *= 0.3;
 
   return d;
 }
@@ -2090,7 +2104,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return color;
+  // return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2122,7 +2136,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   color += vec3(0, 1, 0) * rot * dNR;
   color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  // color *= 0.45;
+  color *= 0.75;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -3723,7 +3737,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3756,8 +3770,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3933,7 +3947,7 @@ void main() {
       gRs, 0.0,  gRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.01;
+    const float dofCoeficient = 0.0175;
 #endif
 
     #ifdef SS
