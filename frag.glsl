@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1772,7 +1772,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.1;
+float gR = 0.5;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1796,8 +1796,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.2;
-  float warpFrequency = 1.0;
+  float warpScale = 2.0;
+  float warpFrequency = 1.9;
   float rollingScale = 1.;
 
   // Warp
@@ -1814,7 +1814,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
 
-  const float warpPhaseAmp = 0.2;
+  const float warpPhaseAmp = 0.4;
 
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -1833,43 +1833,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 localQ = q;
-  float c = pModPolar(localQ.xy, 5.);
-  localQ.x -= 2.5 * r;
-  localQ *= rotationMatrix(vec3(1), 0.4 * PI * cos(localCosT + 0.2 * PI * c));
-  vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
-
-  localQ = q;
-  localQ.xy *= rotMat2(TWO_PI * 0.2 * 0.5);
-  c = pModPolar(localQ.xy, 5.);
-  localQ.x -= 4.0 * r;
-  b = vec3(length(localQ) - r, 0, 0);
-  d = dMin(d, b);
-
-  mat2 rot = rotMat2(localCosT);
-
-  // float scaleIn = 3. * r;
-  // localQ = q + vec3(0, 0, scaleIn);
-  // localQ.xy *= rot;
-  // c = pModPolar(localQ.xy, 7.);
-  // localQ.x -= (5.0 + 0.5 * cos(localCosT + 0.2 * PI * c)) * r;
-  // b = vec3(icosahedral(localQ, 42., r), 0, 0);
-  // d = dMin(d, b);
-
-  // localQ = q + vec3(0, 0, scaleIn);
-  // localQ.xy *= rot;
-  // localQ.xy *= rotMat2(TWO_PI * 0.142857* 0.5);
-  // c = pModPolar(localQ.xy, 7.);
-  // localQ.x -= 4.0 * r;
-  // b = vec3(sdBox(localQ, vec3(r)), 0, 0);
-  // d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.6;
+  d.x *= 0.5;
 
   return d;
 }
@@ -2275,12 +2246,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.0;
-      // float bumpIntensity = 0.05;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.05;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2304,13 +2275,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 1.5;
       float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
+      float diffMin = 0.7;
       float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
@@ -2378,10 +2349,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       reflectColor += 0.5 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.20 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.20 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
@@ -2412,8 +2383,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
