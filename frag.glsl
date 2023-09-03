@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1654,6 +1654,50 @@ float gyroid (in vec4 p, in float thickness) {
   return abs(gyroid) - thickness;
 }
 
+float squiggle ( in vec2 q, in float r, in float thickness ) {
+  float d = maxDistance;
+
+  float a1 = 0.25 * PI;
+  float a2 = 0.25 * PI;
+  float n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
+  d = min(d, n);
+
+  for (int i = 0; i < 27; i++) {
+    a1 -= -1. * PI;
+    q.y -= 2. * r;
+    n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
+    d = min(d, n);
+
+    a1 -= 1.00 * PI;
+    q.x -= 2. * r;
+    n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
+    d = min(d, n);
+  }
+
+  return d;
+}
+
+float squiggle (in vec3 q, in float r, in float thickness) {
+  float d = maxDistance;
+
+  vec3 originalQ = q;
+
+  float c = pMod1(q.x, 4. * r);
+  float b = sdTorus(q.xzy, vec2(r, thickness));
+  b = max(b, max(0., -q.y));
+  d = min(d, b);
+
+  q = originalQ;
+  q.x += 2. * r;
+  pMod1(q.x, 4. * r);
+  b = sdTorus(q.xzy, vec2(r, thickness));
+  b = max(b, max(0., q.y));
+  d = min(d, b);
+
+  return d;
+}
+
+
 #define splitTime(x, t) range(prevT, prevT + x, t); prevT += x;
 
 float tileTime (in vec2 c, in float t) {
@@ -1772,7 +1816,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.025;
+float gR = 0.25;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1816,11 +1860,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.4;
 
-  vec2 c = floor((wQ.xz + size*0.5)/size);
-
-  // vec2 c = pMod2(wQ.xz, size);
-  wQ.xz = opRepLim(wQ.xz, vmax(size), vec2(4.));
-
   // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
@@ -1841,10 +1880,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 f = vec3(sdBox(q, vec3(r, 0.1 * r, r)), 0, 0);
   // d = dMin(d, f);
 
-  t += dot(c, 0.010 * vec2(-1, 0));
-  t = mod(t, 1.);
-  q *= rotationMatrix(vec3(1, 0, 0), -PI * expo(t));
-  vec3 b = vec3(sdBox(q, vec3(r, 0.1 * r, r)), 0, 0);
+  float thickness = 0.49 * r;
+
+  q.yz *= rotMat2(0.5 * PI * (q.x + 4. * t) + cos(localCosT + 2. * q.x));
+
+  vec3 b = vec3(squiggle(q, r, thickness), 0, 0);
+  d = dMin(d, b);
+
+  b = vec3(squiggle(q.xzy - vec3(r, 0, 0), r, thickness), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
@@ -2242,8 +2285,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(vec3( 0.1, 0.3, 1.0), #FFEEEE, 2.0, 0.125);
-    lights[1] = light(vec3( 0.6, 0.7, 0.8), #EEFFFF, 1.5, 0.125);
+    lights[0] = light(vec3( 0.1, 0.3, 1.0), #FFECEC, 2.0, 0.125);
+    lights[1] = light(vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.5, 0.125);
     lights[2] = light(vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 0.75);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
@@ -2258,7 +2301,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
       float bumpsScale = 1.0;
-      float bumpIntensity = 0.05;
+      float bumpIntensity = 0.075;
       nor += bumpIntensity * vec3(
           snoise3(bumpsScale * 490.0 * mPos),
           snoise3(bumpsScale * 670.0 * mPos + 234.634),
@@ -2292,8 +2335,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
-      float shadowMin = 0.9;
+      float diffMin = 0.5;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -3129,29 +3172,6 @@ vec3 factorColor (in float layerI, in float totalLayers, in vec2 uv) {
   return color;
 }
 
-float squiggle ( in vec2 q, in float r, in float thickness ) {
-  float d = maxDistance;
-
-  float a1 = 0.25 * PI;
-  float a2 = 0.25 * PI;
-  float n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
-  d = min(d, n);
-
-  for (int i = 0; i < 27; i++) {
-    a1 -= -1. * PI;
-    q.y -= 2. * r;
-    n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
-    d = min(d, n);
-
-    a1 -= 1.00 * PI;
-    q.x -= 2. * r;
-    n = sdArc(q, vec2(sin(a1), cos(a1)), vec2(sin(a2), cos(a2)), r, thickness);
-    d = min(d, n);
-  }
-
-  return d;
-}
-
 const int NUM_CIRCLES = 10;
 // Okay now to figure out how to get the last angle to perfectly complete the border
 // okay. i think i figured it out.
@@ -3765,8 +3785,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
