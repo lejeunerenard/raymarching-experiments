@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 10.0
-#define fogMaxDistance 8.0
+#define fogMaxDistance 9.0
 
 #define slowTime time * 0.2
 // v3
@@ -1816,7 +1816,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.2;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1830,13 +1830,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.15 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.15 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1880,21 +1880,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 f = vec3(sdBox(q, vec3(r, 0.1 * r, r)), 0, 0);
   // d = dMin(d, f);
 
-  float thickness = 0.49 * r;
+  const float num = 3.;
+  const float incAngle = TWO_PI / num;
 
-  q.yz *= rotMat2(0.5 * PI * (q.x + 4. * t) + cos(localCosT + 2. * q.x));
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q;
+    localQ.xz *= rotMat2(incAngle * i);
+    localQ *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
 
-  vec3 b = vec3(squiggle(q, r, thickness), 0, 0);
-  d = dMin(d, b);
+    localQ.x -= 1.5 * r;
+    localQ.xy = polarCoords(localQ.xy);
+    localQ.y -= 4. * r;
 
-  b = vec3(squiggle(q.xzy - vec3(r, 0, 0), r, thickness), 0, 0);
-  d = dMin(d, b);
+    localQ.yz *= rotMat2(0.5 * localQ.x);
+    localQ.x /= PI;
+    localQ.x *= 13. * r;
+
+    float thickness = 0.49 * r;
+
+    // localQ.yz *= rotMat2(0.5 * PI * (localQ.x + 4. * t) + cos(localCosT + 2. * localQ.x));
+
+    vec3 b = vec3(squiggle(localQ, r, thickness), 0, 0);
+    d = dMin(d, b);
+
+    b = vec3(squiggle(localQ.xzy - vec3(r, 0, 0), r, thickness), 0, 0);
+    d = dMin(d, b);
+  }
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.4;
+  d.x *= 0.8;
 
   return d;
 }
@@ -2285,9 +2302,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(vec3( 0.1, 0.3, 1.0), #FFECEC, 2.0, 0.125);
-    lights[1] = light(vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.5, 0.125);
-    lights[2] = light(vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 0.75);
+    lights[0] = light(2. * vec3( 0.1, 0.3, 1.0), #FFECEC, 2.0, 0.125);
+    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.5, 0.125);
+    lights[2] = light(2. * vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 0.75);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
 
