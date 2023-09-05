@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1836,7 +1836,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
@@ -1880,23 +1880,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 f = vec3(sdBox(q, vec3(r, 0.1 * r, r)), 0, 0);
   // d = dMin(d, f);
 
-  const float num = 3.;
-  const float incAngle = TWO_PI / num;
+  const float num = 9.;
+  const float invNum = (1. / num) - edge;
 
   for (float i = 0.; i < num; i++) {
+    float r = r * (1. - invNum * i);
     vec3 localQ = q;
-    localQ.xz *= rotMat2(incAngle * i);
-    localQ *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
 
-    localQ.x -= 1.5 * r;
+    localQ.xy *= rotMat2(0.1 * PI * cos(0.2 * i + localCosT));
+
     localQ.xy = polarCoords(localQ.xy);
     localQ.y -= 4. * r;
 
-    localQ.yz *= rotMat2(0.5 * localQ.x);
+    localQ.yz *= rotMat2(0.5 * localQ.x + cos(localCosT + localQ.x + 0.2 * i));
     localQ.x /= PI;
     localQ.x *= 13. * r;
 
-    float thickness = 0.49 * r;
+    float thickness = 0.20 * r;
 
     // localQ.yz *= rotMat2(0.5 * PI * (localQ.x + 4. * t) + cos(localCosT + 2. * localQ.x));
 
@@ -1911,7 +1911,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.8;
+  d.x *= 0.85;
 
   return d;
 }
