@@ -1880,21 +1880,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 f = vec3(sdBox(q, vec3(r, 0.1 * r, r)), 0, 0);
   // d = dMin(d, f);
 
-  const float num = 9.;
-  const float invNum = (1. / num) - edge;
+  const float num = 25.;
+  const float invNum = (1. / num) - 0.5 * edge;
 
   for (float i = 0.; i < num; i++) {
-    float r = r * (1. - invNum * i);
+    float r = r * (1. - quartOut(invNum * i));
     vec3 localQ = q;
 
     localQ.xy *= rotMat2(0.1 * PI * cos(0.2 * i + localCosT));
 
     localQ.xy = polarCoords(localQ.xy);
-    localQ.y -= 4. * r;
+    localQ.y -= 11. * r;
 
     localQ.yz *= rotMat2(0.5 * localQ.x + cos(localCosT + localQ.x + 0.2 * i));
     localQ.x /= PI;
-    localQ.x *= 13. * r;
+    localQ.x *= 19. * r;
 
     float thickness = 0.20 * r;
 
@@ -1911,7 +1911,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.85;
+  d.x *= 0.90;
 
   return d;
 }
