@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 256
 #define maxDistance 10.0
-#define fogMaxDistance 9.0
+#define fogMaxDistance 6.0
 
 #define slowTime time * 0.2
 // v3
@@ -1832,7 +1832,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // -- Pseudo Camera Movement --
   // Wobble Tilt
-  const float tilt = 0.15 * PI;
+  const float tilt = 0.07 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
@@ -1860,32 +1860,37 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.4;
 
-  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * wQ.yzx;
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * wQ.yzx;
-  wQ.yzx = twist(wQ.yxz, 0.25 * wQ.x + 0.305 * cos(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * wQ.yzx;
-  wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * wQ.yzx;
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
+  // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * wQ.yzx;
+  // wQ.yzx = twist(wQ.yxz, 0.25 * wQ.x + 0.305 * cos(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * wQ.yzx;
+  // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  q.y +=
+    (0.05 + 0.05 * (0.5 + 0.5 * cos(localCosT + length(q.xz) + snoise2(2. * q.xz))))
+    * snoise3(vec3(9, 1, 19) * q);
+
+  q.y += (0.5 + 0.5 * (0.5 + 0.5 * cos(localCosT + length(q.xz)))) * length(q.xz);
+  vec3 b = vec3(sdBox(q, vec3(2, 0.1, 2)), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
   // Under step
-  d.x *= 0.35;
+  d.x *= 0.20;
 
   return d;
 }
@@ -2132,7 +2137,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = 1.5 * vec3(1, 0, 0);
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2275,9 +2280,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(2. * vec3( 0.1, 0.3, 1.0), #FFECEC, 2.0, 0.125);
-    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.5, 0.125);
-    lights[2] = light(2. * vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 0.75);
+    lights[0] = light(2. * vec3( 0.1, 0.3, 1.0), #FFECEC, 2.0, 0.01);
+    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.5, 0.01);
+    lights[2] = light(2. * vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 0.01);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
 
@@ -2290,12 +2295,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.075;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.075;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2319,13 +2324,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.0;
+      float diffMin = 1.0;
       float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
@@ -2351,7 +2356,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         isSoftShadow = true;
         float sha = max(shadowMin, softshadow(pos, lightRd, 0.001, 1.0, lights[i].size, generalT));
         isSoftShadow = false;
-        dif *= sha;
+        dif *= step(0.5, sha);
 
         vec3 lin = vec3(0.);
 
@@ -2401,7 +2406,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
