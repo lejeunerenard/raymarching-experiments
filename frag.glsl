@@ -1264,7 +1264,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.06);
+const vec2 gSize = vec2(0.04);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1320,7 +1320,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // vec2 localC = c;
 
   vec2 size = gSize;
-  vec2 r = 0.125 * size;
+  vec2 r = 0.45 * size;
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
@@ -1334,7 +1334,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  // q.x += size.x * (0.5 + 0.5 * cos(localCosT));
+  q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
@@ -1367,11 +1367,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD = min(internalD, abs(q.x));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
 
-  float internalD = abs(dot(q, vec2(-1, 1)));
+  // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  // float internalD = sdBox(q, r);
+  float internalD = sdBox(q, r);
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
@@ -1393,24 +1393,24 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD -= 0.5;
   // internalD *= 2.;
 
-  // Lissajous dots
-  float bigR = vmax(size) * 1.5;
-  const float num = 4.;
-  float incAngle = TWO_PI / num;
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
+  // // Lissajous dots
+  // float bigR = vmax(size) * 1.5;
+  // const float num = 4.;
+  // float incAngle = TWO_PI / num;
+  // for (float i = 0.; i < num; i++) {
+  //   vec2 localQ = q;
+  //   localQ += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
 
-    vec2 b = vec2(length(localQ) - vmax(r), 0);
-    d = dMin(d, b);
-  }
+  //   vec2 b = vec2(length(localQ) - vmax(r), 0);
+  //   d = dMin(d, b);
+  // }
 
   // float internalD = sdBox(q, r);
 
-  // vec2 o = vec2(internalD, 0.);
+  vec2 o = vec2(internalD, 0.);
   // vec2 o = vec2(internalD - 0.03 * size.x, 0.);
   // float o = microGrid(q);
-  // d = dMin(d, o);
+  d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -1419,10 +1419,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Mask
   float mask = 1.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
-  // mask = step(0., vmax(abs(c)) - 12.));
+  mask = step(0., vmax(abs(c)) - 8.);
   // mask = step(0., sdBox(c, vec2(8)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
-  mask = step(0., length(c) - 5.);
+  // mask = step(0., length(c) - 5.);
   // // Convert circle into torus
   // mask = step(0., abs(length(c) - 27.) - 15.));
 
@@ -3507,17 +3507,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  wQ.y *= 1.2;
-  wQ *= rotMat2(0.257 * PI);
+  // wQ.y *= 1.2;
+  // wQ *= rotMat2(0.257 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
-  c = floor((wQ + size*0.5)/size);
-
-  wQ = opRepLim(wQ, vmax(size), vec2(6));
+  // c = floor((wQ + size*0.5)/size);
+  // wQ = opRepLim(wQ, vmax(size), vec2(6));
   // c = pMod2(wQ, size);
   // c.y += cIshShift;
 
@@ -3567,11 +3566,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(abs(vmax(abs(q)) - vmax(r) * cellT) - cellT * 0.0125 * vmax(r), 0);
-  d = dMin(d, b);
-
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // vec2 b = vec2(abs(vmax(abs(q)) - vmax(r) * cellT) - cellT * 0.0125 * vmax(r), 0);
   // d = dMin(d, b);
+
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3688,8 +3687,6 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Tint
   // color.rgb *= vec3(1, 0.9, 0.9);
 
-  color.rgb *= 1. - 1.25 * length(uv);
-
   // // Darken negative distances
   // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
@@ -3747,7 +3744,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
