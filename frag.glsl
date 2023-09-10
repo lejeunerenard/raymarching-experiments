@@ -1296,8 +1296,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.07 * length(c);
-  locallocalT += 0.05 * dC;
+  locallocalT -= 0.07 * length(c);
+  // locallocalT += 0.05 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1320,7 +1320,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // vec2 localC = c;
 
   vec2 size = gSize;
-  vec2 r = 0.45 * size;
+  vec2 r = 0.125 * size;
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
@@ -1393,33 +1393,33 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD -= 0.5;
   // internalD *= 2.;
 
-  // // Lissajous dots
-  // float bigR = vmax(size) * 1.5;
-  // const float num = 4.;
-  // float incAngle = TWO_PI / num;
-  // for (float i = 0.; i < num; i++) {
-  //   vec2 localQ = q;
-  //   localQ += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
+  // Lissajous dots
+  float bigR = vmax(size) * 1.5;
+  const float num = 3.;
+  float incAngle = TWO_PI / num;
+  for (float i = 0.; i < num; i++) {
+    vec2 localQ = q;
+    localQ += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
 
-  //   vec2 b = vec2(length(localQ) - vmax(r), 0);
-  //   d = dMin(d, b);
-  // }
+    vec2 b = vec2(length(localQ) - vmax(r), 0);
+    d = dMin(d, b);
+  }
 
   // float internalD = sdBox(q, r);
 
-  vec2 o = vec2(internalD, 0.);
+  // vec2 o = vec2(internalD, 0.);
   // vec2 o = vec2(internalD - 0.03 * size.x, 0.);
   // float o = microGrid(q);
-  d = dMin(d, o);
+  // d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
   // d = abs(d - adjustment) - r * 0.025;
 
   // Mask
-  float mask = 1.;
+  float mask = 0.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
-  mask = step(0., vmax(abs(c)) - 8.);
+  // mask = step(0., vmax(abs(c)) - 12.);
   // mask = step(0., sdBox(c, vec2(8)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 5.);
