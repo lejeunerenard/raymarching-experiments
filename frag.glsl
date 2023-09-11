@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1816,7 +1816,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.7;
+float gR = 0.15;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1862,35 +1862,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
+  warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
   // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
+  warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ.yzx = twist(wQ.yxz, 0.25 * wQ.x + 0.305 * cos(localCosT + wQ.x));
   // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
+  warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  q.y +=
-    (0.05 + 0.05 * (0.5 + 0.5 * cos(localCosT + length(q.xz) + snoise2(2. * q.xz))))
-    * snoise3(vec3(9, 1, 19) * q);
+  float bigR = 2. * r;
+  const float num = 7.;
+  const float incAngle = TWO_PI / num;
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q;
+    localQ.xy += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + incAngle * i);
+    localQ.z += bigR * cos(t * incAngle + incAngle * i);
 
-  q.y += (0.5 + 0.5 * (0.5 + 0.5 * cos(localCosT + length(q.xz)))) * length(q.xz);
-  vec3 b = vec3(sdBox(q, vec3(2, 0.1, 2)), 0, 0);
-  d = dMin(d, b);
+    vec3 b = vec3(length(localQ) - r, 0, 0);
+    d = dMin(d, b);
+  }
 
   // Scale compensation
   d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.20;
+  // // Under step
+  // d.x *= 0.20;
 
   return d;
 }
@@ -2137,8 +2140,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = 1.5 * vec3(1, 0, 0);
-  return color;
+  vec3 color = vec3(0);
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2280,9 +2282,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(2. * vec3( 0.1, 0.3, 1.0), #FFECEC, 2.0, 0.01);
-    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.5, 0.01);
-    lights[2] = light(2. * vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 0.01);
+    lights[0] = light(2. * vec3( 0.1, 0.3, 1.0), #FFECEC, 1.0, 32.0);
+    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.0, 16.0);
+    lights[2] = light(2. * vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 16.0);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
 
@@ -2324,13 +2326,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.9;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
+      float diffMin = 0.7;
       float shadowMin = 0.0;
 
       vec3 directLighting = vec3(0);
@@ -2356,7 +2358,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         isSoftShadow = true;
         float sha = max(shadowMin, softshadow(pos, lightRd, 0.001, 1.0, lights[i].size, generalT));
         isSoftShadow = false;
-        dif *= step(0.5, sha);
 
         vec3 lin = vec3(0.);
 
@@ -2406,7 +2407,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3744,7 +3745,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
