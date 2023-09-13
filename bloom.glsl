@@ -5,7 +5,7 @@ uniform vec2 direction;
 uniform sampler2D buffer;
 // #define VARIABLE_BLOOM 1
 
-#pragma glslify: blur = require(glsl-fast-gaussian-blur/13)
+#pragma glslify: blur = require(glsl-fast-gaussian-blur/5)
 #ifdef VARIABLE_BLOOM
 uniform float time;
 #pragma glslify: blur9 = require(glsl-fast-gaussian-blur/9)
