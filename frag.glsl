@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 128
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 8.0
 
@@ -1816,7 +1816,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 0.2;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1830,13 +1830,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.07 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.07 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1873,26 +1873,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  vec2 c = pMod2(wQ.xy, size);
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float bigR = 2.25 * r;
-  const float num = 7.;
-  const float incAngle = TWO_PI / num;
-  t += 0.035 * dot(c, vec2(1));
-  t = mod(t, 1.);
-  float localT = expo(t);
-  for (float i = 0.; i < num; i++) {
-    vec3 localQ = q;
-    localQ.xy += lissajous(bigR, bigR, 2., 3., PI * 0.5, localT * incAngle + incAngle * i);
-    localQ.z += bigR * cos(localT * incAngle + incAngle * i);
+  q.x += 0.25 * r;
 
-    vec3 b = vec3(length(localQ) - r, 0, 0);
-    d = dMin(d, b);
-  }
+  vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.2)), 0, 0);
+  b.z = b.x;
+  d = dMin(d, b);
+
+  // q *= rotationMatrix(vec3(1), 0.25 * PI);
+  b = vec3(sdTorus(q.xyz - r * vec3(0.5, 0., 0.), r * vec2(1, 0.2)), 1, b.x);
+  b.x -= 0.001 * cellular(9. * q);
+  d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
@@ -1914,6 +1908,7 @@ vec3 map (in vec3 p) {
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT, in float universe) {
   float t = 0.;
   float maxI = 0.;
+  float minM = maxDistance;
 
   float trap = maxDistance;
 
@@ -1944,15 +1939,18 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT, in float u
 #else
   for (int i = 0; i < maxSteps; i++) {
     vec3 d = map(rayOrigin + rayDirection * t, deltaT, universe);
-    if (d.x < epsilon) return vec4(t + d.x, d.y, float(i), d.z);
-    t += d.x;
     maxI = float(i);
+    if (d.x < epsilon) return vec4(t + d.x, d.y, maxI, d.z);
+    t += d.x;
     trap = min(trap, d.z);
+    if (d.y == 1.) { // Select a material id to track
+      minM = min(minM, t);
+    }
     if (t > maxDistance) break;
     deltaT += deltaTDelta;
   }
 #endif
-  return vec4(-1., 0., maxI, trap);
+  return vec4(-1., minM, maxI, trap);
 }
 
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT) {
@@ -2145,7 +2143,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.4);
+  vec3 color = mix(vec3(0, 1, 0), vec3(1), pow(dot(nor, -rd), 10.));
+  color = mix(color, vec3(0.0125), isMaterialSmooth(m, 1.));
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2326,20 +2325,20 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isFloor = isMaterialSmooth(t.y, 1.);
+      float isGlow = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.7;
+      float freCo = 0.8;
       float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.6;
-      float shadowMin = 0.9;
+      float diffMin = mix(0., 1.0, isGlow);
+      float shadowMin = mix(0., 1.0, isGlow);
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2536,14 +2535,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // // Glow
-      // float stepScaleAdjust = 0.3;
+      // Glow
+      float stepScaleAdjust = 0.53;
       // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // vec3 glowColor = vec3(0.3, 1, 0.5);
-      // // const float stopPoint = 0.5;
-      // // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.90);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+      float i = 1. - saturate(pow(2.0 * t.w, 0.25));
+      vec3 glowColor = vec3(0, 1, 0);
+      // const float stopPoint = 0.5;
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 0.50);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -3762,7 +3762,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
