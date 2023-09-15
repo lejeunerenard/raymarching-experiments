@@ -1840,8 +1840,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 0.7;
+  float warpScale = 0.3;
+  float warpFrequency = 3.9;
   float rollingScale = 1.;
 
   // Warp
@@ -1855,38 +1855,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float worldScale = 1.0;
   wQ *= worldScale;
 
-  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(length(wQ) + localCosT));
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
 
   const float warpPhaseAmp = 0.4;
 
-  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
-  // wQ.yzx = twist(wQ.yxz, 0.25 * wQ.x + 0.305 * cos(localCosT + wQ.x));
-  // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
-  // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * wQ.yzx;
+  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * wQ.yzx;
+  wQ.yzx = twist(wQ.yxz, 0.25 * wQ.x + 0.305 * cos(localCosT + wQ.x));
+  wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * wQ.yzx;
+  wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q.x += 0.25 * r;
+  // vec3 b = vec3(length(q.xzy) - r, 0, 0);
+  // d = dMin(d, b);
 
-  vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.2)), 0, 0);
-  b.z = b.x;
+  vec3 b = vec3(sdTorus(q.xzy, r * vec2(0.5 + 0.5 * cos(3. * q.x + localCosT), 0.75 + 0.25 * cos(3. * q.x + localCosT + PI))), 0, 0);
   d = dMin(d, b);
 
-  // q *= rotationMatrix(vec3(1), 0.25 * PI);
-  b = vec3(sdTorus(q.xyz - r * vec3(0.5, 0., 0.), r * vec2(1, 0.2)), 1, b.x);
-  b.x -= 0.001 * cellular(9. * q);
-  d = dMin(d, b);
+  // q.x += 0.25 * r;
+
+  // vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.3)), 0, 0);
+  // d = dMin(d, b);
+
+  // // q *= rotationMatrix(vec3(1), 0.25 * PI);
+  // b = vec3(sdTorus(q.xyz - r * vec3(0.87, 0., 0.), r * vec2(1, 0.3)), 1, b.x);
+  // d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
@@ -2143,9 +2147,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = mix(vec3(0, 1, 0), vec3(1), pow(dot(nor, -rd), 10.));
-  color = mix(color, vec3(0.0125), isMaterialSmooth(m, 1.));
-  return color;
+  vec3 color = vec3(0);
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2176,7 +2178,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color += vec3(0, 1, 0) * rot * dNR;
   // color += vec3(0, 0, 1) * rot * 2. * snoise3(0.3 * pos);
 
-  // color *= 0.75;
+  color *= 0.75;
 
   // // -- Holo --
   // vec3 beforeColor = color;
@@ -2325,7 +2327,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isGlow = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -2337,8 +2338,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = mix(0., 1.0, isGlow);
-      float shadowMin = mix(0., 1.0, isGlow);
+      float diffMin = 0.9;
+      float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2413,7 +2414,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2535,15 +2536,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float stepScaleAdjust = 0.53;
-      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      vec3 glowColor = vec3(0, 1, 0);
-      // const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 0.50);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float stepScaleAdjust = 0.53;
+      // // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
+      // vec3 glowColor = vec3(0, 1, 0);
+      // // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // // i = pow(i, 0.50);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -3795,8 +3796,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
