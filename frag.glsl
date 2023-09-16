@@ -1840,8 +1840,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.3;
-  float warpFrequency = 3.9;
+  float quell = saturate((1. - vmin(abs(p)) / r));
+  float warpScale = 1.5 * quell;
+  float warpFrequency = 5.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1880,8 +1881,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(length(q.xzy) - r, 0, 0);
   // d = dMin(d, b);
 
-  vec3 b = vec3(sdTorus(q.xzy, r * vec2(0.5 + 0.5 * cos(3. * q.x + localCosT), 0.75 + 0.25 * cos(3. * q.x + localCosT + PI))), 0, 0);
+  vec3 h = vec3(sdHollowBox(p, vec3(1.1 * r), 0.1 * r), 1, 0);
+  d = dMin(d, h);
+
+  vec3 b = vec3(length(q.xzy) - r, 0, 0);
   d = dMin(d, b);
+
+  vec3 bb = vec3(length(p) - r * 0.8, 2, 0);
+  d = dMin(d, bb);
 
   // q.x += 0.25 * r;
 
@@ -1895,8 +1902,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Scale compensation
   d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.60;
+  // // Under step
+  // d.x *= 0.60;
 
   return d;
 }
@@ -2243,6 +2250,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   // color *= 0.5 + 0.5 * dNR;
 
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(2), isMaterialSmooth(m, 2.));
+
   gM = m;
 
 #ifdef NO_MATERIALS
@@ -2327,12 +2337,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
+      float isBox = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
+      float freCo = 1.0;
       float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
@@ -2430,6 +2441,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
+
+      dispersionColor *= 1. - isBox;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
