@@ -1324,26 +1324,26 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // q += 1.7 * size.x * mix(
-  //     vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-  //     vec2(1) * snoise2(0.863 * localC + 2.37),
-  //     nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  q += 1.0 * size.x * mix(
+      0.2 * vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
+      vec2(1) * snoise2(0.863 * localC + 2.37),
+      nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
+  // q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
-  // vec2 center = vec2(size.x * c);
-  // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  // center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  // center -= size.x * c;
-  // q += center;
+  vec2 center = vec2(size.x * c);
+  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  center -= size.x * c;
+  q += center;
 
   // // Cosine warp
   // q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
@@ -1372,6 +1372,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
   float internalD = sdBox(q, r);
+  internalD = abs(internalD) - 0.05 * vmax(r);
+
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
   // float crossMask = sdBox(q, vec2(0.35 * size));
@@ -1393,24 +1395,12 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD -= 0.5;
   // internalD *= 2.;
 
-  // Lissajous dots
-  float bigR = vmax(size) * 1.5;
-  const float num = 3.;
-  float incAngle = TWO_PI / num;
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ += lissajous(bigR, bigR, 2., 3., PI * 0.5, t * incAngle + TWO_PI + incAngle * i);
-
-    vec2 b = vec2(length(localQ) - vmax(r), 0);
-    d = dMin(d, b);
-  }
-
   // float internalD = sdBox(q, r);
 
-  // vec2 o = vec2(internalD, 0.);
+  vec2 o = vec2(internalD, 0.);
   // vec2 o = vec2(internalD - 0.03 * size.x, 0.);
   // float o = microGrid(q);
-  // d = dMin(d, o);
+  d = dMin(d, o);
 
   // // Outline
   // const float adjustment = 0.0;
@@ -3588,21 +3578,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  const float num = 13.;
-  const float incAngle = TWO_PI / num;
-
-  float bigR = 10. * vmax(r);
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ += lissajous(bigR, bigR, 3., 4., PI * 0.5, (3. * cellT + i) * incAngle);
-
-    // vec2 b = vec2(sdBox(localQ, vec2(r)), 0);
-    vec2 b = vec2(length(localQ) - vmax(r), 0);
-    d = dMin(d, b);
-  }
-
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // vec2 b = vec2(length(q) - vmax(r), 0);
   // d = dMin(d, b);
+
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3627,7 +3607,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Hard Edge
-  n = smoothstep(0., 1.00 * edge, n - 0.0);
+  n = smoothstep(0., 0.25 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3635,19 +3615,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color.rgb = vec3(1);
 
-  // // B&W
-  // color.rgb = vec3(n);
+  // B&W
+  color.rgb = vec3(n);
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
 
-  // Simple Cosine Palette
-  float cosineIndex = d.y;
-  cosineIndex *= 0.17283;
-  cosineIndex += t;
-  cosineIndex += dot(uv, vec2(1));
-  color.rgb = saturate(n) * (0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67))));
-  color.a = 1.;
+  // // Simple Cosine Palette
+  // float cosineIndex = d.y;
+  // cosineIndex *= 0.17283;
+  // cosineIndex += t;
+  // cosineIndex += dot(uv, vec2(1));
+  // color.rgb = saturate(n) * (0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67))));
+  // color.a = 1.;
 
   // // Mix
   // color.rgb = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -3776,7 +3756,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
