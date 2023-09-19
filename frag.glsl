@@ -1806,7 +1806,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 0.30;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1864,38 +1864,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  vec2 c = pMod2(wQ.xz, size);
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float cellT = t;
-  cellT -= 0.1 * length(c);
-  cellT = mod(cellT, 1.);
-
-  q *= rotationMatrix(vec3(1, 0, 0), PI * expo(cellT));
-
   q.xzy = q.xyz;
 
-  float thickness = 0.01 * r;
-  float d2D = sdBox(q.xy, vec2(r));
-  d2D = abs(d2D) - thickness;
-  vec3 b = vec3(opExtrude( q, d2D, thickness), 0, 0);
-  d = dMin(d, b);
+  float thickness = 0.0035 * r;
+  const float num = 8.;
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q;
+    float localT = t + i / num * 0.3;
 
-  // vec3 b = vec3(sdTorus(q.xzy, r * vec2(1, 0.3)), 0, 0);
-  // d = dMin(d, b);
+    localT = mod(localT, 1.);
+    localT = range(0.1, 0.9, localT);
 
-  // // q *= rotationMatrix(vec3(1), 0.25 * PI);
-  // b = vec3(sdTorus(q.xyz - r * vec3(0.87, 0., 0.), r * vec2(1, 0.3)), 1, b.x);
-  // d = dMin(d, b);
+    localQ *= rotationMatrix(vec3(1, 0, 0), PI * quart(localT));
+
+    float localR = r;
+    localR -= r * 0.9 * (i / num);
+    float d2D = sdBox(localQ.xy, vec2(localR));
+    d2D = abs(d2D) - thickness;
+    vec3 b = vec3(opExtrude( localQ.xyz, d2D, thickness), 0, 0);
+    d = dMin(d, b);
+  }
 
   // Scale compensation
   d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.50;
+  // // Under step
+  // d.x *= 0.80;
 
   return d;
 }
@@ -2146,7 +2144,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(1.2);
+  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2330,7 +2329,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isBox = isMaterialSmooth(t.y, 1.);
+      float isFloor = isMaterialSmooth(t.y, 1.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -2404,11 +2403,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.5 * mix(diffuseColor, vec3(1), 0.2) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += mix(0., 0.5, isFloor) * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2543,10 +2542,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float stepScaleAdjust = 0.25;
+      float stepScaleAdjust = 0.125;
       float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
       // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      vec3 glowColor = vec3(0, 0, 1);
+      vec3 glowColor = vec3(0, 1, 1);
       // const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
       i = pow(i, 1.25);
