@@ -1806,7 +1806,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.30;
+float gR = 0.05;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1816,7 +1816,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(3.5);
+  vec2 size = r * vec2(4.0);
 
   // Positioning adjustments
 
@@ -1864,30 +1864,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
+  vec2 c = floor((wQ.xz + size*0.5)/size);
+  wQ.x += 0.25 * size.x * mod(c.y, 2.);
+  c = pMod2(wQ.xz, size);
+
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
   q.xzy = q.xyz;
 
-  float thickness = 0.0035 * r;
-  const float num = 8.;
-  for (float i = 0.; i < num; i++) {
-    vec3 localQ = q;
-    float localT = t + i / num * 0.3;
+  float thickness = 0.01 * r;
 
-    localT = mod(localT, 1.);
-    localT = range(0.1, 0.9, localT);
+  t += 0.05 * c.y;
+  t += 0.1 * snoise2(1.7238 * c);
 
-    localQ *= rotationMatrix(vec3(1, 0, 0), PI * quart(localT));
+  t = mod(t, 1.);
+  t = triangleWave(t);
 
-    float localR = r;
-    localR -= r * 0.9 * (i / num);
-    float d2D = sdBox(localQ.xy, vec2(localR));
-    d2D = abs(d2D) - thickness;
-    vec3 b = vec3(opExtrude( localQ.xyz, d2D, thickness), 0, 0);
-    d = dMin(d, b);
-  }
+  r -= 1.4 * r * (expo(t));
+
+  float d2D = length(q.xy) - r;
+  d2D = abs(d2D) - thickness;
+  vec3 b = vec3(opExtrude( q.xyz, d2D, thickness), 0, 0);
+  d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
@@ -2542,13 +2542,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float stepScaleAdjust = 0.125;
+      float stepScaleAdjust = 0.13;
+      t.z += 2.20 * snoise2(3123. * uv);
       float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
       // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      vec3 glowColor = vec3(0, 1, 1);
+      vec3 glowColor = vec3(0, 1, 0.3);
       // const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
-      i = pow(i, 1.25);
+      i = pow(i, 1.55);
       color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
