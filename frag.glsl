@@ -1806,7 +1806,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.05;
+float gR = 0.25;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1854,46 +1854,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
+  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
   // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
-  // wQ.yzx = twist(wQ.yxz, 0.25 * wQ.x + 0.305 * cos(localCosT + wQ.x));
+  wQ.yzx = twist(wQ.yxz, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
   // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * wQ.yzx;
   // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  vec2 c = floor((wQ.xz + size*0.5)/size);
-  wQ.x += 0.25 * size.x * mod(c.y, 2.);
-  c = pMod2(wQ.xz, size);
+  // vec2 c = floor((wQ.xz + size*0.5)/size);
+  // wQ.x += 0.25 * size.x * mod(c.y, 2.);
+  // c = pMod2(wQ.xz, size);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  q.xzy = q.xyz;
+  float thickness = 0.02 * r;
 
-  float thickness = 0.01 * r;
+  // t += 0.05 * c.y;
+  // t += 0.1 * snoise2(1.7238 * c);
 
-  t += 0.05 * c.y;
-  t += 0.1 * snoise2(1.7238 * c);
+  // t = mod(t, 1.);
+  // t = triangleWave(t);
 
-  t = mod(t, 1.);
-  t = triangleWave(t);
+  // r -= 1.4 * r * (expo(t));
 
-  r -= 1.4 * r * (expo(t));
-
-  float d2D = length(q.xy) - r;
-  d2D = abs(d2D) - thickness;
-  vec3 b = vec3(opExtrude( q.xyz, d2D, thickness), 0, 0);
+  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
   d = dMin(d, b);
 
   // Scale compensation
   d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.80;
+  // Under step
+  d.x *= 0.80;
 
   return d;
 }
@@ -2542,11 +2538,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
       // Glow
-      float stepScaleAdjust = 0.13;
-      t.z += 2.20 * snoise2(3123. * uv);
+      float stepScaleAdjust = 0.11;
+      t.z += 1.20 * snoise2(2123. * uv);
       float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
       // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      vec3 glowColor = vec3(0, 1, 0.3);
+      vec3 glowColor = vec3(0, 0.7, 1.0);
       // const float stopPoint = 0.5;
       // i = smoothstep(stopPoint, stopPoint + edge, i);
       i = pow(i, 1.55);
