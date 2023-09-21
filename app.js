@@ -23,10 +23,10 @@ const TWO_PI = 2 * Math.PI
 
 const MANDELBOX = false
 const BLOOM = true
-const BLOOM_PASSES = 2
+const BLOOM_PASSES = 4
 const BLOOM_RADIUS = BLOOM_PASSES - 1
 const BLOOM_WET = 1.0
-const BLOOM_MIN_BRIGHTNESS = 0.8
+const BLOOM_MIN_BRIGHTNESS = 0.7
 
 // Initialize shell
 export default class App {
@@ -78,8 +78,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 2.2465
-    this.angle2C = 0
+    this.angle1C = 0.5592
+    this.angle2C = -1.7568
     this.angle3C = 0
 
     // this.setupAnimation(preset)

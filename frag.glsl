@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
+#define maxSteps 1024
 #define maxDistance 10.0
 #define fogMaxDistance 8.0
 
@@ -1806,7 +1806,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.25;
+float gR = 0.30;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1830,9 +1830,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float quell = saturate((1. - vmin(abs(p)) / r));
-  float warpScale = 1.5 * quell;
-  float warpFrequency = 5.0;
+  float warpScale = 0.4;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1843,50 +1842,36 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
 #define distortT localCosT
 
-  float worldScale = 1.0;
-  wQ *= worldScale;
+  // float worldScale = 1.0;
+  // wQ *= worldScale;
 
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
-  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
+  vec3 warpPhase = vec3(0.); // TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
 
   const float warpPhaseAmp = 0.4;
 
-  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
+  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * wQ.yzx;
   wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.5 * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
+  wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * wQ.yzx;
   wQ.yzx = twist(wQ.yxz, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
-  // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * wQ.yzx;
-  // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-
-  // vec2 c = floor((wQ.xz + size*0.5)/size);
-  // wQ.x += 0.25 * size.x * mod(c.y, 2.);
-  // c = pMod2(wQ.xz, size);
+  wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * wQ.yzx;
+  wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float thickness = 0.02 * r;
-
-  // t += 0.05 * c.y;
-  // t += 0.1 * snoise2(1.7238 * c);
-
-  // t = mod(t, 1.);
-  // t = triangleWave(t);
-
-  // r -= 1.4 * r * (expo(t));
-
-  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  // Scale compensation
-  d.x /= worldScale;
+  // // Scale compensation
+  // d.x /= worldScale;
 
   // Under step
   d.x *= 0.80;
@@ -2021,7 +2006,7 @@ vec3 textures (in vec3 rd) {
 
   dI *= angle1C;
   dI += angle2C;
-  dI += norT;
+  // dI += norT;
 
   // dI += gC.z;
 
@@ -2140,9 +2125,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.2);
-  color = mix(color, vec3(0.05), isMaterialSmooth(m, 1.));
-  return color;
+  vec3 color = vec3(0);
+  return background;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2331,8 +2315,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
-      float specCo = 0.8;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
@@ -2399,11 +2383,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += mix(0., 0.5, isFloor) * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += mix(0., 0.5, isFloor) * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2413,7 +2397,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2426,23 +2410,21 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
-      dispersionColor *= 1. - isBox;
-
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       // dispersionColor *= 0.9;
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, pow(dot(dNor, -gRd), 2.5));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 2.5)));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
@@ -2537,16 +2519,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float stepScaleAdjust = 0.11;
-      t.z += 1.20 * snoise2(2123. * uv);
-      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      vec3 glowColor = vec3(0, 0.7, 1.0);
-      // const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      i = pow(i, 1.55);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // // Glow
+      // float stepScaleAdjust = 0.11;
+      // t.z += 1.20 * snoise2(2123. * uv);
+      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
+      // vec3 glowColor = vec3(0, 0.7, 1.0);
+      // // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 1.55);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
