@@ -1201,6 +1201,21 @@ vec3 rotPlane (in vec3 q, in float ind, in float t) {
   return q;
 }
 
+vec2 foldAcross45s (in vec2 q) {
+  q *= rotMat2(0.25 * PI);
+
+  q = abs(q);
+
+  q *= rotMat2(-0.25 * PI);
+
+  // // Mirror around y=x
+  // if (q.y >= q.x) {
+  //   q.xy = q.yx;
+  // }
+
+  return q;
+}
+
 vec3 foldAcross45s (in vec3 q) {
   q = abs(q);
 
@@ -3485,7 +3500,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.030);
+  vec2 r = vec2(0.05);
   vec2 size = vec2(4.0) * vmax(r);
 
   // -- Warp --
@@ -3500,8 +3515,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // wQ.y *= 1.2;
-  // wQ *= rotMat2(0.257 * PI);
+  wQ.y *= 1.2;
+  wQ *= rotMat2(0.257 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3519,8 +3534,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Adjust R per cell
   // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
-  // -- Cell T --
-  float cellT = t;
+  // // -- Cell T --
+  // float cellT = t;
 
   // // Center out
   // cellT -= 0.03 * length(c);
@@ -3533,15 +3548,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
   // cellT -= 0.20 * vmax(abs(c));
 
-  // Dot product offset
-  float dC = dot(c, vec2(1, -1));
-  cellT -= dC * 0.075;
+  // // Dot product offset
+  // float dC = dot(c, vec2(1, -1));
+  // cellT -= dC * 0.075;
 
   // // Noise offset
   // cellT -= 0.175 * snoise2(1.2 * c);
 
-  // Rectify
-  cellT = mod(cellT, 1.);
+  // // Rectify
+  // cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
@@ -3559,11 +3574,65 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // vec2 b = vec2(length(q) - vmax(r), 0);
-  // d = dMin(d, b);
+  q = foldAcross45s(q);
 
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  d = dMin(d, b);
+  q.x -= 4. * vmax(r);
+  r *= 0.5;
+
+  for (float i = 0.; i < 4.; i++) {
+    float localTransition = smoothstep(0.07 * (i + 0.125), 0.17 * (i + 3.0), quart(triangleWave(localT)));
+    vec2 localD = vec2(maxDistance, 0);
+
+    vec2 localQ = q;
+    localQ *= rotMat2(0.2 * PI * expo(localTransition));
+
+    float bigR = 7. * vmax(r);
+
+    vec2 fQ = localQ;
+
+    fQ = abs(fQ);
+
+    fQ *= rotMat2(0.25 * PI);
+
+    pMod1(fQ.y, 0.4 * vmax(r));
+    fQ.x -= bigR + 2. * vmax(r);
+
+    vec2 f = vec2(sdBox(fQ, r * vec2(0.1)), 0);
+    localD = dMin(localD, f);
+
+    localQ = foldAcross45s(localQ);
+
+    localQ.x -= bigR;
+
+    localQ.y -= 0.7 * vmax(r);
+
+    pMod1(localQ.y, 3.0 * vmax(r));
+
+    // localQ.x += 0.2 * vmax(r) * triangleWave(36. * localQ.y);
+
+    vec2 b = vec2(sdBox(localQ, r * vec2(0.25, 0.5)), 0);
+    localD = dMin(localD, b);
+
+    // localQ = abs(localQ);
+    localQ = foldAcross45s(localQ);
+    localQ.x -= 1. * vmax(r);
+
+    b = vec2(sdBox(localQ, r * vec2(0.5, 1)), 0);
+    localD = dMin(localD, b);
+
+    b = vec2(abs(sdBox(localQ, 0.75 * bigR * vec2(1))) - 0.05 * vmax(r), 0);
+    localD = dMin(localD, b);
+
+    r *= 0.7;
+    // q *= 1.5;
+    q *= rotMat2(0.25 * PI);
+
+    localD += r * localTransition;
+    d = dMin(d, localD);
+  }
+
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3587,6 +3656,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Outline
   // n = abs(n);
 
+  // Cyan glow
+  // color.rgb = vec3(0, 0.7, 1) * saturate(pow(saturate(1. - 15. * n), 10.) - 0.35 );
+  // color.rgb = vec3(0, 0.7, 1) * saturate(1. - 1.1 * pow(saturate(n + 0.05), 0.10) - 0.1);
+  color.rgb = 0.8 * vec3(0, 0.7, 1) * saturate(1. - 2.8 * saturate(pow(saturate(n + 0.00), 0.125)));
+
   // Hard Edge
   n = smoothstep(0., 0.25 * edge, n - 0.0);
 
@@ -3597,7 +3671,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = vec3(1);
 
   // B&W
-  color.rgb = vec3(n);
+  color.rgb += vec3(n);
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
@@ -3737,7 +3811,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3770,8 +3844,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3781,9 +3855,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.004 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.001 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
@@ -3802,11 +3876,11 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
     // -- Offsets --
-    // // Incremental offset
-    // uv.y += 0.0040;
+    // Incremental offset
+    uv.y += 0.0080;
 
-    // // Initial Offset
-    // uv.y += i == 0. ? 0.075 : 0.;
+    // Initial Offset
+    uv.y += i == 0. ? 0.005 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
