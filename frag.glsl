@@ -3500,7 +3500,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.05);
+  vec2 r = vec2(0.035);
   vec2 size = vec2(4.0) * vmax(r);
 
   // -- Warp --
@@ -3525,7 +3525,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(6));
-  // c = pMod2(wQ, size);
+  c = pMod2(wQ, size);
   // c.y += cIshShift;
 
   q = wQ;
@@ -3574,62 +3574,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q = foldAcross45s(q);
+  q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
 
-  q.x -= 4. * vmax(r);
-  r *= 0.5;
-
-  for (float i = 0.; i < 4.; i++) {
-    float localTransition = smoothstep(0.07 * (i + 0.125), 0.17 * (i + 3.0), quart(triangleWave(localT)));
-    vec2 localD = vec2(maxDistance, 0);
-
-    vec2 localQ = q;
-    localQ *= rotMat2(0.2 * PI * expo(localTransition));
-
-    float bigR = 7. * vmax(r);
-
-    vec2 fQ = localQ;
-
-    fQ = abs(fQ);
-
-    fQ *= rotMat2(0.25 * PI);
-
-    pMod1(fQ.y, 0.4 * vmax(r));
-    fQ.x -= bigR + 2. * vmax(r);
-
-    vec2 f = vec2(sdBox(fQ, r * vec2(0.1)), 0);
-    localD = dMin(localD, f);
-
-    localQ = foldAcross45s(localQ);
-
-    localQ.x -= bigR;
-
-    localQ.y -= 0.7 * vmax(r);
-
-    pMod1(localQ.y, 3.0 * vmax(r));
-
-    // localQ.x += 0.2 * vmax(r) * triangleWave(36. * localQ.y);
-
-    vec2 b = vec2(sdBox(localQ, r * vec2(0.25, 0.5)), 0);
-    localD = dMin(localD, b);
-
-    // localQ = abs(localQ);
-    localQ = foldAcross45s(localQ);
-    localQ.x -= 1. * vmax(r);
-
-    b = vec2(sdBox(localQ, r * vec2(0.5, 1)), 0);
-    localD = dMin(localD, b);
-
-    b = vec2(abs(sdBox(localQ, 0.75 * bigR * vec2(1))) - 0.05 * vmax(r), 0);
-    localD = dMin(localD, b);
-
-    r *= 0.7;
-    // q *= 1.5;
-    q *= rotMat2(0.25 * PI);
-
-    localD += r * localTransition;
-    d = dMin(d, localD);
-  }
+  vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
+  d = dMin(d, b);
 
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
   // d = dMin(d, b);
@@ -3657,9 +3605,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = abs(n);
 
   // Cyan glow
-  // color.rgb = vec3(0, 0.7, 1) * saturate(pow(saturate(1. - 15. * n), 10.) - 0.35 );
-  // color.rgb = vec3(0, 0.7, 1) * saturate(1. - 1.1 * pow(saturate(n + 0.05), 0.10) - 0.1);
-  color.rgb = 0.8 * vec3(0, 0.7, 1) * saturate(1. - 2.8 * saturate(pow(saturate(n + 0.00), 0.125)));
+  color.rgb = 0.8 * vec3(0, 1.0, 0.4) * saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125)));
 
   // Hard Edge
   n = smoothstep(0., 0.25 * edge, n - 0.0);
