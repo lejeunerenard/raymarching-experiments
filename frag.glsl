@@ -1845,8 +1845,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 3.4;
-  float warpFrequency = 2.0;
+  float warpScale = 1.4;
+  float warpFrequency = 3.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1861,7 +1861,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ *= worldScale;
 
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
-  vec3 warpPhase = vec3(0.); // TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
+  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
 
   const float warpPhaseAmp = 0.4;
 
@@ -1883,7 +1883,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   // // Scale compensation
@@ -2332,7 +2333,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.0;
-      float specCo = 0.0;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
@@ -2357,7 +2358,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // float ditherAmount = 0.3 + 0.7 * range(0., 0.5 * ditherSize, dither);
         // dif = mix(1., ditherAmount, 1. - step(0.1, diffuse(nor, nLightPos)));
 
-        float spec = pow(clamp( dot(ref, nLightPos), 0., 1. ), 42.0);
+        float spec = pow(saturate(dot(ref, nLightPos)), 256.0);
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         isSoftShadow = true;
@@ -2427,6 +2428,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isDispersion = false; // Unset dispersion mode
 
       float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
+      dispersionI += 0.35 * step(0.8, pow(dot(dNor, -gRd), 2.0));
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
