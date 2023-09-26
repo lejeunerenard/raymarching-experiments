@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 1024
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 8.0
 
@@ -1821,7 +1821,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.30;
+float gR = 0.075;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1831,7 +1831,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(4.0);
+  vec2 size = r * vec2(4.75);
 
   // Positioning adjustments
 
@@ -1845,8 +1845,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.4;
-  float warpFrequency = 3.0;
+  float warpScale = 0.2;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1865,6 +1865,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.4;
 
+  vec2 c = pMod2(wQ.xy, size);
+
+  wQ *= rotationMatrix(vec3(1, 0, 0), 0.25 * PI);
+
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * wQ.yzx;
@@ -1882,7 +1886,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., 0.7 * r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
   vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
@@ -2427,8 +2431,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
-      dispersionI += 0.35 * step(0.8, pow(dot(dNor, -gRd), 2.0));
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 1.0);
+      dispersionI += 0.35 * step(0.6, pow(dot(dNor, -gRd), 1.0));
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
