@@ -1845,37 +1845,40 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.3;
+  float warpScale = 0.5;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 preWarpQ = q;
-  vec3 wQ = q.xyz;
+  // vec3 wQ = q.xyz;
 
-  // vec4 wQ = vec4(q.xyz, 0);
+  vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
 
   // float worldScale = 1.0;
   // wQ *= worldScale;
 
-  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
-  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec4(1)) + localCosT));
+  // vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
+  vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
   const float warpPhaseAmp = 0.4;
 
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * wQ.yzx;
+  warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + 1.5 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.yzw *= rotationMatrix(vec3(1), 0.3 * PI * cos(localCosT) );
   wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * wQ.yzx;
-  wQ.yzx = twist(wQ.yxz, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.yzw = twist(wQ.ywz, 0.35 * wQ.w + 0.305 * sin(localCosT + wQ.w));
   wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.zwx *= rotationMatrix(vec3(1), 0.25 * PI * cos(localCosT + wQ.y) );
   wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * wQ.yzx;
+  warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
@@ -1884,7 +1887,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(sdHollowBox(wQ, vec4(r), 0.275 * r), 0, 0);
   d = dMin(d, b);
 
   // // Scale compensation
