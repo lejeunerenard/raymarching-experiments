@@ -1821,7 +1821,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-float gR = 0.3;
+float gR = 0.325;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1851,18 +1851,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Warp
   vec3 preWarpQ = q;
-  // vec3 wQ = q.xyz;
+  vec3 wQ = q.xyz;
 
-  vec4 wQ = vec4(q.xyz, 0);
+  // vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
 
   // float worldScale = 1.0;
   // wQ *= worldScale;
 
-  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec4(1)) + localCosT));
-  // vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
-  vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
+  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
+  // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
   const float warpPhaseAmp = 0.4;
 
@@ -1871,12 +1871,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + 1.5 * cos(localCosT + wQ.z));
   wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.yzw *= rotationMatrix(vec3(1), 0.3 * PI * cos(localCosT) );
   wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.yzw = twist(wQ.ywz, 0.35 * wQ.w + 0.305 * sin(localCosT + wQ.w));
+  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
   wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.zwx *= rotationMatrix(vec3(1), 0.25 * PI * cos(localCosT + wQ.y) );
   wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -1885,16 +1883,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdHollowBox(wQ, vec4(r), 0.275 * r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // Scale compensation
   // d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.90;
+  // // Under step
+  // d.x *= 0.90;
 
   return d;
 }
@@ -2145,7 +2141,9 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = background;
+  vec3 color = #8587FA;
+  color *= mix(background, vec3(1), 0.1);
+  // vec3 color = #AE8EF5;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2331,8 +2329,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
-      float specCo = 0.9;
+      float freCo = 0.;
+      float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
 
@@ -2427,20 +2425,17 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isDispersion = false; // Unset dispersion mode
 
       float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
-      // dispersionI += 0.35 * step(0.6, pow(dot(dNor, -gRd), 2.0));
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor = mix(dispersionColor, vec3(0.5), 0.1); // desaturate
 
       // dispersionColor *= 0.9;
-
-      dispersionColor *= background;
 
       color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
