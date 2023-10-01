@@ -1279,7 +1279,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.04);
+const vec2 gSize = vec2(0.02);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1356,6 +1356,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 center = vec2(size.x * c);
   center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
   center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  center *= rotMat2(0.1 * PI * cos(localCosT + 0.121 * length(localC)));
   center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   center -= size.x * c;
   q += center;
@@ -1387,7 +1388,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
   float internalD = sdBox(q, r);
-  internalD = abs(internalD) - 0.05 * vmax(r);
+  // internalD = abs(internalD) - 0.05 * vmax(r);
 
   // vec2 absQ = abs(q);
   // float internalD = min(absQ.x, absQ.y);
@@ -1445,7 +1446,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -3514,8 +3515,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  wQ.y *= 1.2;
-  wQ *= rotMat2(0.257 * PI);
+  // wQ.y *= 1.2;
+  // wQ *= rotMat2(0.257 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3524,7 +3525,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(6));
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
   // c.y += cIshShift;
 
   q = wQ;
@@ -3573,13 +3574,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
+  // q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
 
-  vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
-  d = dMin(d, b);
-
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
   // d = dMin(d, b);
+
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   float mask = 1.;
 
@@ -3603,8 +3604,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Outline
   // n = abs(n);
 
-  // Cyan glow
-  color.rgb = 0.8 * vec3(0, 1.0, 0.4) * saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125)));
+  // // Cyan glow
+  // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125)));
 
   // Hard Edge
   n = smoothstep(0., 0.25 * edge, n - 0.0);
@@ -3616,7 +3617,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = vec3(1);
 
   // B&W
-  color.rgb += vec3(n);
+  color.rgb = vec3(n);
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
@@ -3705,7 +3706,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   color.rgb *= saturate(mask);
   // color.rgb *= color.a; // Don't leak color channels at expense of edges loosing color
 
-  color.rgb *= 1.3;
+  // color.rgb *= 1.3;
 
   return color;
 }
@@ -3756,7 +3757,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
