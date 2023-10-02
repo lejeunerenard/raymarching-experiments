@@ -1311,8 +1311,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.07 * length(c);
-  // locallocalT += 0.05 * dC;
+  // locallocalT -= 0.07 * length(c);
+  locallocalT += 0.0125 * dC;
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1356,7 +1356,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 center = vec2(size.x * c);
   center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
   center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center *= rotMat2(0.1 * PI * cos(localCosT + 0.121 * length(localC)));
+  center *= rotMat2(0.075 * PI * cos(localCosT));
   center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   center -= size.x * c;
   q += center;
@@ -1446,7 +1446,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=8.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
