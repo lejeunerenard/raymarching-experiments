@@ -1312,7 +1312,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.07 * length(c);
-  locallocalT += 0.0125 * dC;
+  locallocalT -= 0.07 * vmax(abs(c));
+  // locallocalT += 0.0125 * dC;
+  locallocalT += 0.25 * snoise2(0.08 * c);
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1356,7 +1358,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 center = vec2(size.x * c);
   center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
   center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center *= rotMat2(0.075 * PI * cos(localCosT));
+  center *= rotMat2(0.025 * PI * cos(localCosT));
   center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   center -= size.x * c;
   q += center;
@@ -1377,7 +1379,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = length(q) - r.x;
+  float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.3 * size);
   // internalD = min(internalD, abs(q.x));
@@ -1387,7 +1389,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  float internalD = sdBox(q, r);
+  // float internalD = sdBox(q, r);
   // internalD = abs(internalD) - 0.05 * vmax(r);
 
   // vec2 absQ = abs(q);
