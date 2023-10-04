@@ -1279,7 +1279,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.02);
+const vec2 gSize = vec2(0.01);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1314,7 +1314,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT -= 0.07 * length(c);
   locallocalT -= 0.07 * vmax(abs(c));
   // locallocalT += 0.0125 * dC;
-  locallocalT += 0.25 * snoise2(0.08 * c);
+  locallocalT += 0.25 * snoise2(0.08 * c + vec2(9.7, 113.));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1358,16 +1358,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 center = vec2(size.x * c);
   center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
   center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center *= rotMat2(0.025 * PI * cos(localCosT));
+  center *= rotMat2(0.025 * PI * cos(localCosT - length(0.1 * c)));
   center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   center -= size.x * c;
   q += center;
 
-  // // Cosine warp
-  // q += vec2(-1, 1) * warpScale * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // Cosine warp
+  float warpScale2 = warpScale * 0.2;
+  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1431,8 +1432,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // mask = step(0., sdBox(c, vec2(8)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 5.);
-  // // Convert circle into torus
-  // mask = step(0., abs(length(c) - 27.) - 15.));
+  // Convert circle into torus
+  mask = step(0., abs(length(c) - 26.) - 12.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
