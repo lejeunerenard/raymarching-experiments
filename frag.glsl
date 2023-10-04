@@ -3503,8 +3503,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.035);
-  vec2 size = vec2(4.0) * vmax(r);
+  vec2 r = vec2(0.2);
+  vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
   vec2 wQ = q.xy;
@@ -3518,8 +3518,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // wQ.y *= 1.2;
-  // wQ *= rotMat2(0.257 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.4;
+  wQ *= rotMat2(0.257 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3528,7 +3529,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(6));
-  // c = pMod2(wQ, size);
+  c = pMod2(wQ, size);
   // c.y += cIshShift;
 
   q = wQ;
@@ -3567,11 +3568,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Scale radius from -x to 1 where x is 0.05
   // r *= cellT + 0.05 * (-1. + cellT);
 
+  // -- Local Space offsets ---
   // // Shift by random noise
   // q += 0.4 * vmax(r) * vec2(
   //     snoise2(c + vec2( 0.0100,-0.9000)),
   //     snoise2(c + vec2(-9.7000, 2.7780)));
 
+  // --- Distance field(s) ---
   // // Texture SDF
   // float sdf2D = get2DSDF(q);
   // vec2 o = vec2(sdf2D, 0);
@@ -3582,23 +3585,60 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
   // d = dMin(d, b);
 
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  d = dMin(d, b);
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
+  vec2 scale = vec2(1.5) * 0.3 / r;
+  vec2 boxQ = scale * q;
+  float seed = 1.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
+  vec3 subResult = subdivide(boxQ, seed);
+  vec2 dim = subResult.xy;
+  float id = subResult.z;
+
+  // Absolute center coordinates
+  vec2 center = scale * wQ - boxQ;
+
+  // Time offsets
+  float offset = 0.;
+  offset += 0.15 * dot(c, vec2(1));
+  offset += 0.0025 * id;
+  // offset += 0.35 * center.x;
+  offset += -0.4 * length(center);
+
+  float boxT = mod(t + offset, 1.0);
+  boxT = triangleWave(boxT);
+  boxT = expo(boxT);
+  // boxT += 0.12;
+
+  boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
+  dim.x *= saturate(boxT);
+
+  float o = sdBox(boxQ, vec2(dim * 0.5));
+  o /= vmin(scale);
+  d = min(d, o);
+  float gridMask = sdBox(q, vec2(r));
+  d.x = max(d.x, gridMask);
+
+  float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
+  d = min(d, b);
+
+  // --- Mask ---
   float mask = 1.;
+  vec2 maskQ = wQ;
 
   // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
-  // mask = length(uv) - 0.40;
-  // mask = sdBox(uv, vec2(0.40));
-  // mask = abs(vmax(abs(uv)) - 0.3) - 0.1;
+  // mask = length(maskQ) - 0.40;
+  // mask = sdBox(maskQ, vec2(r));
+  // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
-  // // mask = max(mask, -sdBox(uv, vec2(0.05, 2.)));
+  // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
   // mask = smoothstep(0., edge, mask);
   // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
+  // --- Output ---
   float n = d.x;
 
   // // Repeat
@@ -3793,8 +3833,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3804,9 +3844,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 6.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.001 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.002 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
@@ -3829,7 +3869,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     uv.y += 0.0080;
 
     // Initial Offset
-    uv.y += i == 0. ? 0.005 : 0.;
+    uv.y += i == 0. ? 0.0075 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
