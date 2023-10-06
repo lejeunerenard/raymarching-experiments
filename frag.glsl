@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 2048
 #define maxDistance 10.0
 #define fogMaxDistance 8.0
 
@@ -1825,6 +1825,8 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
+#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
+
 float gR = 0.325;
 bool isDispersion = false;
 bool isSoftShadow = false;
@@ -1870,31 +1872,84 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.4;
 
-  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + 1.5 * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 3.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, 0.5 * wQ.z + 1.5 * cos(localCosT + wQ.z));
+  // wQ += 0.025000 * warpScale * cos( 5.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 7.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos( 9.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.001125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, b);
+  q.xzy = q.xyz;
+
+  vec2 c = vec2(0);
+
+  float h = 0.05;
+
+  // // Floor
+  // vec3 f = vec3(sdPlane(q + vec3(0, 0, 2. * h), vec4(0,0,1,0)), 0, 0);
+  // d = dMin(d, f);
+
+  // Bounding box
+  vec3 bb = vec3(sdBox(q, vec3(r, r, 2. * h)), 0, 0);
+  if (bb.x > 3. * epsilon) {
+    return dMin(d, bb);
+  }
+
+  vec2 d2d = vec2(maxDistance, 0);
+
+  vec2 scale = vec2(1.5) * 0.3 / r;
+  vec2 boxQ = scale * q.xy;
+  float seed = 8.7871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
+  vec3 subResult = subdivide(boxQ, seed);
+  vec2 dim = subResult.xy;
+  float id = subResult.z;
+
+  // Absolute center coordinates
+  vec2 center = scale * wQ.xy - boxQ;
+
+  // Time offsets
+  float offset = 0.;
+  offset += 0.15 * dot(c, vec2(1));
+  offset += 0.0025 * id;
+  // offset += 0.35 * center.x;
+  // offset += -0.4 * length(center);
+
+  float boxT = mod(t + offset, 1.0);
+  boxT = triangleWave(boxT);
+  boxT = expo(boxT);
+  // boxT += 0.12;
+
+  boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
+  dim.x *= saturate(boxT);
+
+  float o = sdBox(boxQ, vec2(dim * 0.5));
+  o /= vmin(scale);
+  d2d = min(d2d, o);
+  float gridMask = sdBox(q.xy, vec2(r));
+  d2d.x = max(d2d.x, gridMask);
+
+  // float b = abs(sdBox(q.xy, vec2(0.45 * size))) - 0.01 * r;
+  // d2d = min(d2d, b);
+
+  vec3 v = vec3(opExtrude(q, d2d.x, h), 0, 0);
+  v.x *= 0.1;
+  d = dMin(d, v);
 
   // // Scale compensation
   // d.x /= worldScale;
 
   // // Under step
-  // d.x *= 0.90;
+  // d.x *= 0.50;
 
   return d;
 }
@@ -2145,9 +2200,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = #8587FA;
-  color *= mix(background, vec3(1), 0.1);
-  // vec3 color = #AE8EF5;
+  vec3 color = vec3(2.5);
+  return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2289,9 +2343,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(2. * vec3( 0.1, 0.3, 1.0), #FFECEC, 1.0, 32.0);
+    lights[0] = light(2. * vec3(-0.9, 0.4, 1.0), #FFECEC, 1.0, 32.0);
     lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #ECFFFF, 1.0, 16.0);
-    lights[2] = light(2. * vec3( 0.2, 0.5,-1.3), #FFFFFF, 2., 16.0);
+    lights[2] = light(2. * vec3( 0.2, 0.8,-1.3), #FFFFFF, 2., 16.0);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
 
@@ -2333,14 +2387,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.;
-      float specCo = 0.;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 1.0;
+      float diffMin = 0.5;
+      float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2378,7 +2432,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         // lin += mix(0.0750, 0., isFloor) * amb * diffuseColor;
         // dif += mix(0.0750, 0., isFloor) * amb;
 
-        float distIntensity = lights[i].intensity / pow(length(lightPos - gPos), 0.55);
+        float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 0.55);
         distIntensity = saturate(distIntensity);
         color +=
           (dif * distIntensity) * lights[i].color * diffuseColor
@@ -2407,15 +2461,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // reflectColor += mix(0., 0.5, isFloor) * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       // color += reflectColor;
 
-      vec3 refractColor = vec3(0);
-      vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      refractColor += 0.10 * textures(refractionRd);
-      color += refractColor;
+      // vec3 refractColor = vec3(0);
+      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      // refractColor += 0.10 * textures(refractionRd);
+      // color += refractColor;
 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3316,8 +3370,6 @@ float circleEdgeCircle (in vec2 q, in float localCosT) {
   return d;
 }
 
-#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
-
 float uShape (in vec2 q, in float r, in float size) {
   // "U" shape
   r = r * 0.707107; // sqrt(2) * 0.5
@@ -3800,7 +3852,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3833,8 +3885,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
