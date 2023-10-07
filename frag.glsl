@@ -3555,7 +3555,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.2);
+  vec2 r = vec2(0.3);
   vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
@@ -3581,7 +3581,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(6));
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
   // c.y += cIshShift;
 
   q = wQ;
@@ -3642,7 +3642,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 scale = vec2(1.5) * 0.3 / r;
   vec2 boxQ = scale * q;
-  float seed = 1.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
+  float seed = 0.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
   vec3 subResult = subdivide(boxQ, seed);
   vec2 dim = subResult.xy;
   float id = subResult.z;
@@ -3655,24 +3655,31 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   offset += 0.15 * dot(c, vec2(1));
   offset += 0.0025 * id;
   // offset += 0.35 * center.x;
-  offset += -0.4 * length(center);
+  offset += -0.2 * length(center);
 
   float boxT = mod(t + offset, 1.0);
   boxT = triangleWave(boxT);
   boxT = expo(boxT);
   // boxT += 0.12;
 
-  boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
-  dim.x *= saturate(boxT);
+  // boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
+  // dim.x *= saturate(boxT);
 
-  float o = sdBox(boxQ, vec2(dim * 0.5));
+  float thickness = 0.02;
+  // float o = sdBox(boxQ, vec2(dim * 0.5));
+  float o = sdBox(boxQ, vec2(dim * 0.45) - thickness) - thickness;
+  float o2 = length(boxQ) - vmin(dim * 0.4);
+
+  o = mix(o, o2, boxT);
   o /= vmin(scale);
   d = min(d, o);
-  float gridMask = sdBox(q, vec2(r));
-  d.x = max(d.x, gridMask);
 
-  float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
-  d = min(d, b);
+  // float gridMask = sdBox(q, vec2(r));
+  // d.x = max(d.x, gridMask);
+
+  // // Outline
+  // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
+  // d = min(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3852,7 +3859,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3885,8 +3892,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3896,9 +3903,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 6.;
+  const float echoSlices = 9.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.002 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.004 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
