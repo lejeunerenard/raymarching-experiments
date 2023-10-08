@@ -3640,9 +3640,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
   // d = dMin(d, b);
 
-  vec2 scale = vec2(1.5) * 0.3 / r;
+  vec2 scale = vec2(0.5) * 0.3 / r;
   vec2 boxQ = scale * q;
-  float seed = 0.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
+  float seed = 1.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
   vec3 subResult = subdivide(boxQ, seed);
   vec2 dim = subResult.xy;
   float id = subResult.z;
@@ -3665,12 +3665,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
   // dim.x *= saturate(boxT);
 
-  float thickness = 0.02;
-  // float o = sdBox(boxQ, vec2(dim * 0.5));
-  float o = sdBox(boxQ, vec2(dim * 0.45) - thickness) - thickness;
-  float o2 = length(boxQ) - vmin(dim * 0.4);
-
-  o = mix(o, o2, boxT);
+  float thickness = 0.0025 * vmax(r);
+  vec2 boxR = vec2(dim * 0.4 - thickness) * ((1. + 5. * thickness) * boxT - 5. * thickness);
+  float o = abs(sdBox(boxQ, boxR)) - thickness * boxT;
   o /= vmin(scale);
   d = min(d, o);
 
@@ -3905,7 +3902,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // -- Echoed Layers --
   const float echoSlices = 9.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.004 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
