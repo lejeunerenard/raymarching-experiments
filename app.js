@@ -49,13 +49,13 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.669,
-        y: 0.118,
-        z: 0.008
+        x: 0.061,
+        y: -0.128,
+        z: 0.777
       },
       d: 0.52,
-      scale: 2.1661,
-      rot2angle: [1.553, 2.731, 2.731],
+      scale: 1.8084,
+      rot2angle: [2.246, 1.206, 0.86],
       cameraAngles: [0, 0, 0]
     }
 
