@@ -3527,8 +3527,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = vec2(0);
 
   // Fake "Isometric" perspective
-  wQ.y *= 1.4;
-  wQ *= rotMat2(0.257 * PI);
+  wQ.y *= mix(1.4, 1.6, 0.5 + 0.5 * cos(localCosT));
+  wQ *= rotMat2(mix(0.241, 0.251, 0.5 + 0.5 * cos(localCosT)) * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3596,9 +3596,26 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
   // d = dMin(d, b);
 
-  vec2 scale = vec2(0.5) * 0.3 / r;
+  float thickness = 0.0025 * vmax(r);
+
+  // Dot "Grid"
+  vec2 dotQ = q;
+  vec2 dotGridSize = vec2(0.2 * vmax(r));
+  vec2 dotC = pMod2(dotQ, dotGridSize);
+
+  float g = length(dotQ) - 1.2 * thickness;
+  if (vmax(mod(dotC, 3.)) == 0.) {
+    g = min(abs(dotQ.x), abs(dotQ.y)) - 0.125 * 0.015625 * vmax(dotGridSize);
+    g = max(g, sdBox(dotQ, vec2(0.1 * dotGridSize)));
+  }
+  d.x = min(d.x, g);
+
+  // Subdivide box(es)
+  vec2 localD = vec2(maxDistance, 0);
+
+  vec2 scale = vec2(1.0) * 0.3 / r;
   vec2 boxQ = scale * q;
-  float seed = 1.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
+  float seed = 2.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
   vec3 subResult = subdivide(boxQ, seed);
   vec2 dim = subResult.xy;
   float id = subResult.z;
@@ -3621,14 +3638,21 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
   // dim.x *= saturate(boxT);
 
-  float thickness = 0.0025 * vmax(r);
   vec2 boxR = vec2(dim * 0.4 - thickness) * ((1. + 5. * thickness) * boxT - 5. * thickness);
-  float o = abs(sdBox(boxQ, boxR)) - thickness * boxT;
+  float o = sdBox(boxQ, boxR);
   o /= vmin(scale);
-  d = min(d, o);
+  localD = min(localD, o);
 
-  // float gridMask = sdBox(q, vec2(r));
-  // d.x = max(d.x, gridMask);
+  float gridMask = sdBox(q, vec2(r));
+  localD.x = max(localD.x, gridMask);
+
+  // Mask interior of boxes
+  d.x = max(d.x, -localD.x);
+
+  // Outline
+  localD.x = abs(localD.x) - mix(-9. * thickness, thickness, pow(boxT, 0.5));
+
+  d = dMin(localD, d);
 
   // // Outline
   // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
@@ -3654,13 +3678,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float n = d.x;
 
   // // Repeat
-  // n = sin(20. * TWO_PI * n);
+  // n = sin(0.25 * TWO_PI * n);
 
   // // Outline
-  // n = abs(n);
+  // n = abs(n) - mix(-9. * thickness, thickness, pow(boxT, 0.5));
 
-  // // Cyan glow
-  // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125)));
+  // Cyan glow
+  color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
   n = smoothstep(0., 0.25 * edge, n - 0.0);
@@ -3672,7 +3696,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = vec3(1);
 
   // B&W
-  color.rgb = vec3(n);
+  color.rgb += vec3(n);
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
@@ -3812,7 +3836,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3845,8 +3869,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3856,7 +3880,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 9.;
+  const float echoSlices = 4.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
 
