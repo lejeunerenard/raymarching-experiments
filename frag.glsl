@@ -1870,7 +1870,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.9;
   // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
-  const float warpPhaseAmp = 0.4;
+  const float warpPhaseAmp = 0.9;
 
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -1889,7 +1889,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2336,8 +2336,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
-      float specCo = 0.2;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
@@ -2431,7 +2431,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 14.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -2538,16 +2538,25 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // // Glow
-      // float stepScaleAdjust = 0.11;
+      // Glow
+      float stepScaleAdjust = 0.03;
+      vec2 a = polarCoords(uv);
+
       // t.z += 1.20 * snoise2(2123. * uv);
-      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      // vec3 glowColor = vec3(0, 0.7, 1.0);
-      // // const float stopPoint = 0.5;
-      // // i = smoothstep(stopPoint, stopPoint + edge, i);
-      // i = pow(i, 1.55);
-      // color = mix(color, vec4(glowColor, 1.0), i);
+
+      vec3 s = vec3(0);
+      a.x *= 3.;
+      t.z += 3.20 * fbmWarp(vec3(a, 0.5 * cos(-length(uv) + cosT)), s);
+      // t.z += length(s);
+      // t.z += cellular(3. * s);
+
+      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
+      vec3 glowColor = vec3(1, 0.9, 0);
+      // const float stopPoint = 0.5;
+      // i = smoothstep(stopPoint, stopPoint + edge, i);
+      i = pow(i, 1.25);
+      color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
