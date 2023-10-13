@@ -3511,7 +3511,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.3);
+  vec2 r = vec2(0.5);
   vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
@@ -3528,7 +3528,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= mix(1.4, 1.6, 0.5 + 0.5 * cos(localCosT));
-  wQ *= rotMat2(mix(0.241, 0.251, 0.5 + 0.5 * cos(localCosT)) * PI);
+  wQ *= rotMat2(mix(0.241, 0.351, 0.5 + 0.5 * cos(localCosT)) * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3600,61 +3600,20 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Dot "Grid"
   vec2 dotQ = q;
-  vec2 dotGridSize = vec2(0.2 * vmax(r));
+  vec2 dotGridSize = vec2(0.1 * vmax(r));
   vec2 dotC = pMod2(dotQ, dotGridSize);
 
-  float g = length(dotQ) - 1.2 * thickness;
-  if (vmax(mod(dotC, 3.)) == 0.) {
-    g = min(abs(dotQ.x), abs(dotQ.y)) - 0.125 * 0.015625 * vmax(dotGridSize);
-    g = max(g, sdBox(dotQ, vec2(0.1 * dotGridSize)));
+  float oddDot = step(vmax(mod(dotC, 2.)), 0.);
+  float gridR = mix(0.5, 1.125, oddDot) * 3.2 * thickness;
+  float g = length(dotQ) - gridR;
+  if (vmax(mod(dotC, 4.)) == 0.) {
+    float odd = step(vmax(mod(dotC, 8.)), 0.);
+    float crossR = 2. * mix(0.15, 0.4, odd) * vmax(dotGridSize);
+    g = min(abs(dotQ.x), abs(dotQ.y)) - 1.25 * 0.015625 * crossR;
+    g = max(g, sdBox(dotQ, vec2(crossR)));
   }
   d.x = min(d.x, g);
 
-  // Subdivide box(es)
-  vec2 localD = vec2(maxDistance, 0);
-
-  vec2 scale = vec2(1.0) * 0.3 / r;
-  vec2 boxQ = scale * q;
-  float seed = 2.5871 + dot(c, vec2(0.5, 9.67238)); // + 8.7981237 * (step(0.25, generalT) * (1. - step(0.75, generalT)));
-  vec3 subResult = subdivide(boxQ, seed);
-  vec2 dim = subResult.xy;
-  float id = subResult.z;
-
-  // Absolute center coordinates
-  vec2 center = scale * wQ - boxQ;
-
-  // Time offsets
-  float offset = 0.;
-  offset += 0.15 * dot(c, vec2(1));
-  offset += 0.0025 * id;
-  // offset += 0.35 * center.x;
-  offset += -0.2 * length(center);
-
-  float boxT = mod(t + offset, 1.0);
-  boxT = triangleWave(boxT);
-  boxT = expo(boxT);
-  // boxT += 0.12;
-
-  // boxQ.x += dim.x * saturate(1. - (boxT + 0.0));
-  // dim.x *= saturate(boxT);
-
-  vec2 boxR = vec2(dim * 0.4 - thickness) * ((1. + 5. * thickness) * boxT - 5. * thickness);
-  float o = sdBox(boxQ, boxR);
-  o /= vmin(scale);
-  localD = min(localD, o);
-
-  float gridMask = sdBox(q, vec2(r));
-  localD.x = max(localD.x, gridMask);
-
-  // Mask interior of boxes
-  d.x = max(d.x, -localD.x);
-
-  // Outline
-  localD.x = abs(localD.x) - mix(-9. * thickness, thickness, pow(boxT, 0.5));
-
-  d = dMin(localD, d);
-
-  // // Outline
   // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
   // d = min(d, b);
 
@@ -3880,7 +3839,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 4.;
+  const float echoSlices = 6.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
 
