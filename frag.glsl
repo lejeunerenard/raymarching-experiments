@@ -3511,7 +3511,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.5);
+  vec2 r = vec2(0.3);
   vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
@@ -3527,8 +3527,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = vec2(0);
 
   // Fake "Isometric" perspective
-  wQ.y *= mix(1.4, 1.6, 0.5 + 0.5 * cos(localCosT));
-  wQ *= rotMat2(mix(0.241, 0.351, 0.5 + 0.5 * cos(localCosT)) * PI);
+  wQ.y *= mix(1.45, 1.55, 0.5 + 0.5 * cos(localCosT));
+  wQ *= rotMat2((0.2 + 0. * mix(0.241, 0.351, 0.5 + 0.5 * cos(localCosT))) * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3612,7 +3612,25 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
     g = min(abs(dotQ.x), abs(dotQ.y)) - 1.25 * 0.015625 * crossR;
     g = max(g, sdBox(dotQ, vec2(crossR)));
   }
-  d.x = min(d.x, g);
+  // d.x = min(d.x, g);
+
+  for (float i = 0.; i < 29.; i++) {
+    vec2 localQ = q;
+
+    localQ += 1.51 * r * vec2(
+        snoise2(1.072831 * i + vec2(0.17, 0.98) + 0.3 * cos(localCosT + i * .178 * PI)),
+        snoise2(0.992738 * i + vec2(2.37, 9.98) + 0.3 * sin(localCosT + i * .178 * PI)));
+
+    r -= 0.06 * r * (0.2 + 0.8 * noise(vec2(9.218) * i));
+
+    // float signed = sdBox(localQ, r);
+    float signed = length(localQ) - vmax(r);
+    d.x = max(d.x, -signed);
+    d.x = min(d.x, abs(signed) - thickness);
+
+    signed = length(localQ) - vmax(0.8 * r);
+    d.x = min(d.x, abs(signed) - thickness);
+  }
 
   // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
   // d = min(d, b);
@@ -3839,7 +3857,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 6.;
+  const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
 
