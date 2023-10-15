@@ -1851,8 +1851,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.0;
-  float warpFrequency = 2.0;
+  float warpScale = 1.1;
+  float warpFrequency = 1.7;
   float rollingScale = 1.;
 
   // Warp
@@ -1889,7 +1889,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2151,6 +2152,7 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2171,7 +2173,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  color = mix(color, vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67))), 0.25);
+  color = vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(1) * dI + vec3(0.0, 0.33, 0.67)));
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -2431,7 +2433,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 14.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -2538,25 +2540,25 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Radial Gradient
       // color = mix(vec4(vec3(0), 1.0), vec4(background, 1), saturate(pow((length(uv) - 0.25) * 1.6, 0.3)));
 
-      // Glow
-      float stepScaleAdjust = 0.03;
-      vec2 a = polarCoords(uv);
+      // // Glow
+      // float stepScaleAdjust = 0.03;
+      // vec2 a = polarCoords(uv);
 
-      // t.z += 1.20 * snoise2(2123. * uv);
+      // // t.z += 1.20 * snoise2(2123. * uv);
 
-      vec3 s = vec3(0);
-      a.x *= 3.;
-      t.z += 3.20 * fbmWarp(vec3(a, 0.5 * cos(-length(uv) + cosT)), s);
-      // t.z += length(s);
-      // t.z += cellular(3. * s);
+      // vec3 s = vec3(0);
+      // a.x *= 3.;
+      // t.z += 3.20 * fbmWarp(vec3(a, 0.5 * cos(-length(uv) + cosT)), s);
+      // // t.z += length(s);
+      // // t.z += cellular(3. * s);
 
-      float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
-      // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
-      vec3 glowColor = vec3(1, 0.9, 0);
-      // const float stopPoint = 0.5;
-      // i = smoothstep(stopPoint, stopPoint + edge, i);
-      i = pow(i, 1.25);
-      color = mix(color, vec4(glowColor, 1.0), i);
+      // float i = saturate(t.z / (stepScaleAdjust * float(maxSteps)));
+      // // float i = 1. - saturate(pow(2.0 * t.w, 0.25));
+      // vec3 glowColor = vec3(1, 0.9, 0);
+      // // const float stopPoint = 0.5;
+      // // i = smoothstep(stopPoint, stopPoint + edge, i);
+      // i = pow(i, 1.25);
+      // color = mix(color, vec4(glowColor, 1.0), i);
 
       return color;
     }
@@ -3813,7 +3815,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3846,8 +3848,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
