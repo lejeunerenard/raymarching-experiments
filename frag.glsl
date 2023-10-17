@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1897,18 +1897,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
-  {
-    q *= rotationMatrix(vec3(1), 0.4 * cos(localCosT));
-    vec3 g = vec3(sdBox(q, vec3(r)), 0, 0);
+  for (float i = 0.; i < 6.; i++) {
+    vec3 localQ = q;
+    localQ *= rotationMatrix(vec3(1, 1, 1), PI * (0.1 + 0.05 * i) * cos(localCosT));
+    vec3 g = vec3(sdBox(localQ, vec3(r)), 0, 0);
     d = dMax(d, g);
   }
-
-  {
-    q *= rotationMatrix(vec3(-1, 1, 1), 0.6 * cos(localCosT));
-    vec3 g = vec3(sdBox(q, vec3(r)), 0, 0);
-    d = dMax(d, g);
-  }
-
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2355,14 +2349,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.75;
+      float specCo = 0.95;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.95;
-      float shadowMin = 0.95;
+      float diffMin = 0.2;
+      float shadowMin = 0.2;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2426,7 +2420,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // // Reflect scene
       // vec3 reflectColor = vec3(0);
       // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += mix(0., 0.5, isFloor) * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // reflectColor += 0.3 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2450,7 +2444,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 4.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.0);
       // float dispersionI = 1.0;
       dispersionColor *= dispersionI;
 
@@ -2461,8 +2455,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
