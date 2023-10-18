@@ -1300,7 +1300,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.25;
+  const float warpScale = 0.01;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1311,8 +1311,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.07 * length(c);
-  locallocalT -= 0.07 * vmax(abs(c));
+  locallocalT -= 0.03 * length(c);
+  // locallocalT -= 0.07 * vmax(abs(c));
   // locallocalT += 0.0125 * dC;
   locallocalT += 0.25 * snoise2(0.08 * c + vec2(9.7, 113.));
   // locallocalT += 0.02 * odd;
@@ -1343,7 +1343,7 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 1.0 * size.x * mix(
+  q += 1.2 * size.x * mix(
       0.2 * vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
       vec2(1) * snoise2(0.863 * localC + 2.37),
       nT);
@@ -1358,17 +1358,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 center = vec2(size.x * c);
   center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
   center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center *= rotMat2(0.025 * PI * cos(localCosT - length(0.1 * c)));
+  center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
   center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   center -= size.x * c;
   q += center;
 
-  // Cosine warp
-  float warpScale2 = warpScale * 0.2;
-  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // // Cosine warp
+  // float warpScale2 = warpScale * 0.2;
+  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
+  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1432,8 +1432,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // mask = step(0., sdBox(c, vec2(8)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 5.);
-  // Convert circle into torus
-  mask = step(0., abs(length(c) - 26.) - 12.);
+  // // Convert circle into torus
+  // mask = step(0., abs(length(c) - 26.) - 12.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
@@ -3539,9 +3539,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= mix(1.45, 1.55, 0.5 + 0.5 * cos(localCosT));
-  wQ *= rotMat2((0.2 + 0. * mix(0.241, 0.351, 0.5 + 0.5 * cos(localCosT))) * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.45;
+  // wQ *= rotMat2(0.2 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3606,44 +3606,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
   // d = dMin(d, b);
 
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  // d = dMin(d, b);
-
-  float thickness = 0.0025 * vmax(r);
-
-  // Dot "Grid"
-  vec2 dotQ = q;
-  vec2 dotGridSize = vec2(0.1 * vmax(r));
-  vec2 dotC = pMod2(dotQ, dotGridSize);
-
-  float oddDot = step(vmax(mod(dotC, 2.)), 0.);
-  float gridR = mix(0.5, 1.125, oddDot) * 3.2 * thickness;
-  float g = length(dotQ) - gridR;
-  if (vmax(mod(dotC, 4.)) == 0.) {
-    float odd = step(vmax(mod(dotC, 8.)), 0.);
-    float crossR = 2. * mix(0.15, 0.4, odd) * vmax(dotGridSize);
-    g = min(abs(dotQ.x), abs(dotQ.y)) - 1.25 * 0.015625 * crossR;
-    g = max(g, sdBox(dotQ, vec2(crossR)));
-  }
-  // d.x = min(d.x, g);
-
-  for (float i = 0.; i < 29.; i++) {
-    vec2 localQ = q;
-
-    localQ += 1.51 * r * vec2(
-        snoise2(1.072831 * i + vec2(0.17, 0.98) + 0.3 * cos(localCosT + i * .178 * PI)),
-        snoise2(0.992738 * i + vec2(2.37, 9.98) + 0.3 * sin(localCosT + i * .178 * PI)));
-
-    r -= 0.06 * r * (0.2 + 0.8 * noise(vec2(9.218) * i));
-
-    // float signed = sdBox(localQ, r);
-    float signed = length(localQ) - vmax(r);
-    d.x = max(d.x, -signed);
-    d.x = min(d.x, abs(signed) - thickness);
-
-    signed = length(localQ) - vmax(0.8 * r);
-    d.x = min(d.x, abs(signed) - thickness);
-  }
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
   // d = min(d, b);
@@ -3673,8 +3637,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Outline
   // n = abs(n) - mix(-9. * thickness, thickness, pow(boxT, 0.5));
 
-  // Cyan glow
-  color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
+  // // Cyan glow
+  // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
   n = smoothstep(0., 0.25 * edge, n - 0.0);
@@ -3686,7 +3650,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = vec3(1);
 
   // B&W
-  color.rgb += vec3(n);
+  color.rgb = vec3(n);
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
@@ -3826,7 +3790,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
