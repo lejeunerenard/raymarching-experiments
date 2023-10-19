@@ -3606,8 +3606,28 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
   // d = dMin(d, b);
 
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  d = dMin(d, b);
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
+
+  float scale = 1.3;
+
+  vec2 subDivQ = q * scale;
+  vec3 s = subdivide(subDivQ, 0.12378, t);
+  vec2 dim = s.xy;
+  float id = s.z;
+
+  // float offset = 0.1 * cos(TWO_PI * t);
+  // subDivQ.x += offset;
+
+  // float b = abs(sdBox(subDivQ, vec2(0.45 * dim))) - 0.01 * vmax(r);
+  // float b = sdBox(subDivQ, vec2(0.45 * dim));
+
+  vec2 dir = vec2(1, 0) * rotMat2(9.172383 * PI * id);
+  float b = sin(TWO_PI * (t + dot(subDivQ, (1. + 0.03 * id) * dir)));
+  float m = sdBox(subDivQ, vec2(0.5 * dim)) + 0.006;
+  b = max(b, m);
+  b /= scale;
+  d = min(d, b);
 
   // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
   // d = min(d, b);
@@ -3641,7 +3661,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(0., 0.25 * edge, n - 0.0);
+  n = smoothstep(0., 1.0 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
