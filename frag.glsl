@@ -1300,7 +1300,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.01;
+  const float warpScale = 0.5;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1341,12 +1341,12 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += 0.5 * size.x * mod(localC.y, 2.);
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 1.2 * size.x * mix(
-      0.2 * vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-      vec2(1) * snoise2(0.863 * localC + 2.37),
-      nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  // q += 1.2 * size.x * mix(
+  //     0.2 * vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
+  //     vec2(1) * snoise2(0.863 * localC + 2.37),
+  //     nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1355,20 +1355,21 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
-  vec2 center = vec2(size.x * c);
-  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
-  center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
-  center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  center -= size.x * c;
-  q += center;
+  // vec2 center = vec2(size.x * c);
+  // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
+  // center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  // center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
+  // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  // center -= size.x * c;
+  // q += center;
 
-  // // Cosine warp
-  // float warpScale2 = warpScale * 0.2;
-  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 9. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos(13. * vec2(-1, 1) * q.yx + localCosT );
-  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos(23. * vec2(-1, 1) * q.yx + localCosT );
+  // Cosine warp
+  float warpScale2 = warpScale * 0.2125;
+  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT );
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1380,11 +1381,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = length(q) - r.x;
-  // float internalD = abs(q.y);
-  // internalD = max(internalD, abs(q.x) - 0.3 * size);
+  // float internalD = length(q) - r.x;
+  float internalD = abs(q.y);
+  internalD = max(internalD, abs(q.x) - 0.3 * vmax(size));
   // internalD = min(internalD, abs(q.x));
-  // internalD = max(internalD, sdBox(q, vec2(0.5 * size, 0.5 * size)));
+  // internalD = max(internalD, sdBox(q, 0.5 * size));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -3606,28 +3607,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
   // d = dMin(d, b);
 
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  // d = dMin(d, b);
-
-  float scale = 1.3;
-
-  vec2 subDivQ = q * scale;
-  vec3 s = subdivide(subDivQ, 0.12378, t);
-  vec2 dim = s.xy;
-  float id = s.z;
-
-  // float offset = 0.1 * cos(TWO_PI * t);
-  // subDivQ.x += offset;
-
-  // float b = abs(sdBox(subDivQ, vec2(0.45 * dim))) - 0.01 * vmax(r);
-  // float b = sdBox(subDivQ, vec2(0.45 * dim));
-
-  vec2 dir = vec2(1, 0) * rotMat2(9.172383 * PI * id);
-  float b = sin(TWO_PI * (t + dot(subDivQ, (1. + 0.03 * id) * dir)));
-  float m = sdBox(subDivQ, vec2(0.5 * dim)) + 0.006;
-  b = max(b, m);
-  b /= scale;
-  d = min(d, b);
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
   // d = min(d, b);
