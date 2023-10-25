@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 512
 #define maxDistance 10.0
-#define fogMaxDistance 8.0
+#define fogMaxDistance 5.0
 
 #define slowTime time * 0.2
 // v3
@@ -1559,6 +1559,41 @@ float dotTexture (in vec2 q, in float size) {
   return max(internalD, sdBox(localQ, vec2(r)));
 }
 
+// IQ's 2D isosceles triangle
+// source: https://www.shadertoy.com/view/MldcD7
+float sdTriangleIsosceles( in vec2 p, in vec2 q ) {
+  p.x = abs(p.x);
+  vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
+  vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
+  float k = sign( q.y );
+  float d = min(dot( a, a ),dot(b, b));
+  float s = max( k*(p.x*q.y-p.y*q.x),k*(p.y-q.y)  );
+  return sqrt(d)*sign(s);
+}
+
+// IQ's 2D triangle
+// source: https://www.shadertoy.com/view/XsXSz4
+float sdTriangle( in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2 ) {
+  vec2 e0 = p1 - p0;
+  vec2 e1 = p2 - p1;
+  vec2 e2 = p0 - p2;
+
+  vec2 v0 = p - p0;
+  vec2 v1 = p - p1;
+  vec2 v2 = p - p2;
+
+  vec2 pq0 = v0 - e0*clamp( dot(v0,e0)/dot(e0,e0), 0.0, 1.0 );
+  vec2 pq1 = v1 - e1*clamp( dot(v1,e1)/dot(e1,e1), 0.0, 1.0 );
+  vec2 pq2 = v2 - e2*clamp( dot(v2,e2)/dot(e2,e2), 0.0, 1.0 );
+
+  float s = e0.x*e2.y - e0.y*e2.x;
+  vec2 d = min( min( vec2( dot( pq0, pq0 ), s*(v0.x*e0.y-v0.y*e0.x) ),
+        vec2( dot( pq1, pq1 ), s*(v1.x*e1.y-v1.y*e1.x) )),
+      vec2( dot( pq2, pq2 ), s*(v2.x*e2.y-v2.y*e2.x) ));
+
+  return -sqrt(d.x)*sign(d.y);
+}
+
 float gear (in vec3 p, in float r, in float thickness, in float thinness, in float teeth) {
   vec3 q = p;
   float d = maxDistance;
@@ -1846,11 +1881,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.08 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.08 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1877,14 +1912,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  // pModPolar(wQ.xy, 5.);
-  // wQ.y = abs(wQ.y);
-  // wQ.xy = abs(wQ.xy);
+  wQ.xyz = twist(wQ.xzy, 0.22 * wQ.z + 0.5 * PI * sin(localCosT + wQ.z));
 
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 0. * wQ.y + 0.8 * PI * cos(localCosT + 0.9 * wQ.y));
+  // wQ.xzy = twist(wQ.xyz, 0. * wQ.y + 0.8 * PI * cos(localCosT + 0.9 * wQ.y));
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -1898,7 +1931,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  float inner = sdTriangleIsosceles(q.xy - r * vec2(0, 0.5), r * vec2(0.6, -1));
+  // float inner = length(q.xy) - r;
+  vec3 b = vec3(abs(inner) - 0.15 * r, 0, 0);
+  b.x -= 0.002 * cellular(vec3(4., 4., 7.) * q);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -1907,8 +1943,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.50;
+  // // Under step
+  // d.x *= 0.50;
 
   return d;
 }
@@ -2160,7 +2196,6 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(background);
-  // return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2352,8 +2387,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.5;
+      float diffMin = 0.9;
+      float shadowMin = 0.75;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2417,18 +2452,18 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.5 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.2 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
-      // vec3 refractColor = vec3(0);
-      // vec3 refractionRd = refract(rayDirection, nor, 1.5);
-      // refractColor += 0.10 * textures(refractionRd);
-      // color += refractColor;
+      vec3 refractColor = vec3(0);
+      vec3 refractionRd = refract(rayDirection, nor, 1.5);
+      refractColor += 0.10 * textures(refractionRd);
+      color += refractColor;
 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2436,8 +2471,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
@@ -2460,14 +2495,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(
-      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
-      //       / fogMaxDistance
-      // ));
-      // // color *= saturate(exp(-d * 0.025));
-      // // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
+            / fogMaxDistance
+      ));
+      // color *= saturate(exp(-d * 0.025));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -2612,41 +2647,6 @@ float myFBMWarp (in vec2 q) {
   vec2 p = vec2(0);
 
   return myFBMWarp(q, s, p, r);
-}
-
-// IQ's 2D isosceles triangle
-// source: https://www.shadertoy.com/view/MldcD7
-float sdTriangleIsosceles( in vec2 p, in vec2 q ) {
-  p.x = abs(p.x);
-  vec2 a = p - q*clamp( dot(p,q)/dot(q,q), 0.0, 1.0 );
-  vec2 b = p - q*vec2( clamp( p.x/q.x, 0.0, 1.0 ), 1.0 );
-  float k = sign( q.y );
-  float d = min(dot( a, a ),dot(b, b));
-  float s = max( k*(p.x*q.y-p.y*q.x),k*(p.y-q.y)  );
-  return sqrt(d)*sign(s);
-}
-
-// IQ's 2D triangle
-// source: https://www.shadertoy.com/view/XsXSz4
-float sdTriangle( in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2 ) {
-  vec2 e0 = p1 - p0;
-  vec2 e1 = p2 - p1;
-  vec2 e2 = p0 - p2;
-
-  vec2 v0 = p - p0;
-  vec2 v1 = p - p1;
-  vec2 v2 = p - p2;
-
-  vec2 pq0 = v0 - e0*clamp( dot(v0,e0)/dot(e0,e0), 0.0, 1.0 );
-  vec2 pq1 = v1 - e1*clamp( dot(v1,e1)/dot(e1,e1), 0.0, 1.0 );
-  vec2 pq2 = v2 - e2*clamp( dot(v2,e2)/dot(e2,e2), 0.0, 1.0 );
-
-  float s = e0.x*e2.y - e0.y*e2.x;
-  vec2 d = min( min( vec2( dot( pq0, pq0 ), s*(v0.x*e0.y-v0.y*e0.x) ),
-        vec2( dot( pq1, pq1 ), s*(v1.x*e1.y-v1.y*e1.x) )),
-      vec2( dot( pq2, pq2 ), s*(v2.x*e2.y-v2.y*e2.x) ));
-
-  return -sqrt(d.x)*sign(d.y);
 }
 
 // IQ's 2D Uneven capsule
@@ -3603,11 +3603,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
   // d = dMin(d, b);
 
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  d = dMin(d, b);
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
-  // float b = abs(sdBox(q, vec2(0.45 * size))) - 0.01 * vmax(r);
-  // d = min(d, b);
+  float b = sdTriangleIsosceles(q - size * vec2(0, 0.5), size * vec2(0.6, -1));
+  d = min(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3787,7 +3787,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
