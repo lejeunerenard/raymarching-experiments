@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1867,7 +1867,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
 
 #pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
 
-float gR = 0.325;
+float gR = 0.1;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1891,8 +1891,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.1;
-  float warpFrequency = 1.0;
+  float warpScale = 0.15;
+  float warpFrequency = 0.75;
   float rollingScale = 1.;
 
   // Warp
@@ -1912,7 +1912,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.xyz = twist(wQ.xzy, 0.22 * wQ.z + 0.5 * PI * sin(localCosT + wQ.z));
+  wQ = opRepLim(wQ, 3. * r, vec3(3.));
 
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -1931,10 +1931,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float inner = sdTriangleIsosceles(q.xy - r * vec2(0, 0.5), r * vec2(0.6, -1));
-  // float inner = length(q.xy) - r;
-  vec3 b = vec3(abs(inner) - 0.15 * r, 0, 0);
-  b.x -= 0.002 * cellular(vec3(4., 4., 7.) * q);
+  // vec3 b = vec3(icosahedral(q, 52., 0.8 * r), 0, 0);
+  vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)) - 0.05 * r, 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -1943,8 +1942,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.50;
+  // Under step
+  d.x *= 0.70;
 
   return d;
 }
@@ -2211,6 +2210,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // dI += 2. * pow(dNR, 2.);
   dI.xy += 0.1 * fragCoord.xy;
 
+  dI += 0.0125 * pos;
   dI += 0.5 * snoise3(0.3 * mPos);
 
   dI *= angle1C;
@@ -2452,7 +2452,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.3 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       vec3 refractColor = vec3(0);
@@ -2471,8 +2471,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
