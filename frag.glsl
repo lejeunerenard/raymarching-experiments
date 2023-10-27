@@ -1373,7 +1373,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT );
   // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT );
 
-  // q *= rotMat2(0.5 * PI * cos(localCosT));
+  q *= rotMat2(0.5 * PI * cos(localCosT));
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1386,8 +1386,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
   // float internalD = length(q) - r.x;
-  // float internalD = abs(q.y);
-  // internalD = max(internalD, abs(q.x) - 0.3 * vmax(size));
+  float internalD = abs(q.y);
+  internalD = max(internalD, abs(q.x) - 0.3 * vmax(size));
   // internalD = min(internalD, abs(q.x));
   // internalD = max(internalD, sdBox(q, 0.5 * size));
 
@@ -1395,7 +1395,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
   // float internalD = vmax(abs(q));
   // float internalD = dot(abs(q), vec2(1));
-  float internalD = sdBox(q, r);
+  // float internalD = sdBox(q, r);
   // internalD = abs(internalD) - 0.05 * vmax(r);
 
   // vec2 absQ = abs(q);
@@ -1911,8 +1911,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
   const float warpPhaseAmp = 0.9;
-
-  wQ = opRepLim(wQ, 3. * r, vec3(3.));
 
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -3521,7 +3519,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.3);
+  vec2 r = vec2(0.030);
   vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
@@ -3545,8 +3543,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
-  // c = floor((wQ + size*0.5)/size);
-  // wQ = opRepLim(wQ, vmax(size), vec2(6));
+  c = floor((wQ + size*0.5)/size);
+  wQ = opRepLim(wQ, vmax(size), vec2(5));
   // c = pMod2(wQ, size);
   // c.y += cIshShift;
 
@@ -3600,14 +3598,20 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
 
-  // vec2 b = vec2(abs(sdBox(q, vec2(r))) - 0.05 * vmax(r), 0);
+  // vec2 b = vec2(sdBox(q, vec2(r)), 0);
   // d = dMin(d, b);
+
+  q *= rotMat2(
+      PI * (0.5 * dot(c, vec2(1)) + 0.5 * floor(2. * snoise2(vec2(1.3, 1.9837) * c)))
+      + 0.5 * PI * expo(0.5 + 0.5 * cos(localCosT + PI * 0.02 * dot(c, vec2(1))) + 0.0)
+      );
+
+  vec2 b = vec2(length(q - r * vec2(1)) - 2. *vmax(r), 0);
+  // b.x = abs(b.x) - 0.1 * vmax(r);
+  d = dMin(d, b);
 
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
   // d = dMin(d, b);
-
-  float b = sdTriangleIsosceles(q - size * vec2(0, 0.5), size * vec2(0.6, -1));
-  d = min(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3617,12 +3621,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
   // mask = length(maskQ) - 0.40;
-  // mask = sdBox(maskQ, vec2(r));
+  mask = sdBox(maskQ, vec2(r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
-  // mask = smoothstep(0., edge, mask);
-  // mask = 1. - mask;
+  mask = smoothstep(0., edge, mask);
+  mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
   // --- Output ---
@@ -3787,7 +3791,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
