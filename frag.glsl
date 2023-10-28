@@ -3519,7 +3519,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.030);
+  vec2 r = vec2(0.015);
   vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
@@ -3544,7 +3544,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
   c = floor((wQ + size*0.5)/size);
-  wQ = opRepLim(wQ, vmax(size), vec2(5));
+  wQ = opRepLim(wQ, vmax(size), vec2(10));
   // c = pMod2(wQ, size);
   // c.y += cIshShift;
 
@@ -3601,9 +3601,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(sdBox(q, vec2(r)), 0);
   // d = dMin(d, b);
 
+  localT += -0.03 * length(c);
+  localT = mod(localT, 1.);
   q *= rotMat2(
       PI * (0.5 * dot(c, vec2(1)) + 0.5 * floor(2. * snoise2(vec2(1.3, 1.9837) * c)))
-      + 0.5 * PI * expo(0.5 + 0.5 * cos(localCosT + PI * 0.02 * dot(c, vec2(1))) + 0.0)
+      + 0.5 * PI * (0.
+        + expo(range(0.00, 0.25, localT))
+        + expo(range(0.25, 0.50, localT))
+        + expo(range(0.50, 0.75, localT))
+        + expo(range(0.75, 1.00, localT))
+        )
       );
 
   vec2 b = vec2(length(q - r * vec2(1)) - 2. *vmax(r), 0);
@@ -3824,8 +3831,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3835,7 +3842,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
 
