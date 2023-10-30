@@ -3543,9 +3543,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
-  c = floor((wQ + size*0.5)/size);
-  wQ = opRepLim(wQ, vmax(size), vec2(15));
-  // c = pMod2(wQ, size);
+  // c = floor((wQ + size*0.5)/size);
+  // wQ = opRepLim(wQ, vmax(size), vec2(15));
+  c = pMod2(wQ, size);
   // c.y += cIshShift;
 
   q = wQ;
@@ -3607,13 +3607,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
       PI * (0.5 * dot(c, vec2(1)) + 0.5 * floor(2. * snoise2(vec2(1.3, 1.9837) * c)))
       + 0.5 * PI * (0.
         + circ(range(0.00, 0.25, localT))
-        + circ(range(0.25, 0.50, localT))
+        + quint(range(0.25, 0.50, localT))
         + circ(range(0.50, 0.75, localT))
-        + circ(range(0.75, 1.00, localT))
+        + expo(range(0.75, 1.00, localT))
         )
       );
 
-  vec2 b = vec2(length(q - r * vec2(1)) - 1.8 * vmax(r), 0);
+  // vec2 b = vec2(length(q - r * vec2(1)) - 1.8 * vmax(r), 0);
+  q *= rotMat2(0.25 * PI);
+  vec2 b = vec2(sdBox(q - r * vec2(1.414214), 1.8 * r), 0);
   b.x = abs(b.x) - 0.1 * vmax(r);
   d = dMin(d, b);
 
