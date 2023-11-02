@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1891,7 +1891,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.125;
   float warpFrequency = 1.;
   float rollingScale = 1.;
 
@@ -1932,7 +1932,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(icosahedral(q, 52., 0.8 * r), 0, 0);
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  float a = atan(q.x, q.z);
+
+  r += (0.01 * saturate(1. - abs(q.y))) * r * cos(20. * a);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2476,13 +2480,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 7.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 9.0);
       // float dispersionI = 1.0;
+
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor *= 0.9;
