@@ -1313,9 +1313,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT = angle1C;
   // locallocalT -= 0.03 * length(c);
   // locallocalT -= 0.07 * vmax(abs(0.4 * c));
-  locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
+  // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
+  locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
-  locallocalT += 0.25 * snoise2(0.08 * c + vec2(9.7, 113.));
+  locallocalT += 0.125 * snoise2(0.05 * c + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1345,8 +1346,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
   q += 1.2 * size.x * mix(
-      0.2 * vec2(1, -1) * snoise2(1.417 * localC + 73.17123),
-      vec2(1) * snoise2(0.863 * localC + 2.37),
+      0.2 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123),
+      vec2(1) * snoise2(8.863 * localC + 2.37),
       nT);
 
   // float side = step(abs(c.y), abs(c.x));
@@ -1359,15 +1360,15 @@ vec2 shape (in vec2 q, in vec2 c) {
   q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
   vec2 center = vec2(size.x * c);
-  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT);
-  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT);
+  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT + vec2(9.2378));
+  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT + vec2(-10.2378));
   center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
   center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
   center -= size.x * c;
   q += center;
 
   // Cosine warp
-  float warpScale2 = warpScale * 0.2125;
+  float warpScale2 = warpScale * 0.225;
   q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT );
   q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
   q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT );
@@ -1435,11 +1436,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 0.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
   // mask = step(0., vmax(abs(c)) - 12.);
-  mask = step(0., sdBox(c, vec2(35)));
+  // mask = step(0., sdBox(c, vec2(35)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
-  // // Convert circle into torus
-  // mask = step(0., abs(length(c) - 26.) - 12.);
+  // Convert circle into torus
+  mask = step(0., abs(length(c) - 26.) - 12.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
