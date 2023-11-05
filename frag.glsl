@@ -1286,6 +1286,7 @@ float microGrid ( in vec2 q ) {
   return mod(dot(cMini, vec2(1)), 2.);
 }
 
+vec2 gC = vec2(0);
 float localCosT = cosT;
 float localT = norT;
 float second = maxDistance;
@@ -1316,7 +1317,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
-  locallocalT += 0.125 * snoise2(0.05 * c + vec2(19.7, 113.1273));
+  locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1329,14 +1330,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   // t = expo(t);
   float localCosT = TWO_PI * t;
 
-  // Local C that transitions from one cell to another
-  float shift = 0.;
-  vec2 shiftDir = vec2(1, 1);
+  // // Local C that transitions from one cell to another
+  // float shift = 0.;
+  // vec2 shiftDir = vec2(1, 1);
 
-  vec2 localC = mix(c, c + shift * shiftDir, t);
+  // vec2 localC = mix(c, c + shift * shiftDir, t);
 
-  // // Vanilla cell coordinate
-  // vec2 localC = c;
+  // Vanilla cell coordinate
+  vec2 localC = c;
 
   vec2 size = gSize;
   vec2 r = 0.125 * size;
@@ -1359,7 +1360,7 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
-  vec2 center = vec2(size.x * c);
+  vec2 center = vec2(size.x * (c + gC));
   center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT + vec2(9.2378));
   center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT + vec2(-10.2378));
   center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
@@ -1369,11 +1370,11 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Cosine warp
   float warpScale2 = warpScale * 0.225;
-  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT );
-  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT );
+  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC);
+  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC);
+  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC);
+  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC);
+  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC);
 
   q *= rotMat2(0.5 * PI * cos(localCosT));
 
@@ -1436,11 +1437,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 0.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
   // mask = step(0., vmax(abs(c)) - 12.);
-  // mask = step(0., sdBox(c, vec2(35)));
+  mask = step(0., abs(sdBox(c, vec2(15))) - 5.);
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
   // Convert circle into torus
-  mask = step(0., abs(length(c) - 26.) - 12.);
+  // mask = step(0., abs(length(c) - 26.) - 12.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
@@ -2043,7 +2044,6 @@ float diffuse (in vec3 nor, in vec3 lightPos) {
 #pragma glslify: hsb2rgb = require(./color-map/hsb2rgb)
 
 float gM = 0.;
-vec3 gC = vec3(0.);
 
 vec3 textures (in vec3 rd) {
   vec3 color = vec3(0.);
@@ -3543,9 +3543,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.45;
-  // wQ *= rotMat2(0.2 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.45;
+  wQ *= rotMat2(0.2 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3554,7 +3554,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(15));
-  // c = pMod2(wQ, size);
+  c = pMod2(wQ, vec2(0.50));
+  gC = c;
   // c.y += cIshShift;
 
   q = wQ;
