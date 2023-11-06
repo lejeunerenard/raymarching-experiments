@@ -1935,11 +1935,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(icosahedral(q, 52., 0.8 * r), 0, 0);
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
 
-  float a = atan(q.x, q.z);
+  float oldR = r;
+  r += 0.1 * r * snoise3(5.4 * q);
 
-  r += (0.01 * saturate(1. - abs(q.y))) * r * cos(20. * a);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -3796,7 +3796,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
