@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 1.5;
 const float amount = 0.05;
 
 // Dof
@@ -1870,7 +1870,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
 
 #pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
 
-float gR = 0.4;
+float gR = 0.25;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1894,7 +1894,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.125;
+  float warpScale = 0.25;
   float warpFrequency = 1.;
   float rollingScale = 1.;
 
@@ -1935,12 +1935,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(icosahedral(q, 52., 0.8 * r), 0, 0);
   // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
 
-  float oldR = r;
-  r += 0.1 * r * snoise3(5.4 * q);
-
-  vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  float gyroidScale = 75.;
+  vec3 b = vec3(gyroid(gyroidScale * q, 0.75 * r), 0, 0);
+  b.x /= gyroidScale;
+  b.x *= 0.9;
   d = dMin(d, b);
+
+  float crop = sdBox(q, vec3(r, r, 0.1 * r));
+  d.x = max(d.x, crop);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2199,7 +2201,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(2.);
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2387,13 +2389,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.9;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
+      float diffMin = 0.;
       float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
@@ -2477,13 +2479,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 9.0);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.);
       // float dispersionI = 1.0;
+      dispersionI *= 2.;
 
       dispersionColor *= dispersionI;
 
