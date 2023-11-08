@@ -1390,7 +1390,7 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // float internalD = length(q) - r.x;
   float internalD = abs(q.y);
-  internalD = max(internalD, abs(q.x) - 0.3 * vmax(size));
+  internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
   // internalD = max(internalD, sdBox(q, 0.5 * size));
 
@@ -1437,9 +1437,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 0.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.));
   // mask = step(0., vmax(abs(c)) - 12.);
-  mask = step(0., abs(sdBox(c, vec2(15))) - 5.);
+  // mask = step(0., sdBox(c, vec2(100, 5)));
+  // mask = step(0., sdBox(q, size * vec2(1, 5)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
+  mask = step(0., -(c.y + 10.)); // Mask below a line
   // Convert circle into torus
   // mask = step(0., abs(length(c) - 26.) - 12.);
 
@@ -3546,19 +3548,23 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.45;
-  wQ *= rotMat2(0.2 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.45;
+  // wQ *= rotMat2(0.2 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
+  wQ = polarCoords(wQ);
+  wQ.x /= PI;
+  wQ.y -= 0.2;
+
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(15));
-  c = pMod2(wQ, vec2(0.50));
-  gC = c;
+  // c = pMod2(wQ, vec2(0.50));
+  // gC = c;
   // c.y += cIshShift;
 
   q = wQ;
@@ -3799,7 +3805,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
