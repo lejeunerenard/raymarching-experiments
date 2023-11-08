@@ -1369,7 +1369,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   q += center;
 
   // Cosine warp
-  float warpScale2 = warpScale * 0.225;
+  float warpScale2 = warpScale * 0.5;
   q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC);
   q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC);
   q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC);
@@ -1441,7 +1441,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
-  mask = step(0., -(c.y + 10.)); // Mask below a line
+  mask = step(0., abs(c.y - 25.) - 12.); // Mask below a line
   // Convert circle into torus
   // mask = step(0., abs(length(c) - 26.) - 12.);
 
@@ -3557,9 +3557,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
+  wQ *= rotMat2(-0.5 * PI);
+
   wQ = polarCoords(wQ);
   wQ.x /= PI;
-  wQ.y -= 0.2;
+  // wQ.y -= 0.2;
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(15));
