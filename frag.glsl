@@ -1301,7 +1301,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.5;
+  const float warpScale = 0.35;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1340,13 +1340,13 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 localC = c;
 
   vec2 size = gSize;
-  vec2 r = 0.125 * size;
+  vec2 r = 0.2 * size;
 
   q.x += 0.5 * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 1.2 * size.x * mix(
+  q += 2.2 * size.x * mix(
       0.2 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123),
       vec2(1) * snoise2(8.863 * localC + 2.37),
       nT);
@@ -1388,9 +1388,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  // float internalD = length(q) - r.x;
-  float internalD = abs(q.y);
-  internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
+  float internalD = length(q) - r.x;
+  // float internalD = abs(q.y);
+  // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
   // internalD = max(internalD, sdBox(q, 0.5 * size));
 
@@ -1435,14 +1435,14 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Mask
   float mask = 0.;
-  // mask = step(0., dot(abs(c), vec2(1)) - 12.));
+  // mask = step(0., dot(abs(c), vec2(1)) - 12.);
   // mask = step(0., vmax(abs(c)) - 12.);
-  // mask = step(0., sdBox(c, vec2(100, 5)));
+  mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
-  mask = step(0., abs(c.y - 25.) - 12.); // Mask below a line
-  // Convert circle into torus
+  // mask = step(0., abs(c.y - 25.) - 8.); // Mask below a line
+  // // Convert circle into torus
   // mask = step(0., abs(length(c) - 26.) - 12.);
 
   // Apply mask
@@ -3559,8 +3559,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   wQ *= rotMat2(-0.5 * PI);
 
-  wQ = polarCoords(wQ);
-  wQ.x /= PI;
+  // wQ = polarCoords(wQ);
+  // wQ.x /= PI;
   // wQ.y -= 0.2;
 
   // c = floor((wQ + size*0.5)/size);
@@ -3840,8 +3840,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3850,47 +3850,47 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // -- Echoed Layers --
-  const float echoSlices = 8.;
-  for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
+  // // -- Echoed Layers --
+  // const float echoSlices = 8.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
 
-    // // Outlined version
-    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // // Hard Edge
-    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+  //   // // Outlined version
+  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+  //   // // Hard Edge
+  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-    // Echo Dimming
-    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
+  //   // Echo Dimming
+  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
 
-    // Blend mode
-    // Additive
-    color += vec4(vec3(layerColor.a), 1) * layerColor;
+  //   // Blend mode
+  //   // Additive
+  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-    // -- Offsets --
-    // Incremental offset
-    uv.y += 0.0080;
+  //   // -- Offsets --
+  //   // Incremental offset
+  //   uv.y += 0.0080;
 
-    // Initial Offset
-    uv.y += i == 0. ? 0.0075 : 0.;
+  //   // Initial Offset
+  //   uv.y += i == 0. ? 0.0075 : 0.;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
 
-  color.a = saturate(color.a);
-  // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  color.a = 1.;
+  // color.a = saturate(color.a);
+  // // color.rgb = mix(vec3(1), color.rgb, color.a);
+  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  // color.a = 1.;
 
-  return color;
+  // return color;
 
   // -- Color delay --
-  const float slices = 20.;
+  const float slices = 6.;
   const float delayLength = 0.140;
 
   for (float i = 0.; i < slices; i++) {
