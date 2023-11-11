@@ -1279,7 +1279,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.01);
+const vec2 gSize = vec2(0.015);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1301,7 +1301,6 @@ vec2 shape (in vec2 q, in vec2 c) {
   float odd = mod(dC, 2.);
   float even = 1. - odd;
 
-  const float warpScale = 0.35;
   // vec2 size = vec2(0.85, 0.15);
 
   // // Assume [0,1] range per dimension
@@ -1312,10 +1311,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.03 * length(c);
+  locallocalT -= 0.03 * length(c);
   // locallocalT -= 0.07 * vmax(abs(0.4 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
-  locallocalT -= atan(c.y, c.x) / PI;
+  // locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
   locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
@@ -1339,14 +1338,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Vanilla cell coordinate
   vec2 localC = c;
 
-  vec2 size = gSize;
-  vec2 r = 0.2 * size;
+  float localNorT = 0.5 + 0.5 * cos(localCosT);
+  float warpScale = 0.45 * expo(localNorT);
 
-  q.x += 0.5 * size.x * mod(localC.y, 2.);
+  vec2 size = gSize;
+  vec2 r = 0.225 * size;
+
+  q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 2.2 * size.x * mix(
+  q += 3.2 * localNorT * size.x * mix(
       0.2 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123),
       vec2(1) * snoise2(8.863 * localC + 2.37),
       nT);
@@ -1368,13 +1370,13 @@ vec2 shape (in vec2 q, in vec2 c) {
   center -= size.x * c;
   q += center;
 
-  // Cosine warp
-  float warpScale2 = warpScale * 0.5;
-  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC);
-  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC);
-  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC);
-  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC);
-  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC);
+  // // Cosine warp
+  // float warpScale2 = warpScale * 0.5;
+  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC);
+  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC);
+  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC);
+  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC);
+  // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC);
 
   q *= rotMat2(0.5 * PI * cos(localCosT));
 
@@ -1437,13 +1439,13 @@ vec2 shape (in vec2 q, in vec2 c) {
   float mask = 0.;
   // mask = step(0., dot(abs(c), vec2(1)) - 12.);
   // mask = step(0., vmax(abs(c)) - 12.);
-  mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
+  // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
   // mask = step(0., abs(c.y - 25.) - 8.); // Mask below a line
-  // // Convert circle into torus
-  // mask = step(0., abs(length(c) - 26.) - 12.);
+  // Convert circle into torus
+  mask = step(0., abs(length(c) - 16.) - 10.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
@@ -3890,8 +3892,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 6.;
-  const float delayLength = 0.140;
+  const float slices = 8.;
+  const float delayLength = 0.180;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
