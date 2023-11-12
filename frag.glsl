@@ -1311,12 +1311,12 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.03 * length(c);
+  // locallocalT -= 0.03 * length(c);
   // locallocalT -= 0.07 * vmax(abs(0.4 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
-  // locallocalT += 0.0125 * dC;
-  locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
+  locallocalT += 0.0125 * dC;
+  // locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
   // NOTE Flip time offset if there are gaps
@@ -1329,14 +1329,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   // t = expo(t);
   float localCosT = TWO_PI * t;
 
-  // // Local C that transitions from one cell to another
-  // float shift = 0.;
-  // vec2 shiftDir = vec2(1, 1);
+  // Local C that transitions from one cell to another
+  float shift = 0.;
+  vec2 shiftDir = vec2(1, 1);
 
-  // vec2 localC = mix(c, c + shift * shiftDir, t);
+  vec2 localC = mix(c, c + shift * shiftDir, t);
 
-  // Vanilla cell coordinate
-  vec2 localC = c;
+  // // Vanilla cell coordinate
+  // vec2 localC = c;
 
   float localNorT = 0.5 + 0.5 * cos(localCosT);
   float warpScale = 0.45 * expo(localNorT);
@@ -1344,11 +1344,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 size = gSize;
   vec2 r = 0.225 * size;
 
-  q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
+  // q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 3.2 * localNorT * size.x * mix(
+  q += 1.5 * localNorT * size.x * mix(
       0.2 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123),
       vec2(1) * snoise2(8.863 * localC + 2.37),
       nT);
@@ -1360,15 +1360,19 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
-  q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
+  // q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
-  vec2 center = vec2(size.x * (c + gC));
-  center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT + vec2(9.2378));
-  center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT + vec2(-10.2378));
-  center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
-  center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
-  center -= size.x * c;
-  q += center;
+  t -= 0.45;
+  t = mod(t, 1.);
+  q += 3. * size * shiftDir * t;
+
+  // vec2 center = vec2(size.x * (c + gC));
+  // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT + vec2(9.2378));
+  // center += size.x * warpScale * 0.05000 * cos( 7.91230 * center.yx + localCosT + vec2(-10.2378));
+  // center *= rotMat2(0.005 * PI * cos(localCosT - length(0.1 * c)));
+  // center += size.x * warpScale * 0.02500 * cos(13.71347 * center.yx + localCosT);
+  // center -= size.x * c;
+  // q += center;
 
   // // Cosine warp
   // float warpScale2 = warpScale * 0.5;
@@ -1378,7 +1382,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC);
   // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC);
 
-  q *= rotMat2(0.5 * PI * cos(localCosT));
+  // q *= rotMat2(0.5 * PI * cos(localCosT));
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1445,7 +1449,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // mask = step(0., length(c) - 35.);
   // mask = step(0., abs(c.y - 25.) - 8.); // Mask below a line
   // Convert circle into torus
-  mask = step(0., abs(length(c) - 16.) - 10.);
+  // mask = step(0., abs(length(c) - 16.) - 10.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
@@ -1461,7 +1465,7 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=4.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -3842,8 +3846,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
