@@ -3554,23 +3554,23 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.45;
-  // wQ *= rotMat2(0.2 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.35;
+  wQ *= rotMat2(0.2 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
 
-  wQ *= rotMat2(-0.5 * PI);
+  // wQ *= rotMat2(-0.5 * PI);
 
   // wQ = polarCoords(wQ);
   // wQ.x /= PI;
   // wQ.y -= 0.2;
 
-  // c = floor((wQ + size*0.5)/size);
-  // wQ = opRepLim(wQ, vmax(size), vec2(15));
+  c = floor((wQ + size*0.5)/size);
+  wQ = opRepLim(wQ, vmax(size), vec2(11));
   // c = pMod2(wQ, vec2(0.50));
   // gC = c;
   // c.y += cIshShift;
@@ -3581,11 +3581,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Adjust R per cell
   // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
-  // // -- Cell T --
-  // float cellT = t;
+  // -- Cell T --
+  float cellT = t;
 
-  // // Center out
-  // cellT -= 0.03 * length(c);
+  // Center out
+  cellT -= 0.025 * length(c);
 
   // // Coordinate offset
   // // cellT -= 0.080 * c.y;
@@ -3602,8 +3602,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Noise offset
   // cellT -= 0.175 * snoise2(1.2 * c);
 
-  // // Rectify
-  // cellT = mod(cellT, 1.);
+  // Rectify
+  cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
@@ -3629,11 +3629,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, b);
 
   // vec2 b = vec2(length(q - r * vec2(1)) - 1.8 * vmax(r), 0);
-  // vec2 b = vec2(sdBox(q - r * vec2(1.414214), 1.8 * r), 0);
-  // d = dMin(d, b);
-
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  //
+  r -= 1.2 * r * quart(0.5 + 0.5 * cos(TWO_PI * cellT));
+  vec2 b = vec2(sdBox(q, 0.9 * r), 0);
   d = dMin(d, b);
+
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3846,8 +3848,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3856,44 +3858,44 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 8.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0 * i);
+  // -- Echoed Layers --
+  const float echoSlices = 8.;
+  for (float i = 0.; i < echoSlices; i++) {
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.04 * i);
 
-  //   // // Outlined version
-  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-  //   // // Hard Edge
-  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+    // // Outlined version
+    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+    // // Hard Edge
+    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-  //   // Echo Dimming
-  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
+    // Echo Dimming
+    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
 
-  //   // Blend mode
-  //   // Additive
-  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
+    // Blend mode
+    // Additive
+    color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-  //   // -- Offsets --
-  //   // Incremental offset
-  //   uv.y += 0.0080;
+    // -- Offsets --
+    // Incremental offset
+    uv.y += 0.0080;
 
-  //   // Initial Offset
-  //   uv.y += i == 0. ? 0.0075 : 0.;
+    // Initial Offset
+    uv.y += i == 0. ? 0.0075 : 0.;
 
-  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  // }
+    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  }
 
-  // color.a = saturate(color.a);
-  // // color.rgb = mix(vec3(1), color.rgb, color.a);
-  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  // color.a = 1.;
+  color.a = saturate(color.a);
+  // color.rgb = mix(vec3(1), color.rgb, color.a);
+  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  color.a = 1.;
 
-  // return color;
+  return color;
 
   // -- Color delay --
   const float slices = 8.;
