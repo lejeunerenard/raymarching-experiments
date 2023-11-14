@@ -1903,7 +1903,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 q = p;
 
   float warpScale = 0.25;
-  float warpFrequency = 1.;
+  float warpFrequency = 0.2;
   float rollingScale = 1.;
 
   // Warp
@@ -1926,11 +1926,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 0. * wQ.y + 0.8 * PI * cos(localCosT + 0.9 * wQ.y));
+  wQ.xyz = twist(wQ.xzy, 1. * wQ.z + 0.2 * PI * cos(localCosT + 0.9 * wQ.z));
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
+  // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
   wQ += 0.006250 * warpScale * cos(17.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.003125 * warpScale * cos(19.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -1940,17 +1940,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(icosahedral(q, 52., 0.8 * r), 0, 0);
-  // vec3 b = vec3(sdHollowBox(q, vec3(r), 0.4 * r), 0, 0);
+  r *= 1. - saturate(-q.z / 2.5);
 
-  float gyroidScale = 75.;
-  vec3 b = vec3(gyroid(gyroidScale * q, 0.75 * r), 0, 0);
-  b.x /= gyroidScale;
-  b.x *= 0.9;
+  vec3 b = vec3(r - length(q.xy), 0, 0);
   d = dMin(d, b);
-
-  float crop = sdBox(q, vec3(r, r, 0.1 * r));
-  d.x = max(d.x, crop);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -1958,8 +1951,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.70;
+  // // Under step
+  // d.x *= 0.70;
 
   return d;
 }
@@ -2209,7 +2202,27 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.);
+  vec3 color = vec3(0.);
+
+  vec2 pol = vec2(
+      atan(mPos.y, mPos.x),
+      mPos.z);
+  pol.x /= PI;
+
+  float baseSize = 0.025;
+  float lSize = 12.;
+  vec2 size = baseSize * vec2(1. + floor(max(0., -(pol.y + 0.5 * 12. * baseSize) / (12. * baseSize))), 12.);
+  vec2 r = vec2(0.1, 0.4) * size;
+
+  vec2 c = pMod2(pol, size);
+
+  pol.y += 0.15 * size.y * snoise2(1.238 * c);
+
+  float b = sdBox(pol, r);
+  float n = step(b, 0.);
+
+  color = vec3(n);
+
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2397,14 +2410,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.9;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.;
-      float shadowMin = 0.5;
+      float diffMin = 1.;
+      float shadowMin = 1.;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2479,7 +2492,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2513,12 +2526,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
-            / fogMaxDistance
-      ));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(
+      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
+      //       / fogMaxDistance
+      // ));
       // color *= saturate(exp(-d * 0.025));
       // color = mix(background, color, saturate(exp(-d * 0.05)));
 
@@ -3815,7 +3828,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3848,8 +3861,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3858,44 +3871,44 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // -- Echoed Layers --
-  const float echoSlices = 8.;
-  for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.04 * i);
+  // // -- Echoed Layers --
+  // const float echoSlices = 8.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.04 * i);
 
-    // // Outlined version
-    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // // Hard Edge
-    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+  //   // // Outlined version
+  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+  //   // // Hard Edge
+  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-    // Echo Dimming
-    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
+  //   // Echo Dimming
+  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
 
-    // Blend mode
-    // Additive
-    color += vec4(vec3(layerColor.a), 1) * layerColor;
+  //   // Blend mode
+  //   // Additive
+  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-    // -- Offsets --
-    // Incremental offset
-    uv.y += 0.0080;
+  //   // -- Offsets --
+  //   // Incremental offset
+  //   uv.y += 0.0080;
 
-    // Initial Offset
-    uv.y += i == 0. ? 0.0075 : 0.;
+  //   // Initial Offset
+  //   uv.y += i == 0. ? 0.0075 : 0.;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
 
-  color.a = saturate(color.a);
-  // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  color.a = 1.;
+  // color.a = saturate(color.a);
+  // // color.rgb = mix(vec3(1), color.rgb, color.a);
+  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  // color.a = 1.;
 
-  return color;
+  // return color;
 
   // -- Color delay --
   const float slices = 8.;
