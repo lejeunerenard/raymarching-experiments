@@ -1923,18 +1923,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.x += 0.20000 * warpScale * cos(wQ.z + localCosT);
+
+  wQ.xy += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ.xy) + distortT + warpPhase.xy);
+  wQ.xy += 0.050000 * warpScale * cos( 4.182 * warpFrequency * componentShift(wQ.xy) + distortT + warpPhase.xy);
+
+  // wQ += 0.100000 * warpScale * cos( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, 1. * wQ.z + 0.2 * PI * cos(localCosT + 0.9 * wQ.z));
-  wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
   // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos(17.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(19.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.001125 * warpScale * cos(23.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.006250 * warpScale * cos(17.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(19.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.001125 * warpScale * cos(23.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
@@ -2210,15 +2215,16 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   pol.x /= PI;
 
   float baseSize = 0.025;
-  float lSize = 12.;
-  vec2 size = baseSize * vec2(1. + floor(max(0., -(pol.y + 0.5 * 12. * baseSize) / (12. * baseSize))), 12.);
+  float reduce = floor(max(0., -(pol.y + 0.5 * baseSize - 26. * baseSize) / (12. * baseSize)));
+  vec2 size = baseSize * vec2(1. + reduce);
   vec2 r = vec2(0.1, 0.4) * size;
 
   vec2 c = pMod2(pol, size);
 
   pol.y += 0.15 * size.y * snoise2(1.238 * c);
 
-  float b = sdBox(pol, r);
+  // float b = sdBox(pol, r);
+  float b = length(pol) - vmin(r);
   float n = step(b, 0.);
 
   color = vec3(n);
