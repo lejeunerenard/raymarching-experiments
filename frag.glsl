@@ -1311,11 +1311,11 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.03 * length(c);
+  locallocalT -= 0.03 * length(c);
   // locallocalT -= 0.07 * vmax(abs(0.4 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
-  locallocalT += 0.0125 * dC;
+  // locallocalT += 0.0125 * dC;
   // locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
@@ -1342,13 +1342,13 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = 0.225 * size;
+  vec2 r = 0.25 * size;
 
   // q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 1.5 * localNorT * size.x * mix(
+  q += 1.5 * localNorT * size * mix(
       0.2 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123),
       vec2(1) * snoise2(8.863 * localC + 2.37),
       nT);
@@ -1362,7 +1362,7 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
-  t -= 0.45;
+  // t -= 0.45;
   t = mod(t, 1.);
   q += 3. * size * shiftDir * t;
 
@@ -3545,9 +3545,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.35;
-  wQ *= rotMat2(0.2 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.35;
+  // wQ *= rotMat2(0.2 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3560,8 +3560,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 0.2;
 
-  c = floor((wQ + size*0.5)/size);
-  wQ = opRepLim(wQ, vmax(size), vec2(11));
+  // c = floor((wQ + size*0.5)/size);
+  // wQ = opRepLim(wQ, vmax(size), vec2(11));
   // c = pMod2(wQ, vec2(0.50));
   // gC = c;
   // c.y += cIshShift;
@@ -3575,8 +3575,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // -- Cell T --
   float cellT = t;
 
-  // Center out
-  cellT -= 0.025 * length(c);
+  // // Center out
+  // cellT -= 0.025 * length(c);
 
   // // Coordinate offset
   // // cellT -= 0.080 * c.y;
@@ -3593,8 +3593,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Noise offset
   // cellT -= 0.175 * snoise2(1.2 * c);
 
-  // Rectify
-  cellT = mod(cellT, 1.);
+  // // Rectify
+  // cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
@@ -3619,14 +3619,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 b = vec2(sdBox(q, vec2(r)), 0);
   // d = dMin(d, b);
 
-  // vec2 b = vec2(length(q - r * vec2(1)) - 1.8 * vmax(r), 0);
-  //
-  r -= 1.2 * r * quart(0.5 + 0.5 * cos(TWO_PI * cellT));
-  vec2 b = vec2(sdBox(q, 0.9 * r), 0);
-  d = dMin(d, b);
+  //// vec2 b = vec2(length(q - r * vec2(1)) - 1.8 * vmax(r), 0);
+  ////
+  //r -= 1.2 * r * quart(0.5 + 0.5 * cos(TWO_PI * cellT));
+  //vec2 b = vec2(sdBox(q, 0.9 * r), 0);
+  //d = dMin(d, b);
 
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  // d = dMin(d, b);
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3806,7 +3806,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
