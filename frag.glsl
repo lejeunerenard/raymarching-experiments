@@ -1279,7 +1279,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.015);
+const vec2 gSize = vec2(0.020);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1311,10 +1311,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.03 * length(c);
+  // locallocalT -= 0.03 * length(c);
   // locallocalT -= 0.07 * vmax(abs(0.4 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
-  // locallocalT -= atan(c.y, c.x) / PI;
+  locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
   // locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
@@ -1330,7 +1330,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 0.;
+  float shift = 1.;
   vec2 shiftDir = vec2(1, 1);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1342,16 +1342,18 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = 0.25 * size;
+  vec2 r = 0.05 * size;
 
   // q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
 
   // Make grid look like random placement
   float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  q += 1.5 * localNorT * size * mix(
-      0.2 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123),
-      vec2(1) * snoise2(8.863 * localC + 2.37),
-      nT);
+  vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
+  vec2 n2 = vec2(-1, 1) * vec2(
+      snoise2(8.863 * vec2(-1, 1) * localC + 2.37),
+      snoise2(0.863 * vec2(1,-1) * localC + vec2(-9., 2.37))
+      );
+  q += 0.5 * localNorT * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1363,8 +1365,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
   // t -= 0.45;
-  t = mod(t, 1.);
-  q += 3. * size * shiftDir * t;
+  // t = mod(t, 1.);
+
+  // q += 3. * size * shiftDir * t;
 
   // vec2 center = vec2(size.x * (c + gC));
   // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT + vec2(9.2378));
