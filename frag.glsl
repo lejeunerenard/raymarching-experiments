@@ -3563,6 +3563,21 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 0.2;
 
+  wQ *= scale;
+
+  vec2 kC = vec2(offset.x, offset.y);
+  for (float i = 0.; i < 22.; i++) {
+    // wQ = abs(wQ)/dot(wQ,wQ) - kC;
+    vec2 prevWQ = wQ;
+    pModPolar(wQ, 5.);
+    // wQ.y = abs(wQ.y);
+    wQ /= dot(prevWQ, prevWQ);
+    wQ -= kC;
+    // wQ = abs(wQ)/(wQ.x * wQ.y) - kC;
+
+    wQ *= rotMat2((offset.z + 0.005 * cos(localCosT + 0.2 * i + 3. * q.x)) * PI);
+  }
+
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(11));
   // c = pMod2(wQ, vec2(0.50));
@@ -3619,17 +3634,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
 
-  // vec2 b = vec2(sdBox(q, vec2(r)), 0);
-  // d = dMin(d, b);
-
-  //// vec2 b = vec2(length(q - r * vec2(1)) - 1.8 * vmax(r), 0);
-  ////
-  //r -= 1.2 * r * quart(0.5 + 0.5 * cos(TWO_PI * cellT));
-  //vec2 b = vec2(sdBox(q, 0.9 * r), 0);
-  //d = dMin(d, b);
-
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // vec2 b = vec2(length(q) - vmax(r), 0);
+  vec2 b = vec2(length(q) - 0. * 0.4, 0);
+  // b.x = abs(b.x) - 0.075;
+  // b.x /= scale;
   d = dMin(d, b);
+
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3659,11 +3671,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
-  // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n - 0.0);
+  // // Hard Edge
+  // n = smoothstep(0., 1.0 * edge, n - 0.0);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3674,13 +3686,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
 
-  // // Simple Cosine Palette
-  // float cosineIndex = d.y;
-  // cosineIndex *= 0.17283;
+  // Simple Cosine Palette
+  float cosineIndex = d.y;
+  cosineIndex *= 0.17283;
   // cosineIndex += t;
   // cosineIndex += dot(uv, vec2(1));
-  // color.rgb = saturate(n) * (0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67))));
-  // color.a = 1.;
+  cosineIndex *= angle1C;
+  cosineIndex += angle2C;
+  color.rgb = saturate(n) * (0.5 + 0.5 * cos(TWO_PI * (cosineIndex + vec3(0, 0.33, 0.67))));
+  color.a = 1.;
 
   // // Mix
   // color.rgb = mix(vec3(0., 0.05, 0.05), vec3(1, .95, .95), n);
@@ -3755,10 +3769,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
+  // Brighten
+  color.rgb *= 2.;
+
   color.rgb *= saturate(mask);
   // color.rgb *= color.a; // Don't leak color channels at expense of edges loosing color
-
-  // color.rgb *= 1.3;
 
   return color;
 }
