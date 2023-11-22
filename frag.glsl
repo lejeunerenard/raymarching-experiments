@@ -3567,7 +3567,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float minD = maxDistance;
   vec2 kC = vec2(offset.x, offset.y);
-  for (float i = 0.; i < 16.; i++) {
+  for (float i = 0.; i < 14.; i++) {
     wQ = abs(wQ)/dot(wQ,wQ) - kC;
     // vec2 prevWQ = wQ;
     // pModPolar(wQ, 5.);
@@ -3577,10 +3577,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
     // wQ -= kC;
     // wQ = abs(wQ)/(wQ.x * wQ.y) - kC;
 
-    wQ *= rotMat2((offset.z + 0.005 * cos(localCosT + 0.2 * i + 3.0 * q.x)) * PI);
+    wQ *= rotMat2((offset.z + 0.005 * cos(localCosT + 0.2 * i + 8.0 * q.x)) * PI);
 
-    float trip = sdBox(wQ, 0.075 * vec2(0.1, 1));
-    minD = min(minD, trip);
+    // float trap = sdBox(wQ, 0.075 * vec2(0.1, 1));
+    float trap = length(wQ) - 0.1;
+    minD = min(minD, trap);
   }
 
   // c = floor((wQ + size*0.5)/size);
