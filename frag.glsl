@@ -3577,7 +3577,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
     // wQ -= kC;
     // wQ = abs(wQ)/(wQ.x * wQ.y) - kC;
 
-    wQ *= rotMat2((offset.z + 0.005 * cos(localCosT + 0.2 * i + 8.0 * q.x)) * PI);
+    wQ *= rotMat2(localCosT + (offset.z + 0.005 * cos(localCosT + 0.2 * i + 8.0 * q.x)) * PI);
 
     // float trap = sdBox(wQ, 0.075 * vec2(0.1, 1));
     float trap = length(wQ) - 0.1;

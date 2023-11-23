@@ -50,8 +50,8 @@ export default class App {
     const preset = {
       offset: {
         x: 0.268,
-        y: 0.018,
-        z: -0.093
+        y: 1,
+        z: 1.151
       },
       d: 0.52,
       scale: 1.8467,
@@ -82,7 +82,7 @@ export default class App {
     this.angle2C = 0.4489
     this.angle3C = 0.89
 
-    this.setupAnimation(preset)
+    // this.setupAnimation(preset)
 
     this.glInit(gl)
 
