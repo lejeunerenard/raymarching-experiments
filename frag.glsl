@@ -3566,8 +3566,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= scale;
 
   float minD = maxDistance;
-  vec2 kC = vec2(offset.x, offset.y);
-  for (float i = 0.; i < 14.; i++) {
+  vec2 kC = vec2(offset.x, offset.y) + 0.1 * cos(localCosT);
+  for (float i = 0.; i < 10.; i++) {
     wQ = abs(wQ)/dot(wQ,wQ) - kC;
     // vec2 prevWQ = wQ;
     // pModPolar(wQ, 5.);
@@ -3577,10 +3577,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
     // wQ -= kC;
     // wQ = abs(wQ)/(wQ.x * wQ.y) - kC;
 
-    wQ *= rotMat2(localCosT + (offset.z + 0.005 * cos(localCosT + 0.2 * i + 8.0 * q.x)) * PI);
+    // wQ *= rotMat2(localCosT + (offset.z + 0.005 * cos(0.2 * i + 8.0 * q.x)) * PI);
 
     // float trap = sdBox(wQ, 0.075 * vec2(0.1, 1));
-    float trap = length(wQ) - 0.1;
+    float trap = length(wQ) - 0.;
     minD = min(minD, trap);
   }
 
@@ -3669,8 +3669,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // --- Output ---
   float n = d.x;
 
-  // // Repeat
-  // n = sin(0.25 * TWO_PI * n);
+  // Repeat
+  n = sin(1.25 * TWO_PI * n);
 
   // // Outline
   // n = abs(n) - mix(-9. * thickness, thickness, pow(boxT, 0.5));
@@ -3679,10 +3679,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n - 0.0);
+  n = smoothstep(0., 1.0 * edge, n - 0.3);
 
-  // Invert
-  n = 1. - n;
+  // // Invert
+  // n = 1. - n;
 
   // // Solid
   // color.rgb = vec3(1);
