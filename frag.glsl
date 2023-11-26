@@ -1945,16 +1945,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + 5. * dot(q, vec3(1))));
 
-  const float num = 4.;
-  float incAngle = 0.5 * PI / (num - 1.);
+  const float num = 3.;
+  float incAngle = 0.75 * PI / (num - 1.);
   for (float i = 0.; i < num; i++) {
     vec3 localQ = q;
     localQ *= rotationMatrix(vec3(1), incAngle * i);
-    vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
-    d = dMin(d, b);
+    // vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
+    localQ *= rotationMatrix(vec3(0.25, -1, 0.5), 0.537 * PI);
+    vec3 b = vec3(icosahedral(localQ, 52., r), 0, 0);
+    d = dSMin(d, b, 0.006 * r);
   }
 
-  d.x -= 0.007 * cellular(2. * q);
+  // d.x -= 0.007 * cellular(2. * q);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
