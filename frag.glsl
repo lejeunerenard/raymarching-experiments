@@ -1895,13 +1895,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.08 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.08 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
 
@@ -1943,17 +1943,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + 5. * dot(q, vec3(1))));
+  q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + 0. * dot(q, vec3(1))));
 
-  const float num = 3.;
+  const float num = 4.;
   float incAngle = 0.75 * PI / (num - 1.);
   for (float i = 0.; i < num; i++) {
     vec3 localQ = q;
     localQ *= rotationMatrix(vec3(1), incAngle * i);
     // vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
     localQ *= rotationMatrix(vec3(0.25, -1, 0.5), 0.537 * PI);
-    vec3 b = vec3(icosahedral(localQ, 52., r), 0, 0);
-    d = dSMin(d, b, 0.006 * r);
+    vec3 b = vec3(dodecahedral(localQ, 52., r), 0, 0);
+    d = dSMin(d, b, 0.01 * r);
   }
 
   // d.x -= 0.007 * cellular(2. * q);
