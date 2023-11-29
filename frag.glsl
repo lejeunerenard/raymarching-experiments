@@ -1945,15 +1945,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q *= rotationMatrix(vec3(1), 0.1 * PI * cos(localCosT + 0. * dot(q, vec3(1))));
 
-  const float num = 9.;
-  float incAngle = TWO_PI / (num - 1.);
+  const float num = 3.;
+  float incAngle = TWO_PI / (num - 0.);
   for (float i = 0.; i < num; i++) {
     vec3 localQ = q;
     localQ *= rotationMatrix(vec3(1), incAngle * i);
     // vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
-    localQ *= rotationMatrix(vec3(0.25, -1, 0.5), (0.5 + 0.5 * cos(localCosT)) * 0.7 * PI);
-    // vec3 b = vec3(dodecahedral(localQ, 52., r), 0, 0);
-    vec3 b = vec3(sdHollowBox(localQ, vec3(r), 0.2 * r), 0, 0);
+    localQ *= rotationMatrix(vec3(0.25, -1, 0.5), (0.5 + 0.5 * cos(localCosT)) * 0.7931 * PI);
+
+    vec3 b = vec3(dodecahedral(localQ, 52., r), 0, 0);
     d = dSMin(d, b, 0.01 * r);
   }
 
