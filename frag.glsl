@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -3594,7 +3594,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= scale;
 
   float minD = maxDistance;
-  vec2 kC = vec2(offset.x, offset.y) + 0.1 * cos(localCosT);
+  vec2 kC = vec2(offset.x, offset.y) + vec2(0.3, 0) * (0.5 + 0.5 * cos(localCosT + 1.5 * wQ.x));
+  kC.y += 0.2 * expo(0.5 + 0.5 * cos(localCosT - 0.1 * length(wQ) - 0. * PI));
   for (float i = 0.; i < 10.; i++) {
     wQ = abs(wQ)/dot(wQ,wQ) - kC;
     // vec2 prevWQ = wQ;
@@ -3859,7 +3860,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);

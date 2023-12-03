@@ -49,8 +49,8 @@ export default class App {
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.993,
-        y: 0.971,
+        x: 0.465,
+        y: 0.313,
         z: 1.08
       },
       d: 0.52,
