@@ -3594,10 +3594,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= scale;
 
   float minD = maxDistance;
-  vec2 kC = vec2(offset.x, offset.y) + vec2(0.3, 0) * (0.5 + 0.5 * cos(localCosT + 1.5 * wQ.x));
+  vec2 kC = vec2(offset.x, offset.y) + 0. * vec2(0.3, 0) * (0.5 + 0.5 * cos(localCosT + 1.5 * wQ.x));
   kC.y += 0.2 * expo(0.5 + 0.5 * cos(localCosT - 0.1 * length(wQ) - 0. * PI));
   for (float i = 0.; i < 10.; i++) {
     wQ = abs(wQ)/dot(wQ,wQ) - kC;
+
     // vec2 prevWQ = wQ;
     // pModPolar(wQ, 5.);
     // // wQ.y = abs(wQ.y);
@@ -3606,7 +3607,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
     // wQ -= kC;
     // wQ = abs(wQ)/(wQ.x * wQ.y) - kC;
 
-    // wQ *= rotMat2(localCosT + (offset.z + 0.005 * cos(0.2 * i + 8.0 * q.x)) * PI);
+    wQ *= rotMat2((offset.z + 0.005 * cos(0.2 * i + 8.0 * q.x)) * PI);
 
     // float trap = sdBox(wQ, 0.075 * vec2(0.1, 1));
     float trap = length(wQ) - 0.;
