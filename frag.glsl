@@ -1943,16 +1943,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - 1.125 * r, 0, 0);
+  // vec3 b = vec3(length(q) - 1.125 * r, 0, 0);
+  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   wQ = p;
   wQ *= rotationMatrix(vec3(0, 1, 0), -localCosT );
-  wQ.xz *= -1.;
+  wQ.x *= -1.;
   wQ += 0.100000 * warpScale * sin( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 1. * wQ.z + 0.4 * PI * cos(localCosT + 0.9 * wQ.z));
+  wQ.xyz = twist(wQ.xzy, 2. * wQ.z + 0.4 * PI * cos(localCosT + 0.9 * wQ.z));
   wQ += 0.025000 * warpScale * sin( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -2232,6 +2233,13 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0.);
+
+  vec3 nQ = mPos;
+  const float r = 0.02;
+  pMod3(nQ, vec3(2.5 * r));
+  float n = length(nQ) - r;
+  n = smoothstep(0., 0.25 * edge, n);
+  color = vec3(n);
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2419,14 +2427,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.70;
-      float specCo = 1.;
+      float freCo = 0.;
+      float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.9;
-      float shadowMin = 0.9;
+      float diffMin = 1.0;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2501,7 +2509,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
