@@ -1881,7 +1881,22 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
 
 #pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
 
-float gR = 0.45;
+vec3 mobius (in vec3 q, in float r, in vec3 d) {
+  q.xy = polarCoords(q.xy);
+  q.x /= PI;
+  q.y -= 2. * r;
+
+  q.yz *= rotMat2(0.25 * PI * q.x);
+
+  vec3 b = vec3(sdBox(q, vec3(1, r, r)), 0, 0);
+  if (b.x <= d.x) {
+    mPos = q;
+  }
+
+  return dMin(d, b);
+}
+
+float gR = 0.25;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1901,11 +1916,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
 
-  float warpScale = 0.25;
+  float warpScale = 0.15;
   float warpFrequency = 0.5;
   float rollingScale = 1.;
 
@@ -1929,11 +1944,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.100000 * warpScale * cos( 8.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 9.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 2. * wQ.y + 0.4 * PI * cos(localCosT + 0.9 * wQ.z));
+  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z));
   wQ += 0.025000 * warpScale * cos(19.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
+  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
   wQ += 0.006250 * warpScale * cos(27.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.003125 * warpScale * cos(39.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -1941,39 +1956,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
-  mPos = q;
 
-  // vec3 b = vec3(length(q) - 1.125 * r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
-  d = dMin(d, b);
+  d = mobius(q + r * vec3(0.1, 0.0, 0.), 1.0 * r, d);
+  d = mobius(q + r * vec3(0.0, 0.1, 1.2), 0.6 * r, d);
+  d = mobius(q + r * vec3(0.0,-0.1, 1.3), 0.2 * r, d);
 
-  wQ = p;
-  wQ *= rotationMatrix(vec3(0, 1, 0), -localCosT );
-  wQ.x *= -1.;
-  wQ += 0.100000 * warpScale * sin( 2.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 2. * wQ.z + 0.4 * PI * cos(localCosT + 0.9 * wQ.z));
-  wQ += 0.025000 * warpScale * sin( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.305 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * sin(17.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(19.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.001125 * warpScale * sin(23.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-
-  // Commit warp
-  q = wQ.xyz;
-  mPos = q;
-
-  b = vec3(icosahedral(q, 52., 1.05 * r), 0, 0);
-  d = dSMax(d, b, 0.05 * r);
-
-  // b = vec3(octahedral(p, 52., r), 0, 0);
-  // d = dSMax(d, b, 0.05 * r);
-
-  // d.x -= 0.007 * cellular(2. * q);
+  d.x *= 0.5;
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2232,13 +2220,13 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(0.5);
 
   vec3 nQ = mPos;
-  const float r = 0.02;
-  pMod3(nQ, vec3(2.5 * r));
+  const float r = 0.0175;
+  pMod3(nQ, vec3(3. * r));
   float n = length(nQ) - r;
-  n = smoothstep(0., 0.25 * edge, n);
+  n = 1. - smoothstep(0., 0.25 * edge, n);
   color = vec3(n);
   return color;
 
@@ -2495,11 +2483,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.3 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
