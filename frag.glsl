@@ -1884,9 +1884,9 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
 vec3 mobius (in vec3 q, in float r, in vec3 d) {
   q.xy = polarCoords(q.xy);
   q.x /= PI;
-  q.y -= 2. * r;
+  q.y -= 1.5 * r;
 
-  q.yz *= rotMat2(0.25 * PI * q.x);
+  q.yz *= rotMat2(0.75 * PI * q.x - 0.125 * PI * cos(cosT + 1. * PI * q.x));
 
   vec3 b = vec3(sdBox(q, vec3(1, r, r)), 0, 0);
   if (b.x <= d.x) {
@@ -1910,11 +1910,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.08 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.08 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -1958,8 +1958,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
 
   d = mobius(q + r * vec3(0.1, 0.0, 0.), 1.0 * r, d);
-  d = mobius(q + r * vec3(0.0, 0.1, 1.2), 0.6 * r, d);
-  d = mobius(q + r * vec3(0.0,-0.1, 1.3), 0.2 * r, d);
 
   d.x *= 0.5;
 
@@ -2224,7 +2222,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec3 nQ = mPos;
   const float r = 0.0175;
-  pMod3(nQ, vec3(3. * r));
+  pMod3(nQ, vec3(2.25 * r));
   float n = length(nQ) - r;
   n = 1. - smoothstep(0., 0.25 * edge, n);
   color = vec3(n);
