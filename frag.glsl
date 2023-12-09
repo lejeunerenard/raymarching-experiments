@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1920,8 +1920,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.15;
-  float warpFrequency = 0.5;
+  float warpScale = 0.5;
+  float warpFrequency = 0.75;
   float rollingScale = 1.;
 
   // Warp
@@ -1956,8 +1956,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
+  mPos = q;
 
-  d = mobius(q + r * vec3(0.1, 0.0, 0.), 1.0 * r, d);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  d = dMin(d, b);
 
   d.x *= 0.5;
 
@@ -2221,11 +2224,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 color = vec3(0.5);
 
   vec3 nQ = mPos;
-  const float r = 0.0175;
-  pMod3(nQ, vec3(2.25 * r));
+  const float r = 0.0051;
+  pMod3(nQ, vec3(3. * r));
   float n = length(nQ) - r;
   n = 1. - smoothstep(0., 0.25 * edge, n);
-  color = vec3(n);
+  color = vec3(1.8 * n);
   return color;
 
   // float n = dot(mPos.xyz, vec3(1));
@@ -2419,7 +2422,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
+      float diffMin = 0.5;
       float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
