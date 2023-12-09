@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1896,7 +1896,7 @@ vec3 mobius (in vec3 q, in float r, in vec3 d) {
   return dMin(d, b);
 }
 
-float gR = 0.25;
+float gR = 0.0075;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1920,7 +1920,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.5;
+  float warpScale = 0.35;
   float warpFrequency = 0.75;
   float rollingScale = 1.;
 
@@ -1929,6 +1929,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 wQ = q.xyz;
 
   // vec4 wQ = vec4(q.xyz, 0);
+
+  wQ.x = abs(wQ.x);
 
 #define distortT localCosT
 
@@ -1958,11 +1960,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
+  vec3 qPre = q;
+
+  const float numR = 15.;
+  q = opRepLim(q, 2.75 * r, vec3(numR));
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
-  d.x *= 0.5;
+  // float crop = icosahedral(qPre, 52., 1. * r);
+  float crop = length(qPre) - 2.5 * numR * r;
+  d.x = max(d.x, crop);
+
+  d.x *= 0.25;
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2221,7 +2231,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(1.80);
+  return color;
 
   vec3 nQ = mPos;
   const float r = 0.0051;
@@ -2423,7 +2434,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 0.5;
-      float shadowMin = 1.0;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
