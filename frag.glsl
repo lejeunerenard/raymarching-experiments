@@ -1896,7 +1896,7 @@ vec3 mobius (in vec3 q, in float r, in vec3 d) {
   return dMin(d, b);
 }
 
-float gR = 0.0075;
+float gR = 0.2;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1930,8 +1930,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // vec4 wQ = vec4(q.xyz, 0);
 
-  wQ.x = abs(wQ.x);
-
 #define distortT localCosT
 
   // float worldScale = 1.0;
@@ -1943,18 +1941,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 8.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 9.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z));
-  wQ += 0.025000 * warpScale * cos(19.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos(27.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(39.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 8.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 9.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z));
+  // wQ += 0.025000 * warpScale * cos(19.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos(27.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(39.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
@@ -1962,18 +1960,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 qPre = q;
 
-  const float numR = 15.;
-  q = opRepLim(q, 2.75 * r, vec3(numR));
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, b);
+  const float num = 10.;
+  const float incAngle = TWO_PI / num;
 
-  // float crop = icosahedral(qPre, 52., 1. * r);
-  float crop = length(qPre) - 2.5 * numR * r;
-  d.x = max(d.x, crop);
+  float innerR = 0.3 * r;
 
-  d.x *= 0.25;
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q;
+    localQ -= innerR * cos(i * incAngle + vec3(0, 0.5 * PI, PI));
+    localQ *= rotationMatrix(vec3(1), 1.0 * incAngle * i + 0.05 * PI * cos(localCosT + i * incAngle));
 
+    vec3 b = vec3(sdTorus(localQ, r * vec2(1, 0.1)), 0, 0);
+    d = dMin(d, b);
+  }
   // // Fractal Scale compensation
   // d.x /= rollingScale;
 
@@ -2231,7 +2230,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.80);
+  vec3 color = vec3(0);
   return color;
 
   vec3 nQ = mPos;
@@ -2427,8 +2426,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.;
-      float specCo = 0.;
+      float freCo = 0.75;
+      float specCo = 0.75;
 
       vec3 specAll = vec3(0.0);
 
@@ -2509,7 +2508,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
