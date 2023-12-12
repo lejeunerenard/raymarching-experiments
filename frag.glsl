@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1896,7 +1896,14 @@ vec3 mobius (in vec3 q, in float r, in vec3 d) {
   return dMin(d, b);
 }
 
-float gR = 0.2;
+vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
+  vec3 outQ = q;
+  // outQ.xy -= c * size;
+  outQ.xy -= polarToCartesian(vec2(c.x * size.x * PI, c.y * size.y));
+  return outQ;
+}
+
+float gR = 0.025;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1906,7 +1913,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(4.75);
+  vec2 size = r * vec2(2, 4.75);
 
   // Positioning adjustments
 
@@ -1958,29 +1965,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 qPre = q;
+  vec2 pol = polarCoords(q.xz);
+  pol.x /= PI;
 
-  const float num = 10.;
-  const float incAngle = TWO_PI / num;
+  vec2 c = floor((pol.xy + size*0.5)/size);
+  size.x = size.x / pow(1. + c.y, 0.125);
+  c = floor((pol.xy + size*0.5)/size);
 
-  float innerR = 0.3 * r;
+  vec2 invSize = 1./ size;
+  // float x = 0.;
+  for (float y = -1.; y < 2.; y++)
+  for (float x = -2.; x < 3.; x++) {
+    vec2 localC = vec2(x, y) + c; 
+    localC.x += 0.5 * cos(localCosT + (mod(localC.x + invSize.x, 2. * invSize.x) - invSize.x) * 0.1235 * PI);
+    localC.x = mod(localC.x + invSize.x, 2. * invSize.x) - invSize.x;
+    vec3 localQ = gridOffset(q.xzy, size, localC).xzy;
+    localQ.y += 0.2 * cos(localCosT - 0.123 * localC.y);
 
-  for (float i = 0.; i < num; i++) {
-    vec3 localQ = q;
-    localQ -= innerR * cos(i * incAngle + vec3(0, 0.5 * PI, PI));
-    localQ *= rotationMatrix(vec3(1), 1.0 * incAngle * i + 0.05 * PI * cos(localCosT + i * incAngle));
-
-    vec3 b = vec3(sdTorus(localQ, r * vec2(1, 0.1)), 0, 0);
+    vec3 b = vec3(sdCappedCylinder(localQ, r * vec2(1, 0.1)), 0, 0);
     d = dMin(d, b);
   }
+
   // // Fractal Scale compensation
   // d.x /= rollingScale;
 
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.70;
+  // Under step
+  d.x *= 0.70;
 
   return d;
 }
@@ -2230,7 +2243,7 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1);
   return color;
 
   vec3 nQ = mPos;
@@ -2426,14 +2439,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.75;
-      float specCo = 0.75;
+      float freCo = 0.;
+      float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.8;
+      float diffMin = 1.0;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2508,7 +2521,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
