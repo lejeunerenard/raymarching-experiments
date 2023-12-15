@@ -3595,29 +3595,6 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 0.2;
 
-  wQ *= scale;
-
-  float minD = maxDistance;
-  vec2 kC = vec2(offset.x, offset.y) + 0. * vec2(0.3, 0) * (0.5 + 0.5 * cos(localCosT + 1.5 * wQ.x));
-  kC.y += 0.2 * expo(0.5 + 0.5 * cos(localCosT - 0.1 * length(wQ) - 0. * PI));
-  for (float i = 0.; i < 10.; i++) {
-    wQ = abs(wQ)/dot(wQ,wQ) - kC;
-
-    // vec2 prevWQ = wQ;
-    // pModPolar(wQ, 5.);
-    // // wQ.y = abs(wQ.y);
-
-    // wQ /= dot(prevWQ, prevWQ);
-    // wQ -= kC;
-    // wQ = abs(wQ)/(wQ.x * wQ.y) - kC;
-
-    wQ *= rotMat2((offset.z + 0.005 * cos(0.2 * i + 8.0 * q.x)) * PI);
-
-    // float trap = sdBox(wQ, 0.075 * vec2(0.1, 1));
-    float trap = length(wQ) - 0.;
-    minD = min(minD, trap);
-  }
-
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(11));
   // c = pMod2(wQ, vec2(0.50));
@@ -3674,11 +3651,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
 
+  float scale = 30.;
+  q *= scale;
+
+  q += 0.8 * PI * cos(localCosT + 0.4 * snoise2(0.2 * q) + vec2(0, 0.5) * PI);
+
+  vec2 b = vec2(snoise2(0.3 * q) + dot(sin(q), cos(2. * q)), 0);
   // vec2 b = vec2(length(q) - vmax(r), 0);
-  // vec2 b = vec2(length(q) - 0.4, 0);
-  vec2 b = vec2(minD, 0);
   // b.x = abs(b.x) - 0.075;
-  // b.x /= scale;
+  b.x /= (0.17 * scale);
   d = dMin(d, b);
 
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
@@ -3691,20 +3672,20 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
-  // mask = length(maskQ) - 0.40;
+  mask = length(maskQ) - 0.20;
   // mask = sdBox(maskQ, vec2(r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
   // mask = smoothstep(0., edge, mask);
-  // mask = 1. - mask;
+  mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
   // --- Output ---
   float n = d.x;
 
-  // Repeat
-  n = sin(1.25 * TWO_PI * n);
+  // // Repeat
+  // n = sin(1.25 * TWO_PI * n);
 
   // // Outline
   // n = abs(n) - mix(-9. * thickness, thickness, pow(boxT, 0.5));
@@ -3712,8 +3693,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
-  // Hard Edge
-  n = smoothstep(0., 1.0 * edge, n - 0.3);
+  // // Hard Edge
+  // n = smoothstep(0., 1.0 * edge, n - 0.3);
 
   // // Invert
   // n = 1. - n;
@@ -3865,7 +3846,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3898,8 +3879,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3948,7 +3929,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 8.;
+  const float slices = 12.;
   const float delayLength = 0.180;
 
   for (float i = 0.; i < slices; i++) {
@@ -3960,7 +3941,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     layerColor = renderSceneLayer(ro, rd, uv, layerT).rgb;
 
     // -- Get Layer Color --
-    vec3 layerTint = vec3(0.); // 0.5 + 0.5 * cos(TWO_PI * (i / slices + vec3(0, 0.33, 0.67)));
+    vec3 layerTint = 0.5 + 0.5 * cos(TWO_PI * (i / slices + vec3(0, 0.33, 0.67)));
     // vec3 layerTint = vec3(
     //     saturate(mod(i + 0., 3.)),
     //     saturate(mod(i + 1., 3.)),
@@ -3974,7 +3955,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // dI *= 0.6;
 
-    dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1))); // Vary over time & diagonal space
+    // dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1))); // Vary over time & diagonal space
 
     // layerTint = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
     layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
