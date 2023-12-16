@@ -1927,7 +1927,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.5 * (0.5 + 0.5 * cos(localCosT + q.x));
+  float warpScale = 0.5 * (0.5 + 0.5 * cos(localCosT + q.x));
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1965,7 +1965,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2233,7 +2234,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
       atan(mPos.y, length(mPos.xz)));
   const float r = 0.05;
   pMod2(nQ, vec2(2. * r));
-  float n = abs(sdBox(nQ, vec2(r))) - 0.1 * r;
+  float n = abs(sdBox(nQ, vec2(r))) - 0.15 * r;
   n = 1. - smoothstep(0., 0.5 * edge, n);
   color = vec3(2.8 * n);
   return color;
@@ -3565,7 +3566,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.01);
+  vec2 r = vec2(0.1);
   vec2 size = vec2(2.5) * vmax(r);
 
   // -- Warp --
@@ -3584,10 +3585,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.y *= 1.35;
   // wQ *= rotMat2(0.2 * PI);
 
-  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
+
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   // wQ *= rotMat2(-0.5 * PI);
 
@@ -3649,17 +3652,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // q *= rotMat2(PI * cos(localCosT + dot(c, vec2(0.15))));
-
-  float scale = 30.;
+  float scale = 1.;
   q *= scale;
 
-  q += 0.8 * PI * cos(localCosT + 0.4 * snoise2(0.2 * q) + vec2(0, 0.5) * PI);
+  pMod2(q, size);
 
-  vec2 b = vec2(snoise2(0.3 * q) + dot(sin(q), cos(2. * q)), 0);
+  vec2 b = vec2(vmax(abs(q)) / (0.5 * vmax(size)), 0);
   // vec2 b = vec2(length(q) - vmax(r), 0);
   // b.x = abs(b.x) - 0.075;
-  b.x /= (0.17 * scale);
   d = dMin(d, b);
 
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
@@ -3672,13 +3672,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
-  mask = length(maskQ) - 0.20;
+  // mask = length(maskQ) - 0.20;
   // mask = sdBox(maskQ, vec2(r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
   // mask = smoothstep(0., edge, mask);
-  mask = 1. - mask;
+  // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
   // --- Output ---
@@ -3696,8 +3696,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Hard Edge
   // n = smoothstep(0., 1.0 * edge, n - 0.3);
 
-  // // Invert
-  // n = 1. - n;
+  // Invert
+  n = 1. - n;
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3791,8 +3791,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Darken negative distances
   // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
 
-  // Brighten
-  color.rgb *= 2.;
+  // // Brighten
+  // color.rgb *= 2.;
 
   color.rgb *= saturate(mask);
   // color.rgb *= color.a; // Don't leak color channels at expense of edges loosing color
@@ -3846,7 +3846,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3929,8 +3929,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 12.;
-  const float delayLength = 0.180;
+  const float slices = 7.;
+  const float delayLength = 0.10;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
