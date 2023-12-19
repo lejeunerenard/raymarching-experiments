@@ -1903,7 +1903,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.25;
+float gR = 0.35;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1965,9 +1965,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  vec3 crop = vec3(sdBox(q, vec3(r)), 0, 0);
+  b = dSMax(b, crop, 0.1 * r);
+  crop = vec3(icosahedral(q, 42., r), 0, 0);
+  b = dSMax(b, crop, 0.1 * r);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2227,8 +2230,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
-  // return color;
+  vec3 color = vec3(0);
+  return color;
 
   vec3 nQ = mPos;
   float r = gR * 0.15845;
@@ -2507,7 +2510,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
