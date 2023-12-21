@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.2;
+float n2 = 2.7;
 const float amount = 0.05;
 
 // Dof
@@ -1919,7 +1919,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // -- Pseudo Camera Movement --
   // Wobble Tilt
-  const float tilt = 0.10 * PI;
+  const float tilt = 0.20 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
@@ -1965,16 +1965,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  q.xy *= rotMat2(1. * q.z + 0.1 * PI * cos(q.z + localCosT) + 0.1 * snoise3(q));
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  d = dMin(d, b);
+
+  q.xy *= rotMat2(10. * q.z + 0.1 * PI * cos(q.z + localCosT) + 0.1 * snoise3(q) + localCosT);
 
   float a = atan(q.y, q.x);
-  r += 0.1 * r * abs(cos(3. * a));
+  r += 0.1 * r * abs(cos(5. * a));
 
   // q.xy *= rotMat2(3. * q.z + 0.175 * PI * cos(TWO_PI * q.z + localCosT));
 
+  q.z *= 0.4;
+  q.z -= 0.15;
+
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(sdCone(q, vec2(1, r) ), 0, 0);
-  d = dMin(d, b);
+  b = vec3(-sdCone(q, vec2(0.45, r) ), 0, 0);
+  d = dMax(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
