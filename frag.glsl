@@ -6,7 +6,7 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
+#define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
@@ -1968,21 +1968,24 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // vec3 b = vec3(length(q) - r, 0, 0);
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 52., r), 0, 0);
   d = dMin(d, b);
 
-  q.xy *= rotMat2(10. * q.z + 0.1 * PI * cos(q.z + localCosT) + 0.1 * snoise3(q) + localCosT);
+  q.zy *= rotMat2(10. * q.x + 0.1 * PI * cos(q.x + localCosT) + 0.1 * snoise3(q) + localCosT);
 
-  float a = atan(q.y, q.x);
+  float a = atan(q.y, q.z);
   r += 0.1 * r * abs(cos(5. * a));
 
   // q.xy *= rotMat2(3. * q.z + 0.175 * PI * cos(TWO_PI * q.z + localCosT));
 
-  q.z *= 0.4;
-  q.z -= 0.15;
+  // q.z *= 0.4;
+  // q.z -= 0.15;
 
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  b = vec3(-sdCone(q, vec2(0.45, r) ), 0, 0);
-  d = dMax(d, b);
+  // b = vec3(sdCone(q, vec2(0.45, r) ), 0, 0);
+  b = vec3(length(q) - 0.95 * r, 0, 0);
+  b.x *= -1.;
+  d = dSMax(d, b, 0.025 * r);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -1990,8 +1993,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.40;
+  // Under step
+  d.x *= 0.70;
 
   return d;
 }
@@ -2440,7 +2443,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.5;
-      float specCo = 0.5;
+      float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
