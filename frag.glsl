@@ -3590,7 +3590,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= 0.8;
+  wQ *= 0.5;
 
   float warpT = localCosT;
 
@@ -3614,16 +3614,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // float c = pModPolar(wQ, 6.);
 
-  float bigR = 2. * vmax(r);
-  wQ.x -= bigR;
-
   // Fractal space
-  for (float i = 0.; i < 12.; i++) {
-    // wQ = abs(wQ);
-    wQ = tetraFold(vec3(wQ, 0)).xy;
+  for (float i = 0.; i < 8.; i++) {
+    wQ = abs(wQ);
+    // wQ = tetraFold(vec3(wQ, 0)).xy;
 
     wQ *= scale + 0.0125 * cos(localCosT + 0.34);
-    wQ *= rotMat2(offset.z + 0.025 * PI * cos(localCosT + 1.2 * q.x));
+    wQ *= rotMat2(offset.z + 0.025 * PI * cos(localCosT + 0.5 * q.x));
     wQ += offset.xy;
   }
 
