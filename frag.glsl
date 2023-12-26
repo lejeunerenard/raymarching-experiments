@@ -3601,9 +3601,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.35;
-  // wQ *= rotMat2(0.2 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.35;
+  wQ *= rotMat2(0.2 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3612,19 +3612,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // float c = pModPolar(wQ, 6.);
+  float c = pModPolar(wQ, 6.);
 
   // Fractal space
-  for (float i = 0.; i < 8.; i++) {
+  for (float i = 0.; i < 6.; i++) {
     wQ = abs(wQ);
     // wQ = tetraFold(vec3(wQ, 0)).xy;
 
     wQ *= scale + 0.0125 * cos(localCosT + 0.34);
-    wQ *= rotMat2(offset.z + 0.025 * PI * cos(localCosT + 0.5 * q.x));
+    wQ *= rotMat2(offset.z + 0.025 * PI * cos(localCosT + 0. * q.x));
     wQ += offset.xy;
   }
 
-  pMod2(wQ, 4. * size);
+  // pMod2(wQ, 4. * size);
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(11));
@@ -3680,7 +3680,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(length(q) - 1.5 * vmax(r), 0);
+  // vec2 b = vec2(length(q) - 1.5 * vmax(r), 0);
+  vec2 b = vec2(sdBox(q, r), 0);
+  b.x = abs(b.x) - 0.075 * vmax(r);
   d = dMin(d, b);
 
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
@@ -3910,44 +3912,44 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 8.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.04 * i);
+  // -- Echoed Layers --
+  const float echoSlices = 8.;
+  for (float i = 0.; i < echoSlices; i++) {
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.04 * i);
 
-  //   // // Outlined version
-  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-  //   // // Hard Edge
-  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+    // // Outlined version
+    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+    // // Hard Edge
+    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-  //   // Echo Dimming
-  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.067));
+    // Echo Dimming
+    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
 
-  //   // Blend mode
-  //   // Additive
-  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
+    // Blend mode
+    // Additive
+    color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-  //   // -- Offsets --
-  //   // Incremental offset
-  //   uv.y += 0.0080;
+    // -- Offsets --
+    // Incremental offset
+    uv.y += 0.0080;
 
-  //   // Initial Offset
-  //   uv.y += i == 0. ? 0.0075 : 0.;
+    // Initial Offset
+    uv.y += i == 0. ? 0.0075 : 0.;
 
-  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  // }
+    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  }
 
-  // color.a = saturate(color.a);
-  // // color.rgb = mix(vec3(1), color.rgb, color.a);
-  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  // color.a = 1.;
+  color.a = saturate(color.a);
+  // color.rgb = mix(vec3(1), color.rgb, color.a);
+  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  color.a = 1.;
 
-  // return color;
+  return color;
 
   // -- Color delay --
   const float slices = 14.;
