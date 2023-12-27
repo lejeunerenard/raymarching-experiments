@@ -3612,19 +3612,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  float c = pModPolar(wQ, 6.);
+  // float c = pModPolar(wQ, 6.);
 
   // Fractal space
-  for (float i = 0.; i < 6.; i++) {
-    wQ = abs(wQ);
-    // wQ = tetraFold(vec3(wQ, 0)).xy;
+  for (float i = 0.; i < 7.; i++) {
+    // wQ = abs(wQ);
+    wQ = tetraFold(vec3(wQ, 0)).xy;
 
     wQ *= scale + 0.0125 * cos(localCosT + 0.34);
     wQ *= rotMat2(offset.z + 0.025 * PI * cos(localCosT + 0. * q.x));
     wQ += offset.xy;
   }
 
-  // pMod2(wQ, 4. * size);
+  pMod2(wQ, 4. * size);
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(11));
@@ -3682,7 +3682,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 b = vec2(length(q) - 1.5 * vmax(r), 0);
   vec2 b = vec2(sdBox(q, r), 0);
-  b.x = abs(b.x) - 0.075 * vmax(r);
+  // b.x = abs(b.x) - 0.075 * vmax(r);
   d = dMin(d, b);
 
   // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
