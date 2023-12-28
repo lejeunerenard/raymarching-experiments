@@ -3618,13 +3618,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   for (float i = 0.; i < 7.; i++) {
     // wQ = abs(wQ);
     wQ = tetraFold(vec3(wQ, 0)).xy;
+    wQ = circleInversion(wQ);
 
     wQ *= scale + 0.0125 * cos(localCosT + 0.34);
     wQ *= rotMat2(offset.z + 0.025 * PI * cos(localCosT + 0. * q.x));
     wQ += offset.xy;
   }
 
-  pMod2(wQ, 4. * size);
+  // pMod2(wQ, 4. * size);
+  wQ = opRepLim(wQ, 4. * vmax(size), vec2(3));
 
   // c = floor((wQ + size*0.5)/size);
   // wQ = opRepLim(wQ, vmax(size), vec2(11));
@@ -3913,9 +3915,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.04 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.02 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
@@ -3925,7 +3927,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // Echo Dimming
     // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
+    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.25));
 
     // Blend mode
     // Additive
@@ -3938,7 +3940,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     uv.y += 0.0080;
 
     // Initial Offset
-    uv.y += i == 0. ? 0.0075 : 0.;
+    uv.y += i == 0. ? 0.0085 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
