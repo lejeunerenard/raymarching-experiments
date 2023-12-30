@@ -78,8 +78,8 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 0.1408
-    this.angle2C = -0.5691
+    this.angle1C = 0.177
+    this.angle2C = 0.3736
     this.angle3C = 0.89
 
     // this.setupAnimation(preset)
