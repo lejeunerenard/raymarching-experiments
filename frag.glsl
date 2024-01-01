@@ -4,7 +4,7 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-// #define debugMapCalls
+#define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
 // #define ORTHO 1
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 256
 #define maxDistance 10.0
 #define fogMaxDistance 5.0
 
@@ -1608,6 +1608,17 @@ float sdTriangle( in vec2 p, in vec2 p0, in vec2 p1, in vec2 p2 ) {
   return -sqrt(d.x)*sign(d.y);
 }
 
+float get2DSDF (in vec2 q) {
+  // Convert from center 0 to center 0.5
+  q += 0.5;
+  float sdf2D = texture2D(sdf2DTexture, q).r;
+  // Unpack from [0, 1] to [-1, 1]
+  sdf2D -= 0.5;
+  sdf2D *= 2.;
+
+  return sdf2D;
+}
+
 float gear (in vec3 p, in float r, in float thickness, in float thinness, in float teeth) {
   vec3 q = p;
   float d = maxDistance;
@@ -1974,13 +1985,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   c = pMod2(wQ.xz, size);
 
-  wQ.y *= 1.25;
+  wQ.y *= 1.2;
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  d = dMin(d, b);
+
+  // --- Distance field(s) ---
+  // Texture SDF
+  q = p;
+  q.z -= 1.15;
+  float scale2D = 12.;
+  float sdf2D = get2DSDF(scale2D * q.xy);
+  b = vec3(opExtrude(q, sdf2D, 0.2 * r), 1, 0);
+  b.x /= scale2D;
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2241,6 +2262,8 @@ float phaseHerringBone (in float c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
+  // color = mix(color, vec3(1.2), isMaterialSmooth(m, 1.));
+  return color;
 
   // vec3 nQ = mPos;
   // float r = gR * 0.15845;
@@ -2395,7 +2418,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(2. * vec3(-0.9, 0.4, 1.0), #FFDCDC, 1.0, 32.0);
+    lights[0] = light(2. * vec3(-0.0, 0.0, 1.0), #FFDCDC, 1.0, 32.0);
     lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #DCFFFF, 1.0, 16.0);
     lights[2] = light(2. * vec3( 0.2, 0.8,-1.3), #FFFFFF, 2., 16.0);
 
@@ -2510,7 +2533,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Reflect scene
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.3 * mix(diffuseColor, vec3(1), 1.0) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2521,7 +2544,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2555,14 +2578,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(
-      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
-      //       / fogMaxDistance
-      // ));
-      // color *= saturate(exp(-d * 0.025));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
+            / fogMaxDistance
+      ));
+      color *= saturate(exp(-d * 0.025));
+      color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -3491,17 +3514,6 @@ float stripedBox (in vec2 q, in vec2 r, in float stripeFreq, in float stripeThic
 
 float stripedBox (in vec2 q, in vec2 r, in float stripeFreq, in float stripeThick) {
   return stripedBox(q, r, stripeFreq, stripeThick, 0.25 * PI);
-}
-
-float get2DSDF (in vec2 q) {
-  // Convert from center 0 to center 0.5
-  q += 0.5;
-  float sdf2D = texture2D(sdf2DTexture, q).r;
-  // Unpack from [0, 1] to [-1, 1]
-  sdf2D -= 0.5;
-  sdf2D *= 2.;
-
-  return sdf2D;
 }
 
 float bunch (in vec2 q, in float r, in float t , float cOffset, float cX) {

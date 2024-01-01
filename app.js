@@ -111,11 +111,11 @@ export default class App {
     this.capturing = defined(options.capturing, false)
 
     this.loaded = Promise.resolve()
-      // .then(() => {
-      //   const { glsl, metadata } = convert(require('./outline3.svg.js'))
-      //   const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
-      //   this.add2DSDFTexture('year-6', fbo.color[0])
-      // })
+      .then(() => {
+        const { glsl, metadata } = convert(require('./7.svg.js'))
+        const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
+        this.add2DSDFTexture('year-7', fbo.color[0])
+      })
       .then(() => {
         this.setupAudio()
       })
@@ -565,7 +565,7 @@ export default class App {
     // Shape
     const SDF_TEX_LOC = 2
     const isSVG = true
-    const svgName = 'year-6'
+    const svgName = 'year-7'
     let sdfTexture = this._shape2DSDFTextures[svgName]
     if (isSVG && sdfTexture) {
       this.shader.uniforms.sdf2DTexture = sdfTexture.tex.bind(SDF_TEX_LOC)
