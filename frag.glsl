@@ -4,10 +4,10 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-#define debugMapCalls
+// #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1914,7 +1914,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.05;
+float gR = 0.075;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1924,7 +1924,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(2.5, 2.5);
+  vec2 size = r * vec2(4.);
 
   // Positioning adjustments
 
@@ -1972,36 +1972,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpPhase += warpPhaseAmp * componentShift(wQ);
   // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  wQ.z -= t * size.y;
-
-  const float rotIncAngle = 0.3;
-  vec2 c = vec2(0, floor((wQ.z + 0.5 * size.y)/size.y));
-
-  wQ.xy *= rotMat2(rotIncAngle * (c.y + t));
-
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= (2. - 1.25 * saturate(wQ.z * -0.1)) * r;
-  wQ.x /= PI;
-
-  c = pMod2(wQ.xz, size);
-
-  wQ.y *= 1.2;
-
   // Commit warp
   q = wQ.xyz;
+
+  vec2 c = pMod2(q.xz, size);
+
+  float localT = t;
+  localT += 0.073 * dot(vec2(0.5, 1), c);
+
+  localT = mod(localT, 1.);
+
   mPos = q;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  q *= rotationMatrix(vec3(1, 0, 0), 0.5 * PI * expo(localT));
+
+
+  float thickness = 0.05 * r;
+  vec3 b = vec3(sdHollowBox(q, vec3(r), thickness), 0, 0);
   d = dMin(d, b);
 
-  // --- Distance field(s) ---
-  // Texture SDF
-  q = p;
-  q.z -= 1.15;
-  float scale2D = 12.;
-  float sdf2D = get2DSDF(scale2D * q.xy);
-  b = vec3(opExtrude(q, sdf2D, 0.2 * r), 1, 0);
-  b.x /= scale2D;
+  q = abs(q);
+
+  q -= r - 0.5 * thickness;
+
+  b = vec3(length(q) - 0.2 * r, 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2010,8 +2004,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.50;
+  // Under step
+  d.x *= 0.50;
 
   return d;
 }
@@ -2261,8 +2255,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
-  // color = mix(color, vec3(1.2), isMaterialSmooth(m, 1.));
+  vec3 color = vec3(1);
+  color *= saturate(dot(vec3(2), mPos) + 1.732051 / (2. * 1.732051));
   return color;
 
   // vec3 nQ = mPos;
@@ -2462,14 +2456,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.5;
-      float specCo = 0.7;
+      float freCo = 0.;
+      float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.9;
+      float diffMin = 1.;
+      float shadowMin = 1.;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2530,11 +2524,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2578,14 +2572,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
-            / fogMaxDistance
-      ));
-      color *= saturate(exp(-d * 0.025));
-      color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(
+      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
+      //       / fogMaxDistance
+      // ));
+      // color *= saturate(exp(-d * 0.025));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
