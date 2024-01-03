@@ -1924,7 +1924,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(4.);
+  vec2 size = r * vec2(6.);
 
   // Positioning adjustments
 
@@ -1975,9 +1975,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // Commit warp
   q = wQ.xyz;
 
-  // vec2 c = pMod2(q.xz, size);
-  vec2 c = floor((q.xz + size * 0.5)/size);
-  q.xz = opRepLim(q.xz, vmax(size), vec2(2));
+  vec2 c = pMod2(q.xz, size);
+  // vec2 c = floor((q.xz + size * 0.5)/size);
+  // q.xz = opRepLim(q.xz, vmax(size), vec2(2));
 
   float localT = t;
   // localT += 0.073 * dot(vec2(0.5, 1), c);
@@ -1991,6 +1991,35 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float thickness = 0.05 * r;
   vec3 b = vec3(sdHollowBox(q, vec3(r + 0.5 * thickness), thickness), 0, 0);
+  d = dMin(d, b);
+
+  q = abs(q);
+
+  q -= r - 0.0 * thickness;
+
+  b = vec3(length(q) - 0.2 * r, 0, 0);
+  d = dMin(d, b);
+
+  // Layer 2
+  q = wQ;
+  q += sqrt(2.) * r * 0.5 * vec3(1, 1, cos(localCosT + 0.5 * dot(c, vec2(1))));
+
+  c = pMod2(q.xz, size);
+  // c = floor((q.xz + size * 0.5)/size);
+  // q.xz = opRepLim(q.xz, vmax(size), vec2(2));
+
+  localT = t - 0.05;
+  // localT += 0.073 * dot(vec2(0.5, 1), c);
+  localT -= 0.1 * length(c);
+
+  localT = mod(localT, 1.);
+
+  // mPos = q;
+
+  q *= rotationMatrix(vec3(1, 0, 0), 0.5 * PI * quint(localT));
+
+  thickness = 0.05 * r;
+  b = vec3(sdHollowBox(q, vec3(r + 0.5 * thickness), thickness), 0, 0);
   d = dMin(d, b);
 
   q = abs(q);
@@ -3909,8 +3938,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
