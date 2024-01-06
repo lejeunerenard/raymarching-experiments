@@ -6,8 +6,8 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
-// #define ORTHO 1
+// #define SS 2
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1938,8 +1938,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 1.8;
-  float warpFrequency = 1.0;
+  float warpScale = 1.0;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
@@ -1967,18 +1967,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.012500 * warpScale * cos(21.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos(25.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(29.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.006250 * warpScale * cos(25.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(29.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
 
-  r += 0.23 * cos(localCosT + length(q));
-  r += 0.123 * snoise3(4. * q);
+  r += 0.33 * cos(localCosT + length(q));
+  r += 0.33 * snoise3(4. * q);
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -1988,7 +1988,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.05;
+  d.x *= 0.02;
 
   return d;
 }
