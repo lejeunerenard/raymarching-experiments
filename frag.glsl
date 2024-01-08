@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.7;
+float n2 = 1.7;
 const float amount = 0.05;
 
 // Dof
@@ -1974,41 +1974,21 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpPhase += warpPhaseAmp * componentShift(wQ);
   // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  // Commit warp
-  q = wQ.xyz;
-
-  // r += 0.33 * cos(localCosT + length(q));
-  r += 0.33 * snoise3(4. * q);
-  r -= rShrink;
-
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  d = dMin(d, b);
-
-  r = gR;
-  wQ = preWarpQ;
-  warpPhase += 0.3;
-  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1))));
-  wQ += 0.025000 * warpScale * cos(13.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(21.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  // wQ += 0.006250 * warpScale * cos(25.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(29.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  q += 0.33 * snoise3(4. * q);
 
   // Commit warp
   q = wQ.xyz;
 
   // r += 0.33 * cos(localCosT + length(q));
-  r += 0.33 * snoise3(4. * q + 0.5);
-  r -= rShrink;
+  // r += 0.33 * snoise3(4. * q);
+  // r -= rShrink;
 
-  b = vec3(sdBox(q, vec3(r)), 1, 0);
+  float roundR = 0.4 * r;
+  vec3 b = vec3(sdBox(q, r * vec3(0.5, 1, 0.5)) - roundR, 0, 0);
   d = dMin(d, b);
+
+  // b = vec3(sdBox(q - r * vec3(1, 0, 0), r * vec3(0.5, 1, 0.5)) - roundR, 1, 0);
+  // d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2017,7 +1997,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.05;
+  d.x *= 0.25;
 
   return d;
 }
