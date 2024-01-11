@@ -1914,7 +1914,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.25;
+float gR = 0.4;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1938,7 +1938,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 2.0;
+  float warpScale = 0.2;
   float warpFrequency = 1.8;
   float rollingScale = 1.;
 
@@ -1985,6 +1985,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   float roundR = 0.4 * r;
   vec3 b = vec3(sdBox(q, r * vec3(0.75, 1, 0.75)) - roundR, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // b = vec3(sdBox(q - r * vec3(1, 0, 0), r * vec3(0.5, 1, 0.5)) - roundR, 1, 0);
@@ -2250,8 +2251,8 @@ float phaseHerringBone (in float c) {
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
-  return mix(vec3(0), color, isMaterialSmooth(m, 1.));
+  vec3 color = vec3(0);
+  // return mix(vec3(0), color, isMaterialSmooth(m, 1.));
 
   // vec3 nQ = mPos;
   // float r = gR * 0.15845;
