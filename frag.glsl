@@ -3582,7 +3582,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.02);
+  vec2 r = vec2(0.1);
   vec2 size = vec2(2.5) * vmax(r);
   float scale = 4.;
 
@@ -3592,7 +3592,6 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   wQ *= 0.5;
 
   float warpT = localCosT;
-  float num = 6.;
 
   // vec2 c = floor((wQ + size*0.5)/size);
 
@@ -3603,7 +3602,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.25;
-  wQ *= rotMat2(-0.2 * PI + TWO_PI / num * t);
+  wQ *= rotMat2(-0.2 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3614,104 +3613,26 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // float c = pModPolar(wQ, 6.);
 
-  wQ *= scale;
-  wQ.yx = wQ.xy;
-
-  pModPolar(wQ, num);
-  wQ *= rotMat2(1.5 * TWO_PI / num);
-
-  wQ.y -= 20. * vmax(r);
-
-  float b = sdBox(wQ - vec2(0, -11. * vmax(r)), vec2(vmax(r), 10. * vmax(r)));
-  b /= scale;
-  d = dMin(d, vec2(b, 0));
-
-  vec2 relativeOffset = vec2(0, 0.3);
-
-  float scaleAmount = 1.85;
-
-  for (float i = 0.; i < 1.; i++) {
-    vec2 localQ = wQ;
-
-    float longR = vmax(r) * 10.;
-    float b = sdBox(localQ, vec2(vmax(r), longR));
-    b /= scale;
-    d = dMin(d, vec2(b, 0));
-
-    float ball = length(localQ - vec2(0, longR)) - 2. * vmax(r);
-    ball /= scale;
-    d = dMin(d, vec2(ball, 0));
-
-    float localScale = scaleAmount;
-    wQ *= localScale;
-    longR *= localScale;
-
-    for (float j = 0.; j < 2.; j++) {
-      vec2 localQ = wQ;
-      localQ += longR * relativeOffset;
-
-      float angle = PI * (0.2 + 0.2 * (0.5 + 0.5 * cos(localCosT + 0.5 * j)));
-      localQ *= rotMat2((1. - 2. * j) * angle);
-      localQ += vec2(0, -0.5 * longR);
-
-      float longR = vmax(r) * 10.;
-      float b = sdBox(localQ, vec2(vmax(r), longR));
-      b /= scale * localScale;
-      d = dMin(d, vec2(b, 0));
-
-      float ball = length(localQ - vec2(0, longR)) - 2. * vmax(r);
-      ball /= scale * localScale;
-      d = dMin(d, vec2(ball, 0));
-
-      float local2Scale = scaleAmount;
-      localQ *= local2Scale;
-      longR *= local2Scale;
-
-      for (float k = 0.; k < 2.; k++) {
-        vec2 local2Q = localQ;
-        local2Q += longR * relativeOffset;
-
-        float angle = PI * (0.2 + 0.2 * (0.5 + 0.5 * cos(localCosT + 0.5 * k)));
-        local2Q *= rotMat2((1. - 2. * k) * angle);
-        local2Q += vec2(0, -0.5 * longR);
-
-        float longR = vmax(r) * 10.;
-        float b = sdBox(local2Q, vec2(vmax(r), longR));
-        b /= scale * localScale * local2Scale;
-        d = dMin(d, vec2(b, 0));
-
-        float ball = length(local2Q - vec2(0, longR)) - 2. * vmax(r);
-        ball /= scale * localScale * local2Scale;
-        d = dMin(d, vec2(ball, 0));
-
-        float local3Scale = scaleAmount;
-        local2Q *= local3Scale;
-        longR *= local3Scale;
-
-        for (float l = 0.; l < 2.; l++) {
-          vec2 local3Q = local2Q;
-          local3Q += longR * relativeOffset;
-
-          float angle = PI * (0.2 + 0.2 * (0.5 + 0.5 * cos(localCosT + 0.5 * l)));
-          local3Q *= rotMat2((1. - 2. * l) * angle);
-          local3Q += vec2(0, -0.5 * longR);
-
-          float longR = vmax(r) * 10.;
-          float b = sdBox(local3Q, vec2(vmax(r), longR));
-          b /= scale * localScale * local2Scale * local3Scale;
-          d = dMin(d, vec2(b, 0));
-
-          float ball = length(local3Q - vec2(0, longR)) - 2. * vmax(r);
-          ball /= scale * localScale * local2Scale * local3Scale;
-          d = dMin(d, vec2(ball, 0));
-        }
-      }
-    }
-  }
-
   q = wQ;
   mUv = q;
 
+  const float num = 5.;
+  const float angleInc = TWO_PI / num;
+
+  for (float i = 0.; i < num; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(angleInc * i);
+
+    localQ.x -= 1.0 * vmax(r);
+
+    localQ *= rotMat2(localCosT);
+
+    // float b = sdBox(localQ, r);
+    float b = sdTriPrism(vec3(localQ, 0.), vec2(r));
+    b = abs(b);
+    b -= 0.012 * vmax(r);
+    d = dMin(d, vec2(b, 0));
+  }
   // // Adjust R per cell
   // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
@@ -3946,7 +3867,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3979,8 +3900,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3990,9 +3911,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.02 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
