@@ -1279,7 +1279,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.020);
+const vec2 gSize = vec2(0.080);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1311,10 +1311,10 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT -= 0.03 * length(c);
+  locallocalT -= 0.08 * length(c);
   // locallocalT -= 0.07 * vmax(abs(0.4 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
-  locallocalT -= atan(c.y, c.x) / PI;
+  // locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
   // locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
@@ -1342,18 +1342,18 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = 0.05 * size;
+  vec2 r = 0.3 * size;
 
   // q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
-  vec2 n2 = vec2(-1, 1) * vec2(
-      snoise2(8.863 * vec2(-1, 1) * localC + 2.37),
-      snoise2(0.863 * vec2(1,-1) * localC + vec2(-9., 2.37))
-      );
-  q += 0.5 * localNorT * size * mix(n1, n2, nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
+  // vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
+  // vec2 n2 = vec2(-1, 1) * vec2(
+  //     snoise2(8.863 * vec2(-1, 1) * localC + 2.37),
+  //     snoise2(0.863 * vec2(1,-1) * localC + vec2(-9., 2.37))
+  //     );
+  // q += 0.5 * localNorT * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1397,7 +1397,26 @@ vec2 shape (in vec2 q, in vec2 c) {
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
 
-  float internalD = length(q) - r.x;
+  const float num = 4.;
+  const float angleInc = TWO_PI / num;
+
+  float internalD = maxDistance;
+  for (float i = 0.; i < num; i++) {
+    vec2 localQ = q;
+    localQ *= rotMat2(angleInc * i);
+
+    localQ.x -= 1.0 * vmax(r);
+
+    localQ *= rotMat2(TWO_PI / 2. * sine(t));
+
+    float b = sdBox(localQ, r);
+    // float b = sdTriPrism(vec3(localQ, 0.), vec2(r));
+    b = abs(b);
+    b -= 0.012 * vmax(r);
+    internalD = min(internalD, b);
+  }
+
+  // float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
@@ -3601,7 +3620,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 c = vec2(0);
 
   // Fake "Isometric" perspective
-  wQ.y *= 1.25;
+  wQ.y *= 1.30;
   wQ *= rotMat2(-0.2 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
@@ -3616,23 +3635,6 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   q = wQ;
   mUv = q;
 
-  const float num = 5.;
-  const float angleInc = TWO_PI / num;
-
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(angleInc * i);
-
-    localQ.x -= 1.0 * vmax(r);
-
-    localQ *= rotMat2(localCosT);
-
-    // float b = sdBox(localQ, r);
-    float b = sdTriPrism(vec3(localQ, 0.), vec2(r));
-    b = abs(b);
-    b -= 0.012 * vmax(r);
-    d = dMin(d, vec2(b, 0));
-  }
   // // Adjust R per cell
   // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
@@ -3683,8 +3685,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // b.x = abs(b.x) - 0.075 * vmax(r);
   // d = dMin(d, b);
 
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  // d = dMin(d, b);
+  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3709,13 +3711,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // n = sin(1.25 * TWO_PI * n);
 
   // Outline
-  n = abs(n) - 0.0075 * vmax(r);
+  n = abs(n) - 0.0025 * vmax(r);
 
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  n = smoothstep(0., 0.125 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3900,8 +3902,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3911,7 +3913,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 6.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
