@@ -1311,8 +1311,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.08 * length(c);
-  // locallocalT -= 0.07 * vmax(abs(0.4 * c));
+  // locallocalT -= 0.08 * length(c);
+  locallocalT -= 0.12 * vmax(abs(0.6 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
@@ -1407,12 +1407,13 @@ vec2 shape (in vec2 q, in vec2 c) {
 
     localQ.x -= 1.0 * vmax(r);
 
-    localQ *= rotMat2(TWO_PI / 2. * sine(t));
+    localQ *= rotMat2(TWO_PI / 4. * sine(t));
 
-    float b = sdBox(localQ, r);
+    // localQ = abs(localQ);
+    localQ += 1.0 * r;
+
+    float b = length(localQ) - 0.5 * vmax(r);
     // float b = sdTriPrism(vec3(localQ, 0.), vec2(r));
-    b = abs(b);
-    b -= 0.012 * vmax(r);
     internalD = min(internalD, b);
   }
 
