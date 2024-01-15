@@ -3602,8 +3602,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.1);
-  vec2 size = vec2(2.5) * vmax(r);
+  vec2 r = vec2(0.0125);
+  vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
   // -- Warp --
@@ -3631,7 +3631,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // float c = pModPolar(wQ, 6.);
+  vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3645,13 +3645,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Center out
   // cellT -= 0.025 * length(c);
 
-  // // Coordinate offset
-  // // cellT -= 0.080 * c.y;
-  // cellT -= 0.020 * c.x;
+  // Coordinate offset
+  // cellT -= 0.020 * c.y;
+  // cellT -= 0.010 * c.x;
 
-  // // Vmax offset
+  // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
-  // cellT -= 0.20 * vmax(abs(c));
+  cellT -= 0.09 * vmax(abs(c));
 
   // // Dot product offset
   // float dC = dot(c, vec2(1, -1));
@@ -3660,8 +3660,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Noise offset
   // cellT -= 0.175 * snoise2(1.2 * c);
 
-  // // Rectify
-  // cellT = mod(cellT, 1.);
+  // Rectify
+  cellT = mod(cellT, 1.);
 
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
@@ -3681,13 +3681,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // // vec2 b = vec2(length(q) - 1.5 * vmax(r), 0);
-  // vec2 b = vec2(sdBox(q, r), 0);
-  // // b.x = abs(b.x) - 0.075 * vmax(r);
-  // d = dMin(d, b);
+  q *= rotMat2(PI * expo(cellT));
 
-  vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  vec2 b = vec2(sdBox(q, vec2(1, 0.2) * r), 0);
   d = dMin(d, b);
+
+  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
+  // d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3711,14 +3711,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(1.25 * TWO_PI * n);
 
-  // Outline
-  n = abs(n) - 0.0025 * vmax(r);
+  // // Outline
+  // n = abs(n) - 0.0025 * vmax(r);
 
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(0., 0.125 * edge, n - 0.0);
+  n = smoothstep(0., 0.5 * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
