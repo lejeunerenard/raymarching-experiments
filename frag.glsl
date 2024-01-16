@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 512
+#define maxSteps 756
 #define maxDistance 10.0
 #define fogMaxDistance 5.0
 
@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.7;
+float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
@@ -1934,7 +1934,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.4;
+float gR = 1.15;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1958,8 +1958,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.2;
-  float warpFrequency = 1.8;
+  float warpScale = 0.8;
+  float warpFrequency = 3.8;
   float rollingScale = 1.;
 
   const float rShrink = 0.3;
@@ -1984,11 +1984,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1))));
+  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1))));
   wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
   wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -2003,13 +2003,12 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // r += 0.33 * snoise3(4. * q);
   // r -= rShrink;
 
-  float roundR = 0.4 * r;
-  vec3 b = vec3(sdBox(q, r * vec3(0.75, 1, 0.75)) - roundR, 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  q *= rotationMatrix(vec3(1, 0, 0), -localCosT);
+  q.yxz = q.xyz;
+  vec3 fakeOut = vec3(0);
+  r += 0.12 * fbmWarp(0.5 * q, fakeOut);
+  vec3 b = vec3(sdCappedCylinder(q, r * vec2(1, 10)), 0, 0);
   d = dMin(d, b);
-
-  // b = vec3(sdBox(q - r * vec3(1, 0, 0), r * vec3(0.5, 1, 0.5)) - roundR, 1, 0);
-  // d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2018,7 +2017,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.5;
+  d.x *= 0.05;
 
   return d;
 }
@@ -2539,11 +2538,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
-      color += reflectColor;
+      // // Reflect scene
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -3870,7 +3869,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
