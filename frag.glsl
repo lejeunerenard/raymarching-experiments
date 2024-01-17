@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1981,33 +1981,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1))));
-  wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.xyz = twist(wQ.xzy, 7.5 * wQ.z);
+  // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-
-  // q += 0.33 * snoise3(4. * q);
+  // // wQ.xzy = twist(wQ.xyz, 0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1))));
+  // wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ.xyz = twist(wQ.xzy, 0.35 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
+  mPos = q;
 
-  // r += 0.33 * cos(localCosT + length(q));
-  // r += 0.33 * snoise3(4. * q);
-  // r -= rShrink;
-
-  q *= rotationMatrix(vec3(1, 0, 0), -localCosT);
-  q.yxz = q.xyz;
-  vec3 fakeOut = vec3(0);
-  r += 0.12 * fbmWarp(0.5 * q, fakeOut);
-  vec3 b = vec3(sdCappedCylinder(q, r * vec2(1, 10)), 0, 0);
+  r -= r * saturate(1. - 0.015 * q.z);
+  vec3 b = vec3(r - length(q.xy), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2016,8 +2009,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.05;
+  // // Under step
+  // d.x *= 0.75;
 
   return d;
 }
@@ -2269,19 +2262,30 @@ float phaseHerringBone (in float c) {
 
 #pragma glslify: herringBone = require(./patterns/herring-bone, phase=phaseHerringBone)
 
+float barHeight (in vec2 c) {
+  return 0.5 + 0.3 * snoise2(7.123 * c);
+}
+
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
   // return mix(vec3(0), color, isMaterialSmooth(m, 1.));
 
-  // vec3 nQ = mPos;
-  // float r = gR * 0.15845;
-  // pMod3(nQ, vec3(1.87 * r));
-  // // float n = length(nQ) - 1.0 * r;
-  // float n = abs(vmin(abs(nQ)) - 0.1 * r) - 0.05 * r;
-  // n = max(n, sdBox(nQ, vec3(0.7 * r)));
-  // n = 1. - smoothstep(0., 0.125 * edge, n);
-  // color = vec3(1.0 * n);
-  // return color;
+  vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
+
+  vec2 r = 0.125 * vec2(0.1, 0.5);
+  vec2 size = r * vec2(8.15, 1.5);
+
+  nQ.y -= 2. * size.y * 3. * t;
+
+  vec2 c = floor((nQ + size * 0.5)/size);
+  nQ.x += mod(c.y, 2.) * 0.5 * size.x;
+  pMod2(nQ, size);
+
+  float heightFactor = 0.5 + 0.3 * snoise2(vec2(atan(mPos.y, mPos.x) / PI, mPos.z));
+  float n = sdBox(nQ, r * vec2(1, heightFactor));
+  n = 1. - smoothstep(0., 0.125 * edge, n);
+  color = vec3(1.0 * n);
+  return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2470,8 +2474,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.25;
-      float specCo = 0.5;
+      float freCo = 0.;
+      float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
 
@@ -2552,7 +2556,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3902,8 +3906,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3912,44 +3916,44 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // -- Echoed Layers --
-  const float echoSlices = 6.;
-  for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
+  // // -- Echoed Layers --
+  // const float echoSlices = 6.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
-    // // Outlined version
-    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // // Hard Edge
-    // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
-    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+  //   // // Outlined version
+  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+  //   // // Hard Edge
+  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-    // Echo Dimming
-    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   // Echo Dimming
+  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
 
-    // Blend mode
-    // Additive
-    color += vec4(vec3(layerColor.a), 1) * layerColor;
+  //   // Blend mode
+  //   // Additive
+  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-    // -- Offsets --
-    // Incremental offset
-    uv.y += 0.0080;
+  //   // -- Offsets --
+  //   // Incremental offset
+  //   uv.y += 0.0080;
 
-    // Initial Offset
-    uv.y += i == 0. ? 0.02 : 0.;
+  //   // Initial Offset
+  //   uv.y += i == 0. ? 0.02 : 0.;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
 
-  color.a = saturate(color.a);
-  // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  color.a = 1.;
+  // color.a = saturate(color.a);
+  // // color.rgb = mix(vec3(1), color.rgb, color.a);
+  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  // color.a = 1.;
 
-  return color;
+  // return color;
 
   // -- Color delay --
   const float slices = 14.;
