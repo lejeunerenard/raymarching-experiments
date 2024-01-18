@@ -1934,7 +1934,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 1.15;
+float gR = 0.50;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1955,6 +1955,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
+  p *= rotationMatrix(vec3(1), localCosT);
 
   vec3 q = p;
 
@@ -1999,8 +2000,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  r -= r * saturate(1. - 0.015 * q.z);
-  vec3 b = vec3(r - length(q.xy), 0, 0);
+  // r -= r * saturate(1. - 0.015 * q.z);
+  // vec3 b = vec3(r - length(q.xy), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2272,7 +2274,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
 
   vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
-  vec2 r = 0.125 * vec2(0.1, 0.5);
+  vec2 r = 0.075 * vec2(0.125, 0.5);
   vec2 size = r * vec2(8.15, 1.5);
 
   nQ.y -= 2. * size.y * 3. * t;
@@ -3956,8 +3958,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 14.;
-  const float delayLength = 0.05;
+  const float slices = 10.;
+  float delayLength = 0.05 + 0.01 * cos(cosT);
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
@@ -4041,7 +4043,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color.rgb = mix(color.rgb, color.rgb * layerColor, mask);
   }
 
-  color.rgb = pow(color.rgb, vec3(1.750));
+  color.rgb = pow(color.rgb, vec3(2.000));
   color.rgb /= slices;
 
   // // Final layer
