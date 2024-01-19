@@ -1934,7 +1934,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.50;
+float gR = 0.40;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1948,14 +1948,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.20 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.20 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
-  p *= rotationMatrix(vec3(1), localCosT);
+  p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
 
@@ -1982,7 +1982,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.xyz = twist(wQ.xzy, 7.5 * wQ.z);
+  wQ.xyz = twist(wQ.xzy, 3. * wQ.z);
   // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -2002,7 +2002,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // r -= r * saturate(1. - 0.015 * q.z);
   // vec3 b = vec3(r - length(q.xy), 0, 0);
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., 1.3 * r), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2011,8 +2013,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.75;
+  // Under step
+  d.x *= 0.75;
 
   return d;
 }
@@ -2277,14 +2279,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec2 r = 0.075 * vec2(0.125, 0.5);
   vec2 size = r * vec2(8.15, 1.5);
 
-  nQ.y -= 2. * size.y * 3. * t;
+  vec2 c = pMod2(nQ, size);
 
-  vec2 c = floor((nQ + size * 0.5)/size);
-  nQ.x += mod(c.y, 2.) * 0.5 * size.x;
-  pMod2(nQ, size);
+  r -= 0.1 * r * snoise2(0.123 * c);
 
-  float heightFactor = 0.5 + 0.3 * snoise2(vec2(atan(mPos.y, mPos.x) / PI, mPos.z));
-  float n = sdBox(nQ, r * vec2(1, heightFactor));
+  float n = sdBox(nQ, r);
   n = 1. - smoothstep(0., 0.125 * edge, n);
   color = vec3(1.0 * n);
   return color;
