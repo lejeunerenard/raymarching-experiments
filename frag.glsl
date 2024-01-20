@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1934,7 +1934,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.40;
+float gR = 0.07;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1948,14 +1948,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.20 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.20 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
-  p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
+  // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
 
@@ -1982,7 +1982,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.xyz = twist(wQ.xzy, 3. * wQ.z);
+  // wQ.xyz = twist(wQ.xzy, 3. * wQ.z);
   // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -2000,11 +2000,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // r -= r * saturate(1. - 0.015 * q.z);
-  // vec3 b = vec3(r - length(q.xy), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 42., 1.3 * r), 0, 0);
+  q.xy = abs(q.xy);
+  q.xy -= 3.40 * r;
+
+  q.xy = polarCoords(q.xy);
+  q.x /= PI;
+  q.y -= 2.0 * r;
+
+  q.yz *= rotMat2(q.x * PI + 0.25 * PI * cos(localCosT + cos(PI * q.x)));
+
+  vec3 b = vec3(sdBox(q, vec3(2, r, r)), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2115,7 +2120,7 @@ vec3 textures (in vec3 rd) {
 
   float dNR = dot(-rd, gNor);
 
-  float spread = saturate(1.0 - 1.0 * pow(dNR, 9.));
+  float spread = saturate(1.0 - 1.0 * pow(dNR, 2.));
   // // float n = smoothstep(0., 1.0, sin(150.0 * rd.x + 0.01 * noise(433.0 * rd)));
 
   // float startPoint = 0.0;
@@ -2272,21 +2277,21 @@ float barHeight (in vec2 c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  // return mix(vec3(0), color, isMaterialSmooth(m, 1.));
-
-  vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
-
-  vec2 r = 0.075 * vec2(0.125, 0.5);
-  vec2 size = r * vec2(8.15, 1.5);
-
-  vec2 c = pMod2(nQ, size);
-
-  r -= 0.1 * r * snoise2(0.123 * c);
-
-  float n = sdBox(nQ, r);
-  n = 1. - smoothstep(0., 0.125 * edge, n);
-  color = vec3(1.0 * n);
   return color;
+
+  // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
+
+  // vec2 r = 0.075 * vec2(0.125, 0.5);
+  // vec2 size = r * vec2(8.15, 1.5);
+
+  // vec2 c = pMod2(nQ, size);
+
+  // r -= 0.1 * r * snoise2(0.123 * c);
+
+  // float n = sdBox(nQ, r);
+  // n = 1. - smoothstep(0., 0.125 * edge, n);
+  // color = vec3(1.0 * n);
+  // return color;
 
   // float n = dot(mPos.xyz, vec3(1));
   // n *= TWO_PI;
@@ -2557,7 +2562,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3907,8 +3912,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
