@@ -3611,7 +3611,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.00;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.0125);
+  vec2 r = vec2(0.125);
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
@@ -3629,9 +3629,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.30;
-  wQ *= rotMat2(-0.2 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.30;
+  // wQ *= rotMat2(-0.2 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3640,13 +3640,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  vec2 c = pMod2(wQ, size);
-
   q = wQ;
   mUv = q;
-
-  // // Adjust R per cell
-  // r *= 0.7 - 0.4 * snoise2(1.7238 * c);
 
   // -- Cell T --
   float cellT = t;
@@ -3660,7 +3655,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
-  cellT -= 0.09 * vmax(abs(c));
+  // cellT -= 0.09 * vmax(abs(c));
 
   // // Dot product offset
   // float dC = dot(c, vec2(1, -1));
@@ -3675,9 +3670,6 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
 
-  // // Scale radius from -x to 1 where x is 0.05
-  // r *= cellT + 0.05 * (-1. + cellT);
-
   // -- Local Space offsets ---
   // // Shift by random noise
   // q += 0.4 * vmax(r) * vec2(
@@ -3690,13 +3682,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q *= rotMat2(PI * expo(cellT));
+  r -= 0.5 * r * (0.5 + 0.5 * cos(TWO_PI * cellT)) * fbmWarp(0.75 * q + 0.9 * cellT);
 
-  vec2 b = vec2(sdBox(q, vec2(1, 0.2) * r), 0);
+  vec2 b = vec2(length(q) - vmax(r), 0);
+  b.x = abs(b.x) - 0.05 * vmax(r);
   d = dMin(d, b);
-
-  // vec2 b = vec2(neighborGrid(q, gSize).x, 0);
-  // d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3727,7 +3717,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(0., 0.5 * edge, n - 0.0);
+  n = smoothstep(0., 8. * edge, n - 0.0);
 
   // Invert
   n = 1. - n;
@@ -3879,7 +3869,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3912,8 +3902,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4045,6 +4035,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // // Pseudo Multiply
     // float mask = layerColor.x;
     // color.rgb = mix(color.rgb, color.rgb * layerColor, mask);
+
+    uv += 0.005;
   }
 
   color.rgb = pow(color.rgb, vec3(2.000));
