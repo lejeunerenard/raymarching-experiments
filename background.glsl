@@ -42,11 +42,11 @@ vec3 getBackground (in vec2 uv, in float universe) {
 
   // Solid colors
   // vec3 color = vec3(0.5);
-  // vec3 color = vec3(0.7);
+  vec3 color = vec3(0.75);
   // vec3 color = vec3(1, 0, 0);
   // vec3 color = vec3(0);
   // vec3 color = mix(#5927F8, vec3(1), 0.20);
-  vec3 color = #FBFBEF;
+  // vec3 color = #FBFBEF;
 
   // -- Patterns --
 
@@ -110,7 +110,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // color = mix(color, vec3(0), 0.3); // Darken
   // color *= 0.91;
   // color *= mix(vec3(1, 1.2, 1.2), vec3(1.3, 1.0, 1.0), bgIndex); // Tint
-  color *= vec3(1.0, 0.9, 0.9); // Tint
+  color *= vec3(0.9, 0.9, 1.0); // Tint
 
   return color;
 }
