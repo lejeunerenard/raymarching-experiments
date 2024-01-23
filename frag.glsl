@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 2048
+#define maxSteps 200
 #define maxDistance 10.0
 #define fogMaxDistance 5.0
 
@@ -1934,7 +1934,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.0125;
+float gR = 1.3;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1959,8 +1959,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
 
-  float warpScale = 0.8;
-  float warpFrequency = 0.5;
+  float warpScale = 2.0;
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   const float rShrink = 0.3;
@@ -1995,17 +1995,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // warpPhase += warpPhaseAmp * componentShift(wQ);
   // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  vec2 c = floor((wQ.xy + size*0.5)/size);
-  wQ.xy = opRepLim(wQ.xy, vmax(size), vec2(18));
-
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  float l = 25. * r;
+  vec3 s = vec3(0);
+  r -= 0.25 * fbmWarp(0.8 * q, s);
 
-  // vec3 b = vec3(sdBox(q, vec3(r, r, l)), c.x, c.y);
-  vec3 b = vec3(sdCapsule(q, vec3(0, 0, l), vec3(0, 0, -l), r), c.x, c.y);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2015,7 +2012,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.125;
+  d.x *= 0.75;
 
   return d;
 }
@@ -2036,29 +2033,30 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT, in float u
   float trap = maxDistance;
 
   const float deltaTDelta = 0.000;
-// #define OVERSTEP 1
+#define OVERSTEP 1
 #ifdef OVERSTEP
   // Source: https://www.shadertoy.com/view/MdcXzn
   const int halfMax = (maxSteps / 2);
   for( int i = 0; i < halfMax; i++ ) {
-       vec3 d = map(rayOrigin + rayDirection * t, deltaT, universe);
+    vec3 d = map(rayOrigin + rayDirection * t, deltaT, universe);
 
-       if( d.x < epsilon * 100.0 ) break;
-       t += d.x;
-       if (t > maxDistance) break;
-      deltaT += deltaTDelta;
-   }
+    if( d.x < epsilon * 100.0 ) break;
+    t += d.x;
+    if (t > maxDistance) break;
+    deltaT += deltaTDelta;
+  }
 
-   t -= Z_REPEAT_DIST * 0.5;
+  // TODO Figure out how to make this distance adjustment more accurate in general use case
+  t -= Z_REPEAT_DIST * 0.5;
 
-   for( int i = 0; i < halfMax; i++ ) {
-       vec3 d = map(rayOrigin + rayDirection * t, deltaT, universe);
+  for( int i = 0; i < halfMax; i++ ) {
+    vec3 d = map(rayOrigin + rayDirection * t, deltaT, universe);
 
-       if( d.x<epsilon ) return vec4(t + d.x, d.y, float(i), d.z);
+    if( d.x<epsilon ) return vec4(t + d.x, d.y, float(i), d.z);
 
-       t += min(d.x, Z_REPEAT_DIST * 0.2);
-      deltaT += deltaTDelta;
-   }
+    t += min(d.x, Z_REPEAT_DIST * 0.2);
+    deltaT += deltaTDelta;
+  }
 #else
   for (int i = 0; i < maxSteps; i++) {
     vec3 d = map(rayOrigin + rayDirection * t, deltaT, universe);
@@ -2272,7 +2270,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(2.75);
+  return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
@@ -2457,7 +2456,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
-      // nor += 0.3 * (0.5 + 0.5 * dot(nor, rayDirection)) * cellular(vec3(9, 1, 9) * mPos);
+      // nor += 5.0 * cellular(vec3(1) * mPos);
 
       nor = normalize(nor);
       gNor = nor;
@@ -2471,7 +2470,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isFloor = isMaterialSmooth(t.y, 1.);
+      // None
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
@@ -2484,7 +2483,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 1.;
-      float shadowMin = 1.;
+      float shadowMin = 0.;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2507,7 +2506,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         isSoftShadow = true;
-        float sha = max(shadowMin, softshadow(pos, lightRd, 0.001, 1.0, lights[i].size, generalT));
+        float sha = max(shadowMin, softshadow(pos, lightRd, 0.0075, 1.0, lights[i].size, generalT));
         isSoftShadow = false;
         dif *= sha;
 
@@ -2519,8 +2518,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
         // // Ambient
-        // lin += mix(0.0750, 0., isFloor) * amb * diffuseColor;
-        // dif += mix(0.0750, 0., isFloor) * amb;
+        // lin += 0.0750 * amb * diffuseColor;
+        // dif += 0.0750 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 0.55);
         distIntensity = saturate(distIntensity);
@@ -2608,7 +2607,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // color += 0.5 * innerGlow(5.0 * t.w);
 
       // // Fade to background
-      // color = mix(color, background, saturate(isFloor * pow(0.5 * t.w, 1.1)));
+      // color = mix(color, background, saturate(pow(0.5 * t.w, 1.1)));
 
       // color = diffuseColor;
 
@@ -2639,7 +2638,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       stepIndex = pow(stepIndex, 0.85);
 
       // color += 0.5 + 0.5 * cos(TWO_PI * (2. * stepIndex + vec3(0, 0.33, 0.67) + 0.125));
-      // color += 0.2 * vec3(stepIndex);
+      color = vec3(pow(stepIndex, 0.65));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
@@ -3899,8 +3898,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3949,8 +3948,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 10.;
-  float delayLength = 0.05 + 0.01 * cos(cosT);
+  const float slices = 15.;
+  float delayLength = 0.05;
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
@@ -3970,7 +3969,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // Cosine Palette
     vec3 dI = vec3(i / slices);
-    dI += dot(uv, vec2(0.7));
+    dI += dot(uv, vec2(0.4));
+    dI += norT;
     // dI += 0.125 * snoise2(vec2(2, 1) * mUv);
 
     // dI *= 0.6;
