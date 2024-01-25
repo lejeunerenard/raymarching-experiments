@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 200
+#define maxSteps 512
 #define maxDistance 10.0
 #define fogMaxDistance 5.0
 
@@ -1958,8 +1958,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-
-  float warpScale = 2.0;
+  float warpFactor = expo(0.5 + 0.5 * cos(localCosT + q.x));
+  float warpScale = 2.0 * warpFactor;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
@@ -1985,11 +1985,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 0.5 * (0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1)))));
+  // wQ.xzy = twist(wQ.xyz, 0.5 * (0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1)))));
   wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
   wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
@@ -2000,10 +2000,13 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = q;
 
   vec3 s = vec3(0);
-  r -= 0.25 * fbmWarp(0.8 * q, s);
+  r -= 0.25 * warpFactor * fbmWarp(0.3 * q, s);
 
   vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
+
+  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  // d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2012,7 +2015,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.75;
+  d.x *= 0.3;
 
   return d;
 }
@@ -2033,7 +2036,7 @@ vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT, in float u
   float trap = maxDistance;
 
   const float deltaTDelta = 0.000;
-#define OVERSTEP 1
+// #define OVERSTEP 1
 #ifdef OVERSTEP
   // Source: https://www.shadertoy.com/view/MdcXzn
   const int halfMax = (maxSteps / 2);
@@ -2270,7 +2273,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(2.75);
+  vec3 color = vec3(1);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2483,7 +2486,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Shadow minimums
       float diffMin = 1.;
-      float shadowMin = 0.;
+      float shadowMin = 1.;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -3898,8 +3901,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
