@@ -1934,7 +1934,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 1.3;
+float gR = 0.3;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1950,7 +1950,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // -- Pseudo Camera Movement --
   // Wobble Tilt
-  const float tilt = 0.20 * PI;
+  const float tilt = 0.15 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
@@ -1976,34 +1976,57 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float worldScale = 1.0;
   // wQ *= worldScale;
 
+  wQ *= rotationMatrix(vec3(0, 0, 1), -0.05 * PI);
+
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.2 + 0.3 * cos(vec3(-1, 1, 0) * localCosT);
   // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xzy = twist(wQ.xyz, 0.5 * (0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1)))));
-  wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // // wQ.xzy = twist(wQ.xyz, 0.5 * (0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1)))));
+  // wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 s = vec3(0);
-  r -= 0.25 * warpFactor * fbmWarp(0.3 * q, s);
-
   vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
+
+  float ringR = 0.060 * r;
+
+  for (float i = 0.; i < 9.; i++) {
+    float numOfSegments = 3. + i;
+    float segmentSize = TWO_PI / numOfSegments;
+
+    vec3 localQ = q.xyz;
+    localQ *= rotationMatrix(vec3(0, 1, 0), segmentSize * t + 0.7325 * i);
+    localQ = vec3(polarCoords(localQ.xz), localQ.y).xzy;
+    float baseR = r * (1.5 + 0.5 * i);
+    localQ.z -= baseR;
+
+    float segmentLength = segmentSize * 0.5 - 0.075;
+    float c = pMod1(localQ.x, segmentSize);
+
+    vec3 b = vec3(sdCapsule(localQ, vec3(segmentLength, 0, 0), vec3(-segmentLength, 0, 0), ringR), 1, 0);
+    // Update mPos if necessary
+    if (b.x < d.x) {
+      mPos = localQ;
+    }
+    d = dMin(d, b);
+  }
+
 
   // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
   // d = dMin(d, b);
@@ -2273,7 +2296,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1);
+  vec3 color = vec3(isMaterialSmooth(m, 1.));
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2479,7 +2502,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.;
+      float freCo = 0.3;
       float specCo = 0.;
 
       vec3 specAll = vec3(0.0);
@@ -2636,12 +2659,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // // Levels adjustment of sorts
       // color = mix(color, sigmoid(color), 0.7);
 
-      // Max Call based material
-      float stepIndex = t.z / float(maxSteps);
-      stepIndex = pow(stepIndex, 0.85);
+      // // Max Call based material
+      // float stepIndex = t.z / float(maxSteps);
+      // stepIndex = pow(stepIndex, 0.85);
 
-      // color += 0.5 + 0.5 * cos(TWO_PI * (2. * stepIndex + vec3(0, 0.33, 0.67) + 0.125));
-      color = vec3(pow(stepIndex, 0.65));
+      // // color += 0.5 + 0.5 * cos(TWO_PI * (2. * stepIndex + vec3(0, 0.33, 0.67) + 0.125));
+      // color = vec3(pow(stepIndex, 0.65));
 
       #ifdef debugMapCalls
       color = vec3(t.z / float(maxSteps));
