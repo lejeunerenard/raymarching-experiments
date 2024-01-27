@@ -1948,19 +1948,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.15 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.15 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpFactor = expo(0.5 + 0.5 * cos(localCosT + q.x));
-  float warpScale = 2.0 * warpFactor;
-  float warpFrequency = 1.0;
+  float warpFactor = quart(0.5 + 0.5 * cos(localCosT + q.x));
+  float warpScale = 0.75 * warpFactor;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   const float rShrink = 0.3;
@@ -1976,45 +1976,46 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // float worldScale = 1.0;
   // wQ *= worldScale;
 
-  wQ *= rotationMatrix(vec3(0, 0, 1), -0.05 * PI);
-
   float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
   vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.2 + 0.3 * cos(vec3(-1, 1, 0) * localCosT);
   // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
   const float warpPhaseAmp = 0.9;
 
-  // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xyz = twist(wQ.xzy, 1.5 * wQ.z + 0.1 * PI * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // // wQ.xzy = twist(wQ.xyz, 0.5 * (0.5 * wQ.y + 0.1 * PI * cos(localCosT + 0.9 * wQ.z - 8. * dot(wQ.xy, vec2(1)))));
-  // wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  // wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
-  d = dMin(d, b);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // d = dMin(d, b);
 
   float ringR = 0.060 * r;
 
-  for (float i = 0.; i < 9.; i++) {
+  q.z += 0.5;
+
+  for (float i = 0.; i < 12.; i++) {
     float numOfSegments = 3. + i;
     float segmentSize = TWO_PI / numOfSegments;
 
-    vec3 localQ = q.xyz;
+    vec3 localQ = q.xzy;
     localQ *= rotationMatrix(vec3(0, 1, 0), segmentSize * t + 0.7325 * i);
     localQ = vec3(polarCoords(localQ.xz), localQ.y).xzy;
-    float baseR = r * (1.5 + 0.5 * i);
+    float baseR = r * (0.25 + 0.175 * i);
     localQ.z -= baseR;
+    localQ.y -= r * (0. + 0.50 * i);
 
     float segmentLength = segmentSize * 0.5 - 0.075;
     float c = pMod1(localQ.x, segmentSize);
