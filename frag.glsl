@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1948,11 +1948,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.15 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.05 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
@@ -1982,18 +1982,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 1.5 * wQ.z + 0.1 * PI * cos(localCosT + wQ.z));
-  wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ.xyz = twist(wQ.xzy, 1.5 * wQ.z + 0.1 * PI * cos(localCosT + wQ.z));
+  // wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
@@ -2006,19 +2006,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   q.z += 0.5;
 
-  for (float i = 0.; i < 12.; i++) {
+  float segmentFactor = 0.5;
+
+  for (float i = 0.; i < 20.; i++) {
     float numOfSegments = 3. + i;
     float segmentSize = TWO_PI / numOfSegments;
 
     vec3 localQ = q.xzy;
     localQ *= rotationMatrix(vec3(0, 1, 0), segmentSize * t + 0.7325 * i);
     localQ = vec3(polarCoords(localQ.xz), localQ.y).xzy;
-    float baseR = r * (0.25 + 0.175 * i);
+    float baseR = r * 0.25 + 3.5 * i * ringR;
     localQ.z -= baseR;
-    localQ.y -= r * (0. + 0.50 * i);
+    localQ.y += r * (0. + 0.50 * i);
 
-    float segmentLength = segmentSize * 0.5 - 0.075;
+    float segmentLength = segmentFactor * segmentSize * (0.5 - 0.15);
     float c = pMod1(localQ.x, segmentSize);
+    c = pMod1(localQ.x, segmentFactor * segmentSize);
 
     vec3 b = vec3(sdCapsule(localQ, vec3(segmentLength, 0, 0), vec3(-segmentLength, 0, 0), ringR), 1, 0);
     // Update mPos if necessary
@@ -2509,7 +2512,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.;
+      float diffMin = 1.0;
       float shadowMin = 1.;
 
       vec3 directLighting = vec3(0);
