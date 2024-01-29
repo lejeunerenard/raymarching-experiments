@@ -735,6 +735,13 @@ vec3 quad (in vec3 x) {
       quad(x.z)
       );
 }
+vec3 quart (in vec3 x) {
+  return vec3(
+      quart(x.x),
+      quart(x.y),
+      quart(x.z)
+      );
+}
 
 vec3 expoWave (in vec3 q) {
   q = triangleWave(q);
@@ -1958,9 +1965,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpFactor = quart(0.5 + 0.5 * cos(localCosT + q.x));
-  float warpScale = 0.75 * warpFactor;
-  float warpFrequency = 2.0;
+  float warpScale = 1.05;
+  float warpFrequency = 3.0;
   float rollingScale = 1.;
 
   const float rShrink = 0.3;
@@ -1982,58 +1988,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, 1.5 * wQ.z + 0.1 * PI * cos(localCosT + wQ.z));
-  // wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  // wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // // wQ += 0.001125 * warpScale * cos(33.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.y *= 0.7;
+
+  wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xyz = twist(wQ.xzy, 1.5 * wQ.z + 0.1 * PI * cos(localCosT + wQ.z));
+  wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
   // d = dMin(d, b);
 
-  float ringR = 0.060 * r;
-
-  q.z += 0.5;
-
-  float segmentFactor = 0.5;
-
-  for (float i = 0.; i < 20.; i++) {
-    float numOfSegments = 3. + i;
-    float segmentSize = TWO_PI / numOfSegments;
-
-    vec3 localQ = q.xzy;
-    localQ *= rotationMatrix(vec3(0, 1, 0), segmentSize * t + 0.7325 * i);
-    localQ = vec3(polarCoords(localQ.xz), localQ.y).xzy;
-    float baseR = r * 0.25 + 3.5 * i * ringR;
-    localQ.z -= baseR;
-    localQ.y += r * (0. + 0.50 * i);
-
-    float segmentLength = segmentFactor * segmentSize * (0.5 - 0.15);
-    float c = pMod1(localQ.x, segmentSize);
-    c = pMod1(localQ.x, segmentFactor * segmentSize);
-
-    vec3 b = vec3(sdCapsule(localQ, vec3(segmentLength, 0, 0), vec3(-segmentLength, 0, 0), ringR), 1, 0);
-    // Update mPos if necessary
-    if (b.x < d.x) {
-      mPos = localQ;
-    }
-    d = dMin(d, b);
-  }
-
-
-  // vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  // d = dMin(d, b);
+  vec3 b = vec3(length(q) - r, 0, 0);
+  d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2042,7 +2018,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.3;
+  d.x *= 0.6;
 
   return d;
 }
@@ -2172,6 +2148,8 @@ vec3 textures (in vec3 rd) {
   dI += 0.3 * snoise3(0.3 * mPos);
   dI += 0.5 * pow(dNR, 5.);
 
+  dI = expo(dI);
+
   dI *= angle1C;
   dI += angle2C;
   // dI += norT;
@@ -2300,7 +2278,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(isMaterialSmooth(m, 1.));
+  vec3 color = vec3(background);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2588,7 +2566,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2601,7 +2579,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.);
       // float dispersionI = 1.0;
       // dispersionI *= 2.;
 
@@ -2614,8 +2592,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
