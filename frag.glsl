@@ -1941,7 +1941,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.3;
+float gR = 0.4;
 bool isDispersion = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
@@ -1965,8 +1965,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpScale = 1.05;
-  float warpFrequency = 3.0;
+  float warpScale = 0.3;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   const float rShrink = 0.3;
@@ -1988,16 +1988,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.y *= 0.7;
+  wQ.x *= -1.;
 
   wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 1.5 * wQ.z + 0.1 * PI * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
   wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
   wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
@@ -2005,10 +2005,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  // vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
-  // d = dMin(d, b);
-
-  vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  b.x -= 0.04 * cellular(1.25 * q);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2484,8 +2484,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
-      float specCo = 0.;
+      float freCo = 0.8;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
@@ -2552,11 +2552,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
-      // color += reflectColor;
+      // Reflect scene
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
