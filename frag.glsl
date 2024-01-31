@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 512
 #define maxDistance 10.0
-#define fogMaxDistance 5.0
+#define fogMaxDistance 3.0
 
 #define slowTime time * 0.2
 // v3
@@ -1957,7 +1957,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // -- Pseudo Camera Movement --
   // Wobble Tilt
-  const float tilt = 0.05 * PI;
+  const float tilt = 0.15 * PI;
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
@@ -1988,28 +1988,31 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.x *= -1.;
-
-  wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
-  wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
-  wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 1.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 2.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
+  // wQ += 0.025000 * warpScale * cos( 3.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 5.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.x + 0.105 * sin(localCosT + wQ.x));
+  // wQ += 0.006250 * warpScale * cos( 7.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
-  q = wQ.xyz;
+  q = wQ.yxz;
   mPos = q;
 
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
-  b.x -= 0.04 * cellular(1.25 * q);
-  d = dMin(d, b);
+  const float num = 8.;
+  float angleInc = TWO_PI / num;
+  for (float i = 0.; i < num; i++) {
+    vec3 localQ = q;
+    localQ.xz *= rotMat2(i * angleInc + localCosT);
+    localQ.x += 0.7 * r;
+    localQ *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
+    vec3 b = vec3(sdTorus(localQ.xzy, r * vec2(1, 0.085)), 0, 0);
+    d = dMin(d, b);
+  }
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2278,7 +2281,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(background);
+  vec3 color = vec3(0.0);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2440,8 +2443,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(2. * vec3(-0.0, 0.0, 1.0), #FFDCDC, 1.0, 32.0);
-    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #DCFFFF, 1.0, 16.0);
+    lights[0] = light(2. * vec3(-0.0, 0.0, 1.0), #FFFFFF, 1.0, 32.0);
+    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #FFFFFF, 1.0, 16.0);
     lights[2] = light(2. * vec3( 0.2, 0.8,-1.3), #FFFFFF, 2., 16.0);
 
     float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
@@ -2485,7 +2488,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.8;
-      float specCo = 0.9;
+      float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
@@ -2566,7 +2569,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2600,14 +2603,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(
-      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 1.2)
-      //       / fogMaxDistance
-      // ));
-      // color *= saturate(exp(-d * 0.025));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.0)
+            / fogMaxDistance
+      ));
+      color *= saturate(exp(-d * 0.025));
+      color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 

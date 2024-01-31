@@ -43,7 +43,7 @@ export default class App {
       throw new Error('derivatives not supported')
     }
 
-    this.LOOKAT = false
+    this.LOOKAT = true
     this.SHOW_SVG_SDF = false
 
     this.presets = {}
@@ -60,7 +60,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.31, -0.24, 2.83)
+    this.cameraRo = vec3.fromValues(0.4, -0.24, 1.4)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [168, 141, 198]
@@ -82,7 +82,7 @@ export default class App {
     this.angle2C = 2.198
     this.angle3C = 0.89
 
-    // this.setupAnimation(preset)
+    this.setupAnimation(preset)
 
     this.glInit(gl)
 
@@ -229,21 +229,19 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .delay(2.5 * 1000)
-      .to({ x: 0, y: 0, z: self.cameraRo[2] }, 2.5 * 1000)
+      .to({ x: -0.4, y: self.cameraRo[1], z: self.cameraRo[2] }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     let cameraPosTween2 = new TWEEN.Tween(ob)
     cameraPosTween2
-      .delay(2.5 * 1000)
-      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 2.5 * 1000)
+      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
-    // cameraPosTween.start(0)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -320,7 +318,7 @@ export default class App {
     offsetTween1.chain(offsetTween2)
     offsetTween2.chain(offsetTween1)
 
-    offsetTween1.start(0)
+    // offsetTween1.start(0)
 
     // Angle1C Tween
     let angle1CTween1 = new TWEEN.Tween(this)
