@@ -60,7 +60,7 @@ export default class App {
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0.4, -0.24, 1.4)
+    this.cameraRo = vec3.fromValues(0.4, 0.1, 1)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
     this.colors1 = [168, 141, 198]
@@ -229,7 +229,7 @@ export default class App {
 
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .to({ x: -0.4, y: self.cameraRo[1], z: self.cameraRo[2] }, 5 * 1000)
+      .to({ x: self.cameraRo[0], y: -0.1, z: self.cameraRo[2] }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 

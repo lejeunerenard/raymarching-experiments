@@ -2000,17 +2000,32 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
-  q = wQ.yxz;
+  q = wQ.xyz;
+  // q = wQ.yxz;
   mPos = q;
 
-  const float num = 8.;
+  float thickness = 0.085 * r;
+
+  const float num = 6.;
   float angleInc = TWO_PI / num;
   for (float i = 0.; i < num; i++) {
     vec3 localQ = q;
     localQ.xz *= rotMat2(i * angleInc + localCosT);
-    localQ.x += 0.7 * r;
+    localQ.x += 0.6 * r;
     localQ *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
-    vec3 b = vec3(sdTorus(localQ.xzy, r * vec2(1, 0.085)), 0, 0);
+    vec3 b = vec3(sdTorus(localQ.xzy, vec2(r, thickness)), 1, 0);
+    d = dMin(d, b);
+  }
+
+  const float num2 = 10.;
+  r *= 1.25;
+  angleInc = TWO_PI / num2;
+  for (float i = 0.; i < num2; i++) {
+    vec3 localQ = q;
+    localQ.xz *= rotMat2(i * angleInc - localCosT);
+    localQ.x += 0.8 * r;
+    localQ *= rotationMatrix(vec3(1, 0, 0), 0.075 * PI);
+    vec3 b = vec3(sdTorus(localQ.xzy, vec2(r, thickness)), 0, 0);
     d = dMin(d, b);
   }
 
@@ -2020,8 +2035,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.6;
+  // // Under step
+  // d.x *= 0.6;
 
   return d;
 }
@@ -2281,7 +2296,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.0);
+  // vec3 color = mix(vec3(0.0), vec3(0.1), isMaterialSmooth(m, 1.));
+  vec3 color = vec3(0);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
