@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1955,11 +1955,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.15 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.15 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
@@ -2000,30 +2000,30 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
-  q = wQ.xyz;
-  // q = wQ.yxz;
+  // q = wQ.xyz;
+  q = wQ.xzy;
   mPos = q;
 
-  float thickness = 0.085 * r;
+  float thickness = 0.075 * r;
 
-  const float num = 6.;
+  const float num = 7.;
   float angleInc = TWO_PI / num;
   for (float i = 0.; i < num; i++) {
     vec3 localQ = q;
     localQ.xz *= rotMat2(i * angleInc + localCosT);
-    localQ.x += 0.6 * r;
+    localQ.x += 0.3 * r;
     localQ *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
     vec3 b = vec3(sdTorus(localQ.xzy, vec2(r, thickness)), 1, 0);
     d = dMin(d, b);
   }
 
-  const float num2 = 10.;
+  const float num2 = 12.;
   r *= 1.25;
   angleInc = TWO_PI / num2;
   for (float i = 0.; i < num2; i++) {
     vec3 localQ = q;
     localQ.xz *= rotMat2(i * angleInc - localCosT);
-    localQ.x += 0.8 * r;
+    localQ.x += 0.5 * r;
     localQ *= rotationMatrix(vec3(1, 0, 0), 0.075 * PI);
     vec3 b = vec3(sdTorus(localQ.xzy, vec2(r, thickness)), 0, 0);
     d = dMin(d, b);
@@ -2297,7 +2297,7 @@ float barHeight (in vec2 c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   // vec3 color = mix(vec3(0.0), vec3(0.1), isMaterialSmooth(m, 1.));
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.45);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
