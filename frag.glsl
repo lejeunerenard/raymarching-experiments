@@ -6,10 +6,10 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-// #define SS 2
-// #define ORTHO 1
+#define SS 2
+#define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 512
 #define maxDistance 10.0
-#define fogMaxDistance 3.0
+#define fogMaxDistance 5.0
 
 #define slowTime time * 0.2
 // v3
@@ -70,7 +70,7 @@ float n2 = 2.1;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = length(cameraRo) - 0.24;
+float doFDistance = length(cameraRo) - 0.0;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1941,8 +1941,9 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.4;
+float gR = 0.025;
 bool isDispersion = false;
+bool isReflection = false;
 bool isSoftShadow = false;
 vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 d = vec3(maxDistance, 0, 0);
@@ -1955,11 +1956,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.15 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.15 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
@@ -2000,34 +2001,43 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.003125 * warpScale * cos(11.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
-  // q = wQ.xyz;
-  q = wQ.xzy;
+  q = wQ.xyz;
   mPos = q;
 
   float thickness = 0.075 * r;
+  float baseR = 22. * r;
 
-  const float num = 7.;
+  const float num = 4.;
   float angleInc = TWO_PI / num;
+
   for (float i = 0.; i < num; i++) {
+  // float i = 0.;
     vec3 localQ = q;
     localQ.xz *= rotMat2(i * angleInc + localCosT);
-    localQ.x += 0.3 * r;
-    localQ *= rotationMatrix(vec3(1, 0, 0), 0.2 * PI);
-    vec3 b = vec3(sdTorus(localQ.xzy, vec2(r, thickness)), 1, 0);
+    localQ.x += 0.4 * baseR;
+    localQ *= rotationMatrix(vec3(1, 0, 0), 0.225 * PI);
+
+    localQ.xy = polarCoords(localQ.xy);
+    localQ.x /= PI;
+    localQ.y -= baseR;
+
+    localQ.yz *= rotMat2(localQ.x * PI * 0.5 + localCosT);
+
+    localQ.yz = abs(localQ.yz);
+
+    // Separate "braid"s
+    localQ.yz -= 2.25 * r;
+
+    localQ.yz *= rotMat2(localQ.x * PI * 0.5);
+
+    vec3 b = vec3(sdBox(localQ.xzy, vec3(1, r, r)), 0, 0);
     d = dMin(d, b);
   }
 
-  const float num2 = 12.;
-  r *= 1.25;
-  angleInc = TWO_PI / num2;
-  for (float i = 0.; i < num2; i++) {
-    vec3 localQ = q;
-    localQ.xz *= rotMat2(i * angleInc - localCosT);
-    localQ.x += 0.5 * r;
-    localQ *= rotationMatrix(vec3(1, 0, 0), 0.075 * PI);
-    vec3 b = vec3(sdTorus(localQ.xzy, vec2(r, thickness)), 0, 0);
-    d = dMin(d, b);
-  }
+  vec3 b = vec3(length(q) - 3. * r, 1, 0);
+  b.x -= 0.075 * cellular(3. * q);
+  b.x *= 0.7;
+  d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2297,7 +2307,10 @@ float barHeight (in vec2 c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   // vec3 color = mix(vec3(0.0), vec3(0.1), isMaterialSmooth(m, 1.));
-  vec3 color = vec3(0.45);
+  vec3 color = vec3(0.0);
+  if (isReflection) {
+    color = vec3(0.5);
+  }
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2503,14 +2516,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.8;
+      float freCo = 0.9;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 1.;
+      float diffMin = 0.75;
+      float shadowMin = 0.75;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2572,9 +2585,11 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color += 1.0 * pow(specAll, vec3(8.0));
 
       // Reflect scene
+      isReflection = true; // Set mode to dispersion
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.2 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.1 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
+      isReflection = false; // Set mode to dispersion
       color += reflectColor;
 
       // vec3 refractColor = vec3(0);
@@ -2585,7 +2600,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2599,6 +2614,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isDispersion = false; // Unset dispersion mode
 
       float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.);
+      dispersionI *= isMaterialSmooth(t.y, 0.);
       // float dispersionI = 1.0;
       // dispersionI *= 2.;
 
@@ -4105,7 +4121,7 @@ void main() {
       gRs, 0.0,  gRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.0035;
+    const float dofCoeficient = 0.035;
 #endif
 
     #ifdef SS
