@@ -6,10 +6,10 @@
 
 // #define debugMapCalls
 // #define debugMapMaxed
-#define SS 2
+// #define SS 2
 #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 2.1;
+float n2 = 1.3;
 const float amount = 0.05;
 
 // Dof
@@ -2007,15 +2007,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float thickness = 0.075 * r;
   float baseR = 22. * r;
 
-  const float num = 4.;
+  const float num = 8.;
   float angleInc = TWO_PI / num;
 
   for (float i = 0.; i < num; i++) {
   // float i = 0.;
     vec3 localQ = q;
     localQ.xz *= rotMat2(i * angleInc + localCosT);
-    localQ.x += 0.4 * baseR;
-    localQ *= rotationMatrix(vec3(1, 0, 0), 0.225 * PI);
+    localQ.x += 0.6 * baseR;
+    localQ *= rotationMatrix(vec3(1, 0, 0), 0.25 * PI);
 
     localQ.xy = polarCoords(localQ.xy);
     localQ.x /= PI;
@@ -2033,11 +2033,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
     vec3 b = vec3(sdBox(localQ.xzy, vec3(1, r, r)), 0, 0);
     d = dMin(d, b);
   }
-
-  vec3 b = vec3(length(q) - 3. * r, 1, 0);
-  b.x -= 0.075 * cellular(3. * q);
-  b.x *= 0.7;
-  d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2306,11 +2301,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  // vec3 color = mix(vec3(0.0), vec3(0.1), isMaterialSmooth(m, 1.));
   vec3 color = vec3(0.0);
-  if (isReflection) {
-    color = vec3(0.5);
-  }
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2516,8 +2507,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.9;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
@@ -2584,13 +2575,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      isReflection = true; // Set mode to dispersion
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
-      isReflection = false; // Set mode to dispersion
-      color += reflectColor;
+      // // Reflect scene
+      // isReflection = true; // Set mode to dispersion
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.1 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
+      // isReflection = false; // Set mode to dispersion
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
