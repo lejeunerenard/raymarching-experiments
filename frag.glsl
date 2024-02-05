@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 512
 #define maxDistance 10.0
-#define fogMaxDistance 5.0
+#define fogMaxDistance 4.35
 
 #define slowTime time * 0.2
 // v3
@@ -1941,7 +1941,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.025;
+float gR = 0.1;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -2004,10 +2004,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  float thickness = 0.075 * r;
-  float baseR = 22. * r;
+  float baseR = 5.75 * r;
 
-  const float num = 8.;
+  const float num = 4.;
   float angleInc = TWO_PI / num;
 
   for (float i = 0.; i < num; i++) {
@@ -2023,14 +2022,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
     localQ.yz *= rotMat2(localQ.x * PI * 0.5 + localCosT);
 
-    localQ.yz = abs(localQ.yz);
-
-    // Separate "braid"s
-    localQ.yz -= 2.25 * r;
-
-    localQ.yz *= rotMat2(localQ.x * PI * 0.5);
-
-    vec3 b = vec3(sdBox(localQ.xzy, vec3(1, r, r)), 0, 0);
+    vec3 b = vec3(sdBox(localQ.xzy, vec3(1.1, r, r)), 0, 0);
     d = dMin(d, b);
   }
 
@@ -2301,7 +2293,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.0);
+  vec3 color = vec3(0.05);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2507,14 +2499,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.2;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.75;
-      float shadowMin = 0.75;
+      float diffMin = 1.;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2548,9 +2540,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // // Ambient
-        // lin += 0.0750 * amb * diffuseColor;
-        // dif += 0.0750 * amb;
+        // Ambient
+        lin += 0.0750 * amb * diffuseColor;
+        dif += 0.0750 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 0.55);
         distIntensity = saturate(distIntensity);
@@ -2599,13 +2591,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.);
-      dispersionI *= isMaterialSmooth(t.y, 0.);
+      float dispersionI = 1.5 * pow(0. + dot(dNor, -gRd), 1.);
       // float dispersionI = 1.0;
       // dispersionI *= 2.;
 
@@ -2618,8 +2609,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
