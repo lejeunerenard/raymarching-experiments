@@ -4,7 +4,7 @@
 #define PHI (1.618033988749895)
 #define saturate(x) clamp(x, 0.0, 1.0)
 
-#define debugMapCalls
+// #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
 // #define ORTHO 1
@@ -573,6 +573,37 @@ float sdArc( in vec2 p, in vec2 sca, in vec2 scb, in float ra, float rb )
     p.x = abs(p.x);
     float k = (scb.y*p.x>scb.x*p.y) ? dot(p,scb) : length(p);
     return sqrt( dot(p,p) + ra*ra - 2.0*ra*k ) - rb;
+}
+
+// IQ's cosine distance
+// https://www.shadertoy.com/view/3t23WG
+//----------------------------------------------------------------------
+// Distance to y(x) = a + b*cos(cx+d)
+//----------------------------------------------------------------------
+float udCos( in vec2 p, in float a, in float b, in float c, in float d ) {
+  // convert all data to primitive cosine space where y(x) = w·cos(x)
+  p = c*(p-vec2(d,a));
+  float w = c*b;
+
+  // reduce to principal half cycle
+  p.x = mod( p.x, TWO_PI); if( p.x>(0.5*TWO_PI) ) p.x = TWO_PI - p.x;
+
+  // find zero of derivative (minimize distance)
+  float xa = 0.0, xb = TWO_PI;
+  for( int i=0; i<24; i++ ) // 24 bit precision
+  {
+    float x = 0.5*(xa+xb);
+    float y = x-p.x+w*sin(x)*(p.y-w*cos(x));
+    if( y<0.0 ) xa = x; else xb = x;
+  }
+  float x = 0.5*(xa+xb);
+
+  // compute distance    
+  vec2  q = vec2(x,w*cos(x));
+  float r = length(p-q);
+
+  // convert back to the non primitive cosine space 
+  return r/c;
 }
 
 #define Iterations 9
@@ -1989,16 +2020,16 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
-  wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos(11.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
+  // wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  // wQ += 0.006250 * warpScale * cos(11.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
@@ -2277,7 +2308,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(0.5);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2290,7 +2321,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // r -= 0.1 * r * snoise2(0.123 * c);
 
   // float n = sdBox(nQ, r);
-  // n = 1. - smoothstep(0., 0.125 * edge, n);
+  // n = 1. - smoothstep(0., fwidth(n), n);
   // color = vec3(1.0 * n);
   // return color;
 
@@ -2299,7 +2330,7 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // n *= 40.;
   // n = sin(n);
   // n += 0.6;
-  // n = smoothstep(0., edge, n);
+  // n = smoothstep(0., fwidth(n), n);
   // n *= 1.4;
   // return vec3(n);
 
@@ -3621,6 +3652,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
+  float amplitude = 0.035;
+  float frequency = TWO_PI * 3.;
+
   // -- Warp --
   vec2 wQ = q.xy;
 
@@ -3645,6 +3679,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+
+  float c = pMod1(wQ.y, 2.5 * amplitude);
 
   q = wQ;
   mUv = q;
@@ -3688,10 +3724,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  r -= 0.5 * r * (0.5 + 0.5 * cos(TWO_PI * cellT)) * fbmWarp(0.75 * q + 0.9 * cellT);
-
-  vec2 b = vec2(length(q) - vmax(r), 0);
-  b.x = abs(b.x) - 0.05 * vmax(r);
+  float phase = frequency * 0.035 * cos(localCosT + q.x + PI * 0.2 * c);
+  vec2 b = vec2(udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase), 0);
+  b.x -= 0.005;
   d = dMin(d, b);
 
   // --- Mask ---
@@ -3723,10 +3758,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(0., 8. * edge, n - 0.0);
-
-  // Invert
-  n = 1. - n;
+  n = smoothstep(fwidth(n), 0., n - 0.0);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3770,7 +3802,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float line = dot(q, axis);
   // line = sin(TWO_PI * numStripes * line);
   // line -= 0.95;
-  // line = smoothstep(0., 2. * edge, line);
+  // line = smoothstep(0., fwidth(line), line);
   // color.rgb = vec3(line);
 
   // // radial stripes
@@ -3778,9 +3810,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // angle += 6. * n;
   // float line = angle;
   // line = sin(TWO_PI * 30. * line);
-  // line = smoothstep(0., edge, line);
+  // line = smoothstep(0., fwidth(line), line);
   // color.rgb = vec3(line);
-  // color.rgb = mix(vec3(0), color.rgb, step(edge, n));
+  // color.rgb = mix(vec3(0), color.rgb, step(fwidth(n), n));
 
   // // Grid spinners?
   // const float baseGridSize = 0.10;
@@ -3791,7 +3823,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // q *= rotMat2(localCosT + 10. * n - 0.05 * length(c) + 0.75 * PI * cnoise2(c));
   // // float line = abs(q.y) - 0.015625 * baseGridSize;
   // float line = sdBox(q, vec2(0.015625, 0.3) * baseGridSize);
-  // line = smoothstep(1.0 * edge, 0., line);
+  // line = smoothstep(fwidth(line), 0., line);
   // // line *= step(0., -sdBox(c * rotMat2(0.25 * PI), vec2(5)));
   // line *= step(0., -sdBox(c, vec2(8)));
   // color.rgb = vec3(line);
@@ -3803,7 +3835,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // q *= rotMat2(-localCosT + 12. * n - 0.05 * length(c));
   // float line = min(abs(q.x), abs(q.y)) - 0.125 * 0.015625 * gridSize;
   // // line = max(line, sdBox(q, vec2(0.25 * gridSize)));
-  // line = smoothstep(edge, 0., line);
+  // line = smoothstep(fwidth(line), 0., line);
   // color.rgb = vec3(line);
 
   // // Grid circles
@@ -3811,14 +3843,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // q = uv;
   // vec2 c = pMod2(q, vec2(gridSize));
   // float line = length(q) - 0.125 * gridSize * (-0.2 + 1.2 * range(0.1, 1., 0.5 + 0.5 * cos(PI * 1.123 * snoise2(3.0237 * c) - localCosT)));
-  // line = smoothstep(0.5 * edge, 0., line);
+  // line = smoothstep(fwidth(line), 0., line);
   // color.rgb = vec3(line);
 
   // // Tint
   // color.rgb *= vec3(1, 0.9, 0.9);
 
   // // Darken negative distances
-  // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., 3. * edge, -n));
+  // color.rgb = mix(color.rgb, vec3(0), 0.2 * smoothstep(0., fwidth(n), -n));
 
   // // Brighten
   // color.rgb *= 2.;
@@ -3875,7 +3907,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3908,13 +3940,13 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
   // // Hard Edge
-  // layerOutline = smoothstep(0., 0.40 * edge, layerOutline - angle2C);
+  // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
 
   // return vec4(vec3(1. - layerOutline), 1);
 
@@ -3926,7 +3958,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   //   // // Outlined version
   //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
   //   // // Hard Edge
-  //   // layerOutline = smoothstep(0., 0.20 * edge, layerOutline - angle2C);
+  //   // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
   //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
   //   // Echo Dimming
@@ -3958,8 +3990,10 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 15.;
+  const float slices = 27.;
   float delayLength = 0.05;
+  // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
+#define phase_uv_offset 1
 
   for (float i = 0.; i < slices; i++) {
     vec3 layerColor = vec3(0.);
@@ -3988,7 +4022,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1))); // Vary over time & diagonal space
 
     // layerTint = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.33, 0.67))));
+    layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.3, 0.6))));
     // layerTint += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerTint + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
     // layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
 
@@ -4003,7 +4037,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // layerTint *= 0.65;
     // layerTint *= vec3(1.0, 0.6, 0.60);
 
-    // // -- Layer Post Processing --
+    // -- Layer Post Processing --
     // layerTint *= colors1; // Tint w/ color 1
     // layerTint *= 1.5;
 
@@ -4043,10 +4077,12 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // float mask = layerColor.x;
     // color.rgb = mix(color.rgb, color.rgb * layerColor, mask);
 
-    uv += 0.005;
+#ifdef phase_uv_offset
+    uv += 0.005 * saturate(1. - (slices - 15.) / 15.);
+#endif
   }
 
-  color.rgb = pow(color.rgb, vec3(2.000));
+  color.rgb = pow(color.rgb, vec3(1.700));
   color.rgb /= slices;
 
   // // Final layer
