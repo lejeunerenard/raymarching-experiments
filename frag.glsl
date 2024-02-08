@@ -3652,13 +3652,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 0.035;
-  float frequency = TWO_PI * 3.;
+  float amplitude = 0.07;
+  float frequency = TWO_PI * 1.5;
+  float thickness = 0.0075;
+  size.y = 2.75 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= 0.5;
+  wQ *= rotMat2(-0.15 * PI);
+
+  // wQ *= 0.5;
 
   float warpT = localCosT;
 
@@ -3680,7 +3684,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  float c = pMod1(wQ.y, 2.5 * amplitude);
+  float c = pMod1(wQ.y, size.y);
 
   q = wQ;
   mUv = q;
@@ -3724,10 +3728,18 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float phase = frequency * 0.035 * cos(localCosT + q.x + PI * 0.2 * c);
+  float phase = frequency * 0.02 * (0.5 + 0.5 * cos(localCosT + q.x + PI * 0.2 * c));
+
+  q.x -= 2. * t;
+
   vec2 b = vec2(udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase), 0);
-  b.x -= 0.005;
+  b.x -= thickness;
   d = dMin(d, b);
+
+  // // Debug mod range
+  // float bb = abs(q.y) - 0.5 * size.y;
+  // // bb = abs(bb) - 0.1 * thickness;
+  // d.x = max(d.x, bb);
 
   // --- Mask ---
   float mask = 1.;
@@ -3758,7 +3770,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
   // Hard Edge
-  n = smoothstep(fwidth(n), 0., n - 0.0);
+  // n = smoothstep(fwidth(n), 0., n - 0.0);
+  n = smoothstep(edge, 0., n - 0.0);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3991,7 +4004,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // -- Color delay --
   const float slices = 27.;
-  float delayLength = 0.05;
+  float delayLength = 0.20;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
@@ -4078,7 +4091,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color.rgb = mix(color.rgb, color.rgb * layerColor, mask);
 
 #ifdef phase_uv_offset
-    uv += 0.005 * saturate(1. - (slices - 15.) / 15.);
+    uv += vec2(0.0025, 0.005) * saturate(1. - (slices - 15.) / 15.);
 #endif
   }
 

@@ -14,7 +14,7 @@ import assert from 'assert'
 import { vec3, mat4 } from 'gl-matrix'
 import { getLuminance, getColorWFixedLuminance } from './luminance'
 
-import convert from './svg-to-glsl.js'
+// import convert from './svg-to-glsl.js'
 
 const dpr = 1.0 / window.devicePixelRatio
 
@@ -111,11 +111,11 @@ export default class App {
     this.capturing = defined(options.capturing, false)
 
     this.loaded = Promise.resolve()
-      .then(() => {
-        const { glsl, metadata } = convert(require('./7.svg.js'))
-        const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
-        this.add2DSDFTexture('year-7', fbo.color[0])
-      })
+      // .then(() => {
+      //   const { glsl, metadata } = convert(require('./7.svg.js'))
+      //   const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
+      //   this.add2DSDFTexture('year-7', fbo.color[0])
+      // })
       .then(() => {
         this.setupAudio()
       })
