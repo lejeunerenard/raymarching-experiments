@@ -3652,15 +3652,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 0.07;
-  float frequency = TWO_PI * 1.5;
+  float amplitude = 0.0225;
+  float frequency = TWO_PI * 2.0;
   float thickness = 0.0075;
   size.y = 2.75 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ *= rotMat2(-0.15 * PI);
+  wQ *= rotMat2(0.05 * PI);
 
   // wQ *= 0.5;
 
@@ -4095,7 +4095,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 #endif
   }
 
-  color.rgb = pow(color.rgb, vec3(1.700));
+  color.rgb = pow(color.rgb, vec3(1.400));
   color.rgb /= slices;
 
   // // Final layer
