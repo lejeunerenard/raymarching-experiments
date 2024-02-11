@@ -3653,7 +3653,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float scale = 4.;
 
   float amplitude = 0.0225;
-  float frequency = TWO_PI * 2.0;
+  float frequency = TWO_PI * 3.0;
   float thickness = 0.0075;
   size.y = 2.75 * amplitude;
 
@@ -3684,7 +3684,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  float c = pMod1(wQ.y, size.y);
+  wQ = polarCoords(wQ);
+  wQ.x /= PI;
+  wQ.y -= 4. * size.y;
+
+  // float c = pMod1(wQ.y, size.y);
+  // float c = 0.;
+  float c = floor((wQ.y + 0.5 * size.y)/size.y);
+  wQ.y = opRepLim(wQ.y, size.y, 1.99);
 
   q = wQ;
   mUv = q;
@@ -3728,9 +3735,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float phase = frequency * 0.02 * (0.5 + 0.5 * cos(localCosT + q.x + PI * 0.2 * c));
+  float phase = frequency * 0.015 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * 0.2 * c));
 
-  q.x -= 2. * t;
+  q.x -= 1. * t;
 
   vec2 b = vec2(udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase), 0);
   b.x -= thickness;
@@ -4004,7 +4011,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // -- Color delay --
   const float slices = 27.;
-  float delayLength = 0.20;
+  float delayLength = 0.075;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
