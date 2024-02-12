@@ -3655,10 +3655,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float amplitude = 0.0225;
   float frequency = TWO_PI * 3.0;
   float thickness = 0.0075;
-  size.y = 2.75 * amplitude;
+  size.y = 3.75 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
+
+  wQ.yx = wQ.xy;
 
   wQ *= rotMat2(0.05 * PI);
 
@@ -3691,6 +3693,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float c = pMod1(wQ.y, size.y);
   // float c = 0.;
   float c = floor((wQ.y + 0.5 * size.y)/size.y);
+  wQ.x += 0.27 * size.y * c;
   wQ.y = opRepLim(wQ.y, size.y, 5.99);
 
   q = wQ;
@@ -3737,10 +3740,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float phase = frequency * 0.015 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * 0.2 * c));
 
-  q.x -= 1. * t;
+  // q.x -= 1. * t;
 
-  vec2 b = vec2(udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase), 0);
-  b.x -= thickness;
+  q.y = udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase);
+
+  // vec2 c2 = pMod2(q, vec2(0.1 * size.y));
+  float miniSize = 0.2 * size.y;
+  float miniXC = pMod1(q.x, miniSize);
+  q.y = opRepLim(q.y, miniSize, 1.);
+
+  vec2 b = vec2(sdBox(q, vec2(0.1 * miniSize)), 0);
+  // b.x -= thickness;
   d = dMin(d, b);
 
   // // Debug mod range
@@ -3756,11 +3766,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
   // mask = length(maskQ) - 0.20;
-  mask = sdBox(maskQ, vec2(2.5 * r));
+  // mask = sdBox(maskQ, vec2(7.5 * r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
-  mask = smoothstep(fwidth(mask), 0., mask);
+  // mask = smoothstep(fwidth(mask), 0., mask);
   // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
@@ -3960,8 +3970,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
