@@ -3684,14 +3684,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  wQ = polarCoords(wQ);
-  wQ.x /= PI;
-  wQ.y -= 4. * size.y;
+  // wQ = polarCoords(wQ);
+  // wQ.x /= PI;
+  // wQ.y -= 4. * size.y;
 
   // float c = pMod1(wQ.y, size.y);
   // float c = 0.;
   float c = floor((wQ.y + 0.5 * size.y)/size.y);
-  wQ.y = opRepLim(wQ.y, size.y, 1.99);
+  wQ.y = opRepLim(wQ.y, size.y, 5.99);
 
   q = wQ;
   mUv = q;
@@ -3756,11 +3756,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
   // mask = length(maskQ) - 0.20;
-  // mask = sdBox(maskQ, vec2(r));
+  mask = sdBox(maskQ, vec2(2.5 * r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
-  // mask = smoothstep(0., edge, mask);
+  mask = smoothstep(fwidth(mask), 0., mask);
   // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
