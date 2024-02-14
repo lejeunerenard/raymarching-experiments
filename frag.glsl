@@ -3655,14 +3655,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float amplitude = 0.0225;
   float frequency = TWO_PI * 3.0;
   float thickness = 0.0075;
-  size.y = 3.75 * amplitude;
+  size.y = 2.25 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
-  wQ.yx = wQ.xy;
+  // wQ.yx = wQ.xy;
 
-  wQ *= rotMat2(0.05 * PI);
+  wQ *= rotMat2(-0.15 * PI);
 
   // wQ *= 0.5;
 
@@ -3694,7 +3694,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float c = 0.;
   float c = floor((wQ.y + 0.5 * size.y)/size.y);
   wQ.x += 0.27 * size.y * c;
-  wQ.y = opRepLim(wQ.y, size.y, 5.99);
+  wQ.y = opRepLim(wQ.y, size.y, 19.99);
 
   q = wQ;
   mUv = q;
@@ -3738,18 +3738,18 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float phase = frequency * 0.015 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * 0.2 * c));
+  float phase = frequency * 0.010 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * (0.05 * c + 1.5 * length(uv))));
 
   // q.x -= 1. * t;
 
   q.y = udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase);
 
   // vec2 c2 = pMod2(q, vec2(0.1 * size.y));
-  float miniSize = 0.2 * size.y;
+  float miniSize = 0.4 * size.y;
   float miniXC = pMod1(q.x, miniSize);
-  q.y = opRepLim(q.y, miniSize, 1.);
+  // q.y = opRepLim(q.y, miniSize, 1.);
 
-  vec2 b = vec2(sdBox(q, vec2(0.1 * miniSize)), 0);
+  vec2 b = vec2(sdBox(q, miniSize * vec2(0.3, 0.025)), 0);
   // b.x -= thickness;
   d = dMin(d, b);
 
@@ -4112,7 +4112,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 #endif
   }
 
-  color.rgb = pow(color.rgb, vec3(1.400));
+  color.rgb = pow(color.rgb, vec3(2.100));
   color.rgb /= slices;
 
   // // Final layer
