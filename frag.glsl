@@ -3645,24 +3645,24 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 1.00;
-  float warpFrequency = 1.;
+  float warpScale = 1.50;
+  float warpFrequency = 1.1;
 
   vec2 r = vec2(0.125);
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 0.0225;
-  float frequency = TWO_PI * 3.0;
+  float amplitude = 0.025;
+  float frequency = TWO_PI * 2.0;
   float thickness = 0.0075;
-  size.y = 2.25 * amplitude;
+  size.y = 3.6 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
 
   // wQ.yx = wQ.xy;
 
-  wQ *= rotMat2(-0.15 * PI);
+  // wQ *= rotMat2(-0.05 * PI);
 
   // wQ *= 0.5;
 
@@ -3681,20 +3681,20 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
-  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   // wQ = polarCoords(wQ);
   // wQ.x /= PI;
-  // wQ.y -= 4. * size.y;
+  // wQ.y -= 3. * size.y;
 
   // float c = pMod1(wQ.y, size.y);
   // float c = 0.;
   float c = floor((wQ.y + 0.5 * size.y)/size.y);
   wQ.x += 0.27 * size.y * c;
-  wQ.y = opRepLim(wQ.y, size.y, 19.99);
+  wQ.y = opRepLim(wQ.y, size.y, 9.99);
 
   q = wQ;
   mUv = q;
@@ -3745,12 +3745,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   q.y = udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase);
 
   // vec2 c2 = pMod2(q, vec2(0.1 * size.y));
-  float miniSize = 0.4 * size.y;
+  float miniSize = 0.3 * size.y;
   float miniXC = pMod1(q.x, miniSize);
-  // q.y = opRepLim(q.y, miniSize, 1.);
 
-  vec2 b = vec2(sdBox(q, miniSize * vec2(0.3, 0.025)), 0);
-  // b.x -= thickness;
+  vec2 b = vec2(sdBox(q, miniSize * vec2(0.8, 0.1)), 0);
   d = dMin(d, b);
 
   // // Debug mod range
@@ -3788,7 +3786,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(edge, 0., n - 0.0);
+  n = smoothstep(0.3 * edge, 0., n - 0.0);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3970,8 +3968,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
