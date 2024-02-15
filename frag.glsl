@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.3;
+float n2 = 1.8;
 const float amount = 0.05;
 
 // Dof
@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.9;
+float gR = 0.3;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1997,51 +1997,47 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpScale = 0.5 + 1. * (0.5 + 0.5 * cos(localCosT + 0.4 * q.z));
+  float warpScale = 0.75; // 0.5 + 1. * (0.5 + 0.5 * cos(localCosT + 0.4 * q.z));
   float warpFrequency = 1.5;
   float rollingScale = 1.;
 
-  const float rShrink = 0.3;
-
   // Warp
   vec3 preWarpQ = q;
-  vec3 wQ = q.xyz;
+  // vec3 wQ = q.xyz;
 
-  // vec4 wQ = vec4(q.xyz, 0);
+  vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
 
   // float worldScale = 1.0;
   // wQ *= worldScale;
 
-  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
-  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.2 + 0.3 * cos(vec3(-1, 1, 0) * localCosT);
-  // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec4(1)) + localCosT));
+  // vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.2 + 0.3 * cos(vec3(-1, 1, 0) * localCosT);
+  vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.9;
 
   const float warpPhaseAmp = 0.9;
 
-  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
-  // wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
-  // wQ += 0.006250 * warpScale * cos(11.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.003125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 5.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
+  wQ += 0.025000 * warpScale * cos( 7.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.012500 * warpScale * cos( 9.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  wQ += 0.006250 * warpScale * cos(11.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.003125 * warpScale * cos(13.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = q;
 
-  r *= 1. - pow(saturate(0.1 * -q.z), 1.0);
-
-  vec3 b = vec3(r - length(q.xy), 0, 0);
-  float crop = length(q.xy) - 1.5 * r;
-  b.x = max(b.x, crop);
-
+  vec3 b = vec3(length(wQ) - r, 0, 0);
   d = dMin(d, b);
+
+  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
+  // d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2049,8 +2045,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.9;
+  // Under step
+  d.x *= 0.9;
 
   return d;
 }
@@ -2063,6 +2059,7 @@ vec3 map (in vec3 p) {
   return map(p, 0., 0.);
 }
 
+// TODO Write to support 4D marching?
 vec4 march (in vec3 rayOrigin, in vec3 rayDirection, in float deltaT, in float universe) {
   float t = 0.;
   float maxI = 0.;
@@ -2308,7 +2305,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.5);
+  vec3 color = vec3(0.);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2514,14 +2511,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.2;
+      float freCo = 0.7;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.;
-      float shadowMin = 1.0;
+      float diffMin = 0.8;
+      float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2599,7 +2596,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2607,8 +2604,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = true; // Set mode to dispersion
 
-      // vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
-      vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
+      vec3 dispersionColor = dispersionStep1(nor, normalize(rayDirection), n2, n1);
+      // vec3 dispersionColor = dispersion(nor, rayDirection, n2, n1);
 
       isDispersion = false; // Unset dispersion mode
 
@@ -3645,15 +3642,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 1.50;
-  float warpFrequency = 1.1;
+  float warpScale = 1.0;
+  float warpFrequency = 1.;
 
   vec2 r = vec2(0.125);
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 0.025;
-  float frequency = TWO_PI * 2.0;
+  float amplitude = 1.0;
+  float frequency = 9.; // TWO_PI * 2.0;
   float thickness = 0.0075;
   size.y = 3.6 * amplitude;
 
@@ -3691,10 +3688,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.y -= 3. * size.y;
 
   // float c = pMod1(wQ.y, size.y);
-  // float c = 0.;
-  float c = floor((wQ.y + 0.5 * size.y)/size.y);
-  wQ.x += 0.27 * size.y * c;
-  wQ.y = opRepLim(wQ.y, size.y, 9.99);
+  float c = 0.;
+  // float c = floor((wQ.y + 0.5 * size.y)/size.y);
+  // wQ.x += 0.27 * size.y * c;
+  // wQ.y = opRepLim(wQ.y, size.y, 9.99);
 
   q = wQ;
   mUv = q;
@@ -3738,17 +3735,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float phase = frequency * 0.010 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * (0.05 * c + 1.5 * length(uv))));
+  // float phase = frequency * 0.010 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * (0.05 * c + 1.5 * length(uv))));
 
   // q.x -= 1. * t;
 
-  q.y = udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase);
+  // q.y = udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase);
 
   // vec2 c2 = pMod2(q, vec2(0.1 * size.y));
   float miniSize = 0.3 * size.y;
-  float miniXC = pMod1(q.x, miniSize);
+  // float miniXC = pMod1(q.x, miniSize);
 
-  vec2 b = vec2(sdBox(q, miniSize * vec2(0.8, 0.1)), 0);
+  vec2 b = vec2(sdBox(q, miniSize * vec2(0.5, 0.0125)), 0);
   d = dMin(d, b);
 
   // // Debug mod range
@@ -3935,7 +3932,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3968,8 +3965,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
