@@ -3649,8 +3649,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 1.0;
-  float frequency = 9.; // TWO_PI * 2.0;
+  float amplitude = 0.04;
+  float frequency = TWO_PI * 3.5;
   float thickness = 0.0075;
   size.y = 3.6 * amplitude;
 
@@ -3678,20 +3678,20 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
-  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   // wQ = polarCoords(wQ);
   // wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
   // float c = pMod1(wQ.y, size.y);
-  float c = 0.;
-  // float c = floor((wQ.y + 0.5 * size.y)/size.y);
+  // float c = 0.;
+  float c = floor((wQ.y + 0.5 * size.y)/size.y);
   // wQ.x += 0.27 * size.y * c;
-  // wQ.y = opRepLim(wQ.y, size.y, 9.99);
+  wQ.y = opRepLim(wQ.y, size.y, 4.99);
 
   q = wQ;
   mUv = q;
@@ -3736,6 +3736,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, o);
 
   // float phase = frequency * 0.010 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * (0.05 * c + 1.5 * length(uv))));
+  float phase = 0.;
 
   // q.x -= 1. * t;
 
@@ -3745,8 +3746,23 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float miniSize = 0.3 * size.y;
   // float miniXC = pMod1(q.x, miniSize);
 
-  vec2 b = vec2(sdBox(q, miniSize * vec2(0.5, 0.0125)), 0);
+  float waveSplit = 0.6;
+
+  float layerPhase = 0.1 * abs(c);
+
+  vec2 waveQ = q - vec2(0., waveSplit * amplitude);
+  float phase1 = phase + frequency * 0.1 * cos(localCosT + q.x + 0.1 * PI + layerPhase);
+  // waveQ.y = sign(waveQ.y) * udCos(q, 0., amplitude, frequency, phase);
+  waveQ.y += amplitude * cos(frequency * waveQ.x + phase1);
+  vec2 b = vec2(waveQ.y, 0);
   d = dMin(d, b);
+
+  float phase2 = phase + frequency * 0.1 * cos(localCosT + q.x);
+
+  vec2 cropQ = q + vec2(0., waveSplit * amplitude);
+  cropQ.y += amplitude * cos(frequency * cropQ.x + phase2 + layerPhase);
+  float crop = -cropQ.y;
+  d.x = max(d.x, crop);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
@@ -3932,7 +3948,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
