@@ -2018,16 +2018,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.x *= -1.;
+  wQ.xy *= -1.;
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.yzw *= rotationMatrix(vec3(1, -1, 1), 0.25 * PI * cos(0.2 * wQ.x + localCosT));
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
   wQ += 0.006250 * warpScale * cos(17.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.zwx *= rotationMatrix(vec3(1), 0.125 * PI * cos(0.2 * wQ.y + localCosT));
   wQ += 0.003125 * warpScale * cos(19.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
@@ -2036,7 +2038,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   r += 0.1 * snoise4(3. * wQ);
 
-  vec3 b = vec3(icosahedral(wQ.xyz, 42., r), 0, 0);
+  vec3 b = vec3(length(wQ) - r, 0, 0);
+  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
   d = dMin(d, b);
 
   // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
@@ -2308,7 +2311,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.);
+  vec3 color = vec3(1);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2625,8 +2628,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      color += saturate(dispersionColor);
-      // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
+      // color += saturate(dispersionColor);
+      color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
