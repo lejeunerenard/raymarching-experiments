@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 148
+#define maxSteps 512
 #define maxDistance 10.0
 #define fogMaxDistance 4.35
 
@@ -1997,8 +1997,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpScale = 0.75; // 0.5 + 1. * (0.5 + 0.5 * cos(localCosT + 0.4 * q.z));
-  float warpFrequency = 1.5;
+  float warpScale = 0.5; // 0.5 + 1. * (0.5 + 0.5 * cos(localCosT + 0.4 * q.z));
+  float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
@@ -2018,16 +2018,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.xy *= -1.;
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y + 0.1 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ.yzw *= rotationMatrix(vec3(1, -1, 1), 0.25 * PI * cos(0.2 * wQ.x + localCosT));
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, 0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
   wQ += 0.006250 * warpScale * cos(17.369 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ.zwx *= rotationMatrix(vec3(1), 0.125 * PI * cos(0.2 * wQ.y + localCosT));
   wQ += 0.003125 * warpScale * cos(19.937 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -2036,14 +2035,15 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = q;
 
-  r += 0.1 * snoise4(3. * wQ);
+  // r += 0.1 * snoise4(3. * wQ);
 
-  vec3 b = vec3(length(wQ) - r, 0, 0);
+  float n = 0.5 * snoise4(4. * wQ);
+  vec3 b = vec3(0.005 * r - n, 0, 0);
   // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
   d = dMin(d, b);
 
-  // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
-  // d = dMin(d, b);
+  float crop = length(wQ) - (r * (1. + 1.0 * n));
+  d.x = smax(d.x, crop, 0.1 * r);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2052,7 +2052,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.3;
+  d.x *= 0.1;
 
   return d;
 }
@@ -2518,7 +2518,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.9;
-      float specCo = 0.9;
+      float specCo = 1.0;
 
       vec3 specAll = vec3(0.0);
 
