@@ -18,7 +18,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(vec3(0.0), vec3(0.05, 0.025, 0.05), bgIndex);
   // vec3 color = 1.0 * mix(vec3(0.1, 0.03, 0.03), vec3(0.1, 0.15, 0.15), bgIndex);
-  vec3 color = mix(vec3(0.675, 0.625, 0.625), vec3(0.95,0.95, 1), bgIndex);
+  // vec3 color = mix(vec3(0.675, 0.625, 0.625), vec3(0.95,0.95, 1), bgIndex);
   // vec3 color = mix(0.9 * vec3(1, 0.5, 1), vec3(0.9, 0.1, 1), bgIndex);
 
   // const vec3 bgColor = #F2900A;
@@ -72,15 +72,15 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // n = 1. - step(0.0, n);
   // vec3 color = 0.8 * vec3(n);
 
-  // // Stripes
-  // vec2 axis = vec2(1);
-  // float dI = dot(uv, axis);
-  // float period = 10.;
-  // float n = sin(period * TWO_PI * dI);
-  // // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
-  // float cutoff = 0.0;
-  // n = 1. - smoothstep(cutoff, cutoff + edge, n);
-  // vec3 color = mix(vec3(0.0), vec3(1), n);
+  // Stripes
+  vec2 axis = vec2(1);
+  float dI = dot(uv, axis);
+  float period = 30.;
+  float n = sin(period * TWO_PI * dI);
+  // float cutoff = 0.8 * smoothstep(-0.5, 0.5, uv.y);
+  float cutoff = 0.0;
+  n = 1. - smoothstep(cutoff, cutoff + edge, n);
+  vec3 color = mix(vec3(0.0), vec3(1), n);
 
   // // Dots
   // float size = 0.0265;
@@ -110,7 +110,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // color = mix(color, vec3(0), 0.3); // Darken
   // color *= 0.91;
   // color *= 0.9 * mix(vec3(1, 1.2, 1.2), vec3(1.1, 1.0, 1.05), 1. - bgIndex); // Tint
-  color *= vec3(0.9, 0.9, 1.0); // Tint
+  // color *= vec3(0.9, 0.9, 1.0); // Tint
 
   return color;
 }

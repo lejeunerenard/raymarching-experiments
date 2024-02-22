@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.3;
+float gR = 0.25;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -2034,17 +2034,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Commit warp
   q = wQ.xyz;
-  mPos = q;
+  mPos = wQ.yzw;
 
   // r += 0.1 * snoise4(3. * wQ);
 
-  float n = 0.5 * snoise4(7. * wQ);
-  vec3 b = vec3(0.5 * r - n, 0, 0);
+  // float n = 1.00 * snoise4(2. * wQ);
+  // vec3 b = vec3(0.5 * r - n, 0, 0);
   // vec3 b = vec3(sdBox(wQ, vec4(r)), 0, 0);
+  vec3 b = vec3(sdHollowBox(wQ, vec4(r), 0.3 * r), 0, 0);
   d = dMin(d, b);
 
-  float crop = length(wQ) - (r * (1. + 1.0 * n));
-  d.x = smax(d.x, crop, 0.1 * r);
+  // float crop = length(wQ) - (r * (1. + 1.0 * n));
+  // d.x = smax(d.x, crop, 0.1 * r);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2053,7 +2054,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.1;
+  d.x *= 0.5;
 
   return d;
 }
@@ -2312,8 +2313,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0.45, 0.65, 2);
-  return color;
+  vec3 color = vec3(0);
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
@@ -2329,14 +2329,14 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   // color = vec3(1.0 * n);
   // return color;
 
-  // float n = dot(mPos.xyz, vec3(1));
-  // n *= TWO_PI;
-  // n *= 40.;
-  // n = sin(n);
-  // n += 0.6;
-  // n = smoothstep(0., fwidth(n), n);
-  // n *= 1.4;
-  // return vec3(n);
+  float n = dot(mPos.xyz, vec3(1));
+  n *= TWO_PI;
+  n *= 40.;
+  n = sin(n);
+  n += 0.6;
+  n = smoothstep(0., fwidth(n), n);
+  n *= 1.4;
+  return vec3(n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = vec3(1382. * snoise2(vec2(m, trap))); // 0.3 * vec3(dot(nor, vec3(1)));
@@ -2518,13 +2518,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 1.0;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.8;
+      float diffMin = 1.0;
       float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
@@ -2603,7 +2603,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
