@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.125;
+float gR = 0.5;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1987,19 +1987,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // -- Pseudo Camera Movement --
-  // Wobble Tilt
-  const float tilt = 0.1 * PI;
-  p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
-  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // // -- Pseudo Camera Movement --
+  // // Wobble Tilt
+  // const float tilt = 0.1 * PI;
+  // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
+  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpScale = 0.5; // 0.5 + 1. * (0.5 + 0.5 * cos(localCosT + 0.4 * q.z));
-  float warpFrequency = 1.0;
+  float warpScale = 1.5;
+  float warpFrequency = 2.5;
   float rollingScale = 1.;
 
   // Warp
@@ -2019,27 +2019,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
-  // wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // wQ.yzw *= rotationMatrix(vec3(1, -1, 1), 0.125 * PI * cos(0.2 * wQ.x + localCosT));
-  // wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  // warpPhase += warpPhaseAmp * componentShift(wQ);
-  // wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  wQ.yzw *= rotationMatrix(vec3(1, -1, 1), 0.125 * PI * cos(0.2 * wQ.x + localCosT));
+  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  warpPhase += warpPhaseAmp * componentShift(wQ);
+  wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
 
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 2.5 * r;
-  wQ.x /= PI;
+  // wQ.xy = polarCoords(wQ.xy);
+  // wQ.y -= 2.5 * r;
+  // wQ.x /= PI;
 
-  wQ.yz *= rotMat2(0.5 * PI * wQ.x + 0.125 * PI * cos(localCosT + PI * wQ.x));
+  // wQ.yz *= rotMat2(0.5 * PI * wQ.x + 0.125 * PI * cos(localCosT + PI * wQ.x));
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.yzw;
 
-  vec3 b = vec3(sdBox(q, vec3(1.2, r, r)), 0, 0);
+  // vec3 b = vec3(sdBox(q, vec3(1.2, r, r)), 0, 0);
+  vec3 b = vec3(length(q) - r, 0, 0);
   d = dMin(d, b);
 
   // float crop = length(wQ) - (r * (1. + 1.0 * n));
@@ -2052,7 +2053,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.5;
+  d.x *= 0.3;
 
   return d;
 }
@@ -2485,12 +2486,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.075;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.075;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2514,7 +2515,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
+      float freCo = 0.5;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
@@ -2544,8 +2545,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         float fre = ReflectionFresnel + pow(clamp( 1. + dot(nor, rayDirection), 0., 1. ), 5.) * (1. - ReflectionFresnel);
 
         isSoftShadow = true;
-        float sha = 1.;
-        // float sha = max(shadowMin, softshadow(pos, lightRd, 0.0075, 1.0, lights[i].size, generalT));
+        float sha = max(shadowMin, softshadow(pos, lightRd, 0.0075, 1.0, lights[i].size, generalT));
         isSoftShadow = false;
         dif *= sha;
 
@@ -2583,13 +2583,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // isReflection = true; // Set mode to dispersion
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * mix(vec3(1), vec3(0.5), isMaterialSmooth(t.y, 1.)) * reflection(pos, reflectionRd, generalT);
-      // isReflection = false; // Set mode to dispersion
-      // color += reflectColor;
+      // Reflect scene
+      isReflection = true; // Set mode to dispersion
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
+      isReflection = false; // Set mode to dispersion
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2625,8 +2625,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      // color += saturate(dispersionColor);
-      color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
+      color += saturate(dispersionColor);
+      // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
       // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
