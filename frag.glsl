@@ -3652,10 +3652,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 0.04;
-  float frequency = TWO_PI * 9.5;
+  float amplitude = 1.5 * 0.04;
+  float frequency = 10.5;
   float thickness = 0.0075;
-  size.y = 3.6 * amplitude;
+  size.y = 2.6 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
@@ -3677,7 +3677,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.30;
-  wQ *= rotMat2(-0.2 * PI);
+  wQ *= rotMat2(0.2 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3749,23 +3749,23 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float miniSize = 0.3 * size.y;
   // float miniXC = pMod1(q.x, miniSize);
 
-  float waveSplit = 0.6;
+  float waveSplit = 0.2;
 
-  float layerPhase = 0.1 * abs(c);
+  float layerPhase = 0.125 * abs(c);
 
-  frequency += 0.125 * frequency * cos(localCosT + q.x);
+  frequency += 0.125 * frequency * cos(localCosT + 2.5 * q.x);
 
   vec2 waveQ = q - vec2(0., waveSplit * amplitude);
   float phase1 = phase + frequency * 0.1 * cos(localCosT + q.x + 0.1 * PI + layerPhase);
   // waveQ.y = sign(waveQ.y) * udCos(q, 0., amplitude, frequency, phase);
-  waveQ.y += amplitude * cos(frequency * waveQ.x + phase1);
+  waveQ.y += amplitude * triangleWave(frequency * waveQ.x + phase1);
   vec2 b = vec2(waveQ.y, 0);
   d = dMin(d, b);
 
   float phase2 = phase + frequency * 0.1 * cos(localCosT + q.x);
 
   vec2 cropQ = q + vec2(0., waveSplit * amplitude);
-  cropQ.y += amplitude * cos(frequency * cropQ.x + phase2 + layerPhase);
+  cropQ.y += amplitude * triangleWave(frequency * cropQ.x + phase2 + layerPhase);
   float crop = -cropQ.y;
   d.x = max(d.x, crop);
 
@@ -3796,8 +3796,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(1.25 * TWO_PI * n);
 
-  // // Outline
-  // n = abs(n) - 0.0025 * vmax(r);
+  // Outline
+  n = abs(n) - 0.015 * vmax(r);
 
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
