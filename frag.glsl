@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.5;
+float gR = 0.45;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1998,7 +1998,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpScale = 1.5;
+  float warpScale = 0.4;
   float warpFrequency = 2.5;
   float rollingScale = 1.;
 
@@ -2486,12 +2486,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.0;
-      // float bumpIntensity = 0.075;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.075;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2515,7 +2515,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
+      float freCo = 0.8;
       float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
@@ -2587,7 +2587,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isReflection = true; // Set mode to dispersion
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.3 * reflection(pos, reflectionRd, generalT);
       isReflection = false; // Set mode to dispersion
       color += reflectColor;
 
@@ -2599,7 +2599,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2612,7 +2612,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.5 * pow(0. + dot(dNor, -gRd), 2.);
+      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.);
       // float dispersionI = 1.0;
       // dispersionI *= 2.;
 
@@ -2620,8 +2620,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
-      // dispersionColor.g = pow(dispersionColor.g, 0.8);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor *= 0.9;
 
@@ -3953,7 +3953,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3986,8 +3986,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
