@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.4;
+float gR = 0.6;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1998,7 +1998,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
 
   vec3 q = p;
-  float warpScale = 0.4;
+  float warpScale = 0.7;
   float warpFrequency = 2.5;
   float rollingScale = 1.;
 
@@ -2029,9 +2029,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
 
-  // wQ.xy = polarCoords(wQ.xy);
-  // wQ.y -= 2.5 * r;
-  // wQ.x /= PI;
+  wQ.xy = polarCoords(wQ.xy);
+  wQ.y -= 1.5 * r;
+  wQ.x /= PI;
 
   // wQ.yz *= rotMat2(0.5 * PI * wQ.x + 0.125 * PI * cos(localCosT + PI * wQ.x));
 
@@ -2039,9 +2039,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.yzw;
 
-  // vec3 b = vec3(sdBox(q, vec3(1.2, r, r)), 0, 0);
+  // r += 0.05 * r * snoise3(4. * q);
+
+  vec3 b = vec3(sdBox(q, vec3(1.2, r, r)), 0, 0);
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  // vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
   // float crop = length(wQ) - (r * (1. + 1.0 * n));
@@ -2053,8 +2055,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.3;
+  // Under step
+  d.x *= 0.4;
 
   return d;
 }
