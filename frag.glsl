@@ -3655,10 +3655,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 size = vec2(2.75) * vmax(r);
   float scale = 4.;
 
-  float amplitude = 1.5 * 0.04;
-  float frequency = 10.5;
+  float amplitude = 0.5 * 0.04;
+  float frequency = 15.5;
   float thickness = 0.0075;
-  size.y = 2.6 * amplitude;
+  size.y = 3.6 * amplitude;
 
   // -- Warp --
   vec2 wQ = q.xy;
@@ -3680,7 +3680,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.30;
-  wQ *= rotMat2(0.2 * PI);
+  wQ *= rotMat2(-0.1 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3697,7 +3697,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float c = 0.;
   float c = floor((wQ.y + 0.5 * size.y)/size.y);
   // wQ.x += 0.27 * size.y * c;
-  wQ.y = opRepLim(wQ.y, size.y, 6.99);
+  wQ.y = opRepLim(wQ.y, size.y, 14.99);
 
   q = wQ;
   mUv = q;
@@ -3760,15 +3760,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 waveQ = q - vec2(0., waveSplit * amplitude);
   float phase1 = phase + frequency * 0.1 * cos(localCosT + q.x + 0.1 * PI + layerPhase);
-  // waveQ.y = sign(waveQ.y) * udCos(q, 0., amplitude, frequency, phase);
-  waveQ.y += amplitude * triangleWave(frequency * waveQ.x + phase1);
+  waveQ.y = sign(waveQ.y) * udCos(q, 0., 1.05 * amplitude, 1.5 * frequency, phase);
   vec2 b = vec2(waveQ.y, 0);
   d = dMin(d, b);
 
   float phase2 = phase + frequency * 0.1 * cos(localCosT + q.x);
 
   vec2 cropQ = q + vec2(0., waveSplit * amplitude);
-  cropQ.y += amplitude * triangleWave(frequency * cropQ.x + phase2 + layerPhase);
+  cropQ.y += 0.4 * amplitude * cos(3.5 * frequency * cropQ.x + 9. * localCosT);
+  cropQ.y += 1.00 * amplitude * triangleWave(frequency * cropQ.x + phase2 + layerPhase);
   float crop = -cropQ.y;
   d.x = max(d.x, crop);
 
@@ -3956,7 +3956,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3989,8 +3989,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3999,48 +3999,48 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // -- Echoed Layers --
-  const float echoSlices = 6.;
-  for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
+  // // -- Echoed Layers --
+  // const float echoSlices = 6.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
-    // // Outlined version
-    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // // Hard Edge
-    // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
-    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+  //   // // Outlined version
+  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+  //   // // Hard Edge
+  //   // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
+  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-    // Echo Dimming
-    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   // Echo Dimming
+  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
 
-    // Blend mode
-    // Additive
-    color += vec4(vec3(layerColor.a), 1) * layerColor;
+  //   // Blend mode
+  //   // Additive
+  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-    // -- Offsets --
-    // Incremental offset
-    uv.y += 0.0080;
+  //   // -- Offsets --
+  //   // Incremental offset
+  //   uv.y += 0.0080;
 
-    // // Initial Offset
-    // uv.y += i == 0. ? 0.02 : 0.;
+  //   // // Initial Offset
+  //   // uv.y += i == 0. ? 0.02 : 0.;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
 
-  color.a = saturate(color.a);
-  // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  color.a = 1.;
+  // color.a = saturate(color.a);
+  // // color.rgb = mix(vec3(1), color.rgb, color.a);
+  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  // color.a = 1.;
 
-  return color;
+  // return color;
 
   // -- Color delay --
-  const float slices = 27.;
-  float delayLength = 0.075;
+  const float slices = 20.;
+  float delayLength = 0.085;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
@@ -4131,7 +4131,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 #endif
   }
 
-  color.rgb = pow(color.rgb, vec3(2.100));
+  color.rgb = pow(color.rgb, vec3(2.400));
   color.rgb /= slices;
 
   // // Final layer
