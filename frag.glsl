@@ -3693,10 +3693,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
-  // float c = pMod1(wQ.y, size.y);
   // float c = 0.;
   float c = floor((wQ.y + 0.5 * size.y)/size.y);
-  // wQ.x += 0.27 * size.y * c;
   wQ.y = opRepLim(wQ.y, size.y, 14.99);
 
   q = wQ;
@@ -3741,36 +3739,18 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // float phase = frequency * 0.010 * (0.5 + 0.5 * cos(localCosT + PI * q.x + PI * (0.05 * c + 1.5 * length(uv))));
-  float phase = 0.;
-
-  // q.x -= 1. * t;
-
-  // q.y = udCos(q + vec2(0.1, 0), 0., amplitude, frequency, phase);
-
-  // vec2 c2 = pMod2(q, vec2(0.1 * size.y));
-  float miniSize = 0.3 * size.y;
-  // float miniXC = pMod1(q.x, miniSize);
-
-  float waveSplit = 0.2;
-
+  const float waveSplit = 0.2;
   float layerPhase = 0.125 * abs(c);
 
-  frequency += 0.125 * frequency * cos(localCosT + 2.5 * q.x);
+  // frequency += 0.125 * frequency * cos(localCosT + 0.5 * q.x);
 
   vec2 waveQ = q - vec2(0., waveSplit * amplitude);
-  float phase1 = phase + frequency * 0.1 * cos(localCosT + q.x + 0.1 * PI + layerPhase);
-  waveQ.y = sign(waveQ.y) * udCos(q, 0., 1.05 * amplitude, 1.5 * frequency, phase);
+  frequency *= 1.5;
+  // q.x += TWO_PI * t / frequency;
+  float phase = frequency * 0.1 * cos(localCosT + q.x + layerPhase);
+  waveQ.y = sign(waveQ.y) * udCos(q, 0., 1.05 * amplitude, frequency, phase);
   vec2 b = vec2(waveQ.y, 0);
   d = dMin(d, b);
-
-  float phase2 = phase + frequency * 0.1 * cos(localCosT + q.x);
-
-  vec2 cropQ = q + vec2(0., waveSplit * amplitude);
-  cropQ.y += 0.4 * amplitude * cos(3.5 * frequency * cropQ.x + 9. * localCosT);
-  cropQ.y += 1.00 * amplitude * triangleWave(frequency * cropQ.x + phase2 + layerPhase);
-  float crop = -cropQ.y;
-  d.x = max(d.x, crop);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
@@ -3807,7 +3787,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(0.3 * edge, 0., n - 0.0);
+  n = smoothstep(0.3 * edge, 0., n - 0.01);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3989,8 +3969,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
