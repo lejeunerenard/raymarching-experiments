@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.6;
+float gR = 0.1;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1993,9 +1993,20 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
-  // p *= rotationMatrix(vec3(-1, 1, 1), 0.5 * PI * cos(localCosT));
+  p.yx = p.xy;
+
+  // Rotation 1
+  // More of a quarter turn around y-axis, w/ a little y movement just to show
+  // its 3D better.
+  p *= rotationMatrix(vec3(1, 0, 0), 0.3 * PI * sin(TWO_PI * quint(t)));
+  p *= rotationMatrix(vec3(0, 1, 0), -0.5 * PI * expo(t));
+
+  // // Rotation 2
+  // // More dramatic of a turn. You loose the change in axis though
+  // p *= rotationMatrix(vec3(0, 0, 1), 0.5 * PI * expo(t));
+  // p *= rotationMatrix(vec3(1), -0.666 * TWO_PI * expo(t));
 
   vec3 q = p;
   float warpScale = 0.7;
@@ -2019,19 +2030,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
-  wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.yzw *= rotationMatrix(vec3(1, -1, 1), 0.125 * PI * cos(0.2 * wQ.x + localCosT));
-  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xzy = twist(wQ.xyz, 3.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  // wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ.yzw *= rotationMatrix(vec3(1, -1, 1), 0.125 * PI * cos(0.2 * wQ.x + localCosT));
+  // wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
 
-  wQ.xy = polarCoords(wQ.xy);
-  wQ.y -= 1.5 * r;
-  wQ.x /= PI;
+  // wQ.xy = polarCoords(wQ.xy);
+  // wQ.y -= 1.5 * r;
+  // wQ.x /= PI;
 
   // wQ.yz *= rotMat2(0.5 * PI * wQ.x + 0.125 * PI * cos(localCosT + PI * wQ.x));
 
@@ -2039,11 +2050,23 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.yzw;
 
-  // r += 0.05 * r * snoise3(4. * q);
+  float swingR = 3.0 * r;
+  float thickness = 0.25 * r;
 
-  vec3 b = vec3(sdBox(q, vec3(1.2, r, r)), 0, 0);
-  // vec3 b = vec3(length(q) - r, 0, 0);
-  // vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
+  float blockT = mod(5. * t, 1.);
+
+  vec3 myQ = q;
+  float myT = range(0., 0.5, blockT);
+  myQ.xz -= r + swingR * circOut(0.5 + 0.5 * cos(TWO_PI * myT + PI));
+  // vec3 b = vec3(sdHollowBox(myQ, vec3(r), thickness), 0, 0);
+  vec3 b = vec3(sdBox(myQ, vec3(r)), 0, 0);
+  d = dMin(d, b);
+
+  myQ = q;
+  myT = range(0.5, 1., blockT);
+  myQ.xz += r + swingR * circOut(0.5 + 0.5 * cos(TWO_PI * myT + PI));
+  // b = vec3(sdHollowBox(myQ, vec3(r), thickness), 0, 0);
+  b = vec3(sdBox(myQ, vec3(r)), 0, 0);
   d = dMin(d, b);
 
   // float crop = length(wQ) - (r * (1. + 1.0 * n));
@@ -2056,7 +2079,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.4;
+  // d.x *= 0.4;
 
   return d;
 }
@@ -2315,7 +2338,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1.2);
+  return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
@@ -2478,8 +2502,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #FFFFFF, 1.0, 16.0);
     lights[2] = light(2. * vec3( 0.2, 0.8,-1.3), #FFFFFF, 2., 16.0);
 
-    float m = step(0., sin(TWO_PI * (0.25 * fragCoord.x + generalT)));
-
     float backgroundMask = 1.;
     // Allow anything in top right corner
     // backgroundMask = max(backgroundMask, smoothstep(0., edge, dot(uv, vec2(1)) + 0.05));
@@ -2518,14 +2540,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.9;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 0.8;
+      float diffMin = 0.0;
+      float shadowMin = 1.0;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2559,9 +2581,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // Ambient
-        lin += 0.0750 * amb * diffuseColor;
-        dif += 0.0750 * amb;
+        // // Ambient
+        // lin += 0.0750 * amb * diffuseColor;
+        // dif += 0.0750 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 0.55);
         distIntensity = saturate(distIntensity);
@@ -2586,13 +2608,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      isReflection = true; // Set mode to dispersion
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
-      isReflection = false; // Set mode to dispersion
-      color += reflectColor;
+      // // Reflect scene
+      // isReflection = true; // Set mode to dispersion
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
+      // isReflection = false; // Set mode to dispersion
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2602,7 +2624,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2636,14 +2658,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.0)
-            / fogMaxDistance
-      ));
-      color *= saturate(exp(-d * 0.025));
-      color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(
+      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.0)
+      //       / fogMaxDistance
+      // ));
+      // color *= saturate(exp(-d * 0.025));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -3936,7 +3958,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3969,8 +3991,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4020,7 +4042,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // -- Color delay --
   const float slices = 20.;
-  float delayLength = 0.085;
+  float delayLength = 0.015;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
@@ -4029,7 +4051,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // -- Apply Scene as Mask --
     float layerT = norT
-      - delayLength * i / slices;
+      - delayLength * sineOut(i / slices);
     layerColor = renderSceneLayer(ro, rd, uv, layerT).rgb;
 
     // -- Get Layer Color --
