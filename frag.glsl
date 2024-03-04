@@ -3700,9 +3700,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.30;
-  wQ *= rotMat2(-0.1 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.30;
+  // wQ *= rotMat2(-0.1 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3711,13 +3711,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // wQ = polarCoords(wQ);
-  // wQ.x /= PI;
+
+  wQ *= rotMat2(localCosT + 0.1 * PI * cos(localCosT));
+
+  wQ = polarCoords(wQ);
+  wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
   // float c = 0.;
-  float c = floor((wQ.y + 0.5 * size.y)/size.y);
-  wQ.y = opRepLim(wQ.y, size.y, 14.99);
+  // float c = floor((wQ.y + 0.5 * size.y)/size.y);
+  // wQ.y = opRepLim(wQ.y, size.y, 14.99);
 
   q = wQ;
   mUv = q;
@@ -3761,17 +3764,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  const float waveSplit = 0.2;
-  float layerPhase = 0.125 * abs(c);
+  r *= 2.5 + 0.2 * cos(localCosT);
+  vec3 s = vec3(0);
+  // q.x = abs(q.x);
+  r += 1.2 * r * fbmWarp(4. * vec3(q + 0.1 * r * sin(2. * localCosT), 0.1 * cos(0.2 * uv.x + localCosT)), s);
+  q.y -= r.x;
 
-  // frequency += 0.125 * frequency * cos(localCosT + 0.5 * q.x);
+  q.y -= 0.2 * abs(sin(7. * q.x));
 
-  vec2 waveQ = q - vec2(0., waveSplit * amplitude);
-  frequency *= 1.5;
-  // q.x += TWO_PI * t / frequency;
-  float phase = frequency * 0.1 * cos(localCosT + q.x + layerPhase);
-  waveQ.y = sign(waveQ.y) * udCos(q, 0., 1.05 * amplitude, frequency, phase);
-  vec2 b = vec2(waveQ.y, 0);
+  vec2 b = vec2(-q.y, 0);
   d = dMin(d, b);
 
   // // Debug mod range
@@ -3781,17 +3782,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // --- Mask ---
   float mask = 1.;
-  vec2 maskQ = wQ;
+  vec2 maskQ = uv;
 
   // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
-  // mask = length(maskQ) - 0.20;
+  mask = length(maskQ) - 0.45;
   // mask = sdBox(maskQ, vec2(7.5 * r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
-  // mask = smoothstep(fwidth(mask), 0., mask);
+  mask = smoothstep(fwidth(mask), 0., mask);
   // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
@@ -3809,7 +3810,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(0.3 * edge, 0., n - 0.01);
+  n = smoothstep(0.3 * edge, 0., n - 0.0375);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3958,7 +3959,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -4041,8 +4042,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 20.;
-  float delayLength = 0.015;
+  const float slices = 40.;
+  float delayLength = 0.075;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
@@ -4073,9 +4074,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // dI += 0.1 * cos(cosT + dot(uv, vec2(-1, 1))); // Vary over time & diagonal space
 
     // layerTint = 1.00 * (vec3(0.5) + vec3(0.5) * cos(TWO_PI * (vec3(0.5, 1, 1) * dI + vec3(0., 0.2, 0.3))));
-    layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.3, 0.6))));
+    layerTint = 1.0 * (0.5 + 0.5 * cos(TWO_PI * (vec3(1) * dI + vec3(0, 0.333, 0.667))));
     // layerTint += 0.8 * (0.5 + 0.5 * cos(TWO_PI * (layerTint + pow(dI, vec3(2.)) + vec3(0, 0.4, 0.67))));
-    // layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
+    layerTint *= mix(vec3(1.0, 0.6, 0.60), vec3(1), 0.3);
 
     // // Solid Layer color
     // layerTint = vec3(5.0);
@@ -4133,7 +4134,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 #endif
   }
 
-  color.rgb = pow(color.rgb, vec3(2.400));
+  color.rgb = pow(color.rgb, vec3(2.100));
   color.rgb /= slices;
 
   // // Final layer
