@@ -66,7 +66,7 @@ const float thickness = 0.01;
 
 // Dispersion parameters
 float n1 = 1.;
-float n2 = 1.8;
+float n2 = 1.1;
 const float amount = 0.05;
 
 // Dof
@@ -1983,7 +1983,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   float t = mod(dT, 1.);
   float localCosT = TWO_PI * t;
   float r = gR;
-  vec2 size = r * vec2(5.);
+  vec2 size = r * vec2(3.);
 
   // Positioning adjustments
 
@@ -1994,19 +1994,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
-
-  p.yx = p.xy;
-
-  // Rotation 1
-  // More of a quarter turn around y-axis, w/ a little y movement just to show
-  // its 3D better.
-  p *= rotationMatrix(vec3(1, 0, 0), 0.3 * PI * sin(TWO_PI * quint(t)));
-  p *= rotationMatrix(vec3(0, 1, 0), -0.5 * PI * expo(t));
-
-  // // Rotation 2
-  // // More dramatic of a turn. You loose the change in axis though
-  // p *= rotationMatrix(vec3(0, 0, 1), 0.5 * PI * expo(t));
-  // p *= rotationMatrix(vec3(1), -0.666 * TWO_PI * expo(t));
 
   vec3 q = p;
   float warpScale = 0.7;
@@ -2046,27 +2033,17 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.yz *= rotMat2(0.5 * PI * wQ.x + 0.125 * PI * cos(localCosT + PI * wQ.x));
 
+  float c = pMod1(wQ.z, size.x);
+
   // Commit warp
   q = wQ.xyz;
-  mPos = wQ.yzw;
-
-  float swingR = 3.0 * r;
-  float thickness = 0.25 * r;
-
-  float blockT = mod(5. * t, 1.);
+  mPos = wQ.xyz;
 
   vec3 myQ = q;
-  float myT = range(0., 0.5, blockT);
-  myQ.xz -= r + swingR * circOut(0.5 + 0.5 * cos(TWO_PI * myT + PI));
-  // vec3 b = vec3(sdHollowBox(myQ, vec3(r), thickness), 0, 0);
-  vec3 b = vec3(sdBox(myQ, vec3(r)), 0, 0);
-  d = dMin(d, b);
+  float phase = 0.1 * c + 0.1 * cos(localCosT + 0.123 * PI *c) - 0.2 * PI * t;
+  myQ.y += sign(myQ.y) * udCos(myQ.xy, 0., 0.75 * r, 10., phase);
 
-  myQ = q;
-  myT = range(0.5, 1., blockT);
-  myQ.xz += r + swingR * circOut(0.5 + 0.5 * cos(TWO_PI * myT + PI));
-  // b = vec3(sdHollowBox(myQ, vec3(r), thickness), 0, 0);
-  b = vec3(sdBox(myQ, vec3(r)), 0, 0);
+  vec3 b = vec3(sdBox(myQ, vec3(2, r, r)), 0, 0);
   d = dMin(d, b);
 
   // float crop = length(wQ) - (r * (1. + 1.0 * n));
@@ -2079,7 +2056,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  // d.x *= 0.4;
+  d.x *= 0.6;
 
   return d;
 }
@@ -2338,7 +2315,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.2);
+  vec3 color = vec3(0);
   return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
@@ -2540,8 +2517,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.0;
-      float specCo = 0.0;
+      float freCo = 0.8;
+      float specCo = 0.8;
 
       vec3 specAll = vec3(0.0);
 
@@ -2608,13 +2585,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // isReflection = true; // Set mode to dispersion
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.5 * reflection(pos, reflectionRd, generalT);
-      // isReflection = false; // Set mode to dispersion
-      // color += reflectColor;
+      // Reflect scene
+      isReflection = true; // Set mode to dispersion
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.3 * reflection(pos, reflectionRd, generalT);
+      isReflection = false; // Set mode to dispersion
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2624,7 +2601,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2637,9 +2614,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.);
-      // float dispersionI = 1.0;
-      dispersionI *= 0.33;
+      // float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 3.);
+      float dispersionI = 1.0;
+      // dispersionI *= 0.33;
 
       dispersionColor *= dispersionI;
 
@@ -3959,7 +3936,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3992,8 +3969,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
