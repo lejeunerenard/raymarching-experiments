@@ -3650,8 +3650,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.0;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.020);
-  vec2 size = vec2(2.6) * vmax(r);
+  vec2 r = vec2(0.005);
+  vec2 size = vec2(8.0) * vmax(r);
   float scale = 4.;
 
   // -- Warp --
@@ -3674,7 +3674,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.30;
-  wQ *= rotMat2(-0.1 * PI);
+  wQ *= rotMat2(-0.085 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3690,7 +3690,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // float c = 0.;
   vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  wQ.xy = opRepLim(wQ.xy, size.y, vec2(6));
+  wQ.xy = opRepLim(wQ.xy, size.y, vec2(8));
 
   q = wQ;
   mUv = q;
@@ -3698,8 +3698,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // -- Cell T --
   float cellT = t;
 
-  // // Center out
-  // cellT -= 0.025 * length(c);
+  // Center out
+  cellT -= 0.1 * length(c);
 
   // Coordinate offset
   // cellT -= 0.020 * c.y;
@@ -3734,9 +3734,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q *= rotMat2(0.5 * PI * cos(localCosT + 0.12 * dot(c, vec2(1))));
+  // q.y -= -(size.y - 2. * r.y) + (2. * size.y - 2. * r.y) * cellT;
+  q.y -= (-1. + 2. * triangleWave(cellT)) * (0.5 * size.y - r.y);
 
-  vec2 b = vec2(sdBox(q, r * vec2(0.1, 1)), 0);
+  // q *= rotMat2(0.5 * PI * cos(localCosT + 0.12 * dot(c, vec2(1))));
+
+  vec2 b = vec2(sdBox(q, vec2(r)), 0);
   d = dMin(d, b);
 
   // // Debug mod range
