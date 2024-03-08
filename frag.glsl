@@ -3650,8 +3650,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.0;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.005);
-  vec2 size = vec2(8.0) * vmax(r);
+  vec2 r = vec2(0.01);
+  vec2 size = vec2(6.0) * vmax(r);
   float scale = 4.;
 
   // -- Warp --
@@ -3683,14 +3683,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
+  wQ *= rotMat2(0.25 * PI * cos(localCosT - length(wQ)));
 
   // wQ = polarCoords(wQ);
   // wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
   // float c = 0.;
-  vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  wQ.xy = opRepLim(wQ.xy, size.y, vec2(8));
+  // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
+  vec2 c = pMod2(wQ, size);
+  // wQ.xy = opRepLim(wQ.xy, size.y, vec2(8));
 
   q = wQ;
   mUv = q;
@@ -3734,12 +3736,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // q.y -= -(size.y - 2. * r.y) + (2. * size.y - 2. * r.y) * cellT;
-  q.y -= (-1. + 2. * triangleWave(cellT)) * (0.5 * size.y - r.y);
+  // q.y -= (-1. + 2. * triangleWave(cellT)) * (0.5 * size.y - r.y);
 
   // q *= rotMat2(0.5 * PI * cos(localCosT + 0.12 * dot(c, vec2(1))));
 
-  vec2 b = vec2(sdBox(q, vec2(r)), 0);
+  vec2 b = vec2(length(q) - vmax(r), 0);
   d = dMin(d, b);
 
   // // Debug mod range
@@ -3769,8 +3770,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(1.25 * TWO_PI * n);
 
-  // // Outline
-  // n = abs(n) - 0.015 * vmax(r);
+  // Outline
+  n = abs(n) - 0.05 * vmax(r);
 
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
@@ -3970,7 +3971,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
@@ -3992,7 +3993,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // -- Offsets --
     // Incremental offset
-    uv.y += 0.0060;
+    uv.y += 0.0050;
 
     // // Initial Offset
     // uv.y += i == 0. ? 0.02 : 0.;
