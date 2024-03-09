@@ -3672,9 +3672,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.30;
-  wQ *= rotMat2(-0.085 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.30;
+  // wQ *= rotMat2(-0.085 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3683,7 +3683,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  wQ *= rotMat2(0.25 * PI * cos(localCosT - length(wQ)));
+  wQ *= rotMat2(0.5 * PI * t - length(wQ));
 
   // wQ = polarCoords(wQ);
   // wQ.x /= PI;
@@ -3691,7 +3691,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // float c = 0.;
   // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  vec2 c = pMod2(wQ, size);
+  vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
+
+  wQ.y += 3. * size.y * t * mod(c.x, 2.) * (1. - 2. * mod(floor(c.x * 0.5), 2.));
+
+  c = pMod2(wQ, size);
+
   // wQ.xy = opRepLim(wQ.xy, size.y, vec2(8));
 
   q = wQ;
@@ -3770,8 +3775,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Repeat
   // n = sin(1.25 * TWO_PI * n);
 
-  // Outline
-  n = abs(n) - 0.05 * vmax(r);
+  // // Outline
+  // n = abs(n) - 0.05 * vmax(r);
 
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
