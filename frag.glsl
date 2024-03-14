@@ -1994,6 +1994,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
+  p *= rotationMatrix(vec3(0, 1, 0), 1.0 * PI * t);
 
   vec3 q = p;
   float warpScale = 0.7;
@@ -2017,14 +2018,14 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
 
   // wQ.xy = polarCoords(wQ.xy);
   // wQ.y -= 1.5 * r;
@@ -2037,7 +2038,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = wQ.xyz;
 
   // vec3 b = vec3(length(q) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  b = dSMin(vec3(dodecahedral(q, 42., 0.912 * r), 0, 0), b, 0.025 * r);
   d = dMin(d, b);
 
   // float crop = length(wQ) - (r * (1. + 1.0 * n));
@@ -2512,7 +2514,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
       float freCo = 0.8;
-      float specCo = 0.8;
+      float specCo = 0.85;
 
       vec3 specAll = vec3(0.0);
 
