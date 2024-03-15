@@ -418,7 +418,9 @@ export default class App {
     this.setupShader('bright', require('./shaders/bright.shader'), gl)
     this.setupShader('bloom', require('./shaders/bloom.shader'), gl)
     this.setupShader('finalPass', require('./shaders/final-pass.shader'), gl)
+
     this.generateSVGTexture('', undefined, gl)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null) // Undo whatever generateSVGTexture bound
 
     let blankSDF = ndarray([], [2, 2])
     // Initialize at max distance
@@ -624,6 +626,12 @@ export default class App {
       this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
     }
+  }
+
+  finalPassRender (gl, t) {
+    let dim = this.getDimensions()
+
+    let base = this.state[0].color[0]
 
     // Additive blending
     this.currentState = (this.currentState) ? 0 : 1
@@ -651,9 +659,8 @@ export default class App {
   render (t) {
     let { shader, gl } = this
 
-    if (BLOOM) {
-      this.state[0].bind()
-    }
+    // Always render to FBO as finalPassRender will render to final frame buffer
+    this.state[0].bind()
 
     shader.uniforms.time = this.getTime(t)
     shader.uniforms.BLOOM = BLOOM
@@ -662,6 +669,8 @@ export default class App {
     if (BLOOM) {
       this.bloomBlur(gl, t)
     }
+
+    this.finalPassRender(gl, t)
   }
 
   run () {

@@ -2693,9 +2693,6 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       return vec4(color, 1.);
     } else {
       vec4 color = vec4(0.);
-      if (!BLOOM) {
-        color.a = 1.0;
-      }
 
       // // -- Direct lighting --
       // for (int i = 0; i < NUM_OF_LIGHTS; i++ ) {
