@@ -1972,7 +1972,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.7;
+float gR = 0.8;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1996,43 +1996,45 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= globalRot;
 
   vec3 q = p;
-  float warpScale = 0.7;
+  float warpScale = 1.5;
   float warpFrequency = 1.0;
   float rollingScale = 1.;
 
   // Warp
   vec3 preWarpQ = q;
-  vec3 wQ = q.xyz;
+  // vec3 wQ = q.xyz;
 
-  // vec4 wQ = vec4(q.xyz, 0);
+  vec4 wQ = vec4(q.xyz, 0);
 
 #define distortT localCosT
 
   // float worldScale = 1.0;
   // wQ *= worldScale;
 
-  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec3(1)) + localCosT));
-  vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.2 + 0.3 * cos(vec3(-1, 1, 0) * localCosT);
-  // vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.0;
+  float phasePeriod = 0.5 * (0.5 + 0.5 * cos(dot(wQ, vec4(1)) + localCosT));
+  // vec3 warpPhase = TWO_PI * phasePeriod * vec3(0., 0.33, 0.67) + 0.2 + 0.3 * cos(vec3(-1, 1, 0) * localCosT);
+  vec4 warpPhase = TWO_PI * phasePeriod * vec4(0., 0.25, 0.5, 0.75) + 0.0;
 
   const float warpPhaseAmp = 0.9;
 
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 1.0 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
 
-  r += 0.2 * r * snoise3(1.5 * wQ);
+  r += 0.2 * r * snoise4(1.5 * wQ);
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(length(wQ) - r, 0, 0);
+  b.x += 0.5 * vmax(abs(q));
+
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // b = dSMin(vec3(dodecahedral(q, 42., 0.912 * r), 0, 0), b, 0.025 * r);
   d = dMin(d, b);
@@ -2047,7 +2049,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.6;
+  d.x *= 0.4;
 
   return d;
 }
@@ -2191,7 +2193,7 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.3;
 
   // -- Colors --
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.2, 0.67) ) );
 
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
@@ -2508,8 +2510,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.8;
-      float specCo = 0.85;
+      float freCo = 1.0;
+      float specCo = 0.95;
 
       vec3 specAll = vec3(0.0);
 
