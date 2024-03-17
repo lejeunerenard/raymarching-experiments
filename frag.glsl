@@ -45,7 +45,7 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 38
+#define maxSteps 256
 #define maxDistance 3.0
 #define fogMaxDistance 4.35
 
@@ -1996,8 +1996,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= globalRot;
 
   vec3 q = p;
-  float warpScale = 1.5;
-  float warpFrequency = 1.0;
+  float warpScale = 0.5;
+  float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
@@ -2019,21 +2019,19 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 1.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 2.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
-
-  r += 0.2 * r * snoise4(1.5 * wQ);
+  wQ += 0.006250 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
   vec3 b = vec3(length(wQ) - r, 0, 0);
-  b.x += 0.5 * vmax(abs(q));
 
   // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // b = dSMin(vec3(dodecahedral(q, 42., 0.912 * r), 0, 0), b, 0.025 * r);
@@ -2049,7 +2047,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.4;
+  d.x *= 0.6;
 
   return d;
 }
@@ -2487,7 +2485,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
           snoise3(bumpsScale * 490.0 * mPos),
           snoise3(bumpsScale * 670.0 * mPos + 234.634),
           snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      nor -= 0.125 * cellular(5. * mPos);
+      // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
       // nor += 5.0 * cellular(vec3(1) * mPos);
@@ -2510,7 +2508,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.0;
+      float freCo = 0.4;
       float specCo = 0.95;
 
       vec3 specAll = vec3(0.0);
