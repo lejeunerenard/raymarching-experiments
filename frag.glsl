@@ -3635,10 +3635,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.1;
-  float warpFrequency = 1.;
+  float warpScale = 0.3;
+  float warpFrequency = 2.;
 
-  vec2 r = 0.025 * vec2(0.15, 1);
+  vec2 r = 0.020 * vec2(0.15, 1);
   vec2 size = vec2(3) * vmax(r);
   float scale = 1.;
 
@@ -3660,9 +3660,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.30;
-  // wQ *= rotMat2(-0.085 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.50;
+  wQ *= rotMat2(-0.085 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3674,17 +3674,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   // float c = 0.;
   // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
   vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
 
-  // wQ.xy = opRepLim(wQ.xy, size.y, vec2(8));
-
-  wQ *= rotMat2(0.1 * PI * cos(localCosT + 0.5 * length(c)) + localCosT - 0.2 * dot(abs(c), vec2(1)));
+  wQ.xy = opRepLim(wQ.xy, size.y, vec2(4));
 
   q = wQ;
   mUv = q;
@@ -3730,7 +3728,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q.y -= (-1. + 2. * triangleWave(cellT)) * (0.5 * size.y - r.y);
 
-  // q *= rotMat2(0.5 * PI * cos(localCosT + 0.12 * dot(c, vec2(1))));
+  q *= rotMat2(0.5 * PI * cos(localCosT + 0.12 * dot(c, vec2(1))));
 
   vec2 b = vec2(sdBox(q, r), 0);
   d = dMin(d, b);
@@ -3919,7 +3917,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3952,8 +3950,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3965,7 +3963,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // -- Echoed Layers --
   const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
