@@ -3638,7 +3638,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.3;
   float warpFrequency = 2.;
 
-  vec2 r = 0.020 * vec2(0.15, 1);
+  vec2 r = 0.020 * vec2(0.25, 1);
   vec2 size = vec2(3) * vmax(r);
   float scale = 1.;
 
@@ -3680,9 +3680,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float c = 0.;
   // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
   vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  // c = pMod2(wQ, size);
+  c = pMod2(wQ, size);
 
-  wQ.xy = opRepLim(wQ.xy, size.y, vec2(4));
+  // wQ.xy = opRepLim(wQ.xy, size.y, vec2(4));
 
   q = wQ;
   mUv = q;
@@ -3691,7 +3691,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float cellT = t;
 
   // Center out
-  cellT -= 0.1 * length(c);
+  cellT -= 0.2 * length(c);
 
   // Coordinate offset
   // cellT -= 0.020 * c.y;
@@ -3728,7 +3728,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q.y -= (-1. + 2. * triangleWave(cellT)) * (0.5 * size.y - r.y);
 
-  q *= rotMat2(0.5 * PI * cos(localCosT + 0.12 * dot(c, vec2(1))));
+  q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT));
 
   vec2 b = vec2(sdBox(q, r), 0);
   d = dMin(d, b);
@@ -3960,48 +3960,48 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // -- Echoed Layers --
-  const float echoSlices = 12.;
-  for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
+  // // -- Echoed Layers --
+  // const float echoSlices = 12.;
+  // for (float i = 0.; i < echoSlices; i++) {
+  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
-    // // Outlined version
-    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-    // // Hard Edge
-    // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
-    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+  //   // // Outlined version
+  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+  //   // // Hard Edge
+  //   // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
+  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-    // Echo Dimming
-    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   // Echo Dimming
+  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
 
-    // Blend mode
-    // Additive
-    color += vec4(vec3(layerColor.a), 1) * layerColor;
+  //   // Blend mode
+  //   // Additive
+  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-    // -- Offsets --
-    // Incremental offset
-    uv.y += 0.0050;
+  //   // -- Offsets --
+  //   // Incremental offset
+  //   uv.y += 0.0050;
 
-    // // Initial Offset
-    // uv.y += i == 0. ? 0.02 : 0.;
+  //   // // Initial Offset
+  //   // uv.y += i == 0. ? 0.02 : 0.;
 
-    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  }
+  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  // }
 
-  color.a = saturate(color.a);
-  // color.rgb = mix(vec3(1), color.rgb, color.a);
-  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  color.a = 1.;
+  // color.a = saturate(color.a);
+  // // color.rgb = mix(vec3(1), color.rgb, color.a);
+  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  // color.a = 1.;
 
-  return color;
+  // return color;
 
   // -- Color delay --
-  const float slices = 10.;
-  float delayLength = 0.005;
+  const float slices = 20.;
+  float delayLength = 0.25;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
@@ -4088,11 +4088,11 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // color.rgb = mix(color.rgb, color.rgb * layerColor, mask);
 
 #ifdef phase_uv_offset
-    uv += 1.0 * vec2(0.0025, 0.005) * saturate(1. - (slices - 15.) / 15.);
+    uv += 0.3 * vec2(0.0025, 0.005) * saturate(1. - (slices - 15.) / 15.);
 #endif
   }
 
-  color.rgb = pow(color.rgb, vec3(8.100));
+  color.rgb = pow(color.rgb, vec3(1.700));
   color.rgb /= slices;
 
   // // Final layer
