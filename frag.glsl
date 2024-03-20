@@ -3638,7 +3638,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.3;
   float warpFrequency = 2.;
 
-  vec2 r = 0.020 * vec2(0.25, 1);
+  vec2 r = vec2(0.3);
   vec2 size = vec2(3) * vmax(r);
   float scale = 1.;
 
@@ -3672,15 +3672,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
-  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // float c = 0.;
+  float c = 0.;
+  // // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
   // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
 
   // wQ.xy = opRepLim(wQ.xy, size.y, vec2(4));
 
@@ -3728,10 +3728,27 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q.y -= (-1. + 2. * triangleWave(cellT)) * (0.5 * size.y - r.y);
 
-  q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT));
+  // q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT));
 
   vec2 b = vec2(sdBox(q, r), 0);
+  b.x = abs(b.x) - 0.05 * vmax(r);
   d = dMin(d, b);
+
+  b = vec2(sdBox(q, 0.7 * r), 0);
+  b.x = abs(b.x) - 0.05 * vmax(r);
+  d = dMin(d, b);
+
+  b = vec2(sdBox(q, 0.4 * r), 0);
+  b.x = abs(b.x) - 0.05 * vmax(r);
+  d = dMin(d, b);
+
+  q *= rotMat2(localCosT);
+  float maskAsLines = atan(q.y, q.x);
+  maskAsLines /= PI;
+  float maskAsLinesSize = 0.2;
+  pMod1(maskAsLines, maskAsLinesSize);
+  maskAsLines = abs(maskAsLines) - maskAsLinesSize * 0.3;
+  d.x = max(d.x, maskAsLines);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
@@ -4000,8 +4017,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 20.;
-  float delayLength = 0.25;
+  const float slices = 10.;
+  float delayLength = 0.03;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
 
