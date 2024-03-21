@@ -3622,6 +3622,22 @@ vec2 dotPosition (in float i, in float t, in float r) {
   return (1. - quint(range((dotNum - 1.) / dotNum, 1., t))) * mix(prevOffset, offset, withinStep);
 }
 
+float dashedCircle (in vec2 localQ, in float r, in float thickness, in vec2 lineDim) {
+  float d = maxDistance;
+  float b = length(localQ) - r;
+  b = abs(b) - thickness;
+  d = min(d, b);
+
+  // Spin
+  localQ *= rotMat2(-localCosT * 6. * lineDim.x);
+
+  float maskAsLines = atan(localQ.y, localQ.x);
+  maskAsLines /= PI;
+  pMod1(maskAsLines, lineDim.x);
+  maskAsLines = abs(maskAsLines) - lineDim.y;
+  return max(b, maskAsLines);
+}
+
 vec2 mUv = vec2(0);
 vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec4 color = vec4(vec3(0), 1.);
@@ -3730,25 +3746,35 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT));
 
-  vec2 b = vec2(sdBox(q, r), 0);
-  b.x = abs(b.x) - 0.05 * vmax(r);
+  vec2 b = vec2(dashedCircle(q, 1.0 * vmax(r), 0.05 * vmax(r), vec2(0.25, 0.06)), 0);
   d = dMin(d, b);
 
-  b = vec2(sdBox(q, 0.7 * r), 0);
-  b.x = abs(b.x) - 0.05 * vmax(r);
+  b = vec2(dashedCircle(q, 0.7 * vmax(r), 0.05 * vmax(r), vec2(0.333, 0.09)), 0);
   d = dMin(d, b);
 
-  b = vec2(sdBox(q, 0.4 * r), 0);
-  b.x = abs(b.x) - 0.05 * vmax(r);
+  b = vec2(dashedCircle(q, 0.4 * vmax(r), 0.05 * vmax(r), vec2(0.2, 0.06)), 0);
   d = dMin(d, b);
 
-  q *= rotMat2(localCosT);
-  float maskAsLines = atan(q.y, q.x);
-  maskAsLines /= PI;
-  float maskAsLinesSize = 0.2;
-  pMod1(maskAsLines, maskAsLinesSize);
-  maskAsLines = abs(maskAsLines) - maskAsLinesSize * 0.3;
-  d.x = max(d.x, maskAsLines);
+  b = vec2(dashedCircle(q, 1.35 * vmax(r), 0.05 * vmax(r), vec2(0.125, 0.03)), 0);
+  d = dMin(d, b);
+
+  b = vec2(dashedCircle(q, 1.65 * vmax(r), 0.05 * vmax(r), vec2(0.11111, 0.02)), 0);
+  d = dMin(d, b);
+
+  b = vec2(dashedCircle(q, 1.95 * vmax(r), 0.05 * vmax(r), vec2(0.090909, 0.0175)), 0);
+  d = dMin(d, b);
+
+  b = vec2(dashedCircle(q, 2.35 * vmax(r), 0.05 * vmax(r), vec2(0.083333, 0.0175)), 0);
+  d = dMin(d, b);
+
+  b = vec2(dashedCircle(q, 2.8 * vmax(r), 0.05 * vmax(r), vec2(0.05, 0.01)), 0);
+  d = dMin(d, b);
+
+  b = vec2(dashedCircle(q, 3.25 * vmax(r), 0.05 * vmax(r), vec2(0.04, 0.01125)), 0);
+  d = dMin(d, b);
+
+  b = vec2(dashedCircle(q, 3.75 * vmax(r), 0.05 * vmax(r), vec2(0.035714, 0.01125)), 0);
+  d = dMin(d, b);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
