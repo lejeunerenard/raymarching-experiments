@@ -3654,8 +3654,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.3;
   float warpFrequency = 2.;
 
-  vec2 r = vec2(0.3);
-  vec2 size = vec2(3) * vmax(r);
+  vec2 r = vec2(0.1);
+  vec2 size = vec2(2.75) * vmax(r);
   float scale = 1.;
 
   // -- Warp --
@@ -3697,6 +3697,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
   // vec2 c = floor((wQ.xy + 0.5 * size.xy)/size.xy);
   // c = pMod2(wQ, size);
+
+  pMod1(wQ.y, size.y);
 
   // wQ.xy = opRepLim(wQ.xy, size.y, vec2(4));
 
@@ -3746,34 +3748,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT));
 
-  vec2 b = vec2(dashedCircle(q, 1.0 * vmax(r), 0.05 * vmax(r), vec2(0.25, 0.06)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 0.7 * vmax(r), 0.05 * vmax(r), vec2(0.333, 0.09)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 0.4 * vmax(r), 0.05 * vmax(r), vec2(0.2, 0.06)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 1.35 * vmax(r), 0.05 * vmax(r), vec2(0.125, 0.03)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 1.65 * vmax(r), 0.05 * vmax(r), vec2(0.11111, 0.02)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 1.95 * vmax(r), 0.05 * vmax(r), vec2(0.090909, 0.0175)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 2.35 * vmax(r), 0.05 * vmax(r), vec2(0.083333, 0.0175)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 2.8 * vmax(r), 0.05 * vmax(r), vec2(0.05, 0.01)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 3.25 * vmax(r), 0.05 * vmax(r), vec2(0.04, 0.01125)), 0);
-  d = dMin(d, b);
-
-  b = vec2(dashedCircle(q, 3.75 * vmax(r), 0.05 * vmax(r), vec2(0.035714, 0.01125)), 0);
+  float amp = vmax(r) * cos(localCosT + 2. * q.x);
+  vec2 b = vec2(udCos(q, 0., amp, 20., 0.), 0);
+  b.x -= 0.4 * vmax(r);
   d = dMin(d, b);
 
   // // Debug mod range
@@ -4003,44 +3980,44 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // return vec4(vec3(1. - layerOutline), 1);
 
-  // // -- Echoed Layers --
-  // const float echoSlices = 12.;
-  // for (float i = 0.; i < echoSlices; i++) {
-  //   vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
+  // -- Echoed Layers --
+  const float echoSlices = 12.;
+  for (float i = 0.; i < echoSlices; i++) {
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
-  //   // // Outlined version
-  //   // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
-  //   // // Hard Edge
-  //   // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
-  //   // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
+    // // Outlined version
+    // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
+    // // Hard Edge
+    // layerOutline = smoothstep(0., fwidth(layerOutline), layerOutline - angle2C);
+    // vec4 layerColor = vec4(vec3(1. - layerOutline), 1);
 
-  //   // Echo Dimming
-  //   // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
-  //   layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
+    // Echo Dimming
+    // layerColor *= (1. - pow(i / (echoSlices + 1.), 0.125));
+    layerColor.a *= (1. - pow(i / (echoSlices + 1.), 0.125));
 
-  //   // Blend mode
-  //   // Additive
-  //   color += vec4(vec3(layerColor.a), 1) * layerColor;
+    // Blend mode
+    // Additive
+    color += vec4(vec3(layerColor.a), 1) * layerColor;
 
-  //   // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
+    // color.rgb = mix(color.rgb, layerColor.rgb, layerColor.a);
 
-  //   // -- Offsets --
-  //   // Incremental offset
-  //   uv.y += 0.0050;
+    // -- Offsets --
+    // Incremental offset
+    uv.y += 0.0050;
 
-  //   // // Initial Offset
-  //   // uv.y += i == 0. ? 0.02 : 0.;
+    // // Initial Offset
+    // uv.y += i == 0. ? 0.02 : 0.;
 
-  //   // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
-  //   // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
-  // }
+    // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
+    // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
+  }
 
-  // color.a = saturate(color.a);
-  // // color.rgb = mix(vec3(1), color.rgb, color.a);
-  // color.rgb += pow(1. - color.a, 1.3) * vec3(0);
-  // color.a = 1.;
+  color.a = saturate(color.a);
+  // color.rgb = mix(vec3(1), color.rgb, color.a);
+  color.rgb += pow(1. - color.a, 1.3) * vec3(0);
+  color.a = 1.;
 
-  // return color;
+  return color;
 
   // -- Color delay --
   const float slices = 10.;
