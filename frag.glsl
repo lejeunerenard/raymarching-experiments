@@ -3654,8 +3654,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.3;
   float warpFrequency = 2.;
 
-  vec2 r = vec2(0.1);
-  vec2 size = vec2(2.75) * vmax(r);
+  vec2 r = vec2(0.025);
+  vec2 size = vec2(2.5, 2.75) * vmax(r);
   float scale = 1.;
 
   // -- Warp --
@@ -3748,10 +3748,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT));
 
-  float amp = vmax(r) * cos(localCosT + 2. * q.x);
+  float amp = vmax(r) * cos(localCosT + dot(q, vec2(10)));
+  // float amp = vmax(r) * triangleWave(t + 0. * q.x);
   vec2 b = vec2(udCos(q, 0., amp, 20., 0.), 0);
   b.x -= 0.4 * vmax(r);
   d = dMin(d, b);
+
+  // q.y += udCos(q, 0., amp, 20., 0.);
+
+  // pMod1(q.x, size.x);
+  // float crop = sdBox(q, r);
+  // d.x = max(d.x, crop);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
@@ -3766,11 +3773,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
   // mask = length(maskQ) - 0.45;
-  // mask = sdBox(maskQ, vec2(7.5 * r));
+  mask = sdBox(maskQ, vec2(12. * r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
-  // mask = smoothstep(fwidth(mask), 0., mask);
+  mask = smoothstep(fwidth(mask), 0., mask);
   // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
@@ -3981,7 +3988,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 12.;
+  const float echoSlices = 6.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
