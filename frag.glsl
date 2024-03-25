@@ -1317,7 +1317,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-const vec2 gSize = vec2(0.080);
+vec2 gSize = vec2(0.080);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1350,7 +1350,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float locallocalT = localT;
   // locallocalT = angle1C;
   // locallocalT -= 0.08 * length(c);
-  locallocalT -= 0.12 * vmax(abs(0.6 * c));
+  // locallocalT -= 0.12 * vmax(abs(0.6 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
@@ -1368,8 +1368,8 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
-  vec2 shiftDir = vec2(1, 1);
+  float shift = 2.;
+  vec2 shiftDir = vec2(1, 0) * mod(c.y, 2.);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1380,9 +1380,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = 0.3 * size;
-
-  // q.x += 0.5 * localNorT * size.x * mod(localC.y, 2.);
+  vec2 r = vec2(0.09, 0.3) * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
@@ -1430,36 +1428,23 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  // q -= shiftDir * shift * size * t;
+  q -= shiftDir * shift * size * t;
 
   // // Rotate randomly
   // q *= rotMat2(1.0 * PI * snoise2(0.263 * localC));
+
+  // Rotate
+  q *= rotMat2(PI * t - 0.2 * length(localC));
 
   const float num = 4.;
   const float angleInc = TWO_PI / num;
 
   float internalD = maxDistance;
-  for (float i = 0.; i < num; i++) {
-    vec2 localQ = q;
-    localQ *= rotMat2(angleInc * i);
-
-    localQ.x -= 1.0 * vmax(r);
-
-    localQ *= rotMat2(TWO_PI / 4. * sine(t));
-
-    // localQ = abs(localQ);
-    localQ += 1.0 * r;
-
-    float b = length(localQ) - 0.5 * vmax(r);
-    // float b = sdTriPrism(vec3(localQ, 0.), vec2(r));
-    internalD = min(internalD, b);
-  }
-
   // float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
-  // internalD = max(internalD, sdBox(q, 0.5 * size));
+  internalD = min(internalD, sdBox(q, r));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -3654,8 +3639,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.3;
   float warpFrequency = 2.;
 
-  vec2 r = vec2(0.0125);
+  vec2 r = vec2(0.0175);
   vec2 size = vec2(2.75) * vmax(r);
+  gSize = size;
   float scale = 1.;
 
   // -- Warp --
@@ -3693,7 +3679,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  vec2 c = pMod2(wQ, size);
+  // vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3701,8 +3687,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // -- Cell T --
   float cellT = t;
 
-  // Center out
-  cellT -= 0.0125 * length(c);
+  // // Center out
+  // cellT -= 0.0125 * length(c);
 
   // Coordinate offset
   // cellT -= 0.020 * c.y;
@@ -3716,8 +3702,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float dC = dot(c, vec2(1, -1));
   // cellT -= dC * 0.075;
 
-  // Noise offset
-  cellT -= 0.045 * snoise2(1.2 * c);
+  // // Noise offset
+  // cellT -= 0.045 * snoise2(1.2 * c);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3737,9 +3723,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT) + 0.5 * PI);
+  // q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT) + 0.5 * PI);
 
-  vec2 b = vec2(sdBox(q, r * vec2(0.1, 1)), 0);
+  // vec2 b = vec2(sdBox(q, r * vec2(0.1, 1)), 0);
+  // d = dMin(d, b);
+
+  vec2 b = neighborGrid(q, size);
   d = dMin(d, b);
 
   // // Debug mod range
@@ -3959,8 +3948,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4009,7 +3998,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return color;
 
   // -- Color delay --
-  const float slices = 10.;
+  const float slices = 15.;
   float delayLength = 0.03;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 #define phase_uv_offset 1
@@ -4101,7 +4090,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 #endif
   }
 
-  color.rgb = pow(color.rgb, vec3(1.700));
+  color.rgb = pow(color.rgb, vec3(1.650));
   color.rgb /= slices;
 
   // // Final layer
