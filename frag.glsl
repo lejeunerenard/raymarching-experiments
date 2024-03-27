@@ -3642,7 +3642,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.3;
   float warpFrequency = 2.;
 
-  vec2 r = vec2(0.0275);
+  vec2 r = vec2(0.015);
   vec2 size = vec2(2.75) * vmax(r);
   gSize = size;
   float scale = 1.;
@@ -3667,7 +3667,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.50;
-  wQ *= rotMat2(-0.085 * PI);
+  wQ *= rotMat2(0.095 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3682,7 +3682,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // vec2 c = pMod2(wQ, size);
+  vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3705,8 +3705,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float dC = dot(c, vec2(1, -1));
   // cellT -= dC * 0.075;
 
-  // // Noise offset
-  // cellT -= 0.045 * snoise2(1.2 * c);
+  // Noise offset
+  cellT -= 0.2 * snoise2(0.07 * c);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3728,11 +3728,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // q *= rotMat2(0.5 * PI * cos(localCosT + TWO_PI * cellT) + 0.5 * PI);
 
-  // vec2 b = vec2(sdBox(q, r * vec2(0.1, 1)), 0);
-  // d = dMin(d, b);
+  r -= 0.95 * vmax(r) * (0.5 + 0.5 * cos(TWO_PI * cellT));
 
-  vec2 b = neighborGrid(q, size);
+  vec2 b = vec2(length(q) - vmax(r), 0);
   d = dMin(d, b);
+
+  // vec2 b = neighborGrid(q, size);
+  // d = dMin(d, b);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
