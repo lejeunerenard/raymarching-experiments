@@ -4,6 +4,7 @@ import createFBO from 'gl-fbo'
 
 import ndarray from 'ndarray'
 import TWEEN from 'tween.js'
+import fill from 'ndarray-fill'
 import makeContext from 'gl-context'
 import { rot4 } from './utils'
 import drawTriangle from 'a-big-triangle'
@@ -13,16 +14,19 @@ import assert from 'assert'
 import { vec3, mat4 } from 'gl-matrix'
 import { getLuminance, getColorWFixedLuminance } from './luminance'
 
+// import convert from './svg-to-glsl.js'
+
 const dpr = 1.0 / window.devicePixelRatio
 
 const TWO_PI = 2 * Math.PI
 // const PHI = (1 + Math.sqrt(5)) / 2
 
 const MANDELBOX = false
-const BLOOM = true
+const BLOOM = false
 const BLOOM_PASSES = 2
-const BLOOM_WET = 1
-const BLOOM_MIN_BRIGHTNESS = 0.975
+const BLOOM_RADIUS = BLOOM_PASSES - 1
+const BLOOM_WET = 1.0
+const BLOOM_MIN_BRIGHTNESS = 1.0
 
 // Initialize shell
 export default class App {
@@ -40,30 +44,31 @@ export default class App {
     }
 
     this.LOOKAT = true
+    this.SHOW_SVG_SDF = false
 
     this.presets = {}
     const preset = {
       offset: {
-        x: 0.749,
-        y: -1.11,
-        z: 1.961
+        x: -1.07,
+        y: -0.52,
+        z: -0.344
       },
       d: 0.52,
-      scale: 2.2148,
-      rot2angle: [3.14, 3.857, 2.308],
-      cameraAngles: [-0.016, -0.789, 0.04]
+      scale: 1.5216,
+      rot2angle: [2.246, 1.206, 0.86],
+      cameraAngles: [0.05, 0.085, 0.289]
     }
 
     this.d = preset.d
-    this.cameraRo = vec3.fromValues(0, 0.28, 3.35)
+    this.cameraRo = vec3.fromValues(0, 0.0001, 2.4)
     this.offsetC = [0.339, -0.592, 0.228, 0.008]
 
-    this.colors1 = [188, 135, 184]
+    this.colors1 = [168, 141, 198]
     this.colors2 = [75, 24, 17]
     // this.getEqualLuminance(this.colors1, this.colors2, 0)
 
     // Ray Marching Parameters
-    this.epsilon = preset.epsilon || 0.0001
+    this.epsilon = preset.epsilon || 0.000001
 
     // Fractal parameters
     this.offset = (preset.offset)
@@ -73,9 +78,9 @@ export default class App {
     this.rot2angle = preset.rot2angle || [0, 0, 0]
     this.cameraAngles = preset.cameraAngles || [0, 0, 0]
 
-    this.angle1C = 1.3282
-    this.angle2C = 0.7408
-    this.angle3C = 1.111
+    this.angle1C = 0.3386
+    this.angle2C = 1.0003
+    this.angle3C = 0.89
 
     // this.setupAnimation(preset)
 
@@ -88,16 +93,37 @@ export default class App {
     this.audioTex = createTexture(gl, this.audioNday)
     this.pulseGoal = 0
 
+    // -- Shapes --
+    this.shapeOptions = {
+      cube: 0,
+      sphere: 1,
+      cigar: 2,
+      pyramid: 3,
+      torus: 4,
+      octahedron: 5,
+      none: -1
+    }
+    this.shapeMode = 'cube'
+    this.shapeScale = [1, 1, 1]
+    this._shape2DSDFTextures = {}
+
     // Capturing state
     this.capturing = defined(options.capturing, false)
 
     this.loaded = Promise.resolve()
+      // .then(() => {
+      //   const { glsl, metadata } = convert(require('./7.svg.js'))
+      //   const fbo = this.generateSVGTexture(glsl, metadata.viewBox)
+      //   this.add2DSDFTexture('year-7', fbo.color[0])
+      // })
       .then(() => {
         this.setupAudio()
       })
 
     // Scene Rendering
     this.sceneRenderer = options.sceneRenderer
+
+    this.totalTime = 0
 
     Object.assign(this, {
       canvas,
@@ -139,6 +165,47 @@ export default class App {
     this.state[4].color.minFilter = gl.LINEAR
   }
 
+  renderSVGSDF (svgToSDF, viewBox = { x1: 0, y1: 0, x2: 100, y2: 100 }, fbo, gl = this.gl) {
+    const t = 0
+    const MAX_TEXTURE_SIZE = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+    let dim = [MAX_TEXTURE_SIZE / 2, MAX_TEXTURE_SIZE / 2]
+
+    let svgSDF
+    // By default create a FBO to return
+    if (!fbo) {
+      try {
+        svgSDF = createFBO(gl, dim, { preferFloat: true, depth: false })
+      } catch (e) {
+        svgSDF = createFBO(gl, dim, { depth: false })
+      }
+    } else {
+      svgSDF = fbo
+    }
+    svgSDF.color[0].wrap = [gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE]
+    svgSDF.color[0].magFilter = gl.LINEAR
+    svgSDF.color[0].minFilter = gl.LINEAR
+    svgSDF.color[0].mipSamples = 12
+
+    svgToSDF.bind()
+    svgToSDF.uniforms.resolution = dim
+    svgToSDF.uniforms.scale = Math.min(dim[0], dim[1]) / Math.max(viewBox.x2 - viewBox.x1, viewBox.y2 - viewBox.y1)
+    svgToSDF.uniforms.epsilon = this.epsilon
+
+    let updates = this.getCamera(t)
+    svgToSDF.uniforms.cameraRo = this.SHOW_SVG_SDF ? updates[0] : [0, 0, 1.25]
+    svgToSDF.uniforms.cameraMatrix = (updates[1])
+
+    if (this.SHOW_SVG_SDF) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    } else {
+      svgSDF.bind()
+    }
+
+    drawTriangle(gl)
+
+    return svgSDF
+  }
+
   setupAnimation (preset) {
     let self = this
     // Epsilon Animation
@@ -160,25 +227,21 @@ export default class App {
       self.cameraRo[2] = this.z
     }
 
-    const totalTime = 10
-
     let cameraPosTween = new TWEEN.Tween(ob)
     cameraPosTween
-      .delay(2.5 * 1000)
-      .to({ x: 0, y: 0, z: self.cameraRo[2] }, 2.5 * 1000)
+      .to({ x: self.cameraRo[0], y: -0.1, z: self.cameraRo[2] }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     let cameraPosTween2 = new TWEEN.Tween(ob)
     cameraPosTween2
-      .delay(2.5 * 1000)
-      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 2.5 * 1000)
+      .to({ x: self.cameraRo[0], y: self.cameraRo[1], z: self.cameraRo[2] }, 5 * 1000)
       .easing(TWEEN.Easing.Quadratic.Out)
       .onUpdate(updatePos)
 
     cameraPosTween.chain(cameraPosTween2)
     cameraPosTween2.chain(cameraPosTween)
-    // cameraPosTween.start(0)
+    cameraPosTween.start(0)
 
     // Camera rotation
     function updateRot () {
@@ -206,27 +269,25 @@ export default class App {
     // Animation Fractal
     let rotTween1 = new TWEEN.Tween(this.rot2angle)
     rotTween1
-      .to([this.rot2angle[0], 2.093, 4.248], 5 * 1000)
+      .delay(1 * 1000)
+      .to([2.144, this.rot2angle[1], this.rot2angle[2]], 6 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween2 = new TWEEN.Tween(this.rot2angle)
-    rotTween2
-      .to([5.084, 2.093, 4.248], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
+    // let rotTween2 = new TWEEN.Tween(this.rot2angle)
+    // rotTween2
+    //   .delay(1 * 1000)
+    //   .to([0.125, this.rot2angle[1], 0.985], 14 * 1000)
+    //   .easing(TWEEN.Easing.Quadratic.InOut)
     let rotTween3 = new TWEEN.Tween(this.rot2angle)
     rotTween3
-      .to([5.156, 2.661, 3.77], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let rotTween4 = new TWEEN.Tween(this.rot2angle)
-    rotTween4
-      .to([...this.rot2angle], 5 * 1000)
+      .delay(2 * 1000)
+      .to([...this.rot2angle], 6 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    rotTween1.chain(rotTween2)
-    rotTween2.chain(rotTween3)
-    rotTween3.chain(rotTween4)
-    rotTween4.chain(rotTween1)
+    rotTween1.chain(rotTween3)
+    // rotTween2.chain(rotTween3)
+    rotTween3.chain(rotTween1)
 
-    rotTween1.start(0)
+    // rotTween1.start(0)
 
     // Scale Tween
     let scaleTween1 = new TWEEN.Tween(this)
@@ -247,20 +308,15 @@ export default class App {
     // Offset Tween
     let offsetTween1 = new TWEEN.Tween(this.offset)
     offsetTween1
-      .to([ this.offset[0], this.offset[1], Math.PI ], 30 * 1000)
+      .to([ this.offset[0], 0.539, this.offset[2] ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
     let offsetTween2 = new TWEEN.Tween(this.offset)
     offsetTween2
-      .to([ 1.993, this.offset[1], -0.654 ], 5 * 1000)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-    let offsetTween3 = new TWEEN.Tween(this.offset)
-    offsetTween3
-      .to([ ...this.offset ], 5 * 1000)
+      .to([ this.offset[0], this.offset[1], this.offset[2] ], 10 * 1000)
       .easing(TWEEN.Easing.Quadratic.InOut)
 
-    // offsetTween1.chain(offsetTween2)
-    // offsetTween2.chain(offsetTween3)
-    // offsetTween3.chain(offsetTween1)
+    offsetTween1.chain(offsetTween2)
+    offsetTween2.chain(offsetTween1)
 
     // offsetTween1.start(0)
 
@@ -363,6 +419,14 @@ export default class App {
     this.setupShader('bloom', require('./shaders/bloom.shader'), gl)
     this.setupShader('finalPass', require('./shaders/final-pass.shader'), gl)
 
+    this.generateSVGTexture('', undefined, gl)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null) // Undo whatever generateSVGTexture bound
+
+    let blankSDF = ndarray([], [2, 2])
+    // Initialize at max distance
+    fill(blankSDF, (i) => 1.0)
+    this.defaultSDFTexture = createTexture(gl, blankSDF)
+
     this.currentState = 1
     this.setupFBOs(gl)
 
@@ -408,6 +472,24 @@ export default class App {
     return _kifsM
   }
 
+  generateSVGTexture (svgPaths, viewBox = { x1: 0, y1: 0, x2: 100, y2: 100 }, gl = this.gl) {
+    const svgShader = require('./shaders/svgSDF')(svgPaths)
+    this.svgToSDF = createShader(gl, svgShader.vertex, svgShader.fragment)
+    this.svgViewBox = viewBox
+    return this.renderSVGSDF(this.svgToSDF, this.svgViewBox, null, gl)
+  }
+
+  add2DSDFTexture (name, texture) {
+    this.shapeOptions[name] = name
+    this._shape2DSDFTextures[name] = {
+      tex: texture,
+      filename: name,
+      _lastFilename: name,
+      isVideo: false,
+      asset: null
+    }
+  }
+
   resize (e) {
     let canvas = this.canvas
     let dim = this.getDimensions()
@@ -428,40 +510,68 @@ export default class App {
 
     this.update(t)
     this.render(t)
+    if (this.SHOW_SVG_SDF) {
+      if (this.debugSVGFBO) {
+        this.renderSVGSDF(this.svgToSDF, this.svgViewBox, this.debugSVGFBO)
+      } else {
+        this.debugSVGFBO = this.renderSVGSDF(this.svgToSDF, this.svgViewBox)
+      }
+    }
   }
 
   getCamera (t) {
-    t /= 1000
+    t = this.getTime(t)
     let cameraMatrix = mat4.create()
+
+    const origin = vec3.fromValues(0, 0, 0)
+    const unitX = vec3.fromValues(1, 0, 0)
+    const unitY = vec3.fromValues(0, 1, 0)
+    const unitZ = vec3.fromValues(0, 0, 1)
+
+    // Camera Rotation
+    const cameraRo = vec3.clone(this.cameraRo)
+    // vec3.rotateY(cameraRo, cameraRo, origin, TWO_PI * t / this.totalTime)
 
     // LookAt
     if (this.LOOKAT) {
-      mat4.lookAt(cameraMatrix, this.cameraRo, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+      mat4.lookAt(cameraMatrix, cameraRo, origin, unitY)
     } else {
       const angleX = this.cameraAngles[0]
-      const axisX = vec3.fromValues(1, 0, 0)
+      const axisX = unitX
       mat4.multiply(cameraMatrix, rot4(axisX, angleX), cameraMatrix)
 
       // Y-centric
       const angleY = this.cameraAngles[1]
-      const axisY = vec3.fromValues(0, 1, 0)
+      const axisY = unitY
       mat4.multiply(cameraMatrix, rot4(axisY, angleY), cameraMatrix)
 
       // Z-centric
       const angleZ = this.cameraAngles[2]
-      const axisZ = vec3.fromValues(0, 0, 1)
+      const axisZ = unitZ
       mat4.multiply(cameraMatrix, rot4(axisZ, angleZ), cameraMatrix)
     }
 
     this.cameraMatrix = cameraMatrix
-    return [this.cameraRo, cameraMatrix]
+    return [cameraRo, cameraMatrix]
   }
 
   update (t) {
     t = (window.time !== undefined) ? window.time : t
+
     TWEEN.update(t)
 
     this.shader.uniforms.epsilon = this.epsilon
+
+    // Shape
+    const SDF_TEX_LOC = 2
+    const isSVG = true
+    const svgName = 'year-7'
+    let sdfTexture = this._shape2DSDFTextures[svgName]
+    if (isSVG && sdfTexture) {
+      this.shader.uniforms.sdf2DTexture = sdfTexture.tex.bind(SDF_TEX_LOC)
+    } else {
+      this.shader.uniforms.sdf2DTexture = this.defaultSDFTexture.bind(SDF_TEX_LOC)
+    }
 
     let updates = this.getCamera(t)
     this.shader.uniforms.cameraRo = updates[0]
@@ -502,7 +612,7 @@ export default class App {
       this.bloom.bind()
       this.bloom.uniforms.buffer = brightLayer.bind(1)
       this.bloom.uniforms.resolution = dim
-      this.bloom.uniforms.direction = [1, 0]
+      this.bloom.uniforms.direction = [BLOOM_RADIUS - i, 0]
       this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
 
@@ -512,10 +622,16 @@ export default class App {
 
       this.bloom.uniforms.buffer = prev.bind(2)
       this.bloom.uniforms.resolution = dim
-      this.bloom.uniforms.direction = [0, 1]
+      this.bloom.uniforms.direction = [0, BLOOM_RADIUS - i]
       this.bloom.uniforms.time = this.getTime(t)
       drawTriangle(gl)
     }
+  }
+
+  finalPassRender (gl, t) {
+    let dim = this.getDimensions()
+
+    let base = this.state[0].color[0]
 
     // Additive blending
     this.currentState = (this.currentState) ? 0 : 1
@@ -543,9 +659,8 @@ export default class App {
   render (t) {
     let { shader, gl } = this
 
-    if (BLOOM) {
-      this.state[0].bind()
-    }
+    // Always render to FBO as finalPassRender will render to final frame buffer
+    this.state[0].bind()
 
     shader.uniforms.time = this.getTime(t)
     shader.uniforms.BLOOM = BLOOM
@@ -554,6 +669,8 @@ export default class App {
     if (BLOOM) {
       this.bloomBlur(gl, t)
     }
+
+    this.finalPassRender(gl, t)
   }
 
   run () {

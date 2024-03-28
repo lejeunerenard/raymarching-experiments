@@ -26,7 +26,7 @@ void colorMap (inout vec3 color) {
   // Light
   color = mix(#00b3c8, color, 1. - l * .05125);
   // Dark
-  color = mix(#9F6747, color, clamp(exp(l) * .255, 0., 1.));
+  color = mix(#AF6747, color, clamp(exp(l) * .255, 0., 1.));
 }
 
 void main() {
@@ -85,7 +85,7 @@ void main() {
   // // Post process
   // vec3 colorBefore = gl_FragColor.rgb;
   // colorMap(gl_FragColor.rgb);
-  // gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.25);
+  // gl_FragColor.rgb = mix(gl_FragColor.rgb, colorBefore, 0.7);
 
   // gl_FragColor.gb = pow(gl_FragColor.gb, vec2(1.1));
 

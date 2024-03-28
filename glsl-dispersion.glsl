@@ -5,7 +5,7 @@
 
 // #define RGBCMY 1
 // #define REFR_INTEGRAL 1
-#define HUE 1
+#define HUE 2
 #define HUE_NUM 1
 // #define COS_HUE 1
 #pragma glslify: hsv = require(glsl-hsv2rgb)
@@ -13,9 +13,9 @@
 #pragma glslify: snoise3 = require(glsl-noise/simplex/3d)
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
-#pragma glslify: hue2IOR = require(./dispersion-ray-direction)
+// #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
 vec3 nsin (in vec3 t) {
@@ -115,19 +115,19 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
 
-    // // Secondary cosine palette warp
-    // thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
+    // Secondary cosine palette warp
+    thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
     // thisColor *= 0.5;
 
-    // HSV based hue
-    thisColor += hsv(vec3(hue, 1.0, 1.0));
+    // // HSV based hue
+    // thisColor += hsv(vec3(hue, 1.0, 1.0));
 
     // // Composite color
     // thisColor += #BBBB44 * (0.5 + 0.5 * sin(nor));
     // thisColor += #44BBBB * (0.5 + 0.5 * sin(eye));
     // thisColor += #BB44BB * (0.5 + 0.5 * sin(PI * dot(eye, nor)));
 
-    thisColor *= 0.8;
+    // thisColor *= 0.7;
 
     // -- Apply Scene Coloring --
     vec3 sceneResult = scene(iorRefract, ior);

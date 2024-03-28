@@ -29,8 +29,8 @@ float icosahedral(vec3 p, float e, float r) {
   // s += abs(dot(p,n13));
   // s = pow(s, 1./e);
 
-  // Maxi metric version
-  // Notes: shows and is super pointy. screen capture is at ~35fps
+  // // Maxi metric version
+  // // Notes: shows and is super pointy. screen capture is at ~35fps
   // float s = abs(dot(p,n4));
   // s = max(s, abs(dot(p,n5)));
   // s = max(s, abs(dot(p,n6)));

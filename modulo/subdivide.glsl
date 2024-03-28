@@ -1,8 +1,10 @@
+#define TWO_PI 6.2831853072
+
 #ifndef DIVIDE_ITERS
 #define DIVIDE_ITERS 6.
 #endif
 
-vec3 subdivide (inout vec2 q, in float seed) {
+vec3 subdivide (inout vec2 q, in float seed, in float t) {
   vec2 dMin = vec2(-0.5);
   vec2 dMax = vec2( 0.5);
 
@@ -12,7 +14,7 @@ vec3 subdivide (inout vec2 q, in float seed) {
 
   // Params
 #ifndef MIN_SIZE
-  float MIN_SIZE = 0.0025;
+  float MIN_SIZE = 0.01;
 #endif
 #ifndef MIN_ITERS
   float MIN_ITERS = 1.;
@@ -63,4 +65,7 @@ vec3 subdivide (inout vec2 q, in float seed) {
   return vec3(dim, id);
 }
 
+vec3 subdivide (inout vec2 q, in float seed) {
+  return subdivide(q, seed, 0.);
+}
 #pragma glslify: export(subdivide)

@@ -6,14 +6,14 @@ import { name } from './info.json'
 
 const fr = 60
 const captureTime = 0 * 5
-const secondsLong = 8
+const secondsLong = 10
 const capturing = false
 
 let app = new App()
 window.app = app
 
-app.width = 1080
-app.height = 1920
+app.width = window.devicePixelRatio * 1080
+app.height = window.devicePixelRatio * 1920
 
 let sceneRenderer = new DefaultSceneRenderer(app.gl)
 app.sceneRenderer = sceneRenderer.render.bind(sceneRenderer)
@@ -25,6 +25,7 @@ let resize = () => {
 }
 resize()
 
+app.totalTime = secondsLong
 // window.time = 0.3
 const still = false
 
