@@ -1354,7 +1354,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
   // locallocalT += 0.0125 * dC;
-  locallocalT += 0.0125 * c.x;
+  // locallocalT += 0.0125 * c.x;
   // locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
@@ -1367,12 +1367,12 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   float t = mod(locallocalT, 1.);
   // t = range(0.3, 0.7, t);
-  t = expo(t);
+  // t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 2.;
-  vec2 shiftDir = vec2(1) * mod(dot(abs(c), abs(c)), 2.);
+  float shift = 1.;
+  vec2 shiftDir = vec2(1, 0);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1385,14 +1385,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 size = gSize;
   vec2 r = vec2(0.09, 0.3) * size;
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT); // 0.5; // triangleWave(t);
-  // vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
-  // vec2 n2 = vec2(-1, 1) * vec2(
-  //     snoise2(8.863 * vec2(-1, 1) * localC + 2.37),
-  //     snoise2(0.863 * vec2(1,-1) * localC + vec2(-9., 2.37))
-  //     );
-  // q += 0.5 * localNorT * size * mix(n1, n2, nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT - 0.1125 * length(localC));
+  vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
+  vec2 n2 = vec2(-1, 1) * vec2(
+      snoise2(8.863 * vec2(-1, 1) * localC + 2.37),
+      snoise2(0.863 * vec2(1,-1) * localC + vec2(-9., 2.37))
+      );
+  q += 0.5 * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1433,21 +1433,15 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   q -= shiftDir * shift * size * t;
 
-  // Rotate randomly
-  q *= rotMat2(0.4 * triangleWave(t + 0.5) * PI * snoise2(0.263 * localC) + 0.25 * PI);
-
-  // Rotate
-  q *= rotMat2(PI * t - 0.0 * length(localC));
-
   const float num = 4.;
   const float angleInc = TWO_PI / num;
 
-  float internalD = maxDistance;
-  // float internalD = length(q) - r.x;
+  // float internalD = maxDistance;
+  float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
-  internalD = min(internalD, sdBox(q, r));
+  // internalD = min(internalD, sdBox(q, r));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -3639,10 +3633,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.3;
+  float warpScale = 0.1;
   float warpFrequency = 2.;
 
-  vec2 r = vec2(0.1);
+  vec2 r = vec2(0.009);
   vec2 size = vec2(2.75) * vmax(r);
   gSize = size;
   float scale = 1.;
@@ -3665,9 +3659,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.50;
-  wQ *= rotMat2(0.095 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.50;
+  // wQ *= rotMat2(0.095 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
@@ -3677,12 +3671,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
-  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  vec2 c = pMod2(wQ, size);
+  // vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3705,8 +3699,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float dC = dot(c, vec2(1, -1));
   // cellT -= dC * 0.075;
 
-  // Noise offset
-  cellT -= 0.2 * snoise2(0.07 * c);
+  // // Noise offset
+  // cellT -= 0.2 * snoise2(0.07 * c);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3726,22 +3720,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  r *= 1. - 0.5 * expo(triangleWave(cellT));
-
-  q *= rotMat2(PI * cos(TWO_PI * cellT) + 0.5 * PI);
+  // q *= rotMat2(PI * cos(TWO_PI * cellT) + 0.5 * PI);
 
   // r -= 0.95 * vmax(r) * (0.5 + 0.5 * cos(TWO_PI * cellT));
 
-  vec2 b = vec2(sdBox(q, r), 0);
+  // vec2 b = vec2(sdBox(q, r), 0);
 
-  float cropR = vmax(r) * 0.9 * quart(triangleWave(t));
-  float crop = sdBox(q, vec2(cropR));
-  b.x = max(b.x, -crop);
-
-  d = dMin(d, b);
-
-  // vec2 b = neighborGrid(q, size);
+  // float cropR = vmax(r) * 0.9 * quart(triangleWave(t));
+  // float crop = sdBox(q, vec2(cropR));
+  // b.x = max(b.x, -crop);
   // d = dMin(d, b);
+
+  vec2 b = neighborGrid(q, size);
+  d = dMin(d, b);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
@@ -3783,11 +3774,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Solid
   // color.rgb = vec3(1);
 
-  // // B&W
-  // color.rgb = vec3(n);
+  // B&W
+  color.rgb = vec3(n);
 
-  vec3 aColor = 0.5 + 0.5 * cos(TWO_PI * (1.5 * q.x + vec3(0, 0.33, 0.67)) + localCosT);
-  color.rgb = n * aColor;
+  // vec3 aColor = 0.5 + 0.5 * cos(TWO_PI * (1.5 * q.x + vec3(0, 0.33, 0.67)) + localCosT);
+  // color.rgb = n * aColor;
 
   // // B&W Repeating
   // color.rgb = vec3(0.5 + 0.5 * cos(TWO_PI * n));
@@ -3963,8 +3954,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
