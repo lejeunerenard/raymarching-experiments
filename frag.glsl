@@ -1383,25 +1383,25 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.09, 0.3) * size;
+  vec2 r = vec2(0.1) * size;
 
   // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT - 0.1125 * length(localC));
+  float nT = 0.5 + 0.5 * sin(localCosT - 0.1125 * dot(abs(localC), vec2(1)));
   vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
   vec2 n2 = vec2(-1, 1) * vec2(
-      snoise2(8.863 * vec2(-1, 1) * localC + 2.37),
-      snoise2(0.863 * vec2(1,-1) * localC + vec2(-9., 2.37))
+      snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
+      snoise2(-1.373 * vec2(1,-1) * localC + vec2(-9., 2.37))
       );
   q += 0.5 * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  // q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
+  q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  // q.x += t * size.x * mod((shift * shiftDir).y, 2.);
+  q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
-  // q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
+  q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
   // t -= 0.45;
   // t = mod(t, 1.);
@@ -1416,15 +1416,15 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // // Cosine warp
-  // float warpScale2 = warpScale * 0.5;
-  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC);
-  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC);
-  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC);
-  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC);
-  // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC);
+  // Cosine warp
+  float warpScale2 = warpScale * 0.5;
+  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
 
-  // q *= rotMat2(0.5 * PI * cos(localCosT));
+  q *= rotMat2(0.125 * PI * cos(localCosT + 0.08 * dot(localC, vec2(1))));
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1436,12 +1436,12 @@ vec2 shape (in vec2 q, in vec2 c) {
   const float num = 4.;
   const float angleInc = TWO_PI / num;
 
-  // float internalD = maxDistance;
-  float internalD = length(q) - r.x;
+  float internalD = maxDistance;
+  // float internalD = length(q) - r.x;
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
-  // internalD = min(internalD, sdBox(q, r));
+  internalD = min(internalD, sdBox(q, r));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -3659,9 +3659,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 c = vec2(0);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.50;
-  // wQ *= rotMat2(0.095 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.50;
+  wQ *= rotMat2(0.095 * PI);
 
   // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
 
