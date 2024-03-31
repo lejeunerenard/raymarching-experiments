@@ -1954,7 +1954,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.8;
+float gR = 0.9;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1979,7 +1979,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   vec3 q = p;
   float warpScale = 0.5;
-  float warpFrequency = 1.5;
+  float warpFrequency = 1.75;
   float rollingScale = 1.;
 
   // Warp
@@ -2001,7 +2001,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 2.5 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -2013,9 +2013,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  vec3 b = vec3(length(wQ) - r, 0, 0);
+  // vec3 b = vec3(length(wQ) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
 
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
   // b = dSMin(vec3(dodecahedral(q, 42., 0.912 * r), 0, 0), b, 0.025 * r);
   d = dMin(d, b);
 
@@ -2490,8 +2490,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.4;
-      float specCo = 0.95;
+      float freCo = 0.9;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
@@ -3921,7 +3921,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
