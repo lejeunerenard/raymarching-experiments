@@ -45,9 +45,9 @@ uniform float rot;
 
 // Greatest precision = 0.000001;
 uniform float epsilon;
-#define maxSteps 256
-#define maxDistance 3.0
-#define fogMaxDistance 4.35
+#define maxSteps 512
+#define maxDistance 8.0
+#define fogMaxDistance 5
 
 #define slowTime time * 0.2
 // v3
@@ -1975,7 +1975,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
   float warpScale = 0.5;
@@ -2001,7 +2001,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  wQ.xyz = twist(wQ.xzy, 0.75 * wQ.z - 0.1 * PI * cos(localCosT + wQ.z));
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -2013,14 +2013,22 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  // vec3 b = vec3(length(wQ) - r, 0, 0);
-  vec3 b = vec3(sdBox(q, vec3(r, 2. * r, r)), 0, 0);
+  r -= 0.2 * r * abs(cos(4. * atan(q.y, q.x)));
 
-  // b = dSMin(vec3(dodecahedral(q, 42., 0.912 * r), 0, 0), b, 0.025 * r);
+  r -= 1.0 * r * saturate(-q.z * 0.5);
+
+  vec3 b = vec3(r - length(q.xy), 0, 0);
   d = dMin(d, b);
 
-  // float crop = length(wQ) - (r * (1. + 1.0 * n));
+  float crop = length(p.xy) - 1.2 * r;
+  d.x = max(d.x, crop);
   // d.x = smax(d.x, crop, 0.1 * r);
+
+  // b = vec3(sdBox(q - vec3(0, 0, -3.25), vec3(2, 2, 2. * gR)), 0, 0);
+  b = vec3(length(q - vec3(0, 0, -3.3)) - 2. * gR, 0, 0);
+  crop = length(q.xy) - 2.5 * r;
+  b.x = max(b.x, crop);
+  d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
