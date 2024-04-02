@@ -1954,7 +1954,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.9;
+float gR = 0.35;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1978,8 +1978,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= globalRot;
 
   vec3 q = p;
-  float warpScale = 0.5;
-  float warpFrequency = 1.75;
+  float warpScale = 2.5;
+  float warpFrequency = 1.5;
   float rollingScale = 1.;
 
   // Warp
@@ -2001,7 +2001,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xyz = twist(wQ.xzy, 0.75 * wQ.z - 0.1 * PI * cos(localCosT + wQ.z));
+  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
   warpPhase += warpPhaseAmp * componentShift(wQ);
   wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -2013,21 +2013,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  r -= 0.2 * r * abs(cos(4. * atan(q.y, q.x)));
-
-  r -= 1.0 * r * saturate(-q.z * 0.5);
-
-  vec3 b = vec3(r - length(q.xy), 0, 0);
-  d = dMin(d, b);
-
-  float crop = length(p.xy) - 1.2 * r;
-  d.x = max(d.x, crop);
-  // d.x = smax(d.x, crop, 0.1 * r);
-
-  // b = vec3(sdBox(q - vec3(0, 0, -3.25), vec3(2, 2, 2. * gR)), 0, 0);
-  b = vec3(length(q - vec3(0, 0, -3.3)) - 2. * gR, 0, 0);
-  crop = length(q.xy) - 2.5 * r;
-  b.x = max(b.x, crop);
+  // vec3 b = vec3(length(q) - r, 0, 0);
+  vec3 b = vec3(sdBox(q, r * vec3(1, 2.5, 1)), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2037,7 +2024,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.6;
+  d.x *= 0.85;
 
   return d;
 }
@@ -2469,13 +2456,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      float bumpsScale = 1.0;
-      float bumpIntensity = 0.075;
-      nor += bumpIntensity * vec3(
-          snoise3(bumpsScale * 490.0 * mPos),
-          snoise3(bumpsScale * 670.0 * mPos + 234.634),
-          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
-      // nor -= 0.125 * cellular(5. * mPos);
+      // float bumpsScale = 1.0;
+      // float bumpIntensity = 0.075;
+      // nor += bumpIntensity * vec3(
+      //     snoise3(bumpsScale * 490.0 * mPos),
+      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
+      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      // // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
       // nor += 5.0 * cellular(vec3(1) * mPos);
@@ -2498,8 +2485,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.9;
+      float freCo = 0.0;
+      float specCo = 0.0;
 
       vec3 specAll = vec3(0.0);
 
