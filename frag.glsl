@@ -3630,22 +3630,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.1;
-  float warpFrequency = 2.;
+  float warpScale = 1.125;
+  float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.009);
-  vec2 size = vec2(2.75) * vmax(r);
+  vec2 r = 0.25 * vec2(0.01, 0.1);
+  vec2 size = vec2(14, 2.5) * r;
   gSize = size;
   float scale = 1.;
 
   // -- Warp --
   vec2 wQ = q.xy;
-
-  // wQ.yx = wQ.xy;
-
-  // wQ *= rotMat2(-0.05 * PI);
-
-  // wQ *= 0.5;
 
   float warpT = localCosT;
 
@@ -3654,26 +3648,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // vec2 c = vec2(0);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.50;
+  // wQ *= rotMat2(0.095 * PI);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.50;
-  wQ *= rotMat2(0.095 * PI);
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // wQ *= rotMat2(0.1 * PI * cos(localCosT - length(wQ)));
-
-  // wQ *= rotMat2(0.5 * PI * t - length(wQ));
-
-  // wQ = polarCoords(wQ);
-  // wQ.x /= PI;
-  // wQ.y -= 3. * size.y;
-
-  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
-
-  // vec2 c = pMod2(wQ, size);
+  vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3717,19 +3701,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // q *= rotMat2(PI * cos(TWO_PI * cellT) + 0.5 * PI);
+  q *= rotMat2(0.125 * PI * cos(localCosT + dot(c, vec2(1))));
 
-  // r -= 0.95 * vmax(r) * (0.5 + 0.5 * cos(TWO_PI * cellT));
-
-  // vec2 b = vec2(sdBox(q, r), 0);
-
-  // float cropR = vmax(r) * 0.9 * quart(triangleWave(t));
-  // float crop = sdBox(q, vec2(cropR));
-  // b.x = max(b.x, -crop);
-  // d = dMin(d, b);
-
-  vec2 b = neighborGrid(q, size);
+  vec2 b = vec2(sdBox(q, r), 0);
   d = dMin(d, b);
+
+  q *= rotMat2(0.25 * PI);
+  vec2 crop = vec2(sdBox(q, vec2(0.7 * vmax(r))), 0.);
+  d = dSMax(d, crop, 0.05 * vmax(r));
+
+  // vec2 b = neighborGrid(q, size);
+  // d = dMin(d, b);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
@@ -3766,7 +3748,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(0.3 * edge, 0., n - 0.);
+  n = smoothstep(edge, 0., n - 0.);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3951,8 +3933,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
