@@ -1371,7 +1371,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
+  float shift = 0.;
   vec2 shiftDir = vec2(1, 0);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
@@ -1386,7 +1386,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   vec2 r = vec2(0.1) * size;
 
   // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT - 0.1125 * dot(abs(localC), vec2(1)));
+  float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
   vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
   vec2 n2 = vec2(-1, 1) * vec2(
       snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
@@ -1397,8 +1397,9 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
+  // q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
 
+  // q += t * size * mod((shift * shiftDir), 2.);
   q.x += t * size.x * mod((shift * shiftDir).y, 2.);
 
   q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
@@ -1416,13 +1417,13 @@ vec2 shape (in vec2 q, in vec2 c) {
   // center -= size.x * c;
   // q += center;
 
-  // Cosine warp
-  float warpScale2 = warpScale * 0.5;
-  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
+  // // Cosine warp
+  // float warpScale2 = warpScale * 0.5;
+  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
 
   q *= rotMat2(0.125 * PI * cos(localCosT + 0.08 * dot(localC, vec2(1))));
 
@@ -1484,7 +1485,7 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Mask
   float mask = 0.;
-  // mask = step(0., dot(abs(c), vec2(1)) - 12.);
+  mask = smoothstep(0., 5., dot(abs(localC), vec2(1)) - 18.);
   // mask = step(0., vmax(abs(c)) - 12.);
   // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
@@ -3667,10 +3668,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x /= PI;
   // wQ.y -= 3. * size.y;
 
-  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   // vec2 c = pMod2(wQ, size);
 
@@ -3917,7 +3918,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3950,8 +3951,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
