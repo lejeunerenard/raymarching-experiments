@@ -1976,7 +1976,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   p *= rotationMatrix(vec3(1, 0, 0), 0.25 * tilt * cos(localCosT));
   p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
   float warpScale = 0.6;
@@ -2000,7 +2000,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   const float warpPhaseAmp = 0.9;
 
-  wQ.yz *= rotMat2(-localCosT);
+  // wQ.yz *= rotMat2(-localCosT);
 
   wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
@@ -2016,7 +2016,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  vec3 b = vec3(icosahedral(q, 42., r), 0, 0);
+  vec3 b = vec3(dodecahedral(q, 42., r), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2285,8 +2285,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = 0.8 * vec3(1.0, 0.5, 0.6);
-  return color;
+  vec3 color = vec3(0);
+  // return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
@@ -2315,9 +2315,10 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   vec3 dI = 0.3 * vec3(dot(nor, vec3(1)));
   // dI += 2. * pow(dNR, 2.);
   // dI.xy += 0.1 * fragCoord.xy;
+  dI += length(pos);
 
   // dI += 0.0125 * pos;
-  // dI += 0.5 * snoise3(0.3 * mPos);
+  dI += 0.5 * snoise3(0.3 * mPos);
 
   dI *= angle1C;
   dI += angle2C;
@@ -3900,7 +3901,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
