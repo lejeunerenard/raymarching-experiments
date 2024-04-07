@@ -3634,8 +3634,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = 0.25 * vec2(0.01, 0.1);
-  vec2 size = vec2(14, 2.5) * r;
+  vec2 r = 0.25 * vec2(0.005, 0.1);
+  vec2 size = vec2(24, 2.5) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3653,10 +3653,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.y *= 1.50;
   // wQ *= rotMat2(0.095 * PI);
 
-  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   vec2 c = pMod2(wQ, size);
 
@@ -3702,14 +3702,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q *= rotMat2(0.125 * PI * cos(localCosT + dot(c, vec2(1))));
+  q *= rotMat2(0.125 * PI * cos(localCosT - dot(abs(c), vec2(0.75))));
 
   vec2 b = vec2(sdBox(q, r), 0);
   d = dMin(d, b);
 
-  q *= rotMat2(0.25 * PI);
-  vec2 crop = vec2(sdBox(q, vec2(0.7 * vmax(r))), 0.);
-  d = dSMax(d, crop, 0.05 * vmax(r));
+  // q *= rotMat2(0.25 * PI);
+  // vec2 crop = vec2(sdBox(q, vec2(0.7 * vmax(r))), 0.);
+  // d = dSMax(d, crop, 0.00 * vmax(r));
 
   // vec2 b = neighborGrid(q, size);
   // d = dMin(d, b);
@@ -3901,7 +3901,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
