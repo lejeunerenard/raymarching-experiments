@@ -1,6 +1,31 @@
 #pragma glslify: pModPolarBack = require(./hg_sdf/p-mod-polar-c.glsl)
 #pragma glslify: pMod2 = require(./hg_sdf/p-mod2.glsl)
 
+#ifndef range
+#define range(start, stop, t) saturate((t - start) / (stop - start))
+#endif
+
+vec3 gammaEnc (in vec3 color) {
+  const vec3 enc = vec3(0.454545);
+  return pow(color, enc);
+}
+
+vec3 gammaDecode (in vec3 color) {
+  const vec3 dec = vec3(2.2);
+  return pow(color, dec);
+}
+
+float radialNoise (in vec2 uv) {
+  float a = atan(uv.y, uv.x);
+  const float warpScale = 1.;
+  const float warpFreq = 118.;
+
+  float nOutput = warpScale * 1. * sin(warpFreq * 2. * a);
+  nOutput += warpScale * 0.5 * sin(warpFreq * 3. * a + nOutput);
+  nOutput += warpScale * 0.25 * sin(warpFreq * 8. * a + nOutput);
+  return nOutput;
+}
+
 vec3 getBackground (in vec2 uv, in float universe) {
   // Convert from [-1,1] -> [0, 1]
   vec2 coord = 0.5 * (uv.xy + vec2(1.0));
@@ -18,7 +43,7 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // Gradients
   // vec3 color = mix(vec3(0.0), vec3(0.05, 0.025, 0.05), bgIndex);
   // vec3 color = mix(vec3(0.1, 0.03, 0.03), vec3(0.1, 0.15, 0.15), bgIndex);
-  vec3 color = mix(vec3(0.5, 0.5, 0.65), vec3(0.95, 0.95, 1), bgIndex);
+  // vec3 color = mix(vec3(0.5, 0.5, 0.65), vec3(0.95, 0.95, 1), bgIndex);
   // vec3 color = mix(0.9 * vec3(1, 0.5, 1), vec3(0.9, 0.1, 1), bgIndex);
 
   // const vec3 bgColor = #F2900A;
@@ -92,6 +117,37 @@ vec3 getBackground (in vec2 uv, in float universe) {
   // dotN = smoothstep(dotCutoff, dotCutoff + edge, dotN);
   // vec3 color = vec3(1.00 * dotN);
   // // color = mix(mix(primeColor, vec3(1), dotN), color, m);
+
+  // Sun eclipse
+  vec2 sunSpace = uv - vec2(0, 0.3);
+  vec3 color = vec3(0);
+  float sunR = 0.15;
+  float d = length(sunSpace) - sunR;
+  d = smoothstep(0., .001, d);
+
+  // Crop 1
+  float crop = length(sunSpace - vec2((0.7) * sunR)) - 0.7 * sunR;
+  float cropD = min(10., crop);
+
+  // Crop 2
+  crop = length(sunSpace + vec2((0.8) * sunR)) - 0.5 * sunR;
+  cropD = min(cropD, crop);
+  cropD = smoothstep(0., .001, cropD);
+
+  // Sun flare
+  vec3 flareColor = vec3(.4, 0.05, 0);
+  float flareT = 1. - saturate(length(sunSpace) - sunR + 0.0 * radialNoise(sunSpace));
+  flareT = pow(flareT, 10.);
+  color = mix(color, flareColor, flareT);
+
+  float sunGradientT = length(sunSpace) / sunR;
+  vec3 sunColor = vec3(1, 0.8, 0.4);
+  sunColor = mix(sunColor, vec3(1, 0.4, 0.2), range(0., 0.4, sunGradientT));
+  sunColor = mix(sunColor, vec3(0.8, 0.2, 0.), range(0.5, 1., sunGradientT));
+  color = mix(color, sunColor, 1. - d);
+
+  // Crop color
+  color = mix(color, mix(vec3(0.4, 0, 0), vec3(0), saturate(3. * length(sunSpace))), 1. - cropD);
 
   // Manipulations
   // color = mix(color, #FFC070, saturate(smoothstep(0.0, 0.5, uv.y)));
