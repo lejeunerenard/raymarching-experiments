@@ -3636,13 +3636,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = 0.25 * vec2(0.005, 0.1);
-  vec2 size = vec2(24, 2.5) * r;
+  vec2 r = vec2(0.025);
+  vec2 size = vec2(3) * r;
   gSize = size;
   float scale = 1.;
 
   // -- Warp --
   vec2 wQ = q.xy;
+  wQ *= rotMat2(0.10 * PI);
 
   float warpT = localCosT;
 
@@ -3668,12 +3669,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // -- Cell T --
   float cellT = t;
 
-  // // Center out
+  // Center out
   // cellT -= 0.0125 * length(c);
 
   // Coordinate offset
   // cellT -= 0.020 * c.y;
-  // cellT -= 0.010 * c.x;
+  cellT += 0.020 * c.x;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
@@ -3683,8 +3684,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float dC = dot(c, vec2(1, -1));
   // cellT -= dC * 0.075;
 
-  // // Noise offset
-  // cellT -= 0.2 * snoise2(0.07 * c);
+  // Noise offset
+  cellT -= 0.05 * snoise2(0.07 * c);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3704,10 +3705,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  q *= rotMat2(0.125 * PI * cos(localCosT - dot(abs(c), vec2(0.75))));
+  // q *= rotMat2(0.125 * PI * cos(localCosT - dot(abs(c), vec2(0.75))));
 
-  vec2 b = vec2(sdBox(q, r), 0);
+  vec2 b = vec2(length(q) - vmax(r), 0);
   d = dMin(d, b);
+
+  float cropR = 1.2 * vmax(r);
+  vec2 cropQ = q;
+  cropQ -= 1.3 * vec2(1, -1) * (1. - 2. * cellT) * cropR;
+  float crop = length(cropQ) - cropR;
+  d.x = max(d.x, -crop);
 
   // q *= rotMat2(0.25 * PI);
   // vec2 crop = vec2(sdBox(q, vec2(0.7 * vmax(r))), 0.);
@@ -3903,7 +3910,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
