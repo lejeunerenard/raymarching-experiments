@@ -3656,6 +3656,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.y *= 1.50;
   // wQ *= rotMat2(0.095 * PI);
 
+  wQ *= 9.;
+  wQ = circleInversion(wQ);
+
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
@@ -3684,8 +3687,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // float dC = dot(c, vec2(1, -1));
   // cellT -= dC * 0.075;
 
-  // Noise offset
-  cellT -= 0.05 * snoise2(0.07 * c);
+  // // Noise offset
+  // cellT -= 0.05 * snoise2(0.07 * c);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3706,6 +3709,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, o);
 
   // q *= rotMat2(0.125 * PI * cos(localCosT - dot(abs(c), vec2(0.75))));
+
+  // r -= 0.95 * r * triangleWave(cellT);
 
   vec2 b = vec2(length(q) - vmax(r), 0);
   d = dMin(d, b);
