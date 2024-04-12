@@ -3634,14 +3634,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.025);
-  vec2 size = vec2(3) * r;
+  vec2 r = vec2(0.06);
+  float vR = vmax(r);
+
+  vec2 size = vec2(2.5) * r;
   gSize = size;
   float scale = 1.;
 
   // -- Warp --
   vec2 wQ = q.xy;
-  wQ *= rotMat2(0.10 * PI);
 
   float warpT = localCosT;
 
@@ -3651,16 +3652,28 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
   // Fake "Isometric" perspective
-  wQ.y *= 1.50;
-  wQ *= rotMat2(0.095 * PI);
+  wQ.y *= 1.70;
+  wQ *= rotMat2(0.125 * PI);
 
-  wQ *= 2.;
-  wQ = circleInversion(wQ);
+  // wQ *= 2.;
+  // wQ = circleInversion(wQ);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+
+  vec2 c = floor((wQ + 0.5 * size) / size);
+  wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
+
+  c = pMod2(wQ, size);
+
+  vec2 preWarpQ = wQ;
+  wQ /= pow(vR, 0.25);
+  vec3 res = subdivide(wQ, 1920.1237 + dot(c, vec2(0.71392, 0.12378)), t);
+  // wQ *= pow(vR, 0.25);
+  vec2 dim = res.xy;
+  float id = res.z;
 
   // vec2 c = pMod2(wQ, size);
 
@@ -3671,11 +3684,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float cellT = t;
 
   // Center out
-  // cellT -= 0.0125 * length(c);
+  cellT -= 0.0125 * length(c);
 
   // // Coordinate offset
   // // cellT -= 0.020 * c.y;
   // cellT += 0.020 * c.x;
+  cellT += 0.005 * id;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
@@ -3691,10 +3705,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Rectify
   cellT = mod(cellT, 1.);
 
-  // cellT = triangleWave(cellT);
+  cellT = triangleWave(cellT);
   // cellT = range(0.0, 1., cellT);
 
   // -- Local Space offsets ---
+
   // // Shift by random noise
   // q += 0.4 * vmax(r) * vec2(
   //     snoise2(c + vec2( 0.0100,-0.9000)),
@@ -3706,25 +3721,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // q *= rotMat2(0.125 * PI * cos(localCosT - dot(abs(c), vec2(0.75))));
-
-  // r -= 0.95 * r * triangleWave(cellT);
-
-  // vec2 b = vec2(length(q) - vmax(r), 0);
-  // d = dMin(d, b);
-
-  // float cropR = 1.2 * vmax(r);
-  // vec2 cropQ = q;
-  // cropQ -= 1.3 * vec2(1, -1) * (1. - 2. * cellT) * cropR;
-  // float crop = length(cropQ) - cropR;
-  // d.x = max(d.x, -crop);
-
-  // q *= rotMat2(0.25 * PI);
-  // vec2 crop = vec2(sdBox(q, vec2(0.7 * vmax(r))), 0.);
-  // d = dSMax(d, crop, 0.00 * vmax(r));
-
-  vec2 b = neighborGrid(q, size);
+  vec2 b = vec2(length(preWarpQ) - vR, 0);
   d = dMin(d, b);
+
+  float thickness = 0.05 * vR;
+  vec2 crop = vec2(sdBox(q, ((0.5 * expo(cellT)) * dim - thickness)), 0);
+  // crop.x *= -1.;
+  d = dMax(d, crop);
+
+  vec2 ring = vec2(abs(length(preWarpQ) - (vR + 3. * thickness)) - 0.5 * thickness, 0);
+  d = dMin(d, ring);
+
+  // vec2 b = neighborGrid(q, size);
+  // d = dMin(d, b);
 
   // // Debug mod range
   // float bb = abs(q.y) - 0.5 * size.y;
