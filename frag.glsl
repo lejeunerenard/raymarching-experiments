@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1953,7 +1953,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.75;
+float gR = 0.85;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -1975,7 +1975,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // // p *= globalRot;
-  p *= rotationMatrix(vec3(0, 1, 0), 0.01 * PI * cos(localCosT));
 
   vec3 q = p;
   float warpScale = 0.6;
@@ -2015,9 +2014,26 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  q.y -= 0.7 * iqFBM(0.4 * q.xz);
-  vec3 b = vec3(sdPlane(q, vec4(0,1,0, 0.4)), 0, 0);
-  d = dMin(d, b);
+  q.y += 0.5 * r;
+
+  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
+  d = dMin(d, f);
+
+  float rounding = 0.05 * r;
+  vec3 b = vec3(maxDistance, 0, 0);
+  for (float i = 0.; i < 5.; i++) {
+    float localT = quart(triangleWave(mod(t - i * 0.075, 1.)));
+    r *= 0.65;
+    q.y += r * 1.0 * (1.0 - 0.70 * localT) + rounding;
+    vec3 localB = vec3(length(q) - r, 0, i + 1.);
+    b = dMin(b, localB);
+
+    q.y -= r;
+  }
+
+  b.x -= 0.0125 * cellular(4. * vec3(q.xz, 0.));
+
+  d = dSMin(d, b, rounding);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2286,7 +2302,6 @@ float barHeight (in vec2 c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
@@ -2323,7 +2338,11 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
+  dI += 0.012 * trap;
+
   color = vec3(0.5, 0.4, 0.8) + vec3(0.5, 0.2, 0.2) * cos(TWO_PI * (vec3(1, 1, 2) * dI + vec3(0.0, 0.25, 0.5)));
+
+  color += 0.1 * vec3(1) * step(0.2, trap);
 
   // color *= 0.4;
 
@@ -2429,8 +2448,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float size;
     };
 
-    const int NUM_OF_LIGHTS = 1;
-    const float repNUM_OF_LIGHTS = 1.; // 0.333333;
+    const int NUM_OF_LIGHTS = 3;
+    const float repNUM_OF_LIGHTS = 0.333333;
 
     light lights[NUM_OF_LIGHTS];
 
@@ -2446,9 +2465,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(vec3(0, 0, 1), 2. * #FF0000, 1.0, 8.0);
-    // lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #FFFFFF, 1.0, 16.0);
-    // lights[2] = light(2. * vec3( 0.2, 0.8,-1.3), #FFFFFF, 2., 16.0);
+    lights[0] = light(vec3(0, 0, 1), 2. * #FFEEEE, 1.0, 8.0);
+    lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #EEFFFF, 1.0, 16.0);
+    lights[2] = light(2. * vec3( 0.2, 0.8,-1.3), #FFFFFF, 2., 16.0);
 
     float backgroundMask = 1.;
     // Allow anything in top right corner
@@ -2488,14 +2507,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 1.;
-      float specCo = 0.0;
+      float freCo = 0.3;
+      float specCo = 0.6;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.5;
-      float shadowMin = 0.0;
+      float diffMin = 1.0;
+      float shadowMin = 0.95;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2529,9 +2548,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // // Ambient
-        // lin += 0.050 * amb * diffuseColor;
-        // dif += 0.050 * amb;
+        // Ambient
+        lin += 0.0750 * amb * diffuseColor;
+        dif += 0.0750 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 0.55);
         distIntensity = saturate(distIntensity);
@@ -3922,7 +3941,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
