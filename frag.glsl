@@ -3653,7 +3653,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.07);
+  vec2 r = vec2(0.03);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3682,16 +3682,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // Grow Over time
-  scale -= 0.667 * log(1. + 1.71828 * t);
+  // // Grow Over time
+  // scale -= 0.667 * log(1. + 1.71828 * t);
 
-  wQ *= scale;
+  // wQ *= scale;
 
   vec2 c = floor((wQ + 0.5 * size) / size);
   // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   // c = pMod2(wQ, size);
-  wQ = opRepLim(wQ, vmax(size), vec2(1));
+  wQ = opRepLim(wQ, vmax(size), vec2(6, 9));
 
   vec2 preWarpQ = wQ;
   wQ /= pow(vR, 0.25);
@@ -3716,15 +3716,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Coordinate offset
   // // cellT -= 0.020 * c.y;
   // cellT += 0.020 * c.x;
-  // cellT += 0.0001 * id;
+  cellT += 0.0008 * id;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
   // cellT -= 0.09 * vmax(abs(c));
 
-  // // Dot product offset
-  // float dC = dot(c, vec2(1, -1));
-  // cellT -= dC * 0.075;
+  // Dot product offset
+  float dC = dot(c, vec2(1, -1));
+  cellT -= dC * 0.02;
 
   // // Noise offset
   // cellT -= 0.05 * snoise2(0.07 * c);
@@ -3732,14 +3732,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Rectify
   cellT = mod(cellT, 1.);
 
-  // cellT = triangleWave(cellT);
+  cellT = triangleWave(cellT);
   // cellT = range(0.2, 1., cellT);
 
   // Invert
   cellT = 1. - cellT;
-
-  // Cell Time Override
-  cellT = mix(cellT, 1., saturate(1. - length(c)));
 
   // -- Local Space offsets ---
 
@@ -3764,7 +3761,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // crop.x *= -1.;
   d = dMax(d, crop);
 
-  d.x /= scale;
+  // d.x /= scale;
 
   // vec2 ring = vec2(abs(sdBox(preWarpQ, vec2(vR + 3. * thickness))) - 0.5 * thickness, 0);
   // d = dMin(d, ring);
@@ -3992,8 +3989,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
