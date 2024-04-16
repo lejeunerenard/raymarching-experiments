@@ -1953,7 +1953,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.85;
+float gR = 0.25;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -2010,30 +2010,27 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
   // wQ += 0.006250 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
+  vec2 preSubDivide = wQ.xz;
+  vec3 res = subdivide(wQ.xz, 1920.1237, t);
+  vec2 dim = res.xy;
+  float id = res.z;
+
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  q.y += 0.5 * r;
+  float thickness = 0.02 * r;
 
-  vec3 f = vec3(sdPlane(q, vec4(0, 1, 0, 0)), 0, 0);
-  d = dMin(d, f);
+  vec2 localOrigin = preSubDivide - q.xz;
 
-  float rounding = 0.05 * r;
-  vec3 b = vec3(maxDistance, 0, 0);
-  for (float i = 0.; i < 5.; i++) {
-    float localT = quart(triangleWave(mod(t - i * 0.075, 1.)));
-    r *= 0.65;
-    q.y += r * 1.0 * (1.0 - 0.70 * localT) + rounding;
-    vec3 localB = vec3(length(q) - r, 0, i + 1.);
-    b = dMin(b, localB);
+  vec3 boxR = vec3(dim.x, 0.003 * id - 4.0, dim.y);
+  boxR *= triangleWave(t - length(localOrigin) + 0.003 * id) * vec3(0.7, 0.5, 0.7) + vec3(0.3, 0.3, 0.3);
+  boxR *= 0.5;
+  boxR -= thickness;
 
-    q.y -= r;
-  }
-
-  b.x -= 0.0125 * cellular(4. * vec3(q.xz, 0.));
-
-  d = dSMin(d, b, rounding);
+  // vec3 b = vec3(sdBox(q, boxR), 0, 0);
+  vec3 b = vec3(sdHollowBox(q, boxR, thickness), 0, 0);
+  d = dMin(d, b);
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2041,8 +2038,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.95;
+  // Under step
+  d.x *= 0.05;
 
   return d;
 }
@@ -2301,7 +2298,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1.75);
+  return color;
 
   // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
 
@@ -2513,8 +2511,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 0.95;
+      float diffMin = 0.5;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2575,13 +2573,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      isReflection = true; // Set mode to dispersion
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
-      isReflection = false; // Set mode to dispersion
-      color += reflectColor;
+      // // Reflect scene
+      // isReflection = true; // Set mode to dispersion
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
+      // isReflection = false; // Set mode to dispersion
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -3956,7 +3954,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
