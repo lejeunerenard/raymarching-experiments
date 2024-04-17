@@ -3651,7 +3651,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.03);
+  vec2 r = vec2(0.4);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3688,15 +3688,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = floor((wQ + 0.5 * size) / size);
   // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
-  // c = pMod2(wQ, size);
-  wQ = opRepLim(wQ, vmax(size), vec2(6, 9));
+  // // c = pMod2(wQ, size);
+  // wQ = opRepLim(wQ, vmax(size), vec2(6, 9));
 
   vec2 preWarpQ = wQ;
-  wQ /= pow(vR, 0.25);
+  // wQ /= pow(vR, 3.25);
   vec3 res = subdivide(wQ, 1920.1237 + dot(c, vec2(0.71392, 0.12378)), t);
   // wQ *= pow(vR, 0.25);
   vec2 dim = res.xy;
   float id = res.z;
+
+  vec2 localOrigin = preWarpQ - wQ;
 
   // vec2 c = pMod2(wQ, size);
 
@@ -3711,18 +3713,22 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Center out
   // cellT -= 0.0125 * length(c);
 
+  // // Center out
+  // cellT -= 1.5 * length(localOrigin);
+
   // // Coordinate offset
   // // cellT -= 0.020 * c.y;
   // cellT += 0.020 * c.x;
-  cellT += 0.0008 * id;
+  // cellT += 0.0008 * id;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
   // cellT -= 0.09 * vmax(abs(c));
+  cellT -= 1.5 * vmax(abs(localOrigin));
 
-  // Dot product offset
-  float dC = dot(c, vec2(1, -1));
-  cellT -= dC * 0.02;
+  // // Dot product offset
+  // float dC = dot(c, vec2(1, -1));
+  // cellT -= dC * 0.02;
 
   // // Noise offset
   // cellT -= 0.05 * snoise2(0.07 * c);
@@ -3733,8 +3739,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   cellT = triangleWave(cellT);
   // cellT = range(0.2, 1., cellT);
 
-  // Invert
-  cellT = 1. - cellT;
+  // // Invert
+  // cellT = 1. - cellT;
 
   // -- Local Space offsets ---
 
@@ -3749,7 +3755,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float thickness = 0.0 * vR;
+  float thickness = 0.0035 * vR;
 
   vec2 b = vec2(sdBox(preWarpQ, vec2(vR - thickness)), 0);
   d = dMin(d, b);
@@ -3954,7 +3960,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);

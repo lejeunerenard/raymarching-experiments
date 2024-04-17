@@ -1,12 +1,12 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 4.
+#define DIVIDE_ITERS 7.
 #endif
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  vec2 dMin = vec2(-0.3);
-  vec2 dMax = vec2( 0.3);
+  vec2 dMin = vec2(-0.5);
+  vec2 dMax = vec2( 0.5);
 
   float id = 0.;
 
@@ -27,7 +27,7 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
       noise(vec2(i + id + 2.782, seed))
     );
 
-// #define GOOD_START 1
+#define GOOD_START 1
 #ifdef GOOD_START
     if (i == 0.) {
       divHash = vec2(0.49, 0.501);
