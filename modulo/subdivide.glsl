@@ -1,12 +1,12 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 7.
+#define DIVIDE_ITERS 5.
 #endif
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  vec2 dMin = vec2(-0.5);
-  vec2 dMax = vec2( 0.5);
+  vec2 dMin = vec2(-0.4, -3.9);
+  vec2 dMax = vec2( 0.4,  3.9);
 
   float id = 0.;
 
