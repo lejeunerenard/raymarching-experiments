@@ -3651,10 +3651,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.004);
+  vec2 r = vec2(0.01);
   float vR = vmax(r);
 
-  vec2 size = vec2(2.1) * r;
+  vec2 size = vec2(3) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3670,7 +3670,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.70;
-  wQ *= rotMat2(0.20 * PI);
+  wQ *= rotMat2(0.20 * PI + 0. * PI * triangleWave(t));
 
   // wQ *= 2.;
   // wQ = circleInversion(wQ);
@@ -3689,7 +3689,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 120.8123, t);
+  vec3 res = subdivide(wQ, 1., t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -3759,12 +3759,18 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, o);
 
   float outerR = 0.4;
-  float thickness = 0.005 * outerR;
+  float thickness = 0.003 * outerR;
 
   float individualSquareT = (1.10 * expo(cellT) - 0.10);
-  // vec2 crop = vec2(sdBox(q, individualSquareT * r - thickness), 0);
-  vec2 crop = vec2(length(q) - (individualSquareT * vmax(r) - thickness), 0);
+
+  q *= rotMat2(1.0 * PI * expo(cellT));
+  vec2 crop = vec2(abs(sdBox(q, individualSquareT * r - thickness)) - 0.5 * thickness, 0);
   d = dMin(d, crop);
+
+  // // Mask by localOrigin
+  // vec2 cropQ = localOrigin;
+  // float cropCrop = length(cropQ) - 0.90;
+  // d.x = max(d.x, cropCrop);
 
   // vec2 gridQ = preWarpQ;
   // pMod2(gridQ, 8. * size);
@@ -3792,12 +3798,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 maskSize = vec2(boxIshR, 2. * evaporateR);
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
-  mask = length(maskQ) - 0.40;
+  // mask = length(maskQ) - 0.40;
   // mask = sdBox(maskQ, vec2(12. * r));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
-  mask = smoothstep(fwidth(mask), 0., mask);
+  // mask = smoothstep(fwidth(mask), 0., mask);
   // mask = 1. - mask;
   // // mask = 0.05 + 0.95 * mask;
 
@@ -3815,7 +3821,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(edge, 0., n - 0.);
+  n = smoothstep(0.5 * edge, 0., n - 0.);
 
   // // Solid
   // color.rgb = vec3(1);

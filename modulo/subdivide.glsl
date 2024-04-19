@@ -5,8 +5,8 @@
 #endif
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  vec2 dMin = vec2(-0.4, -3.9);
-  vec2 dMax = vec2( 0.4,  3.9);
+  vec2 dMin = vec2(-1.9, -3.9);
+  vec2 dMax = vec2( 1.9,  3.9);
 
   float id = 0.;
 
@@ -22,10 +22,10 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
 
   for (float i = 0.; i < DIVIDE_ITERS; i++) {
     // Noise point to divide box into 4 pieces
-    vec2 divHash = vec2(
+    vec2 divHash = 0.25 * vec2(
       noise(vec2(i + id, seed)),
       noise(vec2(i + id + 2.782, seed))
-    );
+    ) + 0.5;
 
 #define GOOD_START 1
 #ifdef GOOD_START
