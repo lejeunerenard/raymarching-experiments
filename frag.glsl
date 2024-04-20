@@ -3689,7 +3689,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 1., t);
+  vec3 res = subdivide(wQ, 2.71238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -3699,10 +3699,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // c = pMod2(wQ, size);
   vec2 maxReps = floor((dim + 0.0 * size) / size) - 1.;
   maxReps = max(vec2(0), maxReps);
-  vec2 c = floor((wQ + 0.5 * size) / size);
+  // vec2 c = floor((wQ + 0.5 * size) / size);
 
-  // vec2 maxReps = vec2(1);
-  wQ = opRepLim(wQ, vmax(size), maxReps);
+  // // vec2 maxReps = vec2(1);
+  // wQ = opRepLim(wQ, vmax(size), maxReps);
 
   q = wQ;
   mUv = q;
@@ -3717,7 +3717,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Center out
   cellT -= 1.5 * length(localOrigin);
-  cellT -= 0.005 * length(c);
+  // cellT -= 0.005 * length(c);
 
   // // Coordinate offset
   // // cellT -= 0.020 * c.y;
@@ -3763,8 +3763,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float individualSquareT = (1.10 * expo(cellT) - 0.10);
 
-  q *= rotMat2(1.0 * PI * expo(cellT));
-  vec2 crop = vec2(abs(sdBox(q, individualSquareT * r - thickness)) - 0.5 * thickness, 0);
+  // vec2 crop = vec2(abs(sdBox(q, individualSquareT * r - thickness)) - 0.5 * thickness, 0);
+  // d = dMin(d, crop);
+
+  vec2 crop = vec2(sdBox(q, individualSquareT * dim - thickness), 0);
   d = dMin(d, crop);
 
   // // Mask by localOrigin
