@@ -3651,7 +3651,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.01);
+  vec2 r = vec2(0.0075);
   float vR = vmax(r);
 
   vec2 size = vec2(3) * r;
@@ -3689,7 +3689,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 2.71238, t);
+  vec3 res = subdivide(wQ, 1.71238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -3699,10 +3699,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // c = pMod2(wQ, size);
   vec2 maxReps = floor((dim + 0.0 * size) / size) - 1.;
   maxReps = max(vec2(0), maxReps);
-  // vec2 c = floor((wQ + 0.5 * size) / size);
 
-  // // vec2 maxReps = vec2(1);
-  // wQ = opRepLim(wQ, vmax(size), maxReps);
+  vec2 c = floor((wQ + 0.5 * size) / size);
+
+  // vec2 maxReps = vec2(1);
+  wQ = opRepLim(wQ, vmax(size), maxReps);
 
   q = wQ;
   mUv = q;
@@ -3716,7 +3717,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.0125 * length(c);
 
   // Center out
-  cellT -= 1.5 * length(localOrigin);
+  cellT -= 0.5 * length(localOrigin);
   // cellT -= 0.005 * length(c);
 
   // // Coordinate offset
@@ -3761,12 +3762,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float outerR = 0.4;
   float thickness = 0.003 * outerR;
 
-  float individualSquareT = (1.10 * expo(cellT) - 0.10);
+  float individualSquareT = (1.00 * cellT - 0.00);
 
   // vec2 crop = vec2(abs(sdBox(q, individualSquareT * r - thickness)) - 0.5 * thickness, 0);
   // d = dMin(d, crop);
 
-  vec2 crop = vec2(sdBox(q, individualSquareT * dim - thickness), 0);
+  // vec2 crop = vec2(sdBox(q, 0.7 * individualSquareT * dim - thickness), 0);
+
+  q *= rotMat2(0.5 * PI *  cos(individualSquareT * PI + 0.1 * dot(c, vec2(1))));
+  vec2 crop = vec2(sdBox(q, r * vec2(0.1, 1)), 0);
+  // crop.x = abs(crop.x) - 0.01 * vR;
   d = dMin(d, crop);
 
   // // Mask by localOrigin
@@ -4059,7 +4064,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
   // -- Color delay --
   const float slices = 15.;
-  float delayLength = 0.05;
+  float delayLength = 0.10;
   // phase_uv_offset enables shifting the uv after each layer based on the total number of slices/ layers
 // #define phase_uv_offset 1
 
