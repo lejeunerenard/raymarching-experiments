@@ -3692,10 +3692,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 maxReps = floor((dim + 0.0 * size) / size) - 1.;
   maxReps = max(vec2(0), maxReps);
 
-  vec2 c = floor((wQ + 0.5 * size) / size);
+  // vec2 c = floor((wQ + 0.5 * size) / size);
 
   // vec2 maxReps = vec2(1);
-  wQ = opRepLim(wQ, vmax(size), maxReps);
+  // wQ = opRepLim(wQ, vmax(size), maxReps);
 
   q = wQ;
   mUv = q;
@@ -3709,7 +3709,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.0125 * length(c);
 
   // Center out
-  cellT -= 0.5 * length(localOrigin);
+  cellT -= 0.3 * length(localOrigin);
   // cellT -= 0.005 * length(c);
 
   // // Coordinate offset
@@ -3751,8 +3751,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float outerR = 0.4;
-  float thickness = 0.003 * outerR;
+  float thickness = 0.8 * vR;
 
   float individualSquareT = (1.00 * cellT - 0.00);
 
@@ -3761,10 +3760,28 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 crop = vec2(sdBox(q, 0.7 * individualSquareT * dim - thickness), 0);
 
-  q *= rotMat2(0.5 * PI *  cos(individualSquareT * PI + 0.1 * dot(c, vec2(1))));
-  vec2 crop = vec2(sdBox(q, r * vec2(0.1, 1)), 0);
-  // crop.x = abs(crop.x) - 0.01 * vR;
-  d = dMin(d, crop);
+  float cropD = maxDistance;
+
+  float a = atan(dim.x, dim.y);
+  vec2 cropQ = q;
+  cropQ *= rotMat2(a);
+
+  float hypotanous = sqrt(dot(dim, dim));
+  float bisect = dim.x * dim.y / hypotanous;
+
+  vec2 cropR = vec2(dim.x, hypotanous);
+  cropR.x += 2. * bisect * triangleWave(cellT + 0.);
+  float crop = sdBox(cropQ - vec2(dim.x, 0), cropR);
+  cropD = min(cropD, crop);
+
+  cropR = vec2(dim.x, hypotanous);
+  cropR.x += 2. * bisect * triangleWave(cellT + 0.05);
+  crop = sdBox(cropQ + vec2(dim.x, 0), cropR);
+  cropD = max(cropD, crop);
+
+  vec2 b = vec2(sdBox(q, dim - thickness), 0);
+  d = dMin(d, b);
+  d.x = max(d.x, -cropD);
 
   // // Mask by localOrigin
   // vec2 cropQ = localOrigin;
@@ -3798,7 +3815,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // mask = sdBox(c - vec2(0, maskSize.y - maskSize.x), maskSize);
 
   // mask = length(maskQ) - 0.40;
-  // mask = sdBox(maskQ, vec2(12. * r));
+  // mask = sdBox(maskQ, vec2(0.5));
   // mask = abs(vmax(abs(maskQ)) - 0.3) - 0.1;
 
   // // mask = max(mask, -sdBox(maskQ, vec2(0.05, 2.)));
@@ -3972,7 +3989,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -4005,8 +4022,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
