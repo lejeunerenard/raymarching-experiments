@@ -3662,7 +3662,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.70;
-  wQ *= rotMat2(0.20 * PI + 0. * PI * triangleWave(t));
+  wQ *= rotMat2(-0.20 * PI);
 
   // wQ *= 2.;
   // wQ = circleInversion(wQ);
@@ -3681,7 +3681,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 1.71238, t);
+  vec3 res = subdivide(wQ, 7.71238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -3732,7 +3732,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Rectify
   cellT = mod(cellT, 1.);
 
-  cellT = triangleWave(cellT);
+  // cellT = triangleWave(cellT);
   // cellT = range(0.2, 1., cellT);
 
   // // Invert
@@ -3760,28 +3760,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 crop = vec2(sdBox(q, 0.7 * individualSquareT * dim - thickness), 0);
 
-  float cropD = maxDistance;
-
-  float a = atan(dim.x, dim.y);
-  vec2 cropQ = q;
-  cropQ *= rotMat2(a);
-
-  float hypotanous = sqrt(dot(dim, dim));
-  float bisect = dim.x * dim.y / hypotanous;
-
-  vec2 cropR = vec2(dim.x, hypotanous);
-  cropR.x += 2. * bisect * triangleWave(cellT + 0.);
-  float crop = sdBox(cropQ - vec2(dim.x, 0), cropR);
-  cropD = min(cropD, crop);
-
-  cropR = vec2(dim.x, hypotanous);
-  cropR.x += 2. * bisect * triangleWave(cellT + 0.05);
-  crop = sdBox(cropQ + vec2(dim.x, 0), cropR);
-  cropD = max(cropD, crop);
-
-  vec2 b = vec2(sdBox(q, dim - thickness), 0);
+  vec2 b = vec2(sdBox(q, dim), 0);
+  b.x = cos(TWO_PI * 30. * b.x - TWO_PI * individualSquareT);
+  // b.x = abs(b.x);
   d = dMin(d, b);
-  d.x = max(d.x, -cropD);
+
+  float crop = sdBox(q, dim - thickness);
+  d.x = max(d.x, crop);
 
   // // Mask by localOrigin
   // vec2 cropQ = localOrigin;
