@@ -1929,7 +1929,7 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=h21)
+#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=snoise2)
 
 vec3 mobius (in vec3 q, in float r, in vec3 d) {
   q.xy = polarCoords(q.xy);
@@ -3662,7 +3662,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.70;
-  wQ *= rotMat2(-0.20 * PI);
+  wQ *= rotMat2(0.10 * PI);
+
+  wQ *= 1.3;
 
   // wQ *= 2.;
   // wQ = circleInversion(wQ);
@@ -3681,7 +3683,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 7.71238, t);
+  vec3 res = subdivide(wQ, 2.01238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -3709,7 +3711,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.0125 * length(c);
 
   // Center out
-  cellT -= 0.3 * length(localOrigin);
+  cellT -= 0.5 * length(localOrigin);
   // cellT -= 0.005 * length(c);
 
   // // Coordinate offset
@@ -3755,18 +3757,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float individualSquareT = (1.00 * cellT - 0.00);
 
-  // vec2 crop = vec2(abs(sdBox(q, individualSquareT * r - thickness)) - 0.5 * thickness, 0);
-  // d = dMin(d, crop);
+  vec2 crop = vec2(abs(sdBox(q, individualSquareT * dim - thickness)) - 0.5 * thickness, 0);
+  d = dMin(d, crop);
 
   // vec2 crop = vec2(sdBox(q, 0.7 * individualSquareT * dim - thickness), 0);
+  // d = dMin(d, crop);
 
-  vec2 b = vec2(sdBox(q, dim), 0);
-  b.x = cos(TWO_PI * 30. * b.x - TWO_PI * individualSquareT);
-  // b.x = abs(b.x);
-  d = dMin(d, b);
+  // vec2 b = vec2(sdBox(q, dim), 0);
+  // b.x = cos(TWO_PI * 30. * b.x - TWO_PI * individualSquareT);
+  // // b.x = abs(b.x);
+  // d = dMin(d, b);
 
-  float crop = sdBox(q, dim - thickness);
-  d.x = max(d.x, crop);
+  // float crop = sdBox(q, dim - thickness);
+  // d.x = max(d.x, crop);
 
   // // Mask by localOrigin
   // vec2 cropQ = localOrigin;
