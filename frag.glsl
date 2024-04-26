@@ -3662,7 +3662,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.70;
-  wQ *= rotMat2(0.10 * PI);
+  // wQ *= rotMat2(0.02 * PI);
 
   wQ *= 1.3;
 
@@ -3707,17 +3707,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // cellT -= angle1C; // 0.4391
 
-  // // Center out
-  // cellT -= 0.0125 * length(c);
-
   // Center out
-  cellT -= 0.5 * length(localOrigin);
+  // cellT -= 0.5 * length(localOrigin);
   // cellT -= 0.005 * length(c);
+
 
   // // Coordinate offset
   // // cellT -= 0.020 * c.y;
   // cellT += 0.020 * c.x;
   // cellT += 0.0008 * id;
+  cellT -= 0.5 * localOrigin.x;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
@@ -3757,7 +3756,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float individualSquareT = (1.00 * cellT - 0.00);
 
-  vec2 crop = vec2(abs(sdBox(q, individualSquareT * dim - thickness)) - 0.5 * thickness, 0);
+  vec2 crop = vec2(sdBox(q, individualSquareT * dim - thickness), 0);
+  // crop.x = abs(crop.x) - 0.5 * thickness;
   d = dMin(d, crop);
 
   // vec2 crop = vec2(sdBox(q, 0.7 * individualSquareT * dim - thickness), 0);
