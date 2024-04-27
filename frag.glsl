@@ -3643,10 +3643,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 1.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.0075);
+  vec2 r = vec2(0.1);
   float vR = vmax(r);
 
-  vec2 size = vec2(3) * r;
+  vec2 size = vec2(2.0) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3661,12 +3661,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
   // Fake "Isometric" perspective
-  wQ.y *= 1.70;
-  // wQ *= rotMat2(0.02 * PI);
+  // wQ.y *= 1.70;
+  wQ *= rotMat2(0.2 * PI);
 
-  wQ *= 1.3;
-
-  // wQ *= 2.;
+  // wQ *= 3.;
   // wQ = circleInversion(wQ);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
@@ -3682,8 +3680,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 c = floor((wQ + 0.5 * size) / size);
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
+  vec2 c = pMod2(wQ, size);
+
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 2.01238, t);
+  vec3 res = subdivide(wQ, 2.01238 + 0.128 * dot(c, vec2(1, 0.72378)), t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -3709,7 +3709,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Center out
   // cellT -= 0.5 * length(localOrigin);
-  // cellT -= 0.005 * length(c);
+  cellT -= 0.05 * length(c);
 
 
   // // Coordinate offset
@@ -3729,11 +3729,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // // Noise offset
   // cellT -= 0.05 * snoise2(0.07 * c);
+  cellT -= 0.10 * snoise2(7.0 * localOrigin);
 
   // Rectify
   cellT = mod(cellT, 1.);
 
-  // cellT = triangleWave(cellT);
+  cellT = triangleWave(cellT);
   // cellT = range(0.2, 1., cellT);
 
   // // Invert
@@ -3752,7 +3753,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float thickness = 0.8 * vR;
+  float thickness = 0.01 * vmax(size);
 
   float individualSquareT = (1.00 * cellT - 0.00);
 
@@ -4010,8 +4011,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
