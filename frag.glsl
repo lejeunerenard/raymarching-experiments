@@ -3640,7 +3640,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 1.125;
+  float warpScale = 0.125;
   float warpFrequency = 1.125;
 
   vec2 r = vec2(0.1);
@@ -3667,10 +3667,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ *= 3.;
   // wQ = circleInversion(wQ);
 
-  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   // // Grow Over time
   // scale -= 0.667 * log(1. + 1.71828 * t);
@@ -3734,7 +3734,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Rectify
   cellT = mod(cellT, 1.);
 
-  cellT = triangleWave(cellT);
+  // cellT = triangleWave(cellT);
   // cellT = range(0.2, 1., cellT);
 
   // // Invert
@@ -3755,9 +3755,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.01 * vmax(size);
 
-  float individualSquareT = (1.00 * cellT - 0.00);
+  // float individualSquareT = (1.00 * cellT - 0.00);
 
-  vec2 crop = vec2(sdBox(q, individualSquareT * dim - thickness), 0);
+  // q *= rotMat2(PI * cellT);
+
+  // vec2 crop = vec2(sdBox(q, individualSquareT * dim - thickness), 0);
+  vec2 crop = vec2(sdBox(q, vec2(0.1, 0.8) * vmin(dim)), 0);
   // crop.x = abs(crop.x) - 0.5 * thickness;
   d = dMin(d, crop);
 
