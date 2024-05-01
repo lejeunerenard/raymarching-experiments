@@ -3643,7 +3643,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.125;
   float warpFrequency = 1.125;
 
-  vec2 r = vec2(0.015);
+  vec2 r = vec2(0.025);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3681,6 +3681,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
 
   vec2 c = pMod2(wQ, size);
+  // float c = pMod1(wQ.x, size.x);
 
   // vec2 preWarpQ = wQ;
   // vec3 res = subdivide(wQ, 2.01238 + 9.128 * dot(c, vec2(1.172838, 0.72378)), t);
@@ -3704,15 +3705,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // cellT -= angle1C; // 0.4391
 
-  // Center out
-  // cellT -= 0.5 * length(localOrigin);
-  cellT -= 0.02 * length(c);
+  // // Center out
+  // // cellT -= 0.5 * length(localOrigin);
+  // cellT -= 0.02 * length(c);
 
 
   // // Coordinate offset
-  // cellT += 0.01 * dot(c, vec2(1, 0.5));
+  cellT += 0.01 * dot(c, vec2(1, 0.5 * 0.916667 * 100.0));
   // // cellT -= 0.020 * c.y;
   // cellT += 0.0008 * id;
+  // cellT += 0.01 * c;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
@@ -3724,17 +3726,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= dC * 0.02;
   // cellT -= 0.5 * dot(localOrigin, vec2(1));
 
-  // Noise offset
-  cellT -= 0.05 * snoise2(0.27 * c);
-  // cellT -= 0.10 * snoise2(7.0 * localOrigin);
+  // // Noise offset
+  // cellT -= 0.05 * snoise2(0.27 * c);
+  // // cellT -= 0.10 * snoise2(7.0 * localOrigin);
 
   // Rectify
   cellT = mod(cellT, 1.);
 
   cellT = triangleWave(cellT);
-  // cellT = range(0.2, 1., cellT);
+  cellT = range(0.0, 0.8, cellT);
 
-  cellT = expo(cellT);
+  cellT = quart(cellT);
 
   // // Invert
   // cellT = 1. - cellT;
@@ -3758,15 +3760,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 b = vec2(sdBox(q, individualSquareT * r - thickness), 0);
   // vec2 b = vec2(sdBox(q, vec2(0.1, 0.8) * vmin(dim)), 0);
-  b.x = abs(b.x) - 0.5 * thickness;
+  // b.x = abs(b.x) - 0.5 * thickness;
   d = dMin(d, b);
-
-  b = vec2(sdBox(q, (1.0 * range(0.2, 1.0, quart(saturate(individualSquareT))) - 0.0) * 0.5 * r - thickness), 0);
-  d = dMin(d, b);
-
-
-  // vec2 crop = vec2(sdBox(q, 0.7 * individualSquareT * dim - thickness), 0);
-  // d = dMin(d, crop);
 
   // vec2 b = vec2(sdBox(q, dim), 0);
   // b.x = cos(TWO_PI * 30. * b.x - TWO_PI * individualSquareT);
@@ -4015,8 +4010,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
