@@ -1977,8 +1977,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // p *= globalRot;
 
   vec3 q = p;
-  float warpScale = 0.4;
-  float warpFrequency = 1.0;
+  float warpScale = 1.4;
+  float warpFrequency = 2.0;
   float rollingScale = 1.;
 
   // Warp
@@ -2027,7 +2027,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.85;
+  d.x *= 0.2;
 
   return d;
 }
@@ -2156,7 +2156,7 @@ vec3 textures (in vec3 rd) {
 
   vec3 dI = vec3(dNR);
   dI += 0.3 * snoise3(0.3 * mPos);
-  dI += 0.5 * pow(dNR, 5.);
+  // dI += 0.5 * pow(dNR, 5.);
 
   dI = quart(dI);
 
@@ -2171,7 +2171,7 @@ vec3 textures (in vec3 rd) {
   // dI *= 0.3;
 
   // -- Colors --
-  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.2, 0.67) ) );
+  color = 0.5 + 0.5 * cos( TWO_PI * ( vec3(1) * dI + vec3(0, 0.33, 0.67) ) );
 
   // color = mix(#FF0000, #00FFFF, 0.5 + 0.5 * sin(TWO_PI * (dI)));
 
@@ -2287,30 +2287,6 @@ float barHeight (in vec2 c) {
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
   vec3 color = vec3(0);
-  return color;
-
-  // vec2 nQ = vec2(atan(mPos.y, mPos.x) / PI, mPos.z);
-
-  // vec2 r = 0.075 * vec2(0.125, 0.5);
-  // vec2 size = r * vec2(8.15, 1.5);
-
-  // vec2 c = pMod2(nQ, size);
-
-  // r -= 0.1 * r * snoise2(0.123 * c);
-
-  // float n = sdBox(nQ, r);
-  // n = 1. - smoothstep(0., fwidth(n), n);
-  // color = vec3(1.0 * n);
-  // return color;
-
-  // float n = dot(mPos.xyz, vec3(1));
-  // n *= TWO_PI;
-  // n *= 40.;
-  // n = sin(n);
-  // n += 0.6;
-  // n = smoothstep(0., fwidth(n), n);
-  // n *= 1.4;
-  // return vec3(n);
 
   float dNR = dot(nor, -rd);
   vec3 dI = 0.3 * vec3(dot(nor, vec3(1)));
@@ -2324,13 +2300,9 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI *= angle1C;
   dI += angle2C;
 
-  dI += 0.012 * trap;
-
   color = vec3(0.5, 0.4, 0.8) + vec3(0.5, 0.2, 0.2) * cos(TWO_PI * (vec3(1, 1, 2) * dI + vec3(0.0, 0.25, 0.5)));
 
-  color += 0.1 * vec3(1) * step(0.2, trap);
-
-  // color *= 0.4;
+  // color *= 0.8;
 
   // float angle = 20.13 * PI + 0.8 * pos.y;
   // mat3 rot = rotationMatrix(vec3(1), angle);
@@ -2497,14 +2469,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.05;
-      float specCo = 1.0;
+      float freCo = 0.9;
+      float specCo = 0.9;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.5;
-      float shadowMin = 1.0;
+      float diffMin = 0.9;
+      float shadowMin = 0.9;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2538,9 +2510,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
         lin += fre; // Commit Fresnel
         specAll += mix(lights[i].color, vec3(1), 0.2) * specCo * spec * sha;
 
-        // Ambient
-        lin += 0.0750 * amb * diffuseColor;
-        dif += 0.0750 * amb;
+        // // Ambient
+        // lin += 0.0750 * amb * diffuseColor;
+        // dif += 0.0750 * amb;
 
         float distIntensity = 1.; // lights[i].intensity / pow(length(lightPos - gPos), 0.55);
         distIntensity = saturate(distIntensity);
@@ -2581,7 +2553,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-// #define useDispersion 1
+#define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3977,7 +3949,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
