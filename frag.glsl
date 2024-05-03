@@ -1977,7 +1977,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.025 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // // p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
   float warpScale = 1.4;
@@ -2003,24 +2003,28 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.yz *= rotMat2(-localCosT);
 
-  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ.xzy = twist(wQ.xyz, 0.75 * wQ.y - 0.1 * PI * cos(localCosT + wQ.y));
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  // wQ += 0.006250 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+
+  vec3 res = subdivide(wQ.xz, 9.01238, t);
+  // halved as they are the width & height of the subdivision
+  vec2 dim = 0.5 * res.xy;
+  float id = res.z;
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  // q.z -= 0.5;
-
-  // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  vec3 b = vec3(icosahedral(q, 52., r), 0, 0);
+  float boxR = 0.5 * vmin(dim);
+  q.y -= boxR;
+  vec3 b = vec3(sdBox(q, vec3(boxR)), 0, 0);
   d = dMin(d, b);
 
   // // Fractal Scale compensation
@@ -2030,7 +2034,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.2;
+  d.x *= 0.05;
 
   return d;
 }
@@ -2289,7 +2293,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(2);
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = 0.3 * vec3(dot(nor, vec3(1)));
@@ -2409,8 +2414,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float size;
     };
 
-    const int NUM_OF_LIGHTS = 7;
-    const float repNUM_OF_LIGHTS = 0.142857; // 0.2; // 0.333333;
+    const int NUM_OF_LIGHTS = 3;
+    const float repNUM_OF_LIGHTS = 0.333333;
 
     light lights[NUM_OF_LIGHTS];
 
@@ -2426,13 +2431,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
     // // Test light
     // lights[0] = light(vec3(0.01,  1.0, 0.1), #FFFFFF, 1.0, 32.);
 
-    lights[0] = light(vec3(-0.875, -0.875, -0.378), 2. * #FFCCCC, 1.0, 8.0);
+    lights[0] = light(vec3(-0.875, -0.875, -0.378), 2. * #FFEEEE, 1.0, 8.0);
     lights[1] = light(2. * vec3( 0.6, 0.7, 0.8), #EEFFFF, 1.0, 16.0);
     lights[2] = light(2. * vec3( 0.2,-1.2, 1.3), #FFFFFF, 2., 16.0);
-    lights[3] = light(vec3(0.212,-0.323,-0.433), #FFEEFF, 1.0, 16.0);
-    lights[4] = light(vec3(-0.449, 0.328, -0.654), #EEFFEE, 2., 16.0);
-    lights[5] = light(vec3(1.111, 0.89, -0.595), #FFFF66, 2.0, 16.0);
-    lights[6] = light(vec3(-0.475, 1.075, -0.878), #4477FF, 1., 8.0);
 
     float backgroundMask = 1.;
     // Allow anything in top right corner
@@ -2472,14 +2473,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = 0.9;
+      float freCo = 0.5;
+      float specCo = 0.5;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.9;
-      float shadowMin = 0.9;
+      float diffMin = 0.5;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2556,7 +2557,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -3714,43 +3715,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  float individualSquareT = (1.1 * cellT - 0.1);
-
-  // vec2 b = vec2(sdBox(q, individualSquareT * r - thickness), 0);
-  vec2 b = vec2(length(q) - (0.5 * vmin(dim) - thickness), 0);
+  vec2 b = vec2(sdBox(q, vec2(0.5 * 0.75 * vmin(dim))), 0);
   d = dMin(d, b);
-
-  // vec2 b = vec2(sdBox(q, dim), 0);
-  // b.x = cos(TWO_PI * 30. * b.x - TWO_PI * individualSquareT);
-  // // b.x = abs(b.x);
-  // d = dMin(d, b);
-
-  // float crop = sdBox(preWarpQ, r - 1.2 * thickness);
-  // d.x = max(d.x, crop);
-
-  // // Mask by localOrigin
-  // vec2 cropQ = localOrigin;
-  // float cropCrop = length(cropQ) - 0.90;
-  // d.x = max(d.x, cropCrop);
-
-  // vec2 gridQ = preWarpQ;
-  // pMod2(gridQ, 8. * size);
-
-  // vec2 grid = vec2(abs(sdBox(gridQ, 8. * r)) - 0.0001 * vmax(r), 0);
-  // d = dMin(d, grid);
-
-  // d.x /= scale;
-
-  // vec2 ring = vec2(abs(sdBox(preWarpQ, vec2(vR + 3. * thickness))) - 0.5 * thickness, 0);
-  // d = dMin(d, ring);
 
   // vec2 b = neighborGrid(q, size);
   // d = dMin(d, b);
-
-  // // Debug mod range
-  // float bb = abs(q.y) - 0.5 * size.y;
-  // // bb = abs(bb) - 0.1 * thickness;
-  // d.x = max(d.x, bb);
 
   // --- Mask ---
   float mask = 1.;
@@ -3934,7 +3903,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);

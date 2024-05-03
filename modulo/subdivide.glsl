@@ -5,8 +5,8 @@
 #endif
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  vec2 dMin = vec2(-0.4, -0.6);
-  vec2 dMax = vec2( 0.4,  0.6);
+  vec2 dMin = vec2(-1.7, -2.2);
+  vec2 dMax = vec2( 1.7,  2.2);
 
   float id = 0.;
 
@@ -29,9 +29,9 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
       noise(vec2(i + 0. * id + 2.782, seed) + generationVariability)
     );
 
-    divHash += 0.1 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1, 2)));
+    divHash += 0.05 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1, 2)));
 
-// #define GOOD_START 1
+#define GOOD_START 1
 #ifdef GOOD_START
     if (i == 0.) {
       divHash = vec2(0.49, 0.501);
