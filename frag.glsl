@@ -1929,7 +1929,10 @@ float tile (in vec3 q, in vec2 c, in float r, in vec2 size, in float t) {
   return d;
 }
 
-#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=snoise2)
+float ncos (in vec2 t) {
+  return 0.5 + 0.5 * cos(t).x;
+}
+#pragma glslify: subdivide = require(./modulo/subdivide.glsl, vmin=vmin, noise=noise)
 
 vec3 mobius (in vec3 q, in float r, in vec3 d) {
   q.xy = polarCoords(q.xy);
@@ -3632,42 +3635,25 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // Fake "Isometric" perspective
-  // wQ.y *= 1.70;
-  wQ *= rotMat2(0.2 * PI);
-
-  // wQ *= 3.;
-  // wQ = circleInversion(wQ);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.30;
+  // wQ *= rotMat2(0.22 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  // // Grow Over time
-  // scale -= 0.667 * log(1. + 1.71828 * t);
+  vec2 preWarpQ = wQ;
+  vec3 res = subdivide(wQ, 2.01238, t);
+  // halved as they are the width & height of the subdivision
+  vec2 dim = 0.5 * res.xy;
+  float id = res.z;
 
-  // wQ *= scale;
+  wQ = abs(wQ);
+  wQ -= dim * 0.5;
 
-  // vec2 c = floor((wQ + 0.5 * size) / size);
-  // // wQ.y += size.y * mod(t - (0.25 + 0.0125 * length(c)), 1.);
-
-  vec2 c = pMod2(wQ, size);
-  // float c = pMod1(wQ.x, size.x);
-
-  // vec2 preWarpQ = wQ;
-  // vec3 res = subdivide(wQ, 2.01238 + 9.128 * dot(c, vec2(1.172838, 0.72378)), t);
-  // // halved as they are the width & height of the subdivision
-  // vec2 dim = 0.5 * res.xy;
-  // float id = res.z;
-
-  // vec2 localOrigin = preWarpQ - wQ;
-
-  // vec2 maxReps = floor((dim + 0.0 * size) / size) - 1.;
-  // maxReps = max(vec2(0), maxReps);
-
-  // vec2 maxReps = vec2(1);
-  // wQ = opRepLim(wQ, vmax(size), maxReps);
+  vec2 localOrigin = preWarpQ - wQ;
 
   q = wQ;
   mUv = q;
@@ -3683,7 +3669,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
 
   // // Coordinate offset
-  cellT += 0.01 * dot(c, vec2(1, 0.5 * 0.916667 * 100.0));
+  // cellT += 0.01 * dot(c, vec2(1, 0.5 * 0.916667 * 100.0));
   // // cellT -= 0.020 * c.y;
   // cellT += 0.0008 * id;
   // cellT += 0.01 * c;
@@ -3730,9 +3716,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float individualSquareT = (1.1 * cellT - 0.1);
 
-  vec2 b = vec2(sdBox(q, individualSquareT * r - thickness), 0);
-  // vec2 b = vec2(sdBox(q, vec2(0.1, 0.8) * vmin(dim)), 0);
-  // b.x = abs(b.x) - 0.5 * thickness;
+  // vec2 b = vec2(sdBox(q, individualSquareT * r - thickness), 0);
+  vec2 b = vec2(length(q) - (0.5 * vmin(dim) - thickness), 0);
   d = dMin(d, b);
 
   // vec2 b = vec2(sdBox(q, dim), 0);
@@ -3797,7 +3782,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(0.5 * edge, 0., n - 0.);
+  n = smoothstep(0., 0.5 * edge, n - 0.);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3949,7 +3934,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);

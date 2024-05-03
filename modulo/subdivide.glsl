@@ -1,12 +1,12 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 2.
+#define DIVIDE_ITERS 4.
 #endif
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  vec2 dMin = vec2(-0.1, -0.1);
-  vec2 dMax = vec2( 0.1,  0.1);
+  vec2 dMin = vec2(-0.4, -0.6);
+  vec2 dMax = vec2( 0.4,  0.6);
 
   float id = 0.;
 
@@ -14,18 +14,22 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
 
   // Params
 #ifndef MIN_SIZE
-  float MIN_SIZE = 0.01;
+  float MIN_SIZE = 0.001;
 #endif
 #ifndef MIN_ITERS
   float MIN_ITERS = 1.;
 #endif
 
+  vec2 currentCenter = (dMin + dMax) * 0.5;
   for (float i = 0.; i < DIVIDE_ITERS; i++) {
+    vec2 generationVariability = currentCenter;
     // Noise point to divide box into 4 pieces
-    vec2 divHash = 0.5 + 0.5 * vec2(
-      noise(vec2(i + id, seed)),
-      noise(vec2(i + id + 2.782, seed))
+    vec2 divHash = 0.5 + 0.3 * vec2(
+      noise(vec2(i + 0. * id, seed) + generationVariability),
+      noise(vec2(i + 0. * id + 2.782, seed) + generationVariability)
     );
+
+    divHash += 0.1 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1, 2)));
 
 // #define GOOD_START 1
 #ifdef GOOD_START
@@ -48,15 +52,17 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
     if (smallEnough && i + 1. > MIN_ITERS) { break; }
 
     // update the box domain
-    dMax = mix(  dMax, divide, step(q, divide));
-    dMin = mix(divide,   dMin, step(q, divide));
+    vec2 overLine = step(q, divide);
+    dMax = mix(  dMax, divide, overLine);
+    dMin = mix(divide,   dMin, overLine);
 
     // id
-    vec2 diff2 = mix(-divide, divide, step(q, divide));
+    vec2 diff2 = mix(-divide, divide, overLine);
     id = length(diff2 + 10.) * 100.;
 
     // recalculate the dimension
     dim = dMax - dMin;
+    currentCenter = (dMin + dMax) * 0.5;
   }
 
   vec2 center = (dMin + dMax) * 0.5;
