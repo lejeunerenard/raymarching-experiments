@@ -3646,13 +3646,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 2.01238, t);
+  vec3 res = subdivide(wQ, 4.01238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
 
-  wQ = abs(wQ);
-  wQ -= dim * 0.5;
+  pMod2(wQ, 0.005 * 1. / dim);
+  // wQ = abs(wQ);
+  // wQ -= dim * 0.5;
 
   vec2 localOrigin = preWarpQ - wQ;
 
@@ -3693,9 +3694,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   cellT = mod(cellT, 1.);
 
   cellT = triangleWave(cellT);
-  cellT = range(0.0, 0.8, cellT);
 
-  cellT = quart(cellT);
+  // cellT = quart(cellT);
 
   // // Invert
   // cellT = 1. - cellT;
@@ -3715,7 +3715,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  vec2 b = vec2(sdBox(q, vec2(0.5 * 0.75 * vmin(dim))), 0);
+  // vec2 b = vec2(sdBox(q, vec2(0.5 * 0.75 * vmin(dim))), 0);
+  vec2 b = vec2(length(q) - 0.001, 0);
   d = dMin(d, b);
 
   // vec2 b = neighborGrid(q, size);
@@ -3751,7 +3752,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Hard Edge
   // n = smoothstep(fwidth(n), 0., n - 0.0);
-  n = smoothstep(0., 0.5 * edge, n - 0.);
+  n = smoothstep(0.5 * edge, 0., n - 0.);
 
   // // Solid
   // color.rgb = vec3(1);
@@ -3903,7 +3904,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);

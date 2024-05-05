@@ -1,12 +1,15 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 4.
+#define DIVIDE_ITERS 3.
 #endif
 
+#pragma glslify: rotMat2 = require(../rotation-matrix2)
+
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  vec2 dMin = vec2(-1.7, -2.2);
-  vec2 dMax = vec2( 1.7,  2.2);
+  float size = 0.8;
+  vec2 dMin = vec2(-size, -size);
+  vec2 dMax = vec2( size,  size);
 
   float id = 0.;
 
@@ -20,6 +23,10 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
   float MIN_ITERS = 1.;
 #endif
 
+  // Include rotation
+  // TODO Figure out if this is a meaningful technique
+  float accumRot = 0.;
+
   vec2 currentCenter = (dMin + dMax) * 0.5;
   for (float i = 0.; i < DIVIDE_ITERS; i++) {
     vec2 generationVariability = currentCenter;
@@ -29,9 +36,9 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
       noise(vec2(i + 0. * id + 2.782, seed) + generationVariability)
     );
 
-    divHash += 0.05 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1, 2)));
+    divHash += 0.05 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1)));
 
-#define GOOD_START 1
+// #define GOOD_START 1
 #ifdef GOOD_START
     if (i == 0.) {
       divHash = vec2(0.49, 0.501);
@@ -51,6 +58,8 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
     bool smallEnough = minSize < MIN_SIZE;
     if (smallEnough && i + 1. > MIN_ITERS) { break; }
 
+    accumRot += 0.065 * TWO_PI;
+
     // update the box domain
     vec2 overLine = step(q, divide);
     dMax = mix(  dMax, divide, overLine);
@@ -67,6 +76,8 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
 
   vec2 center = (dMin + dMax) * 0.5;
   q -= center;
+
+  q *= rotMat2(accumRot);
 
   return vec3(dim, id);
 }
