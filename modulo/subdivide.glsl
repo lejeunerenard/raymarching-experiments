@@ -1,13 +1,13 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 3.
+#define DIVIDE_ITERS 2.
 #endif
 
 #pragma glslify: rotMat2 = require(../rotation-matrix2)
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  float size = 0.8;
+  float size = 0.3125;
   vec2 dMin = vec2(-size, -size);
   vec2 dMax = vec2( size,  size);
 
@@ -58,6 +58,7 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
     bool smallEnough = minSize < MIN_SIZE;
     if (smallEnough && i + 1. > MIN_ITERS) { break; }
 
+    // Rotate space on iterating
     accumRot += 0.065 * TWO_PI;
 
     // update the box domain
@@ -77,7 +78,7 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
   vec2 center = (dMin + dMax) * 0.5;
   q -= center;
 
-  q *= rotMat2(accumRot);
+  // q *= rotMat2(accumRot);
 
   return vec3(dim, id);
 }
