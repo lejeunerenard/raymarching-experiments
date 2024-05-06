@@ -7,9 +7,14 @@
 #pragma glslify: rotMat2 = require(../rotation-matrix2)
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  float size = 0.3125;
-  vec2 dMin = vec2(-size, -size);
-  vec2 dMax = vec2( size,  size);
+  // // Square sizing
+  // float size = 0.5;
+  // vec2 dMin = vec2(-size, -size);
+  // vec2 dMax = vec2( size,  size);
+
+  // Custom Sizing
+  vec2 dMin = vec2(-0.4, -0.8);
+  vec2 dMax = vec2( 0.4,  0.8);
 
   float id = 0.;
 
