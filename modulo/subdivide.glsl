@@ -1,20 +1,20 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 2.
+#define DIVIDE_ITERS 3.
 #endif
 
 #pragma glslify: rotMat2 = require(../rotation-matrix2)
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
-  // // Square sizing
-  // float size = 0.5;
-  // vec2 dMin = vec2(-size, -size);
-  // vec2 dMax = vec2( size,  size);
+  // Square sizing
+  float size = 0.275;
+  vec2 dMin = vec2(-size, -size);
+  vec2 dMax = vec2( size,  size);
 
-  // Custom Sizing
-  vec2 dMin = vec2(-0.4, -0.8);
-  vec2 dMax = vec2( 0.4,  0.8);
+  // // Custom Sizing
+  // vec2 dMin = vec2(-0.4, -0.8);
+  // vec2 dMax = vec2( 0.4,  0.8);
 
   float id = 0.;
 
@@ -41,7 +41,7 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
       noise(vec2(i + 0. * id + 2.782, seed) + generationVariability)
     );
 
-    divHash += 0.05 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1)));
+    divHash += 0.15 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1)));
 
 // #define GOOD_START 1
 #ifdef GOOD_START

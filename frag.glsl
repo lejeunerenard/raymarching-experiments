@@ -3698,9 +3698,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.30;
-  // wQ *= rotMat2(0.22 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.40;
+  wQ *= rotMat2(0.22 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3715,12 +3715,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 localOrigin = preWarpQ - wQ;
 
-  vec2 divSize = dim * 0.25;
-  vec2 maxReps = floor((dim + 0.5 * divSize) / divSize) - 1.;
+  vec2 divSize = dim * 0.5; // 0.3333;
+  vec2 maxReps = floor((dim + 0.5 * divSize) / divSize) - 0.;
   maxReps = max(vec2(0), maxReps);
+  wQ += 0.5 * divSize;
 
   wQ = opRepLim(wQ, divSize, maxReps);
 
+  // wQ += 0.5 * divSize;
   // pMod2(wQ, divSize);
 
   q = wQ;
@@ -3781,10 +3783,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  // vec2 b = vec2(sdBox(q, 0.2 * divSize), 0);
-  vec2 b = vec2(length(q) - 0.2 * vmin(divSize), 0);
-  b.x = abs(b.x) - 0.025 * vmin(divSize);
+  vec2 b = vec2(length(q) - 0.002, 0);
   d = dMin(d, b);
+
+  // float line = min(abs(q.x), abs(q.y)) - 0.0005;
+  // line = max(line, sdBox(q, vec2(0.25 * 0.02)));
+  // d.x = min(d.x, line);
 
   // vec2 b = neighborGrid(q, size);
   // d = dMin(d, b);
@@ -4015,7 +4019,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 10.;
+  const float echoSlices = 5.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
 
