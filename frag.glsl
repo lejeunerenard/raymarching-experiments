@@ -7,7 +7,7 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-#define ORTHO 1
+// #define ORTHO 1
 // #define NO_MATERIALS 1
 // #define DOF 1
 
@@ -1976,11 +1976,11 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Positioning adjustments
 
-  // // -- Pseudo Camera Movement --
-  // // Wobble Tilt
-  // const float tilt = 0.1 * PI;
-  // p *= rotationMatrix(vec3(1, 0, 0), 0.025 * tilt * cos(localCosT));
-  // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
+  // -- Pseudo Camera Movement --
+  // Wobble Tilt
+  const float tilt = 0.2 * PI;
+  p *= rotationMatrix(vec3(1, 0, 0), 0.125 * tilt * cos(localCosT));
+  p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
   // p *= globalRot;
 
@@ -2024,7 +2024,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // Base SDF
   float boxR = r; // 0.5 * vmin(dim);
-  vec3 b = vec3(sdBox(preWarpQ, vec3(boxR)), 0, 0);
+  vec3 b = vec3(sdBox(preWarpQ, vec3(0.5 * boxR, boxR, boxR)), 0, 0);
   d = dMin(d, b);
 
   float nthSide = 0.;
@@ -2040,34 +2040,6 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   vec3 localOrigin;
   float cropOffsetScale = 0.3;
 
-  // Front face (x,y)
-  cropQ = q.xyz;
-  res = subdivide(cropQ.xy, nthSide + 0.01238, t);
-  // halved as they are the width & height of the subdivision
-  dim = 0.5 * res.xy;
-  id = res.z;
-  nthSide += 3.;
-
-  localOrigin = preWarpQ - cropQ;
-  cropOffset += cropOffsetScale * dot(localOrigin, vec3(1));
-  cropR = (cropScale * triangleWave(mod(t + cropOffset, 1.))) * dim;
-  crop = sdBox(cropQ, vec3(cropR, 10.));
-  d.x = max(d.x, crop);
-
-  // Top face (x,z)
-  cropQ = q.xzy;
-  res = subdivide(cropQ.xy, nthSide + 0.01238, t);
-  // halved as they are the width & height of the subdivision
-  dim = 0.5 * res.xy;
-  id = res.z;
-  nthSide += 3.;
-
-  localOrigin = preWarpQ - cropQ;
-  cropOffset += cropOffsetScale * dot(localOrigin, vec3(1));
-  cropR = (cropScale * triangleWave(mod(t + cropOffset, 1.))) * dim;
-  crop = sdBox(cropQ, vec3(cropR, 10.));
-  d.x = max(d.x, crop);
-
   // Side face (z,y)
   cropQ = q.zyx;
   res = subdivide(cropQ.xy, nthSide + 0.01238, t);
@@ -2078,8 +2050,9 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   localOrigin = preWarpQ - cropQ;
   cropOffset += cropOffsetScale * dot(localOrigin, vec3(1));
-  cropR = (cropScale * triangleWave(mod(t + cropOffset, 1.))) * dim;
-  crop = sdBox(cropQ, vec3(cropR, 10.));
+  cropR = (cropScale * (0.8 * triangleWave(mod(t + cropOffset, 1.)) + 0.2)) * dim;
+  // crop = sdBox(cropQ, vec3(cropR, 10.));
+  crop = length(cropQ.xy) - vmin(cropR);
   d.x = max(d.x, crop);
 
   // // Fractal Scale compensation
@@ -2088,8 +2061,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // Under step
-  d.x *= 0.125;
+  // // Under step
+  // d.x *= 0.5;
 
   return d;
 }
@@ -2370,7 +2343,6 @@ vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap,
   dI += angle2C;
 
   color = vec3(0.5, 0.4, 0.8) + vec3(0.5, 0.2, 0.2) * cos(TWO_PI * (vec3(1, 1, 2) * dI + vec3(0.0, 0.25, 0.5)));
-  color += 0.4;
 
   // color *= 0.8;
 
@@ -2535,14 +2507,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.3;
+      float freCo = 0.8;
       float specCo = 0.7;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.125;
-      float shadowMin = 0.0;
+      float diffMin = 0.25;
+      float shadowMin = 0.5;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2603,13 +2575,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // isReflection = true; // Set mode to dispersion
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.4 * reflection(pos, reflectionRd, generalT);
-      // isReflection = false; // Set mode to dispersion
-      // color += reflectColor;
+      // Reflect scene
+      isReflection = true; // Set mode to dispersion
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
+      isReflection = false; // Set mode to dispersion
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2645,9 +2617,9 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // dispersionColor *= 0.9;
 
-      // color += saturate(dispersionColor);
+      color += saturate(dispersionColor);
       // color = mix(color, dispersionColor, saturate(pow(dot(dNor, -gRd), 1.5)));
-      color = saturate(dispersionColor);
+      // color = saturate(dispersionColor);
       // color = vec3(dispersionI);
 #endif
 
@@ -3975,7 +3947,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -4008,8 +3980,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
