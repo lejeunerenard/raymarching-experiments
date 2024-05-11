@@ -8,7 +8,7 @@
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
   // Square sizing
-  float size = 0.275;
+  float size = 0.3;
   vec2 dMin = vec2(-size, -size);
   vec2 dMax = vec2( size,  size);
 
