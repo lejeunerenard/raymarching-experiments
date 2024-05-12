@@ -2021,7 +2021,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.001562 * warpScale * cos(63.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   preWarpQ = wQ;
-  vec3 res = subdivide(wQ.xz, 09.78238, t);
+  vec3 res = subdivide(wQ.xz, 39.78238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
@@ -2032,7 +2032,10 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  t -= 0.5 * vmax(abs(localOrigin));
+  t -= 0.45 * vmax(abs(localOrigin));
+  // t -= 0.5 * length(localOrigin);
+
+  t = mod(t, 1.);
 
   vec3 divR = vec3(dim.x, 0.005, dim.y);
 
@@ -2054,7 +2057,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.125;
+  d.x *= 0.05;
 
   return d;
 }
