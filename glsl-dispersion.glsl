@@ -14,8 +14,8 @@
 #pragma glslify: rotationMatrix = require(./rotation-matrix3)
 
 // #pragma glslify: hue2IOR = require(./dispersion-ray-direction)
-// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
-#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
+#pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-exponential)
+// #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-sigmoid)
 // #pragma glslify: hue2IOR = require(./dispersion/hue-to-ior-polynomial)
 
 vec3 nsin (in vec3 t) {
@@ -115,9 +115,9 @@ vec3 refractColors (in vec3 nor, in vec3 eye, in float n2, in float n1, in vec3 
 
     thisColor = 0.5 + 0.5 * cos(TWO_PI * (mixI + cosOffset));
 
-    // // Secondary cosine palette warp
-    // thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
-    // // thisColor *= 0.5;
+    // Secondary cosine palette warp
+    thisColor += 0.5 + 0.5 * cos(TWO_PI * (nor + eye + cosOffset - 0.2));
+    // thisColor *= 0.5;
 
     // // HSV based hue
     // thisColor += hsv(vec3(hue, 1.0, 1.0));
