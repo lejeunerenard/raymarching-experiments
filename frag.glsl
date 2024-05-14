@@ -9,7 +9,7 @@
 // #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 256
 #define maxDistance 8.0
-#define fogMaxDistance 5
+#define fogMaxDistance 2.075
 
 #define slowTime time * 0.2
 // v3
@@ -70,7 +70,7 @@ float n2 = 1.9;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = length(cameraRo) - 0.0;
+float doFDistance = length(cameraRo) - 0.25;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1961,7 +1961,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.5;
+float gR = 0.1;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -2008,24 +2008,38 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
   // wQ.yz *= rotMat2(-localCosT);
 
-  wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + 0. * distortT + warpPhase);
-  wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + 0. * distortT + warpPhase);
-  wQ.xzy = twist(wQ.xyz, 1.00 * wQ.y - 0.1 * PI * cos(0. * localCosT + wQ.y));
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + 0. * distortT + warpPhase);
-  wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + 1. * distortT + warpPhase);
-  warpPhase += warpPhaseAmp * componentShift(wQ);
-  wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
-  wQ += 0.006250 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.003125 * warpScale * cos(43.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
-  wQ += 0.001562 * warpScale * cos(63.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.100000 * warpScale * cos( 3.182 * warpFrequency * componentShift(wQ) + 0. * distortT + warpPhase);
+  // wQ += 0.050000 * warpScale * cos( 7.732 * warpFrequency * componentShift(wQ) + 0. * distortT + warpPhase);
+  // wQ.xzy = twist(wQ.xyz, 1.00 * wQ.y - 0.1 * PI * cos(0. * localCosT + wQ.y));
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ += 0.025000 * warpScale * cos( 9.123 * warpFrequency * componentShift(wQ) + 0. * distortT + warpPhase);
+  // wQ += 0.012500 * warpScale * cos(13.923 * warpFrequency * componentShift(wQ) + 1. * distortT + warpPhase);
+  // warpPhase += warpPhaseAmp * componentShift(wQ);
+  // wQ.xyz = twist(wQ.xzy, -0.25 * wQ.z + 0.105 * sin(localCosT + wQ.z));
+  // wQ += 0.006250 * warpScale * cos(23.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.003125 * warpScale * cos(43.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
+  // wQ += 0.001562 * warpScale * cos(63.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
-  d = dMin(d, b);
+  for (float i = 0.; i < 3.; i++) {
+    q = abs(q);
+    // q = tetraFold(q);
+
+    q = (vec4(q, 1) * kifsM).xyz;
+
+    rollingScale *= scale;
+
+    q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i + length(q) + p.x));
+
+    vec3 localQ = q;
+    localQ *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i));
+    vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
+    b.x /= rollingScale;
+    d = dMin(d, b);
+  }
 
   // // Fractal Scale compensation
   // d.x /= rollingScale;
@@ -2034,7 +2048,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.65;
+  d.x *= 0.85;
 
   return d;
 }
@@ -2293,7 +2307,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1.3);
+  return color;
 
   // // Face normal Axis based shading for boxes
   // // Directions (compared to x-axis (mostly))
@@ -2449,12 +2464,12 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Normals
       vec3 nor = getNormal2(pos, 0.001 * t.x, generalT);
-      // float bumpsScale = 1.0;
-      // float bumpIntensity = 0.025;
-      // nor += bumpIntensity * vec3(
-      //     snoise3(bumpsScale * 490.0 * mPos),
-      //     snoise3(bumpsScale * 670.0 * mPos + 234.634),
-      //     snoise3(bumpsScale * 310.0 * mPos + 23.4634));
+      float bumpsScale = 1.0;
+      float bumpIntensity = 0.025;
+      nor += bumpIntensity * vec3(
+          snoise3(bumpsScale * 490.0 * mPos),
+          snoise3(bumpsScale * 670.0 * mPos + 234.634),
+          snoise3(bumpsScale * 310.0 * mPos + 23.4634));
       // nor -= 0.125 * cellular(5. * mPos);
 
       // // Cellular bump map
@@ -2478,14 +2493,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.5;
-      float specCo = 0.5;
+      float freCo = 0.95;
+      float specCo = 0.95;
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 1.0;
-      float shadowMin = 0.8;
+      float diffMin = 0.45;
+      float shadowMin = 0.7;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2546,13 +2561,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // // Reflect scene
-      // isReflection = true; // Set mode to dispersion
-      // vec3 reflectColor = vec3(0);
-      // vec3 reflectionRd = reflect(rayDirection, nor);
-      // reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
-      // isReflection = false; // Set mode to dispersion
-      // color += reflectColor;
+      // Reflect scene
+      isReflection = true; // Set mode to dispersion
+      vec3 reflectColor = vec3(0);
+      vec3 reflectionRd = reflect(rayDirection, nor);
+      reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
+      isReflection = false; // Set mode to dispersion
+      color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2575,16 +2590,16 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 1.0 * pow(0. + dot(dNor, -gRd), 2.);
+      float dispersionI = 0.3 * pow(0. + dot(dNor, -gRd), 5.);
       // float dispersionI = 1.0;
       // dispersionI *= 0.63;
 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.r = pow(dispersionColor.r, 0.7);
       // dispersionColor.b = pow(dispersionColor.b, 0.7);
-      dispersionColor.g = pow(dispersionColor.g, 0.8);
+      // dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor *= 0.9;
 
@@ -2596,14 +2611,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // // Fog
-      // float d = max(0.0, t.x);
-      // color = mix(background, color, saturate(
-      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 2.0)
-      //       / fogMaxDistance
-      // ));
-      // color *= saturate(exp(-d * 0.025));
-      // color = mix(background, color, saturate(exp(-d * 0.05)));
+      // Fog
+      float d = max(0.0, t.x);
+      color = mix(background, color, saturate(
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 4.)
+            / fogMaxDistance
+      ));
+      color *= saturate(exp(-d * 0.025));
+      color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
@@ -4135,7 +4150,7 @@ void main() {
       gRs, 0.0,  gRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.035;
+    const float dofCoeficient = 0.010;
 #endif
 
     #ifdef SS
