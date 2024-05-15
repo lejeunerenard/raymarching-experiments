@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 256
 #define maxDistance 8.0
-#define fogMaxDistance 2.075
+#define fogMaxDistance 2.2
 
 #define slowTime time * 0.2
 // v3
@@ -70,7 +70,7 @@ float n2 = 1.9;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = length(cameraRo) - 0.25;
+float doFDistance = length(cameraRo) - 0.5;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -2025,8 +2025,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   mPos = wQ.xyz;
 
   for (float i = 0.; i < 3.; i++) {
-    q = abs(q);
-    // q = tetraFold(q);
+    // q = abs(q);
+    q = tetraFold(q);
 
     q = (vec4(q, 1) * kifsM).xyz;
 
@@ -2307,7 +2307,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.3);
+  vec3 color = vec3(1.2);
   return color;
 
   // // Face normal Axis based shading for boxes
@@ -2598,8 +2598,8 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       // Dispersion color post processing
       // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      // dispersionColor.b = pow(dispersionColor.b, 0.7);
-      // dispersionColor.g = pow(dispersionColor.g, 0.8);
+      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor *= 0.9;
 
@@ -2614,7 +2614,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 4.)
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 5.)
             / fogMaxDistance
       ));
       color *= saturate(exp(-d * 0.025));
