@@ -9,7 +9,7 @@
 // #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -2024,7 +2024,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  for (float i = 0.; i < 3.; i++) {
+  for (float i = 0.; i < 5.; i++) {
     // q = abs(q);
     q = tetraFold(q);
 
@@ -2032,7 +2032,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
     rollingScale *= scale;
 
-    q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i + length(q) + p.x));
+    q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i + length(q) + 1.4 * p.x));
 
     vec3 localQ = q;
     localQ *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i));
@@ -2307,7 +2307,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.2);
+  vec3 color = vec3(1.5);
   return color;
 
   // // Face normal Axis based shading for boxes
@@ -2590,15 +2590,15 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
       isDispersion = false; // Unset dispersion mode
 
-      float dispersionI = 0.3 * pow(0. + dot(dNor, -gRd), 5.);
+      float dispersionI = 0.3 * pow(0. + dot(dNor, -gRd), 2.);
       // float dispersionI = 1.0;
       // dispersionI *= 0.63;
 
       dispersionColor *= dispersionI;
 
       // Dispersion color post processing
-      // dispersionColor.r = pow(dispersionColor.r, 0.7);
-      dispersionColor.b = pow(dispersionColor.b, 0.7);
+      dispersionColor.r = pow(dispersionColor.r, 0.7);
+      // dispersionColor.b = pow(dispersionColor.b, 0.7);
       dispersionColor.g = pow(dispersionColor.g, 0.8);
 
       // dispersionColor *= 0.9;
