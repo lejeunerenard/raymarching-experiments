@@ -1,14 +1,14 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 4.
+#define DIVIDE_ITERS 3.
 #endif
 
 #pragma glslify: rotMat2 = require(../rotation-matrix2)
 
 vec3 subdivide (inout vec2 q, in float seed, in float t) {
   // Square sizing
-  float size = 1.5;
+  float size = 1.15;
   vec2 dMin = vec2(-size, -size);
   vec2 dMax = vec2( size,  size);
 

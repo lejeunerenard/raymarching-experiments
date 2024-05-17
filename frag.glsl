@@ -2024,19 +2024,18 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  for (float i = 0.; i < 5.; i++) {
-    // q = abs(q);
-    q = tetraFold(q);
+  for (float i = 0.; i < 3.; i++) {
+    q = abs(q);
+    // q = tetraFold(q);
 
     q = (vec4(q, 1) * kifsM).xyz;
 
     rollingScale *= scale;
 
-    q *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i + length(q) + 1.4 * p.x));
-
     vec3 localQ = q;
     localQ *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i));
-    vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
+    // vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
+    vec3 b = vec3(crystal(localQ, r, 0.5 * vec3(0.1, 1, 0.1) * r, 0.123 * PI), 0, 0);
     b.x /= rollingScale;
     d = dMin(d, b);
   }
@@ -2048,7 +2047,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // d.x /= worldScale;
 
   // Under step
-  d.x *= 0.85;
+  d.x *= 0.5;
 
   return d;
 }
@@ -3636,8 +3635,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   localCosT = TWO_PI * t;
   localT = t;
 
-  float warpScale = 0.125;
-  float warpFrequency = 1.125;
+  float warpScale = 0.25;
+  float warpFrequency = 1.;
 
   vec2 r = vec2(0.025);
   float vR = vmax(r);
@@ -3666,14 +3665,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 12.78238, t);
+  vec3 res = subdivide(wQ, 2.78238, t);
   // halved as they are the width & height of the subdivision
   vec2 dim = 0.5 * res.xy;
   float id = res.z;
 
   vec2 localOrigin = preWarpQ - wQ;
 
-  vec2 divSize = dim * 0.5; // 0.3333;
+  vec2 divSize = dim * 0.25; // 0.3333;
   vec2 maxReps = floor((dim + 0.5 * divSize) / divSize) - 0.;
   maxReps = max(vec2(0), maxReps);
   wQ += 0.5 * divSize;
@@ -3741,7 +3740,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  vec2 b = vec2(length(q) - 0.002, 0);
+  // vec2 b = vec2(length(q) - 0.002, 0);
+  vec2 b = vec2(sdBox(q, vec2(0.025, 0.3) * divSize), 0);
   d = dMin(d, b);
 
   // float line = min(abs(q.x), abs(q.y)) - 0.0005;
@@ -3933,7 +3933,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
