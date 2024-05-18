@@ -1,7 +1,7 @@
 #define TWO_PI 6.2831853072
 
 #ifndef DIVIDE_ITERS
-#define DIVIDE_ITERS 3.
+#define DIVIDE_ITERS 6.
 #endif
 
 #pragma glslify: rotMat2 = require(../rotation-matrix2)
@@ -36,13 +36,13 @@ vec3 subdivide (inout vec2 q, in float seed, in float t) {
   for (float i = 0.; i < DIVIDE_ITERS; i++) {
     vec2 generationVariability = currentCenter;
     // Noise point to divide box into 4 pieces
-    vec2 divHash = 0.5 + 0.3 * vec2(
+    vec2 divHash = 0.5 + 0.10 * vec2(
       noise(vec2(i + 0. * id, seed) + generationVariability),
       noise(vec2(i + 0. * id + 2.782, seed) + generationVariability)
     );
 
     // Move the dividing line
-    divHash += 0.15 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1)));
+    divHash += 0.05 * cos(TWO_PI * t + i + dot(generationVariability, vec2(1)));
 
 // #define GOOD_START 1
 #ifdef GOOD_START
