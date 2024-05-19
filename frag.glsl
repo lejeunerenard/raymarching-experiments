@@ -3655,9 +3655,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.40;
-  // wQ *= rotMat2(0.22 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.40;
+  wQ *= rotMat2(0.22 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3690,8 +3690,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // cellT -= angle1C; // 0.4391
 
-  // // Center out
-  // // cellT -= 0.5 * length(localOrigin);
+  // Center out
+  cellT -= 1.00 * length(localOrigin);
   // cellT -= 0.02 * length(c);
 
 
@@ -3718,7 +3718,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Rectify
   cellT = mod(cellT, 1.);
 
-  cellT = triangleWave(cellT);
+  // cellT = triangleWave(cellT);
 
   // cellT = quart(cellT);
 
@@ -3740,11 +3740,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  q *= rotMat2(0.25 * PI);
-
   // vec2 b = vec2(length(q) - 0.002, 0);
   // vec2 b = vec2(sdBox(q, vec2(0.25, 0.5) * divSize), 0);
-  vec2 b = vec2(sdBox(q, vec2(0.0625, 0.5) * dim), 0);
+  vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
+  b.x = abs(b.x) - 0.01 * vmin(dim);
   d = dMin(d, b);
 
   // float line = min(abs(q.x), abs(q.y)) - 0.0005;
@@ -3969,8 +3968,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -3980,9 +3979,9 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 5.;
+  const float echoSlices = 8.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.010 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
@@ -4004,8 +4003,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // Incremental offset
     uv.y += 0.0025;
 
-    // // Initial Offset
-    // uv.y += i == 0. ? 0.01 : 0.;
+    // Initial Offset
+    uv.y += i == 0. ? 0.015 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
