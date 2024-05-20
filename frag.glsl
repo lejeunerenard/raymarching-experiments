@@ -3656,8 +3656,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
   // Fake "Isometric" perspective
-  wQ.y *= 1.40;
-  wQ *= rotMat2(0.22 * PI);
+  wQ.y *= 1.55;
+  wQ *= rotMat2(0.19 * PI);
+
+  wQ *= rotMat2(0.04 * PI * cos(localCosT + length(wQ)));
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3691,7 +3693,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= angle1C; // 0.4391
 
   // Center out
-  cellT -= 1.00 * length(localOrigin);
+  cellT -= 0.70 * length(localOrigin);
   // cellT -= 0.02 * length(c);
 
 
@@ -3711,9 +3713,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= dC * 0.02;
   // cellT -= 0.5 * dot(localOrigin, vec2(1));
 
-  // // Noise offset
+  // Noise offset
   // cellT -= 0.05 * snoise2(0.27 * c);
-  // // cellT -= 0.10 * snoise2(7.0 * localOrigin);
+  cellT -= 0.10 * snoise2(7.0 * localOrigin);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3740,9 +3742,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  // vec2 b = vec2(length(q) - 0.002, 0);
+  vec2 b = vec2(length(q) - cellT * 0.8 * vmin(dim), 0);
   // vec2 b = vec2(sdBox(q, vec2(0.25, 0.5) * divSize), 0);
-  vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
+  // vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
   b.x = abs(b.x) - 0.01 * vmin(dim);
   d = dMin(d, b);
 
