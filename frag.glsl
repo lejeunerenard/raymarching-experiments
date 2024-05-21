@@ -3655,24 +3655,22 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.55;
-  wQ *= rotMat2(0.19 * PI);
-
-  wQ *= rotMat2(0.04 * PI * cos(localCosT + length(wQ)));
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.55;
+  // wQ *= rotMat2(0.19 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  vec2 preWarpQ = wQ;
-  vec3 res = subdivide(wQ, 2.78238, t);
-  // halved as they are the width & height of the subdivision
-  vec2 dim = 0.5 * res.xy;
-  float id = res.z;
+  // vec2 preWarpQ = wQ;
+  // vec3 res = subdivide(wQ, 2.78238, t);
+  // // halved as they are the width & height of the subdivision
+  // vec2 dim = 0.5 * res.xy;
+  // float id = res.z;
 
-  vec2 localOrigin = preWarpQ - wQ;
+  // vec2 localOrigin = preWarpQ - wQ;
 
   // vec2 divSize = dim * 0.5; // 0.3333;
   // vec2 maxReps = floor((dim + 0.5 * divSize) / divSize) - 0.;
@@ -3684,6 +3682,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.5 * divSize;
   // pMod2(wQ, divSize);
 
+  vec2 c = pMod2(wQ, size);
+
   q = wQ;
   mUv = q;
 
@@ -3693,7 +3693,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= angle1C; // 0.4391
 
   // Center out
-  cellT -= 0.70 * length(localOrigin);
+  // cellT -= 0.70 * length(localOrigin);
   // cellT -= 0.02 * length(c);
 
 
@@ -3708,14 +3708,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.09 * vmax(abs(c));
   // cellT -= 1.5 * vmax(abs(localOrigin));
 
-  // // // Dot product offset
-  // float dC = dot(c, vec2(1));
+  // // Dot product offset
+  float dC = dot(c, vec2(1, 3));
   // cellT -= dC * 0.02;
   // cellT -= 0.5 * dot(localOrigin, vec2(1));
+  cellT -= dC * 0.02;
 
   // Noise offset
-  // cellT -= 0.05 * snoise2(0.27 * c);
-  cellT -= 0.10 * snoise2(7.0 * localOrigin);
+  cellT -= 0.05 * snoise2(0.27 * c);
+  // cellT -= 0.10 * snoise2(7.0 * localOrigin);
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3742,10 +3743,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   float thickness = 0.025 * vmax(size);
 
-  vec2 b = vec2(length(q) - cellT * 0.8 * vmin(dim), 0);
+  // vec2 b = vec2(length(q) - cellT * 0.8 * vmin(dim), 0);
+  // // vec2 b = vec2(sdBox(q, vec2(0.25, 0.5) * divSize), 0);
+  // // vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
+  // b.x = abs(b.x) - 0.01 * vmin(dim);
+  // d = dMin(d, b);
+
+  vec2 b = vec2(length(q) - cellT * 0.8 * vmin(size), 0);
   // vec2 b = vec2(sdBox(q, vec2(0.25, 0.5) * divSize), 0);
   // vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
-  b.x = abs(b.x) - 0.01 * vmin(dim);
+  b.x = abs(b.x) - 0.01 * vmin(size);
   d = dMin(d, b);
 
   // float line = min(abs(q.x), abs(q.y)) - 0.0005;
