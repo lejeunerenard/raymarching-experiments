@@ -3655,9 +3655,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.55;
-  // wQ *= rotMat2(0.19 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.55;
+  wQ *= rotMat2(0.19 * PI);
+
+  wQ *= rotMat2(localCosT + 0.1 * cos(localCosT - length(wQ)));
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
