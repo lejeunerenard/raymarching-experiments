@@ -3638,7 +3638,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.025);
+  vec2 r = vec2(0.25);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3658,8 +3658,6 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Fake "Isometric" perspective
   wQ.y *= 1.55;
   wQ *= rotMat2(0.19 * PI);
-
-  wQ *= rotMat2(localCosT + 0.1 * cos(localCosT - length(wQ)));
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3684,7 +3682,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.5 * divSize;
   // pMod2(wQ, divSize);
 
-  vec2 c = pMod2(wQ, size);
+  // vec2 c = pMod2(wQ, size);
 
   q = wQ;
   mUv = q;
@@ -3711,13 +3709,13 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 1.5 * vmax(abs(localOrigin));
 
   // // Dot product offset
-  float dC = dot(c, vec2(1, 3));
+  // float dC = dot(c, vec2(1, 3));
   // cellT -= dC * 0.02;
   // cellT -= 0.5 * dot(localOrigin, vec2(1));
-  cellT -= dC * 0.02;
+  // cellT -= dC * 0.02;
 
   // Noise offset
-  cellT -= 0.05 * snoise2(0.27 * c);
+  // cellT -= 0.05 * snoise2(0.27 * c);
   // cellT -= 0.10 * snoise2(7.0 * localOrigin);
 
   // Rectify
@@ -3743,18 +3741,19 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  float thickness = 0.025 * vmax(size);
-
-  // vec2 b = vec2(length(q) - cellT * 0.8 * vmin(dim), 0);
-  // // vec2 b = vec2(sdBox(q, vec2(0.25, 0.5) * divSize), 0);
-  // // vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
-  // b.x = abs(b.x) - 0.01 * vmin(dim);
-  // d = dMin(d, b);
+  float thickness = 0.006 * vmax(size) * (-0.1 + 1.1 * quart(1. - triangleWave(cellT)));
 
   vec2 b = vec2(length(q) - cellT * 0.8 * vmin(size), 0);
-  // vec2 b = vec2(sdBox(q, vec2(0.25, 0.5) * divSize), 0);
-  // vec2 b = vec2(sdBox(q, cellT * vec2(0.85) * dim), 0);
-  b.x = abs(b.x) - 0.01 * vmin(size);
+  b.x = abs(b.x) - thickness;
+  d = dMin(d, b);
+
+  cellT += 0.5;
+  cellT = mod(cellT, 1.);
+
+  thickness = 0.006 * vmax(size) * (-0.1 + 1.1 * quart(1. - triangleWave(cellT)));
+
+  b = vec2(length(q) - cellT * 0.8 * vmin(size), 0);
+  b.x = abs(b.x) - thickness;
   d = dMin(d, b);
 
   // float line = min(abs(q.x), abs(q.y)) - 0.0005;
@@ -3990,7 +3989,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 8.;
+  const float echoSlices = 12.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
@@ -4015,7 +4014,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     uv.y += 0.0025;
 
     // Initial Offset
-    uv.y += i == 0. ? 0.015 : 0.;
+    uv.y += i == 0. ? 0.030 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
