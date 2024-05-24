@@ -9,7 +9,7 @@
 // #define SS 2
 // #define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 256
 #define maxDistance 8.0
-#define fogMaxDistance 2.2
+#define fogMaxDistance 2.0
 
 #define slowTime time * 0.2
 // v3
@@ -70,7 +70,7 @@ float n2 = 1.9;
 const float amount = 0.05;
 
 // Dof
-float doFDistance = length(cameraRo) - 0.5;
+float doFDistance = length(cameraRo) - 0.3;
 
 // Utils
 #pragma glslify: getRayDirection = require(./ray-apply-proj-matrix)
@@ -1982,7 +1982,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.125 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  // p *= globalRot;
+  p *= globalRot;
 
   vec3 q = p;
   float warpScale = 1.0;
@@ -2024,7 +2024,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  for (float i = 0.; i < 3.; i++) {
+  for (float i = 0.; i < 6.; i++) {
     q = abs(q);
     // q = tetraFold(q);
 
@@ -2034,8 +2034,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
 
     vec3 localQ = q;
     localQ *= rotationMatrix(vec3(1), 0.2 * PI * cos(localCosT + 0.1237 * i));
-    // vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
-    vec3 b = vec3(crystal(localQ, r, 0.5 * vec3(0.1, 1, 0.1) * r, 0.123 * PI), 0, 0);
+    vec3 b = vec3(sdBox(localQ, vec3(r)), 0, 0);
     b.x /= rollingScale;
     d = dMin(d, b);
   }
@@ -2306,7 +2305,7 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = vec3(1.5);
+  vec3 color = vec3(1.3);
   return color;
 
   // // Face normal Axis based shading for boxes
@@ -2564,7 +2563,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       isReflection = true; // Set mode to dispersion
       vec3 reflectColor = vec3(0);
       vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += 0.1 * reflection(pos, reflectionRd, generalT);
+      reflectColor += 0.15 * reflection(pos, reflectionRd, generalT);
       isReflection = false; // Set mode to dispersion
       color += reflectColor;
 
@@ -2613,7 +2612,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 5.)
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 3.)
             / fogMaxDistance
       ));
       color *= saturate(exp(-d * 0.025));
@@ -3945,7 +3944,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -3978,8 +3977,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
