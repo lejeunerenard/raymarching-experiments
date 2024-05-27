@@ -3634,7 +3634,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.175);
+  vec2 r = vec2(0.05);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3678,7 +3678,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.5 * divSize;
   // pMod2(wQ, divSize);
 
-  vec2 c = pMod2(wQ, size);
+  // vec2 c = pMod2(wQ, size);
+  float c = pMod1(wQ.x, size.x);
 
   q = wQ;
   mUv = q;
@@ -3693,10 +3694,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.08 * length(c);
 
   // Coordinate offset
-  cellT += 0.01 * dot(c, vec2(1, 12.0));
+  // cellT += 0.01 * dot(c, vec2(1, 12.0));
   // cellT -= 0.020 * c.y;
   // cellT += 0.0008 * id;
-  // cellT += 0.01 * c;
+  cellT += 0.075 * c;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
@@ -3712,6 +3713,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Noise offset
   // cellT -= 0.05 * snoise2(0.27 * c);
   // cellT -= 0.10 * snoise2(7.0 * localOrigin);
+
+  // Local offset
+  cellT += 0.2 * q.y;
 
   // Rectify
   cellT = mod(cellT, 1.);
@@ -3737,7 +3741,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // d = dMin(d, o);
 
   // vec2 b = vec2(sdBox(q, (0.2 + 0.8 * cellT) * vec2(0.9 * dim)), 0);
-  vec2 b = vec2(sdBox(q, 1.3 * cellT * vec2(r)), 0);
+  vec2 b = vec2(sdBox(q, 1.3 * vec2(cellT * r.x, 1.)), 0);
   // b.x = abs(b.x) - thickness;
   d = dMin(d, b);
 
