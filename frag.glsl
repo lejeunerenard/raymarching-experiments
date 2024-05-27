@@ -3634,7 +3634,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.0625);
+  vec2 r = vec2(0.175);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3690,12 +3690,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Center out
   // cellT -= 1.80 * length(localOrigin);
-  cellT -= 0.08 * length(c);
+  // cellT -= 0.08 * length(c);
 
-
-  // // Coordinate offset
-  // cellT += 0.01 * dot(c, vec2(1, 0.5 * 0.916667 * 100.0));
-  // // cellT -= 0.020 * c.y;
+  // Coordinate offset
+  cellT += 0.01 * dot(c, vec2(1, 12.0));
+  // cellT -= 0.020 * c.y;
   // cellT += 0.0008 * id;
   // cellT += 0.01 * c;
 
@@ -3975,8 +3974,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
