@@ -3634,10 +3634,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.05);
+  vec2 r = vec2(0.025);
   float vR = vmax(r);
 
-  vec2 size = vec2(2.0) * r;
+  vec2 size = vec2(4.0) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3653,7 +3653,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.55;
-  wQ *= rotMat2(0.19 * PI);
+  wQ *= rotMat2(-0.19 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3713,6 +3713,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Noise offset
   // cellT -= 0.05 * snoise2(0.27 * c);
   // cellT -= 0.10 * snoise2(7.0 * localOrigin);
+  cellT -= 0.10 * snoise2(7.0 * q);
 
   // Local offset
   cellT += 0.2 * q.y;
@@ -3720,9 +3721,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Rectify
   cellT = mod(cellT, 1.);
 
-  // cellT = triangleWave(cellT);
+  cellT = triangleWave(cellT);
 
-  // cellT = quart(cellT);
+  cellT = quart(cellT);
 
   // // Invert
   // cellT = 1. - cellT;
@@ -3742,7 +3743,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // vec2 b = vec2(sdBox(q, (0.2 + 0.8 * cellT) * vec2(0.9 * dim)), 0);
   vec2 b = vec2(sdBox(q, 1.3 * vec2(cellT * r.x, 1.)), 0);
-  // b.x = abs(b.x) - thickness;
+  b.x = abs(b.x) - 0.01 * vmax(r);
   d = dMin(d, b);
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
@@ -3882,7 +3883,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 noiseC = pMod2(noiseQ, vec2(noiseSize));
   float noiseScale = 950.;
   float noise = 0.5 * (1. + snoise2(noiseScale * noiseC));
-  color.rgb = vec3(mix(0., 1., step(pow(20. * n, 0.1), noise)));
+  float noiseThreshold = 3.0 * sign(n) * pow(n, 0.25);
+  // color.rgb = vec3(mix(0., 1., step(noiseThreshold, noise)));
+  color.rgb = vec3(mix(0., 1., smoothstep(noiseThreshold, noiseThreshold * 1.2, noise)));
 
   // // Tint
   // color.rgb *= vec3(1, 0.9, 0.9);
