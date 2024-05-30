@@ -1322,7 +1322,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-vec2 gSize = vec2(0.080);
+vec2 gSize = vec2(0.15);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1354,7 +1354,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  // locallocalT += 0.01 * length(c);
+  locallocalT -= 0.03 * length(c);
   // locallocalT -= 0.12 * vmax(abs(0.6 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
@@ -1377,7 +1377,7 @@ vec2 shape (in vec2 q, in vec2 c) {
 
   // Local C that transitions from one cell to another
   float shift = 1.;
-  vec2 shiftDir = vec2(1, 0);
+  vec2 shiftDir = vec2(mix(1., -1., odd), 0);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1388,31 +1388,28 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.2) * size;
+  vec2 r = vec2(0.5) * size;
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
-  vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
-  vec2 n2 = vec2(-1, 1) * vec2(
-      snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
-      snoise2(-1.373 * vec2(1,-1) * localC + vec2(-9., 2.37))
-      );
-  q += 0.5 * size * mix(n1, n2, nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
+  // vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
+  // vec2 n2 = vec2(-1, 1) * vec2(
+  //     snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
+  //     snoise2(-1.373 * vec2(1,-1) * localC + vec2(-9., 2.37))
+  //     );
+  // q += 0.5 * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
   // q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
 
-  // q += t * size * mod((shift * shiftDir), 2.);
-  q.x += t * size.x * mod((shift * shiftDir).y, 2.);
+  q += expo(t) * size * mod((shift * shiftDir), 2.);
 
-  q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
+  // q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
   // t -= 0.45;
   // t = mod(t, 1.);
-
-  // q += 3. * size * shiftDir * t;
 
   // vec2 center = vec2(size.x * (c + gC));
   // center += size.x * warpScale * 0.10000 * cos( 3.17823 * center.yx + localCosT + vec2(9.2378));
@@ -1435,17 +1432,17 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  q -= shiftDir * shift * size * t;
+  // q -= shiftDir * shift * size * t;
 
   const float num = 4.;
   const float angleInc = TWO_PI / num;
 
   float internalD = maxDistance;
-  // float internalD = length(q) - r.x;
+  internalD = min(internalD, length(q) - r.x);
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
-  internalD = min(internalD, sdBox(q, r));
+  // internalD = min(internalD, sdBox(q, r));
 
   // float internalD = abs(dot(q, vec2(-1, 1)));
   // internalD = max(internalD, sdBox(q, vec2(0.5 * size)));
@@ -3637,7 +3634,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 r = vec2(0.025);
   float vR = vmax(r);
 
-  vec2 size = vec2(4.0) * r;
+  vec2 size = vec2(6.0) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3741,10 +3738,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // vec2 b = vec2(sdBox(q, (0.2 + 0.8 * cellT) * vec2(0.9 * dim)), 0);
-  vec2 b = vec2(sdBox(q, 1.3 * vec2(cellT * r.x, 1.)), 0);
-  b.x = abs(b.x) - 0.01 * vmax(r);
-  d = dMin(d, b);
+  // // vec2 b = vec2(sdBox(q, (0.2 + 0.8 * cellT) * vec2(0.9 * dim)), 0);
+  // vec2 b = vec2(sdBox(q, 1.3 * vec2(cellT * r.x, 1.)), 0);
+  // b.x = abs(b.x) - 0.01 * vmax(r);
+  // d = dMin(d, b);
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
   // d.x = max(d.x, crop);
@@ -3753,8 +3750,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // line = max(line, sdBox(q, vec2(0.25 * 0.02)));
   // d.x = min(d.x, line);
 
-  // vec2 b = neighborGrid(q, size);
-  // d = dMin(d, b);
+  vec2 b = neighborGrid(q, size);
+  b.x = abs(b.x) - 0.015 * vmax(r);
+  d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
