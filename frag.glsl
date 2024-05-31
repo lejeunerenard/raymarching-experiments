@@ -1333,13 +1333,14 @@ vec2 gC = vec2(0);
 float localCosT = cosT;
 float localT = norT;
 float second = maxDistance;
-vec2 shape (in vec2 q, in vec2 c) {
+
+vec2 shape (in vec2 q, in vec2 c, in float localT) {
   vec2 d = vec2(maxDistance, -1.);
 
   vec2 uv = q;
 
   // float dC = vmax(abs(c));
-  float dC = dot(c, vec2(-1, 1));
+  float dC = dot(c, vec2(0, 1));
 
   float odd = mod(dC, 2.);
   float even = 1. - odd;
@@ -1354,7 +1355,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT -= 0.03 * length(c);
+  locallocalT += 0.03 * length(c);
   // locallocalT -= 0.12 * vmax(abs(0.6 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
@@ -1363,7 +1364,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT += 0.125 * snoise2(0.05 * (c + gC) + vec2(19.7, 113.1273));
   // locallocalT += 0.02 * odd;
   // locallocalT += 2.00 * q.x;
-  //
+
   // // NOTE Flip time offset if there are gaps
   // // Might fix some of the gaps caused by the time offset
   // // A hack but getting closer to a general solution
@@ -1371,13 +1372,12 @@ vec2 shape (in vec2 q, in vec2 c) {
   // locallocalT = clamp(locallocalT, clip, 1. - clip);
 
   float t = mod(locallocalT, 1.);
-  // t = range(0.3, 0.7, t);
-  // t = expo(t);
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
   float shift = 1.;
   vec2 shiftDir = vec2(mix(1., -1., odd), 0);
+  // vec2 shiftDir = vec2(1, 0);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1388,7 +1388,7 @@ vec2 shape (in vec2 q, in vec2 c) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.5) * size;
+  vec2 r = vec2(0.95) * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
@@ -1403,8 +1403,6 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
 
   // q.x += 1.1 * size.x * (0.5 + 0.5 * cos(localCosT));
-
-  q += expo(t) * size * mod((shift * shiftDir), 2.);
 
   // q.x += size.x * (1. - 2. * mod(c.y, 2.)) * (0.5 + 0.5 * cos(localCosT + 0.2 * c.x));
 
@@ -1432,13 +1430,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  // q -= shiftDir * shift * size * t;
+  q -= shiftDir * shift * size * expo(t);
 
   const float num = 4.;
   const float angleInc = TWO_PI / num;
 
   float internalD = maxDistance;
   internalD = min(internalD, length(q) - r.x);
+
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
   // internalD = min(internalD, abs(q.x));
@@ -1479,14 +1478,14 @@ vec2 shape (in vec2 q, in vec2 c) {
   // float o = microGrid(q);
   d = dMin(d, o);
 
-  // // Outline
-  // const float adjustment = 0.0;
-  // d = abs(d - adjustment) - r * 0.025;
+  // Outline
+  const float adjustment = 0.0;
+  d = abs(d - adjustment) - vmin(r) * 0.025;
 
   // Mask
   float mask = 0.;
-  // mask = smoothstep(0., 5., dot(abs(localC), vec2(1)) - 18.);
-  // mask = step(0., vmax(abs(c)) - 12.);
+  // mask = smoothstep(0., 5., dot(abs(localC), vec2(1)) - 2.);
+  // mask = step(0., vmax(abs(c)) - 1.);
   // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
@@ -1509,7 +1508,18 @@ vec2 circleInversion (in vec2 q) {
   // q.x * a.x + q.y * a.y = r * r // i don't know what the invert of a dot product is...
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=shape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: bookendShapeWTime = require(./modulo/duplicate-bookends, bufferSize=0.3, map=shape)
+
+vec2 bookendShape (in vec2 q, in vec2 id) {
+  // float locallocalT = angle3C;
+  float locallocalT = localT;
+  locallocalT += 0.09 * length(id);
+  locallocalT = mod(locallocalT, 1.);
+
+  return bookendShapeWTime(q, id, locallocalT);
+}
+
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=bookendShape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -3634,7 +3644,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 r = vec2(0.025);
   float vR = vmax(r);
 
-  vec2 size = vec2(6.0) * r;
+  vec2 size = vec2(5.0) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3675,8 +3685,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // wQ += 0.5 * divSize;
   // pMod2(wQ, divSize);
 
-  // vec2 c = pMod2(wQ, size);
-  float c = pMod1(wQ.x, size.x);
+  // // vec2 c = pMod2(wQ, size);
+  // float c = pMod1(wQ.x, size.x);
 
   q = wQ;
   mUv = q;
@@ -3694,7 +3704,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT += 0.01 * dot(c, vec2(1, 12.0));
   // cellT -= 0.020 * c.y;
   // cellT += 0.0008 * id;
-  cellT += 0.075 * c;
+  // cellT += 0.075 * c;
 
   // Vmax offset
   // cellT -= 0.1 * vmax(vec2(vmin(c), dot(c, vec2(-1, 1))));
@@ -3710,17 +3720,16 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // Noise offset
   // cellT -= 0.05 * snoise2(0.27 * c);
   // cellT -= 0.10 * snoise2(7.0 * localOrigin);
-  cellT -= 0.10 * snoise2(7.0 * q);
+  // cellT -= 0.10 * snoise2(7.0 * q);
 
-  // Local offset
-  cellT += 0.2 * q.y;
+  // // Local offset
+  // cellT += 0.2 * q.y;
 
   // Rectify
   cellT = mod(cellT, 1.);
 
-  cellT = triangleWave(cellT);
-
-  cellT = quart(cellT);
+  // cellT = triangleWave(cellT);
+  // cellT = quart(cellT);
 
   // // Invert
   // cellT = 1. - cellT;
@@ -3782,15 +3791,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Cyan glow
   // color.rgb = 0.8 * vec3(0, 1.0, 0.4) * mix(0., 1., saturate(1. - 1.8 * saturate(pow(saturate(n + 0.00), 0.125))));
 
-  // // Hard Edge
-  // // n = smoothstep(fwidth(n), 0., n - 0.0);
-  // n = smoothstep(0.5 * edge, 0., n - 0.);
+  // Hard Edge
+  // n = smoothstep(fwidth(n), 0., n - 0.0);
+  n = smoothstep(0.5 * edge, 0., n - 0.);
 
   // // Solid
   // color.rgb = vec3(1);
 
-  // // B&W
-  // color.rgb = vec3(n);
+  // B&W
+  color.rgb = vec3(n);
 
   // vec3 aColor = 0.5 + 0.5 * cos(TWO_PI * (1.5 * q.x + vec3(0, 0.33, 0.67)) + localCosT);
   // color.rgb = n * aColor;
@@ -3875,15 +3884,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // line = smoothstep(fwidth(line), 0., line);
   // color.rgb = vec3(line);
 
-  // Noise shadows
-  float noiseSize = 0.0005;
-  vec2 noiseQ = uv;
-  vec2 noiseC = pMod2(noiseQ, vec2(noiseSize));
-  float noiseScale = 950.;
-  float noise = 0.5 * (1. + snoise2(noiseScale * noiseC));
-  float noiseThreshold = 3.0 * sign(n) * pow(n, 0.25);
-  // color.rgb = vec3(mix(0., 1., step(noiseThreshold, noise)));
-  color.rgb = vec3(mix(0., 1., smoothstep(noiseThreshold, noiseThreshold * 1.2, noise)));
+  // // Noise shadows
+  // float noiseSize = 0.0005;
+  // vec2 noiseQ = uv;
+  // vec2 noiseC = pMod2(noiseQ, vec2(noiseSize));
+  // float noiseScale = 950.;
+  // float noise = 0.5 * (1. + snoise2(noiseScale * noiseC));
+  // float noiseThreshold = 3.0 * sign(n) * pow(n, 0.25);
+  // // color.rgb = vec3(mix(0., 1., step(noiseThreshold, noise)));
+  // color.rgb = vec3(mix(0., 1., smoothstep(noiseThreshold, noiseThreshold * 1.2, noise)));
 
   // // Tint
   // color.rgb *= vec3(1, 0.9, 0.9);
@@ -3979,8 +3988,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
