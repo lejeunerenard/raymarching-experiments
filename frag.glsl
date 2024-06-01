@@ -1355,7 +1355,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // Create a copy so there is no cross talk in neighborGrid
   float locallocalT = localT;
   // locallocalT = angle1C;
-  locallocalT += 0.03 * length(c);
+  // locallocalT += 0.01 * length(c);
   // locallocalT -= 0.12 * vmax(abs(0.6 * c));
   // locallocalT -= 0.07 * vmax(vec2(0.4, 0.3) * c);
   // locallocalT -= atan(c.y, c.x) / PI;
@@ -1388,7 +1388,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.95) * size;
+  vec2 r = vec2(0.5) * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
@@ -1436,7 +1436,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   const float angleInc = TWO_PI / num;
 
   float internalD = maxDistance;
-  internalD = min(internalD, length(q) - r.x);
+  internalD = min(internalD, sdBox(q, r));
 
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
@@ -1510,16 +1510,17 @@ vec2 circleInversion (in vec2 q) {
 
 #pragma glslify: bookendShapeWTime = require(./modulo/duplicate-bookends, bufferSize=0.3, map=shape)
 
-vec2 bookendShape (in vec2 q, in vec2 id) {
+vec2 neighborShape (in vec2 q, in vec2 id) {
   // float locallocalT = angle3C;
   float locallocalT = localT;
-  locallocalT += 0.09 * length(id);
+  locallocalT += 0.05 * length(id);
   locallocalT = mod(locallocalT, 1.);
 
-  return bookendShapeWTime(q, id, locallocalT);
+  // return bookendShapeWTime(q, id, locallocalT);
+  return shape(q, id, locallocalT);
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=bookendShape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=neighborShape, maxDistance=maxDistance, numberOfNeighbors=3.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -3644,7 +3645,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 r = vec2(0.025);
   float vR = vmax(r);
 
-  vec2 size = vec2(5.0) * r;
+  vec2 size = vec2(2.0) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3988,8 +3989,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4023,8 +4024,8 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
     // Incremental offset
     uv.y += 0.0025;
 
-    // Initial Offset
-    uv.y += i == 0. ? 0.030 : 0.;
+    // // Initial Offset
+    // uv.y += i == 0. ? 0.030 : 0.;
 
     // uv.y += 0.0125 * i * loopNoise(vec3(norT, 0.0000 + 2. * uv), 0.3, 0.7);
     // uv.y += 0.012 * i * abs(snoise3(vec3(uv.y, sin(TWO_PI * norT + vec2(0, 0.5 * PI)))));
