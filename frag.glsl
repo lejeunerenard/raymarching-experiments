@@ -1376,8 +1376,8 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   // Local C that transitions from one cell to another
   float shift = 1.;
-  vec2 shiftDir = vec2(mix(1., -1., odd), 0);
-  // vec2 shiftDir = vec2(1, 0);
+  // vec2 shiftDir = vec2(mix(1., -1., odd), 0);
+  vec2 shiftDir = vec2(1, 0);
 
   vec2 localC = mix(c, c + shift * shiftDir, t);
 
@@ -1436,7 +1436,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   const float angleInc = TWO_PI / num;
 
   float internalD = maxDistance;
-  internalD = min(internalD, sdBox(q, r));
+  internalD = min(internalD, sdBox(q, r * vec2(0.25, .7)));
 
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
@@ -1513,7 +1513,8 @@ vec2 circleInversion (in vec2 q) {
 vec2 neighborShape (in vec2 q, in vec2 id) {
   // float locallocalT = angle3C;
   float locallocalT = localT;
-  locallocalT += 0.05 * length(id);
+  // locallocalT += 0.01 * length(id);
+  locallocalT += 0.05 * vmin(id);
   locallocalT = mod(locallocalT, 1.);
 
   // return bookendShapeWTime(q, id, locallocalT);
@@ -4000,7 +4001,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // return vec4(vec3(1. - layerOutline), 1);
 
   // -- Echoed Layers --
-  const float echoSlices = 12.;
+  const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
     vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
 
