@@ -1375,7 +1375,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 1.;
+  float shift = 2.;
   // vec2 shiftDir = vec2(mix(1., -1., odd), 0);
   vec2 shiftDir = vec2(1, 0);
 
@@ -1388,7 +1388,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float warpScale = 0.45 * expo(localNorT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.5) * size;
+  vec2 r = vec2(0.65) * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
@@ -1430,13 +1430,10 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  q -= shiftDir * shift * size * expo(t);
-
-  const float num = 4.;
-  const float angleInc = TWO_PI / num;
+  q -= shiftDir * shift * size * sine(t);
 
   float internalD = maxDistance;
-  internalD = min(internalD, sdBox(q, r * vec2(0.25, .7)));
+  internalD = min(internalD, length(q) - vmax(r));
 
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
@@ -1514,7 +1511,8 @@ vec2 neighborShape (in vec2 q, in vec2 id) {
   // float locallocalT = angle3C;
   float locallocalT = localT;
   // locallocalT += 0.01 * length(id);
-  locallocalT += 0.05 * vmin(id);
+  // locallocalT += 0.05 * vmin(id);
+  locallocalT += 0.05 * id.y;
   locallocalT = mod(locallocalT, 1.);
 
   // return bookendShapeWTime(q, id, locallocalT);
@@ -3643,7 +3641,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.025);
+  vec2 r = vec2(0.05);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3762,7 +3760,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // d.x = min(d.x, line);
 
   vec2 b = neighborGrid(q, size);
-  b.x = abs(b.x) - 0.015 * vmax(r);
+  // b.x = abs(b.x) - 0.015 * vmax(r);
   d = dMin(d, b);
 
   // --- Mask ---
