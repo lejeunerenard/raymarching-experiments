@@ -1387,8 +1387,15 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float localNorT = 0.5 + 0.5 * cos(localCosT);
   float warpScale = 0.45 * expo(localNorT);
 
+  // Cell Time
+  float cellT = t;
+  cellT += 0.05 * dot(localC, vec2(-1));
+  cellT += 0.1 * snoise2(1.78238 * localC);
+  cellT = mod(cellT, 1.);
+  cellT = triangleWave(cellT);
+
   vec2 size = gSize;
-  vec2 r = vec2(0.65) * size;
+  vec2 r = vec2(0.7) * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
@@ -1433,7 +1440,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   q -= shiftDir * shift * size * sine(t);
 
   float internalD = maxDistance;
-  internalD = min(internalD, length(q) - vmax(r));
+  internalD = min(internalD, length(q) - quart(cellT) * vmax(r));
 
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
