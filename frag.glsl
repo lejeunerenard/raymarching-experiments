@@ -1375,7 +1375,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 2.;
+  float shift = 3.;
   // vec2 shiftDir = vec2(mix(1., -1., odd), 0);
   vec2 shiftDir = vec2(1, 0);
 
@@ -1389,13 +1389,13 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   // Cell Time
   float cellT = t;
-  cellT += 0.05 * dot(localC, vec2(-1));
+  cellT += 0.035 * dot(localC, vec2(-1));
   cellT += 0.1 * snoise2(1.78238 * localC);
   cellT = mod(cellT, 1.);
   cellT = triangleWave(cellT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.7) * size;
+  vec2 r = vec2(0.353554) * size;
 
   // // Make grid look like random placement
   // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
@@ -1439,8 +1439,11 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   q -= shiftDir * shift * size * sine(t);
 
+  q *= rotMat2(0.25 * PI * quart(cellT));
+
   float internalD = maxDistance;
-  internalD = min(internalD, length(q) - quart(cellT) * vmax(r));
+  // internalD = min(internalD, length(q) - quart(cellT) * vmax(r));
+  internalD = min(internalD, sdBox(q, vec2(r)));
 
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
@@ -1519,7 +1522,7 @@ vec2 neighborShape (in vec2 q, in vec2 id) {
   float locallocalT = localT;
   // locallocalT += 0.01 * length(id);
   // locallocalT += 0.05 * vmin(id);
-  locallocalT += 0.05 * id.y;
+  locallocalT += 0.03 * id.y;
   locallocalT = mod(locallocalT, 1.);
 
   // return bookendShapeWTime(q, id, locallocalT);
@@ -3648,7 +3651,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.05);
+  vec2 r = vec2(0.025);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3665,9 +3668,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.55;
-  wQ *= rotMat2(-0.19 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.55;
+  // wQ *= rotMat2(-0.19 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3995,8 +3998,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
