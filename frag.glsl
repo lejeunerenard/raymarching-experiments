@@ -1441,6 +1441,8 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   q *= rotMat2(0.25 * PI * quart(cellT));
 
+  r -= 0.1 * r * cos(TWO_PI * cellT);
+
   float internalD = maxDistance;
   // internalD = min(internalD, length(q) - quart(cellT) * vmax(r));
   internalD = min(internalD, sdBox(q, vec2(r)));
@@ -1491,7 +1493,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   // Mask
   float mask = 0.;
-  // mask = smoothstep(0., 5., dot(abs(localC), vec2(1)) - 2.);
+  // mask = smoothstep(0., 5., dot(abs(localC), vec2(1)) - 3.);
   // mask = step(0., vmax(abs(c)) - 1.);
   // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
@@ -1500,6 +1502,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // mask = step(0., abs(c.y - 25.) - 8.); // Mask below a line
   // Convert circle into torus
   // mask = step(0., abs(length(c) - 16.) - 10.);
+  mask = step(0., abs(length(localC) - 6.) - 2.);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
@@ -3668,9 +3671,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.55;
-  // wQ *= rotMat2(-0.19 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.25;
+  wQ *= rotMat2(-0.19 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3998,8 +4001,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4011,7 +4014,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // -- Echoed Layers --
   const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.005 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0075 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
