@@ -1379,7 +1379,9 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // vec2 shiftDir = vec2(mix(1., -1., odd), 0);
   vec2 shiftDir = vec2(1, 0);
 
-  vec2 localC = mix(c, c + shift * shiftDir, t);
+  float shiftT = sine(t);
+
+  vec2 localC = mix(c, c + shift * shiftDir, shiftT);
 
   // // Vanilla cell coordinate
   // vec2 localC = c;
@@ -1397,14 +1399,14 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   vec2 size = gSize;
   vec2 r = vec2(0.353554) * size;
 
-  // // Make grid look like random placement
-  // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
-  // vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
-  // vec2 n2 = vec2(-1, 1) * vec2(
-  //     snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
-  //     snoise2(-1.373 * vec2(1,-1) * localC + vec2(-9., 2.37))
-  //     );
-  // q += 0.5 * size * mix(n1, n2, nT);
+  // Make grid look like random placement
+  float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
+  vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
+  vec2 n2 = vec2(-1, 1) * vec2(
+      snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
+      snoise2(-1.373 * vec2(1,-1) * localC + vec2(-9., 2.37))
+      );
+  q += 0.125 * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1437,7 +1439,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  q -= shiftDir * shift * size * sine(t);
+  q -= shiftDir * shift * size * shiftT;
 
   q *= rotMat2(0.25 * PI * quart(cellT));
 
@@ -1493,16 +1495,20 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   // Mask
   float mask = 0.;
-  // mask = smoothstep(0., 5., dot(abs(localC), vec2(1)) - 3.);
+  mask = smoothstep(0., 5., vmax(abs(localC)) - 5.);
   // mask = step(0., vmax(abs(c)) - 1.);
   // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
   // mask = step(0., abs(length(c) - 4.) - 2.));
   // mask = step(0., length(c) - 35.);
   // mask = step(0., abs(c.y - 25.) - 8.); // Mask below a line
+  //
   // Convert circle into torus
   // mask = step(0., abs(length(c) - 16.) - 10.);
-  mask = step(0., abs(length(localC) - 6.) - 2.);
+  // mask = smoothstep(0., 8., abs(length(localC) - 6.) - 2.);
+
+  // mask *= 0.3;
+  // mask = sine(mask);
 
   // Apply mask
   d.x = mix(d.x, maxDistance, mask);
@@ -4001,8 +4007,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
