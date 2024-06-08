@@ -1403,8 +1403,8 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
   vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
   vec2 n2 = vec2(-1, 1) * vec2(
-      snoise2( 2.863 * vec2(-1, 1) * localC + 2.37),
-      snoise2(-1.373 * vec2(1,-1) * localC + vec2(-9., 2.37))
+      snoise2( 0.763 * vec2(-1, 1) * localC + 2.37),
+      snoise2(-0.573 * vec2(1,-1) * localC + vec2(-9., 2.37))
       );
   q += 0.125 * size * mix(n1, n2, nT);
 
@@ -1426,13 +1426,13 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // center -= size.x * c;
   // q += center;
 
-  // // Cosine warp
-  // float warpScale2 = warpScale * 0.5;
-  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
-  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
-  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
-  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
-  // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
+  // Cosine warp
+  float warpScale2 = warpScale * 0.4;
+  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
+  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
 
   // c = floor((q + 0.5 * size) / size);
 
@@ -1495,7 +1495,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   // Mask
   float mask = 0.;
-  mask = smoothstep(0., 5., vmax(abs(localC)) - 5.);
+  // mask = smoothstep(0., 5., vmax(abs(localC)) - 5.);
   // mask = step(0., vmax(abs(c)) - 1.);
   // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
@@ -1529,16 +1529,16 @@ vec2 circleInversion (in vec2 q) {
 vec2 neighborShape (in vec2 q, in vec2 id) {
   // float locallocalT = angle3C;
   float locallocalT = localT;
-  // locallocalT += 0.01 * length(id);
+  // locallocalT -= 0.01 * length(id);
   // locallocalT += 0.05 * vmin(id);
-  locallocalT += 0.03 * id.y;
+  locallocalT += 0.03 * dot(id, vec2(0.5, 1));
   locallocalT = mod(locallocalT, 1.);
 
   // return bookendShapeWTime(q, id, locallocalT);
   return shape(q, id, locallocalT);
 }
 
-#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=neighborShape, maxDistance=maxDistance, numberOfNeighbors=3.)
+#pragma glslify: neighborGrid = require(./modulo/neighbor-grid, map=neighborShape, maxDistance=maxDistance, numberOfNeighbors=4.)
 
 float thingy (in vec2 q, in float t) {
   float d = maxDistance;
@@ -3677,9 +3677,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // Fake "Isometric" perspective
-  wQ.y *= 1.25;
-  wQ *= rotMat2(-0.19 * PI);
+  // // Fake "Isometric" perspective
+  // wQ.y *= 1.25;
+  // wQ *= rotMat2(-0.19 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
