@@ -3679,7 +3679,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.025);
+  vec2 r = vec2(0.14);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3696,9 +3696,9 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // Odd row offset
   // wQ.x += 0.5 * size.x * mod(c.y, 2.);
 
-  // // Fake "Isometric" perspective
-  // wQ.y *= 1.25;
-  // wQ *= rotMat2(-0.19 * PI);
+  // Fake "Isometric" perspective
+  wQ.y *= 1.25;
+  wQ *= rotMat2(-0.19 * PI);
 
   // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3785,10 +3785,37 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  // // vec2 b = vec2(sdBox(q, (0.2 + 0.8 * cellT) * vec2(0.9 * dim)), 0);
-  // vec2 b = vec2(sdBox(q, 1.3 * vec2(cellT * r.x, 1.)), 0);
-  // b.x = abs(b.x) - 0.01 * vmax(r);
-  // d = dMin(d, b);
+  scale = 0.33 * (1. - 0.667 * norT);
+
+  q *= scale;
+
+  float theR = vmax(r);
+  float offsetSize = 0.25;
+  float tOffset = 0. - offsetSize * norT;
+  for (float i = 0.; i < 7.; i++) {
+    float s = 2. * theR;
+    vec2 c = floor((q + s * 0.5)/s);
+    q = opRepLim(q, s, vec2(1));
+
+    float localT = t;
+    float localOffset = 0.1 * atan(c.y, c.x) / PI;
+    localT += localOffset;
+    localT += tOffset;
+    float localR = theR * mod(localT, 1.);
+
+    if (c != vec2(0)) {
+      vec2 b = vec2(sdBox(q, vec2(localR)), 0);
+      b.x = abs(b.x) - 0.01 * localR;
+      d = dMin(d, b);
+
+      break;
+    }
+
+    tOffset += offsetSize;
+    theR *= 0.333333;
+  }
+
+  d.x /= scale;
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
   // d.x = max(d.x, crop);
@@ -3797,9 +3824,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // line = max(line, sdBox(q, vec2(0.25 * 0.02)));
   // d.x = min(d.x, line);
 
-  vec2 b = neighborGrid(q, size);
-  // b.x = abs(b.x) - 0.015 * vmax(r);
-  d = dMin(d, b);
+  // vec2 b = neighborGrid(q, size);
+  // d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -3993,7 +4019,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -4026,8 +4052,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4039,7 +4065,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   // -- Echoed Layers --
   const float echoSlices = 10.;
   for (float i = 0.; i < echoSlices; i++) {
-    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.0075 * i);
+    vec4 layerColor = renderSceneLayer(ro, rd, uv, norT - 0.01 * i);
 
     // // Outlined version
     // float layerOutline = outline(uv, angle3C, norT - 0.0075 * i);
@@ -4059,7 +4085,7 @@ vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
 
     // -- Offsets --
     // Incremental offset
-    uv.y += 0.0025;
+    uv.y += 0.0035;
 
     // // Initial Offset
     // uv.y += i == 0. ? 0.030 : 0.;

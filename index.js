@@ -7,7 +7,7 @@ import { name } from './info.json'
 const fr = 60
 const captureTime = 0 * 5
 const secondsLong = 10
-const capturing = false
+const capturing = true
 
 let app = new App()
 window.app = app
