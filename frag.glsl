@@ -3679,7 +3679,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.14);
+  vec2 r = vec2(0.014);
   float vR = vmax(r);
 
   vec2 size = vec2(2.0) * r;
@@ -3700,10 +3700,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   wQ.y *= 1.25;
   wQ *= rotMat2(-0.19 * PI);
 
-  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+
+  vec2 c = floor((wQ + size*0.5)/size);
+  float thisT = t;
+  thisT += 0.05 * c.x;
+  wQ.y += 3. * size.y * expo(mod(thisT, 1.));
+
+  c = pMod2(wQ, size);
 
   // vec2 preWarpQ = wQ;
   // vec3 res = subdivide(wQ, 2.78238, t);
@@ -3785,37 +3792,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  scale = 0.33 * (1. - 0.667 * norT);
-
-  q *= scale;
-
-  float theR = vmax(r);
-  float offsetSize = 0.25;
-  float tOffset = 0. - offsetSize * norT;
-  for (float i = 0.; i < 7.; i++) {
-    float s = 2. * theR;
-    vec2 c = floor((q + s * 0.5)/s);
-    q = opRepLim(q, s, vec2(1));
-
-    float localT = t;
-    float localOffset = 0.1 * atan(c.y, c.x) / PI;
-    localT += localOffset;
-    localT += tOffset;
-    float localR = theR * mod(localT, 1.);
-
-    if (c != vec2(0)) {
-      vec2 b = vec2(sdBox(q, vec2(localR)), 0);
-      b.x = abs(b.x) - 0.01 * localR;
-      d = dMin(d, b);
-
-      break;
-    }
-
-    tOffset += offsetSize;
-    theR *= 0.333333;
-  }
-
-  d.x /= scale;
+  vec2 b = vec2(sdBox(q, vec2(0.1, 0.8) * r), 0);
+  d = dMin(d, b);
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
   // d.x = max(d.x, crop);
