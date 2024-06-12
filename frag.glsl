@@ -3682,7 +3682,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 r = vec2(0.008);
   float vR = vmax(r);
 
-  vec2 size = vec2(3.5) * r;
+  vec2 size = vec2(4) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3700,15 +3700,15 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   wQ.y *= 1.25;
   wQ *= rotMat2(0.19 * PI);
 
-  float nScale = 0.8;
-  wQ.y += 0.20 * snoise2(1. * vec2(nScale * 2., 0.2) * wQ);
-  wQ.y += 0.10 * snoise2(2. * vec2(nScale * 2., 0.2) * wQ);
-  wQ.x += 0.0125 * snoise2(4. * vec2(nScale * 2., 0.2).yx * wQ);
+  // float nScale = 0.8;
+  // wQ.y += 0.20 * snoise2(1. * vec2(nScale * 2., 0.2) * wQ);
+  // wQ.y += 0.10 * snoise2(2. * vec2(nScale * 2., 0.2) * wQ);
+  // wQ.x += 0.0125 * snoise2(4. * vec2(nScale * 2., 0.2).yx * wQ);
 
-  wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
-  wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
-  // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
-  wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
+  // wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
+  // wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
+  // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
+  // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
   vec2 c = floor((wQ + size*0.5)/size);
   float thisT = t;
@@ -3797,7 +3797,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(sdBox(q, vec2(0.025, 0.8) * r), 0);
+  vec2 b = vec2(sdBox(q, r), 0);
+  b.x = abs(b.x) - 0.01 * vmax(r);
   d = dMin(d, b);
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
