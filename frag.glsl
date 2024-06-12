@@ -3679,10 +3679,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.014);
+  vec2 r = vec2(0.008);
   float vR = vmax(r);
 
-  vec2 size = vec2(2.0) * r;
+  vec2 size = vec2(3.5) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3698,7 +3698,12 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.25;
-  wQ *= rotMat2(-0.19 * PI);
+  wQ *= rotMat2(0.19 * PI);
+
+  float nScale = 0.8;
+  wQ.y += 0.20 * snoise2(1. * vec2(nScale * 2., 0.2) * wQ);
+  wQ.y += 0.10 * snoise2(2. * vec2(nScale * 2., 0.2) * wQ);
+  wQ.x += 0.0125 * snoise2(4. * vec2(nScale * 2., 0.2).yx * wQ);
 
   wQ += 0.100000 * warpScale * cos( 3.0 * warpFrequency * componentShift(wQ) + cos(warpT) );
   wQ += 0.050000 * warpScale * cos( 9.0 * warpFrequency * componentShift(wQ) + warpT );
@@ -3707,8 +3712,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   vec2 c = floor((wQ + size*0.5)/size);
   float thisT = t;
-  thisT += 0.05 * c.x;
-  wQ.y += 3. * size.y * expo(mod(thisT, 1.));
+  thisT += 0.025 * c.x;
+  wQ.y += 5. * size.y * quart(mod(thisT, 1.));
 
   c = pMod2(wQ, size);
 
@@ -3792,7 +3797,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(sdBox(q, vec2(0.1, 0.8) * r), 0);
+  vec2 b = vec2(sdBox(q, vec2(0.025, 0.8) * r), 0);
   d = dMin(d, b);
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
@@ -4030,8 +4035,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
