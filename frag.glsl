@@ -3679,10 +3679,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.008);
+  vec2 r = vec2(0.15);
   float vR = vmax(r);
 
-  vec2 size = vec2(4) * r;
+  vec2 size = vec2(2) * r;
   gSize = size;
   float scale = 1.;
 
@@ -3713,7 +3713,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   vec2 c = floor((wQ + size*0.5)/size);
   float thisT = t;
   thisT += 0.025 * c.x;
-  wQ.y += 5. * size.y * quart(mod(thisT, 1.));
+  // wQ.y += 3. * size.y * quart(mod(thisT, 1.));
 
   c = pMod2(wQ, size);
 
@@ -3742,13 +3742,14 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   mUv = q;
 
   // -- Cell T --
-  float cellT = t;
+  // float cellT = t;
+  float cellT = thisT;
 
   // cellT -= angle1C; // 0.4391
 
   // Center out
   // cellT -= 1.80 * length(localOrigin);
-  // cellT -= 0.08 * length(c);
+  cellT -= 0.12 * length(c);
 
   // Coordinate offset
   // cellT += 0.01 * dot(c, vec2(1, 12.0));
@@ -3768,7 +3769,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= dC * 0.02;
 
   // Noise offset
-  // cellT -= 0.05 * snoise2(0.27 * c);
+  cellT -= 0.05 * snoise2(0.27 * c);
   // cellT -= 0.10 * snoise2(7.0 * localOrigin);
   // cellT -= 0.10 * snoise2(7.0 * q);
 
@@ -3797,9 +3798,21 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  vec2 b = vec2(sdBox(q, r), 0);
-  b.x = abs(b.x) - 0.01 * vmax(r);
-  d = dMin(d, b);
+  for (float i = 0.; i < 4.; i++) {
+    vec2 b = vec2(sdBox(q, r), 0);
+    b.x = abs(b.x) - 0.01 * vmax(r); // * (1. - range(0.8, 1., cellT));
+
+    float showT = range(0.,0.7, cellT);
+    float dQ = dot(q, vec2(1));
+    float crop = abs(dQ) - vmax(r) * 2.0 * (-0.05 + 1.05 * expo(mod(showT + 0.05 * step(0., dot(q, vec2(-1, 1))), 1.)));
+    b.x = max(b.x, crop);
+    d = dMin(d, b);
+
+    r *= 0.80;
+    cellT += 0.03;
+  }
+  // b.x = min(b.x, crop);
+
 
   // float crop = sdBox(preWarpQ, vec2(0.3));
   // d.x = max(d.x, crop);
@@ -4036,8 +4049,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // -- Single layer --
-  return renderSceneLayer(ro, rd, uv);
+  // // -- Single layer --
+  // return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
