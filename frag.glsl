@@ -3679,7 +3679,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.15);
+  vec2 r = vec2(0.10);
   float vR = vmax(r);
 
   vec2 size = vec2(2) * r;
@@ -3698,7 +3698,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
 
   // Fake "Isometric" perspective
   wQ.y *= 1.25;
-  wQ *= rotMat2(0.19 * PI);
+  wQ *= rotMat2(0.15 * PI);
 
   // float nScale = 0.8;
   // wQ.y += 0.20 * snoise2(1. * vec2(nScale * 2., 0.2) * wQ);
@@ -3798,15 +3798,27 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  for (float i = 0.; i < 4.; i++) {
-    vec2 b = vec2(sdBox(q, r), 0);
+  for (float i = 0.; i < 6.; i++) {
+    vec2 localR = r * expo(mod(cellT, 1.));
+    float localD = mod(i + dot(abs(c), vec2(1)), 3.) == 0. ? sdBox(q, localR) : length(q) - vmax(localR);
+    // vec2 b = vec2(sdBox(q, r), 0);
+    // vec2 b = vec2(length(q) - vmax(r), 0);
+    vec2 b = vec2(localD, 0);
     b.x = abs(b.x) - 0.01 * vmax(r); // * (1. - range(0.8, 1., cellT));
 
     float showT = range(0.,0.7, cellT);
     float dQ = dot(q, vec2(1));
     float crop = abs(dQ) - vmax(r) * 2.0 * (-0.05 + 1.05 * expo(mod(showT + 0.05 * step(0., dot(q, vec2(-1, 1))), 1.)));
     b.x = max(b.x, crop);
+
     d = dMin(d, b);
+
+    vec2 localGridQ = q;
+    localGridQ *= rotMat2(0.5 * PI * quint(mod(cellT, 1.)));
+    pMod2(localGridQ, 0.75 * r);
+
+    vec2 dit = vec2(length(localGridQ) - 0.005 * vmax(r), 0);
+    d = dMin(d, dit);
 
     r *= 0.80;
     cellT += 0.03;
