@@ -7,9 +7,9 @@
 // #define debugMapCalls
 // #define debugMapMaxed
 // #define SS 2
-// #define ORTHO 1
+#define ORTHO 1
 // #define NO_MATERIALS 1
-// #define DOF 1
+#define DOF 1
 
 precision highp float;
 
@@ -47,7 +47,7 @@ uniform float rot;
 uniform float epsilon;
 #define maxSteps 512
 #define maxDistance 8.0
-#define fogMaxDistance 3.0
+#define fogMaxDistance 4.5
 
 #define slowTime time * 0.2
 // v3
@@ -2008,7 +2008,7 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // p *= rotationMatrix(vec3(1, 0, 0), 0.125 * tilt * cos(localCosT));
   // p *= rotationMatrix(vec3(0, 1, 0), 0.2 * tilt * sin(localCosT - 0.2 * PI));
 
-  p *= globalRot;
+  // p *= globalRot;
 
   vec3 q = p;
   float warpScale = 1.0;
@@ -2046,31 +2046,42 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.003125 * warpScale * cos(43.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.001562 * warpScale * cos(63.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  preWarpQ = wQ;
-  for (float i = 0.; i < 2.; i++) {
-    wQ.xz = abs(wQ.xz);
+  float cZ = pMod1(wQ.z, 4. * r);
 
-    wQ = (vec4(wQ, 1) * kifsM).xyz;
-    rollingScale *= scale;
-  }
+  float columnT = t;
+  columnT += cZ * 0.1123;
+  columnT = mod(columnT, 1.);
+
+  wQ.x += 1.5 * r * mod(cZ, 2.);
+
+  float pushDistance = 2. * r;
+  wQ.x -= 2. * pushDistance * columnT;
+  float extendSize = 6. * r;
+  float c = pMod1(wQ.x, extendSize);
+  wQ.x -= 2. * r;
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  vec3 b = vec3(crystal(q, r, r * vec3(0.1, 1.2, 0.1), 0.3 * PI), 0, 0);
+  float cellT = columnT;
+  // cellT += c * 0.01;
+  cellT = mod(cellT, 1.);
+
+  float pushT = expo(range(0., 0.5, cellT));
+  float pullT = expoOut(range(0.5, 1., cellT));
+  float pushNPullT = pushT - pullT;
+
+  vec3 b = vec3(piston(q, r, pushNPullT), 0);
   d = dMin(d, b);
 
-  vec3 crop = vec3(-cellular(3. * p), 0, 0);
-  d = dSMax(crop, d, 0.2 * r);
+  vec3 pushedQ = q + vec3(2. * r, 0, 0);
+  pushedQ.x += pushDistance * pushT;
+  vec3 pushed = vec3(piston(pushedQ, r, 0.), 0);
+  d = dMin(d, pushed);
 
-  // Rock
-  float rockR = 2.5 * r;
-  vec3 rockQ = preWarpQ + vec3(0, 0.9 * r, 0);
-  rockQ.y *= 1.5;
-  vec3 rock = vec3(length(rockQ) - rockR, 1, 0);
-  rock.x -= 0.01 * cellular(7. * rockQ);
-  d = dMin(d, rock);
+  vec3 f = vec3(sdPlane(p, vec4(0,1,0, r)), 2, 0);
+  d = dMin(d, f);
 
   // Fractal Scale compensation
   d.x /= rollingScale;
@@ -2078,8 +2089,8 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // // Scale compensation
   // d.x /= worldScale;
 
-  // // Under step
-  // d.x *= 0.5;
+  // Under step
+  d.x *= 0.5;
 
   return d;
 }
@@ -2338,7 +2349,8 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = mix(vec3(0.1), vec3(0), isMaterialSmooth(m, 1.));
+  vec3 color = mix(vec3(1.25), vec3(0.1, 0.125, 0.125), isMaterialSmooth(m, 1.));
+  color = mix(color, vec3(0.75), isMaterialSmooth(m, 2.));
   return color;
 
   // // Face normal Axis based shading for boxes
@@ -2518,19 +2530,19 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       vec3 diffuseColor = baseColor(pos, nor, rayDirection, t.y, t.w, generalT);
 
       // Material Types
-      float isCrystal = isMaterialSmooth(t.y, 0.);
+      float isShaft = isMaterialSmooth(t.y, 0.);
 
       float occ = calcAO(pos, nor, generalT);
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = mix(0.5, 1., isCrystal);
-      float specCo = mix(0.5, 1., isCrystal);
+      float freCo = 0.9;
+      float specCo = mix(0.1, 0.7, isShaft);
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = mix(0.5, 0.8, isCrystal);
+      float diffMin = 0.1;
       float shadowMin = 0.8;
 
       vec3 directLighting = vec3(0);
@@ -2601,13 +2613,13 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       color *= 1.0 / float(NUM_OF_LIGHTS);
       color += 1.0 * pow(specAll, vec3(8.0));
 
-      // Reflect scene
-      isReflection = true; // Set mode to dispersion
-      vec3 reflectColor = vec3(0);
-      vec3 reflectionRd = reflect(rayDirection, nor);
-      reflectColor += mix(0., 0.5, isCrystal) * reflection(pos, reflectionRd, generalT);
-      isReflection = false; // Set mode to dispersion
-      color += reflectColor;
+      // // Reflect scene
+      // isReflection = true; // Set mode to dispersion
+      // vec3 reflectColor = vec3(0);
+      // vec3 reflectionRd = reflect(rayDirection, nor);
+      // reflectColor += mix(0., 0.5, isShaft) * reflection(pos, reflectionRd, generalT);
+      // isReflection = false; // Set mode to dispersion
+      // color += reflectColor;
 
       // vec3 refractColor = vec3(0);
       // vec3 refractionRd = refract(rayDirection, nor, 1.5);
@@ -2617,7 +2629,7 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 #ifndef NO_MATERIALS
 
 // -- Dispersion --
-#define useDispersion 1
+// #define useDispersion 1
 
 #ifdef useDispersion
       // Set Global(s)
@@ -2654,10 +2666,10 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       // Fog
       float d = max(0.0, t.x);
       color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 3.)
+            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 4.)
             / fogMaxDistance
       ));
-      color *= saturate(exp(-d * 0.025));
+      color *= saturate(exp(-d * 0.05));
       color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
@@ -4028,7 +4040,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-#define is2D 1
+// #define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
@@ -4061,8 +4073,8 @@ vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv) {
 vec4 sample (in vec3 ro, in vec3 rd, in vec2 uv) {
   vec4 color = vec4(0, 0, 0, 1);
 
-  // // -- Single layer --
-  // return renderSceneLayer(ro, rd, uv);
+  // -- Single layer --
+  return renderSceneLayer(ro, rd, uv);
 
   // // -- Single layer : Outline --
   // float layerOutline = outline(uv, angle3C);
@@ -4245,7 +4257,7 @@ void main() {
       gRs, 0.0,  gRc);
 
 #ifdef DOF
-    const float dofCoeficient = 0.010;
+    const float dofCoeficient = 0.0175;
 #endif
 
     #ifdef SS
