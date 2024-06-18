@@ -9,7 +9,7 @@
 // #define SS 2
 #define ORTHO 1
 // #define NO_MATERIALS 1
-#define DOF 1
+// #define DOF 1
 
 precision highp float;
 
@@ -1602,17 +1602,56 @@ float arrowUpTexture (in vec2 q, in float size) {
   return max(internalD, sdBox(localQ, vec2(r)));
 }
 
+#define BOX_PISTON 1
+#ifdef BOX_PISTON
 vec2 piston (in vec3 q, in float r, in float t) {
   vec2 d = vec2(maxDistance, -1.);
 
-  const float headBodyRatio = 0.25;
+  float thickness = 0.15 * r;
+
+  const float headBodyRatio = 0.35;
   const float invHeadBodyRatio = 1. - headBodyRatio;
+  const float headSizeScale = 1.;
 
   // Assume pointed in the +x direction
   vec3 headQ = q;
   headQ.x += invHeadBodyRatio * r + t * 2. * r;
 
-  float head = sdBox(headQ, 0.95 * vec3(headBodyRatio * r, r, r));
+  float head = sdHollowBox(headQ, headSizeScale * vec3(headBodyRatio * r, r, r), thickness);
+  d = dMin(d, vec2(head, 0));
+
+  // Shaft
+  float shaftR = 0.2 * r;
+  float shaftLength = t * r;
+
+  vec3 shaftQ = q.yxz;
+  shaftQ.y += shaftLength + 2. * (invHeadBodyRatio - 0.5) * r;
+  // float shaft = sdCappedCylinder(shaftQ, vec2(shaftR, shaftLength));
+  float shaft = sdHollowBox(shaftQ, vec3(shaftR, shaftLength, shaftR), thickness);
+  d = dMin(d, vec2(shaft, 2));
+
+  vec3 bodyQ = q;
+  bodyQ.x -= headBodyRatio * r;
+  float body = sdHollowBox(bodyQ, vec3(invHeadBodyRatio * r, r, r), thickness);
+  d = dMin(d, vec2(body, 1));
+
+  return d;
+}
+
+#else
+
+vec2 piston (in vec3 q, in float r, in float t) {
+  vec2 d = vec2(maxDistance, -1.);
+
+  const float headBodyRatio = 0.35;
+  const float invHeadBodyRatio = 1. - headBodyRatio;
+  const float headSizeScale = 1.;
+
+  // Assume pointed in the +x direction
+  vec3 headQ = q;
+  headQ.x += invHeadBodyRatio * r + t * 2. * r;
+
+  float head = sdBox(headQ, headSizeScale * vec3(headBodyRatio * r, r, r));
   d = dMin(d, vec2(head, 0));
 
   // Shaft
@@ -1631,6 +1670,7 @@ vec2 piston (in vec3 q, in float r, in float t) {
 
   return d;
 }
+#endif
 
 float dotTexture (in vec2 q, in float size) {
   float r = 0.4 * size;
@@ -1987,7 +2027,7 @@ vec3 gridOffset (in vec3 q, in vec2 size, in vec2 c) {
   return outQ;
 }
 
-float gR = 0.1;
+float gR = 0.055;
 bool isDispersion = false;
 bool isReflection = false;
 bool isSoftShadow = false;
@@ -2046,42 +2086,65 @@ vec3 map (in vec3 p, in float dT, in float universe) {
   // wQ += 0.003125 * warpScale * cos(43.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
   // wQ += 0.001562 * warpScale * cos(63.923 * warpFrequency * componentShift(wQ) + distortT + warpPhase);
 
-  float cZ = pMod1(wQ.z, 4. * r);
+  // float cZ = pMod1(wQ.z, 8. * r);
 
-  float columnT = t;
-  columnT += cZ * 0.1123;
-  columnT = mod(columnT, 1.);
+  // float columnT = t;
+  // columnT += cZ * 0.1123;
+  // columnT = mod(columnT, 1.);
 
-  wQ.x += 1.5 * r * mod(cZ, 2.);
+  // wQ.x += 1.5 * r * mod(cZ, 2.);
 
-  float pushDistance = 2. * r;
-  wQ.x -= 2. * pushDistance * columnT;
-  float extendSize = 6. * r;
-  float c = pMod1(wQ.x, extendSize);
-  wQ.x -= 2. * r;
+  // float pushDistance = 2. * r;
+
+  // wQ.x -= 2. * pushDistance * columnT;
+
+  // float extendSize = 6. * r;
+  // // vec2 c = pMod2(wQ.xz, vec2(extendSize));
+  // float c = pMod1(wQ.x, extendSize);
+
+  // // Centering of SDF in modulo domain
+  // wQ.x -= 2. * r;
+
+  size = vec2(4. * r);
+  vec2 c = floor((wQ.xz + size*0.5)/size);
+  wQ.xz = opRepLim(wQ.xz, vmax(size), vec2(1));
 
   // Commit warp
   q = wQ.xyz;
   mPos = wQ.xyz;
 
-  float cellT = columnT;
-  // cellT += c * 0.01;
+  float cellT = t; // columnT;
+  cellT += dot(c, vec2(1, 0.25)) * 0.125;
   cellT = mod(cellT, 1.);
 
   float pushT = expo(range(0., 0.5, cellT));
   float pullT = expoOut(range(0.5, 1., cellT));
   float pushNPullT = pushT - pullT;
 
+  q.y *= -1.;
+
+  q.xyz = q.yxz;
   vec3 b = vec3(piston(q, r, pushNPullT), 0);
   d = dMin(d, b);
 
-  vec3 pushedQ = q + vec3(2. * r, 0, 0);
-  pushedQ.x += pushDistance * pushT;
-  vec3 pushed = vec3(piston(pushedQ, r, 0.), 0);
-  d = dMin(d, pushed);
+  // vec3 b = vec3(piston(q, r, pushNPullT), 0);
+  // // vec3 b = vec3(sdBox(q, vec3(r)), 0, 0);
+  // if (b.x <= d.x) {
+  //   mPos = q;
+  // }
+  // d = dMin(d, b);
 
-  vec3 f = vec3(sdPlane(p, vec4(0,1,0, r)), 2, 0);
-  d = dMin(d, f);
+  // vec3 pushedQ = q + vec3(2. * r, 0, 0);
+  // pushedQ.x += pushDistance * pushT;
+  // vec3 pushed = vec3(piston(pushedQ, r, 0.), 0);
+  // // vec3 pushed = vec3(sdBox(pushedQ, vec3(r)), 0, 0);
+  // if (pushed.x <= d.x) {
+  //   mPos = pushedQ;
+  // }
+  // d = dMin(d, pushed);
+
+  // vec3 f = vec3(sdPlane(p, vec4(0,1,0, r)), 3, 0);
+  // d = dMin(d, f);
 
   // Fractal Scale compensation
   d.x /= rollingScale;
@@ -2349,15 +2412,24 @@ float barHeight (in vec2 c) {
 }
 
 vec3 baseColor (in vec3 pos, in vec3 nor, in vec3 rd, in float m, in float trap, in float t) {
-  vec3 color = mix(vec3(1.25), vec3(0.1, 0.125, 0.125), isMaterialSmooth(m, 1.));
-  color = mix(color, vec3(0.75), isMaterialSmooth(m, 2.));
+  vec3 color = mix(vec3(0.2), vec3(1.75), isMaterialSmooth(m, 3.));
   return color;
 
-  // // Face normal Axis based shading for boxes
-  // // Directions (compared to x-axis (mostly))
-  // vec3 absPos = abs(wQ.xyz);
-  // float yIsGTE = step(absPos.x, absPos.y);
-  // float zIsGTE = step(absPos.x, absPos.z) * step(absPos.y, absPos.z);
+  // Face normal Axis based shading for boxes
+  // Directions (compared to x-axis (mostly))
+  vec3 absPos = abs(mPos.xyz);
+  float yIsGTE = step(absPos.x, absPos.y);
+  float zIsGTE = step(absPos.x, absPos.z) * step(absPos.y, absPos.z);
+
+  float localM = yIsGTE; // x-axis = 0 & y-axis = 1
+  localM = zIsGTE == 1. ? 2. : localM;
+
+  float thickness = 0.001;
+  vec2 faceQ = mix(pos.zy, pos.xz, isMaterialSmooth(localM, 1.));
+  faceQ = mix(faceQ, pos.xy, isMaterialSmooth(localM, 2.));
+
+  color = vec3(step(0., sdBox(faceQ, vec2(gR - thickness))));
+  return color;
 
   float dNR = dot(nor, -rd);
   vec3 dI = 0.3 * vec3(dot(nor, vec3(1)));
@@ -2536,14 +2608,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
       float amb = saturate(0.5 + 0.5 * nor.y);
       float ReflectionFresnel = pow((n1 - n2) / (n1 + n2), 2.);
 
-      float freCo = 0.9;
-      float specCo = mix(0.1, 0.7, isShaft);
+      float freCo = 0.5;
+      float specCo = 0.5; // mix(0.1, 0.7, isShaft);
 
       vec3 specAll = vec3(0.0);
 
       // Shadow minimums
-      float diffMin = 0.1;
-      float shadowMin = 0.8;
+      float diffMin = 0.9;
+      float shadowMin = 0.1;
 
       vec3 directLighting = vec3(0);
       for (int i = 0; i < NUM_OF_LIGHTS; i++) {
@@ -2663,14 +2735,14 @@ vec4 shade ( in vec3 rayOrigin, in vec3 rayDirection, in vec4 t, in vec2 uv, in 
 
 #endif
 
-      // Fog
-      float d = max(0.0, t.x);
-      color = mix(background, color, saturate(
-            pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 4.)
-            / fogMaxDistance
-      ));
-      color *= saturate(exp(-d * 0.05));
-      color = mix(background, color, saturate(exp(-d * 0.05)));
+      // // Fog
+      // float d = max(0.0, t.x);
+      // color = mix(background, color, saturate(
+      //       pow(clamp(fogMaxDistance - d, 0., fogMaxDistance), 4.)
+      //       / fogMaxDistance
+      // ));
+      // color *= saturate(exp(-d * 0.05));
+      // color = mix(background, color, saturate(exp(-d * 0.05)));
 
       // color += directLighting * exp(-d * 0.0005);
 
