@@ -1322,7 +1322,7 @@ vec3 splitParams (in float i, in float t) {
   return vec3(angle, gap, start);
 }
 
-vec2 gSize = vec2(0.15);
+vec2 gSize = vec2(0.05);
 float microGrid ( in vec2 q ) {
   vec2 cMini = pMod2(q, vec2(gSize * 0.10));
 
@@ -1392,21 +1392,21 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // Cell Time
   float cellT = t;
   cellT += 0.035 * dot(localC, vec2(-1));
-  cellT += 0.1 * snoise2(1.78238 * localC);
+  // cellT += 0.1 * snoise2(1.78238 * localC);
   cellT = mod(cellT, 1.);
-  cellT = triangleWave(cellT);
+  // cellT = triangleWave(cellT);
 
   vec2 size = gSize;
-  vec2 r = vec2(0.353554) * size;
+  vec2 r = vec2(0.453554) * size;
 
-  // Make grid look like random placement
-  float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
-  vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
-  vec2 n2 = vec2(-1, 1) * vec2(
-      snoise2( 0.763 * vec2(-1, 1) * localC + 2.37),
-      snoise2(-0.573 * vec2(1,-1) * localC + vec2(-9., 2.37))
-      );
-  q += 0.125 * size * mix(n1, n2, nT);
+  // // Make grid look like random placement
+  // float nT = 0.5 + 0.5 * sin(localCosT - 0.25 * dot(abs(localC), vec2(1)));
+  // vec2 n1 = 0.3 * vec2(1, -1) * snoise2(2.417 * localC + 73.17123);
+  // vec2 n2 = vec2(-1, 1) * vec2(
+  //     snoise2( 0.763 * vec2(-1, 1) * localC + 2.37),
+  //     snoise2(-0.573 * vec2(1,-1) * localC + vec2(-9., 2.37))
+  //     );
+  // q += 0.125 * size * mix(n1, n2, nT);
 
   // float side = step(abs(c.y), abs(c.x));
   // q.x += sign(c.x) * side * size.x * (0.5 + 0.5 * cos(localCosT));
@@ -1426,28 +1426,56 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // center -= size.x * c;
   // q += center;
 
-  // Cosine warp
-  float warpScale2 = warpScale * 0.4;
-  q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
-  q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
+  // // Cosine warp
+  // float warpScale2 = warpScale * 0.4;
+  // q += vec2(-1, 1) * warpScale2 * 0.10000 * cos( 2. * vec2(-1, 1) * q.yx + localCosT + 0.71283 * gC + 0.21 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.05000 * cos( 3. * vec2(-1, 1) * q.yx + localCosT + 0.91283 * gC + 0.17 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.02500 * cos( 5. * vec2(-1, 1) * q.yx + localCosT + 1.11283 * gC + 0.01 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.01250 * cos( 7. * vec2(-1, 1) * q.yx + localCosT - 0.71283 * gC + 0.93 * localC);
+  // q += vec2(-1, 1) * warpScale2 * 0.00625 * cos(11. * vec2(-1, 1) * q.yx + localCosT + 0.31283 * gC + 0.27 * localC);
 
   // c = floor((q + 0.5 * size) / size);
 
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  q -= shiftDir * shift * size * shiftT;
-
-  q *= rotMat2(0.25 * PI * quart(cellT));
-
-  r -= 0.1 * r * cos(TWO_PI * cellT);
+  // q -= shiftDir * shift * size * shiftT;
 
   float internalD = maxDistance;
   // internalD = min(internalD, length(q) - quart(cellT) * vmax(r));
-  internalD = min(internalD, sdBox(q, vec2(r)));
+  // internalD = min(internalD, sdBox(q, vec2(r)));
+
+  for (float i = 0.; i < 9.; i++) {
+    vec2 localR = r * expo(mod(cellT, 1.));
+    float localD = mod(i + dot(abs(c), vec2(1)), 3.) == 0. ? sdBox(q, localR) : length(q) - vmax(localR);
+    // vec2 b = vec2(sdBox(q, r), 0);
+    // vec2 b = vec2(length(q) - vmax(r), 0);
+    vec2 b = vec2(localD, 0);
+    b.x = abs(b.x) - 0.01 * vmax(r); // * (1. - range(0.8, 1., cellT));
+
+    // float showT = range(0.,0.7, cellT);
+    // float dQ = dot(q, vec2(1));
+    // float crop = abs(dQ) - vmax(r) * 2.0 * (-0.05 + 1.05 * expo(mod(showT + 0.05 * step(0., dot(q, vec2(-1, 1))), 1.)));
+    // b.x = max(b.x, crop);
+
+    // d = dMin(d, b);
+
+    vec2 localGridQ = q;
+    vec2 localSize = 0.5 * r;
+
+    vec2 localC = floor((localGridQ + localSize*0.5)/localSize);
+    localGridQ *= rotMat2(0.5 * PI * quint(mod(cellT, 1.)) + 0.1125 * i * (1. - 2. * mod(dot(c, vec2(1)), 2.)));
+
+    // localGridQ = opRepLim(localGridQ, 0.5 * r, vec2(2));
+    vec2 internalC = pMod2(localGridQ, localSize);
+
+    vec2 dit = vec2(length(localGridQ) - 0.025 * vmax(r), 0);
+    dit = max(dit, length(internalC) - 3.);
+    internalD = min(internalD, dit.x);
+
+    r *= 0.91;
+    cellT += 0.03;
+  }
 
   // float internalD = abs(q.y);
   // internalD = max(internalD, abs(q.x) - 0.7 * vmax(size));
@@ -1489,9 +1517,9 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // float o = microGrid(q);
   d = dMin(d, o);
 
-  // Outline
-  const float adjustment = 0.0;
-  d = abs(d - adjustment) - vmin(r) * 0.025;
+  // // Outline
+  // const float adjustment = 0.0;
+  // d = abs(d - adjustment) - vmin(r) * 0.025;
 
   // Mask
   float mask = 0.;
@@ -1499,11 +1527,11 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // mask = step(0., vmax(abs(c)) - 1.);
   // mask = step(0., abs(sdBox(c, vec2(26))) - 8.);
   // mask = step(0., sdBox(q, size * vec2(1, 5)));
-  // mask = step(0., abs(length(c) - 4.) - 2.));
+  // mask = step(0., length(c) - 1.);
   // mask = step(0., length(c) - 35.);
   // mask = step(0., abs(c.y - 25.) - 8.); // Mask below a line
   //
-  // Convert circle into torus
+  // // Convert circle into torus
   // mask = step(0., abs(length(c) - 16.) - 10.);
   // mask = smoothstep(0., 8., abs(length(localC) - 6.) - 2.);
 
@@ -1531,7 +1559,9 @@ vec2 neighborShape (in vec2 q, in vec2 id) {
   float locallocalT = localT;
   // locallocalT -= 0.01 * length(id);
   // locallocalT += 0.05 * vmin(id);
-  locallocalT += 0.03 * dot(id, vec2(0.5, 1));
+  // locallocalT += 0.03 * dot(id, vec2(0.5, 1));
+  locallocalT += 0.025 * id.x;
+
   locallocalT = mod(locallocalT, 1.);
 
   // return bookendShapeWTime(q, id, locallocalT);
@@ -3763,7 +3793,7 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   float warpScale = 0.25;
   float warpFrequency = 1.;
 
-  vec2 r = vec2(0.20);
+  vec2 r = vec2(0.175);
   float vR = vmax(r);
 
   vec2 size = vec2(2) * r;
@@ -3794,12 +3824,11 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // // wQ += 0.050000 * warpScale * snoise2(1. * warpFrequency * componentShift(wQ));
   // wQ += 0.025000 * warpScale * cos(15.0 * warpFrequency * componentShift(wQ) + cos(warpT) + warpT );
 
-  vec2 c = floor((wQ + size*0.5)/size);
-  float thisT = t;
-  thisT += 0.025 * c.x;
-  // wQ.y += 3. * size.y * quart(mod(thisT, 1.));
+  // vec2 c = floor((wQ + size*0.5)/size);
+  // float thisT = t;
+  // thisT += 0.025 * c.x;
 
-  c = pMod2(wQ, size);
+  // c = pMod2(wQ, size);
 
   // vec2 preWarpQ = wQ;
   // vec3 res = subdivide(wQ, 2.78238, t);
@@ -3814,26 +3843,17 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // maxReps = max(vec2(0), maxReps);
   // wQ += 0.5 * divSize;
 
-  // wQ = opRepLim(wQ, divSize, maxReps);
-
-  // wQ += 0.5 * divSize;
-  // pMod2(wQ, divSize);
-
-  // // vec2 c = pMod2(wQ, size);
-  // float c = pMod1(wQ.x, size.x);
-
   q = wQ;
   mUv = q;
 
   // -- Cell T --
-  // float cellT = t;
-  float cellT = thisT;
+  float cellT = t;
 
   // cellT -= angle1C; // 0.4391
 
   // Center out
   // cellT -= 1.80 * length(localOrigin);
-  cellT -= 0.12 * length(c);
+  // cellT -= 0.12 * length(c);
 
   // Coordinate offset
   // cellT += 0.01 * dot(c, vec2(1, 12.0));
@@ -3852,10 +3872,10 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // cellT -= 0.5 * dot(localOrigin, vec2(1));
   // cellT -= dC * 0.02;
 
-  // Noise offset
-  cellT -= 0.05 * snoise2(0.27 * c);
-  // cellT -= 0.10 * snoise2(7.0 * localOrigin);
-  // cellT -= 0.10 * snoise2(7.0 * q);
+  // // Noise offset
+  // cellT -= 0.05 * snoise2(0.27 * c);
+  // // cellT -= 0.10 * snoise2(7.0 * localOrigin);
+  // // cellT -= 0.10 * snoise2(7.0 * q);
 
   // // Local offset
   // cellT += 0.2 * q.y;
@@ -3882,31 +3902,31 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // vec2 o = vec2(sdf2D, 0);
   // d = dMin(d, o);
 
-  for (float i = 0.; i < 9.; i++) {
-    vec2 localR = r * expo(mod(cellT, 1.));
-    float localD = mod(i + dot(abs(c), vec2(1)), 3.) == 0. ? sdBox(q, localR) : length(q) - vmax(localR);
-    // vec2 b = vec2(sdBox(q, r), 0);
-    // vec2 b = vec2(length(q) - vmax(r), 0);
-    vec2 b = vec2(localD, 0);
-    b.x = abs(b.x) - 0.01 * vmax(r); // * (1. - range(0.8, 1., cellT));
+  // for (float i = 0.; i < 9.; i++) {
+  //   vec2 localR = r * expo(mod(cellT, 1.));
+  //   float localD = mod(i + dot(abs(c), vec2(1)), 3.) == 0. ? sdBox(q, localR) : length(q) - vmax(localR);
+  //   // vec2 b = vec2(sdBox(q, r), 0);
+  //   // vec2 b = vec2(length(q) - vmax(r), 0);
+  //   vec2 b = vec2(localD, 0);
+  //   b.x = abs(b.x) - 0.01 * vmax(r); // * (1. - range(0.8, 1., cellT));
 
-    // float showT = range(0.,0.7, cellT);
-    // float dQ = dot(q, vec2(1));
-    // float crop = abs(dQ) - vmax(r) * 2.0 * (-0.05 + 1.05 * expo(mod(showT + 0.05 * step(0., dot(q, vec2(-1, 1))), 1.)));
-    // b.x = max(b.x, crop);
+  //   // float showT = range(0.,0.7, cellT);
+  //   // float dQ = dot(q, vec2(1));
+  //   // float crop = abs(dQ) - vmax(r) * 2.0 * (-0.05 + 1.05 * expo(mod(showT + 0.05 * step(0., dot(q, vec2(-1, 1))), 1.)));
+  //   // b.x = max(b.x, crop);
 
-    // d = dMin(d, b);
+  //   // d = dMin(d, b);
 
-    vec2 localGridQ = q;
-    localGridQ *= rotMat2(0.5 * PI * quint(mod(cellT, 1.)) + 0.1125 * i);
-    pMod2(localGridQ, 0.5 * r);
+  //   vec2 localGridQ = q;
+  //   localGridQ *= rotMat2(0.5 * PI * quint(mod(cellT, 1.)) + 0.1125 * i);
+  //   pMod2(localGridQ, 0.5 * r);
 
-    vec2 dit = vec2(length(localGridQ) - 0.02 * vmax(r), 0);
-    d = dMin(d, dit);
+  //   vec2 dit = vec2(length(localGridQ) - 0.02 * vmax(r), 0);
+  //   d = dMin(d, dit);
 
-    r *= 0.91;
-    cellT += 0.03;
-  }
+  //   r *= 0.91;
+  //   cellT += 0.03;
+  // }
   // b.x = min(b.x, crop);
 
 
@@ -3917,8 +3937,8 @@ vec4 two_dimensional (in vec2 uv, in float generalT) {
   // line = max(line, sdBox(q, vec2(0.25 * 0.02)));
   // d.x = min(d.x, line);
 
-  // vec2 b = neighborGrid(q, size);
-  // d = dMin(d, b);
+  vec2 b = neighborGrid(q, size);
+  d = dMin(d, b);
 
   // --- Mask ---
   float mask = 1.;
@@ -4112,7 +4132,7 @@ vec3 sunColor (in vec3 q) {
 // and returns a rgba color value for that coordinate of the scene.
 vec4 renderSceneLayer (in vec3 ro, in vec3 rd, in vec2 uv, in float time) {
 
-// #define is2D 1
+#define is2D 1
 #ifdef is2D
   // 2D
   vec4 layer = two_dimensional(uv, time);
