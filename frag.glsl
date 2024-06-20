@@ -1375,9 +1375,9 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   float localCosT = TWO_PI * t;
 
   // Local C that transitions from one cell to another
-  float shift = 3.;
+  float shift = 1.;
   // vec2 shiftDir = vec2(mix(1., -1., odd), 0);
-  vec2 shiftDir = vec2(1, 0);
+  vec2 shiftDir = vec2(-1, 0);
 
   float shiftT = sine(t);
 
@@ -1391,7 +1391,7 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
 
   // Cell Time
   float cellT = t;
-  cellT += 0.035 * dot(localC, vec2(-1));
+  // cellT += 0.035 * dot(localC, vec2(-1));
   // cellT += 0.1 * snoise2(1.78238 * localC);
   cellT = mod(cellT, 1.);
   // cellT = triangleWave(cellT);
@@ -1439,15 +1439,16 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
   // q.x += 0.333 * size.x * mod(c.y, 3.);
   // c = pMod2(q, size);
 
-  // q -= shiftDir * shift * size * shiftT;
+  q -= shiftDir * shift * size * shiftT;
 
   float internalD = maxDistance;
   // internalD = min(internalD, length(q) - quart(cellT) * vmax(r));
   // internalD = min(internalD, sdBox(q, vec2(r)));
 
-  for (float i = 0.; i < 9.; i++) {
-    vec2 localR = r * expo(mod(cellT, 1.));
-    float localD = mod(i + dot(abs(c), vec2(1)), 3.) == 0. ? sdBox(q, localR) : length(q) - vmax(localR);
+  for (float i = 0.; i < 3.; i++) {
+    float localGridT = mod(cellT, 1.);
+    vec2 localR = r * expo(localGridT);
+    float localD = mod(i + dot(abs(localC), vec2(1)), 3.) == 0. ? sdBox(q, localR) : length(q) - vmax(localR);
     // vec2 b = vec2(sdBox(q, r), 0);
     // vec2 b = vec2(length(q) - vmax(r), 0);
     vec2 b = vec2(localD, 0);
@@ -1463,18 +1464,22 @@ vec2 shape (in vec2 q, in vec2 c, in float localT) {
     vec2 localGridQ = q;
     vec2 localSize = 0.5 * r;
 
+    localGridQ *= rotMat2(0.125 * PI);
+
+    localGridQ.x += 2. * localSize.x * localGridT;
+
     vec2 localC = floor((localGridQ + localSize*0.5)/localSize);
-    localGridQ *= rotMat2(0.5 * PI * quint(mod(cellT, 1.)) + 0.1125 * i * (1. - 2. * mod(dot(c, vec2(1)), 2.)));
 
     // localGridQ = opRepLim(localGridQ, 0.5 * r, vec2(2));
     vec2 internalC = pMod2(localGridQ, localSize);
 
-    vec2 dit = vec2(length(localGridQ) - 0.025 * vmax(r), 0);
-    dit = max(dit, length(internalC) - 3.);
+    vec2 dit = vec2(sdBox(localGridQ, 0.025 * r * vec2(0.1, 1)), 0);
+    // vec2 dit = vec2(length(localGridQ) - 0.0125 * vmax(r), 0);
+    dit = max(dit, length(internalC) - 5.);
     internalD = min(internalD, dit.x);
 
     r *= 0.91;
-    cellT += 0.03;
+    cellT += 0.05;
   }
 
   // float internalD = abs(q.y);
@@ -1560,7 +1565,7 @@ vec2 neighborShape (in vec2 q, in vec2 id) {
   // locallocalT -= 0.01 * length(id);
   // locallocalT += 0.05 * vmin(id);
   // locallocalT += 0.03 * dot(id, vec2(0.5, 1));
-  locallocalT += 0.025 * id.x;
+  locallocalT += 0.075 * id.y;
 
   locallocalT = mod(locallocalT, 1.);
 
